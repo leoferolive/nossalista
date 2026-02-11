@@ -24,6 +24,10 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+jwt:
+  secret: dev-secret-key-minimum-32-characters-for-hmac-sha256-algorithm
+  expiration: 604800000  # 7 dias em milissegundos
+
 logging:
   level:
     br.com.leoferolive.nossalista: DEBUG

@@ -18,6 +18,10 @@ server:
     include-message: always
     include-binding-errors: always
 
+jwt:
+  secret: ${JWT_SECRET:change-this-secret-key-in-production-minimum-32-characters-for-hs256}
+  expiration: 604800000  # 7 dias em milissegundos
+
 management:
   endpoints:
     web:

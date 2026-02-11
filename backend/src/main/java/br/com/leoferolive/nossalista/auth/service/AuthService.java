@@ -3,8 +3,10 @@ package br.com.leoferolive.nossalista.auth.service;
 import br.com.leoferolive.nossalista.auth.domain.AuthProvider;
 import br.com.leoferolive.nossalista.auth.domain.Role;
 import br.com.leoferolive.nossalista.auth.domain.User;
+import br.com.leoferolive.nossalista.auth.dto.LoginRequest;
 import br.com.leoferolive.nossalista.auth.dto.RegisterRequest;
 import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
+import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -61,5 +63,30 @@ public class AuthService {
         user.setRole(Role.USER); // Set default role
 
         return userRepository.save(user);
+    }
+
+    /**
+     * Autentica um usuário com email e senha
+     *
+     * @param request credenciais de login
+     * @return usuário autenticado
+     * @throws InvalidCredentialsException se email não existe OU senha é incorreta
+     */
+    @Transactional(readOnly = true)
+    public User login(LoginRequest request) {
+        // Normalize email (trim + toLowerCase) igual ao registro
+        String normalizedEmail = request.email().trim().toLowerCase();
+        String password = request.password().trim();
+
+        // Buscar usuário por email
+        User user = userRepository.findByEmail(normalizedEmail)
+            .orElseThrow(() -> new InvalidCredentialsException());
+
+        // Validar senha com BCrypt
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new InvalidCredentialsException();
+        }
+
+        return user;
     }
 }

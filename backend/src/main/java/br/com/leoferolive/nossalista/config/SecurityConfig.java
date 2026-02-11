@@ -8,6 +8,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -21,6 +22,12 @@ import java.util.Arrays;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -49,10 +56,10 @@ public class SecurityConfig {
                 )
 
                 // Permitir frames para H2 Console (apenas dev)
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
 
-        // TODO: Adicionar JWT Authentication Filter (será implementado na Story 1.3)
-        // http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+                // Adicionar JWT Authentication Filter ANTES de UsernamePasswordAuthenticationFilter
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

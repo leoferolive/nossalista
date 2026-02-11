@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.config;
 
 import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
+import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -58,6 +59,27 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
+    /**
+     * Trata exceção de credenciais inválidas (email não existe OU senha incorreta)
+     * Retorna 401 Unauthorized com RFC 7807 Problem Details
+     * Mensagem genérica por segurança: não revela se email existe
+     */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidCredentials(
+        InvalidCredentialsException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.UNAUTHORIZED,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/invalid-credentials"));
+        problem.setTitle("Credenciais inválidas");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
 
     /**

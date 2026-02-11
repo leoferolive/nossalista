@@ -1,10 +1,13 @@
 package br.com.leoferolive.nossalista.auth.controller;
 
 import br.com.leoferolive.nossalista.auth.domain.User;
+import br.com.leoferolive.nossalista.auth.dto.LoginRequest;
+import br.com.leoferolive.nossalista.auth.dto.LoginResponse;
 import br.com.leoferolive.nossalista.auth.dto.RegisterRequest;
 import br.com.leoferolive.nossalista.auth.dto.RegisterResponse;
 import br.com.leoferolive.nossalista.auth.dto.UserMapper;
 import br.com.leoferolive.nossalista.auth.service.AuthService;
+import br.com.leoferolive.nossalista.auth.service.JwtService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -13,6 +16,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 /**
  * Controller REST para operações de autenticação
@@ -23,10 +28,12 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
     private final UserMapper userMapper;
 
-    public AuthController(AuthService authService, UserMapper userMapper) {
+    public AuthController(AuthService authService, JwtService jwtService, UserMapper userMapper) {
         this.authService = authService;
+        this.jwtService = jwtService;
         this.userMapper = userMapper;
     }
 
@@ -50,5 +57,35 @@ public class AuthController {
         User user = authService.register(request);
         RegisterResponse response = userMapper.toRegisterResponse(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Faz login de um usuário com email e senha
+     *
+     * @param request credenciais de login (email e senha)
+     * @return dados do usuário autenticado com JWT token
+     */
+    @PostMapping("/login")
+    @Operation(
+        summary = "Fazer login",
+        description = "Autentica usuário com email e senha, retornando JWT token com validade de 7 dias."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Login bem-sucedido com JWT token"),
+        @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos (campos obrigatórios vazios)"),
+        @ApiResponse(responseCode = "401", description = "Credenciais inválidas (email não existe OU senha incorreta)")
+    })
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        // Validar credenciais
+        User user = authService.login(request);
+
+        // Gerar JWT token
+        String token = jwtService.generateToken(user);
+        LocalDateTime expiresAt = jwtService.getExpirationTime();
+
+        // Criar response com dados do usuário + token
+        LoginResponse response = userMapper.toLoginResponse(user, token, expiresAt);
+
+        return ResponseEntity.ok(response);
     }
 }
