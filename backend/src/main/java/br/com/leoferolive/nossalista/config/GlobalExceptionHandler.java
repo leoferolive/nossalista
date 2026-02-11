@@ -15,14 +15,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global exception handler following RFC 7807 Problem Details standard
+ * Handler global de exceções seguindo o padrão RFC 7807 Problem Details
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * Handle email already exists exception
-     * Returns 409 Conflict with RFC 7807 Problem Details
+     * Trata exceção de email já existente
+     * Retorna 409 Conflict com RFC 7807 Problem Details
      */
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ProblemDetail> handleEmailAlreadyExists(
@@ -41,8 +41,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle username already exists exception
-     * Returns 409 Conflict with RFC 7807 Problem Details
+     * Trata exceção de username já existente
+     * Retorna 409 Conflict com RFC 7807 Problem Details
      */
     @ExceptionHandler(UsernameAlreadyExistsException.class)
     public ResponseEntity<ProblemDetail> handleUsernameAlreadyExists(
@@ -61,8 +61,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle validation errors from @Valid annotation
-     * Returns 400 Bad Request with RFC 7807 Problem Details including field errors
+     * Trata erros de validação da anotação @Valid
+     * Retorna 400 Bad Request com RFC 7807 Problem Details incluindo erros de campo
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleValidationErrors(

@@ -1,7 +1,7 @@
 package br.com.leoferolive.nossalista.auth.exception;
 
 /**
- * Exception thrown when attempting to register with a username that already exists
+ * Exceção lançada ao tentar registrar com um username que já existe
  */
 public class UsernameAlreadyExistsException extends RuntimeException {
 

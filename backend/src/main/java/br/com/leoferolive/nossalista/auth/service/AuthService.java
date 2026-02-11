@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.auth.service;
 
 import br.com.leoferolive.nossalista.auth.domain.AuthProvider;
+import br.com.leoferolive.nossalista.auth.domain.Role;
 import br.com.leoferolive.nossalista.auth.domain.User;
 import br.com.leoferolive.nossalista.auth.dto.RegisterRequest;
 import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Service for authentication operations
+ * Serviço para operações de autenticação
  */
 @Service
 public class AuthService {
@@ -25,32 +26,39 @@ public class AuthService {
     }
 
     /**
-     * Register a new user with email and password
+     * Registra um novo usuário com email e senha
      *
-     * @param request registration data
-     * @return created user
-     * @throws EmailAlreadyExistsException if email already exists
-     * @throws UsernameAlreadyExistsException if username already exists
+     * @param request dados de registro
+     * @return usuário criado
+     * @throws EmailAlreadyExistsException se email já existe
+     * @throws UsernameAlreadyExistsException se username já existe
      */
     @Transactional
     public User register(RegisterRequest request) {
+        // Normalize and trim input
+        String normalizedEmail = request.email().trim().toLowerCase();
+        String normalizedUsername = request.username().trim().toLowerCase();
+        String trimmedPassword = request.password().trim();
+        String trimmedName = request.name() != null ? request.name().trim() : null;
+
         // Check for duplicate email
-        if (userRepository.existsByEmail(request.email())) {
-            throw new EmailAlreadyExistsException(request.email());
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new EmailAlreadyExistsException(normalizedEmail);
         }
 
         // Check for duplicate username
-        if (userRepository.existsByUsername(request.username())) {
-            throw new UsernameAlreadyExistsException(request.username());
+        if (userRepository.existsByUsername(normalizedUsername)) {
+            throw new UsernameAlreadyExistsException(normalizedUsername);
         }
 
         // Create user with hashed password
         User user = new User();
-        user.setEmail(request.email());
-        user.setUsername(request.username());
-        user.setPassword(passwordEncoder.encode(request.password())); // Hash password with BCrypt
-        user.setName(request.name());
+        user.setEmail(normalizedEmail);
+        user.setUsername(normalizedUsername);
+        user.setPassword(passwordEncoder.encode(trimmedPassword)); // Hash password with BCrypt
+        user.setName(trimmedName);
         user.setAuthProvider(AuthProvider.EMAIL);
+        user.setRole(Role.USER); // Set default role
 
         return userRepository.save(user);
     }

@@ -8,40 +8,40 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repository for User entity operations
+ * Repositório para operações da entidade User
  */
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
 
     /**
-     * Find a user by email address
+     * Busca um usuário por endereço de email
      *
-     * @param email the email to search for
-     * @return Optional containing the user if found
+     * @param email o email para buscar
+     * @return Optional contendo o usuário se encontrado
      */
     Optional<User> findByEmail(String email);
 
     /**
-     * Find a user by username
+     * Busca um usuário por username
      *
-     * @param username the username to search for
-     * @return Optional containing the user if found
+     * @param username o username para buscar
+     * @return Optional contendo o usuário se encontrado
      */
     Optional<User> findByUsername(String username);
 
     /**
-     * Check if an email already exists in the database
+     * Verifica se um email já existe no banco de dados
      *
-     * @param email the email to check
-     * @return true if email exists, false otherwise
+     * @param email o email para verificar
+     * @return true se email existe, false caso contrário
      */
     boolean existsByEmail(String email);
 
     /**
-     * Check if a username already exists in the database
+     * Verifica se um username já existe no banco de dados
      *
-     * @param username the username to check
-     * @return true if username exists, false otherwise
+     * @param username o username para verificar
+     * @return true se username existe, false caso contrário
      */
     boolean existsByUsername(String username);
 }

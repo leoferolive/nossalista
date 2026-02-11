@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.auth.controller;
 
 import br.com.leoferolive.nossalista.auth.domain.AuthProvider;
+import br.com.leoferolive.nossalista.auth.domain.Role;
 import br.com.leoferolive.nossalista.auth.domain.User;
 import br.com.leoferolive.nossalista.auth.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Integration tests for AuthController registration endpoint
+ * Testes de integração para endpoint de registro do AuthController
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Sql(scripts = "/db/migration/V1__create_users_table.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
@@ -75,6 +76,7 @@ class AuthControllerTest {
         User user = userRepository.findByEmail("leo@example.com").orElseThrow();
         assertThat(user.getUsername()).isEqualTo("leoferolive");
         assertThat(user.getAuthProvider()).isEqualTo(AuthProvider.EMAIL);
+        assertThat(user.getRole()).isEqualTo(Role.USER); // Verify role is USER
 
         // Verify password is hashed (BCrypt starts with $2a$)
         assertThat(user.getPassword()).startsWith("$2a$");
@@ -89,6 +91,7 @@ class AuthControllerTest {
         existingUser.setUsername("existinguser");
         existingUser.setPassword(passwordEncoder.encode("password"));
         existingUser.setAuthProvider(AuthProvider.EMAIL);
+        existingUser.setRole(Role.USER);
         userRepository.save(existingUser);
 
         Map<String, String> request = new HashMap<>();
@@ -116,6 +119,7 @@ class AuthControllerTest {
         existingUser.setUsername("existingusername");
         existingUser.setPassword(passwordEncoder.encode("password"));
         existingUser.setAuthProvider(AuthProvider.EMAIL);
+        existingUser.setRole(Role.USER);
         userRepository.save(existingUser);
 
         Map<String, String> request = new HashMap<>();
@@ -171,6 +175,25 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.title").value("Validation Error"))
             .andExpect(jsonPath("$.status").value(400))
             .andExpect(jsonPath("$.errors.email").value("Email inválido"));
+    }
+
+    @Test
+    void shouldReturn400WhenUsernameHasInvalidFormat() throws Exception {
+        // Given - username with uppercase and special characters
+        Map<String, String> request = new HashMap<>();
+        request.put("email", "test@example.com");
+        request.put("username", "User@Name!"); // Invalid format
+        request.put("password", "senha123");
+
+        // When & Then
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/validation-error"))
+            .andExpect(jsonPath("$.title").value("Validation Error"))
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.errors.username").value("Username deve conter apenas letras minúsculas, números, hífen e underscore"));
     }
 
     @Test

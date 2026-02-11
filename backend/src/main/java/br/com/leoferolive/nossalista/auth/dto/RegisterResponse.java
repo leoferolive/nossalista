@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Response DTO for user registration
- * IMPORTANT: Password field is NOT included for security reasons
+ * DTO de resposta para registro de usuário
+ * IMPORTANTE: Campo password NÃO é incluído por razões de segurança
  */
 public record RegisterResponse(
     UUID id,

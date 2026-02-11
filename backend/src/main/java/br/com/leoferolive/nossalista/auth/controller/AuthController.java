@@ -15,11 +15,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * REST controller for authentication operations
+ * Controller REST para operações de autenticação
  */
 @RestController
 @RequestMapping("/api/auth")
-@Tag(name = "Authentication", description = "User authentication and registration endpoints")
+@Tag(name = "Autenticação", description = "Endpoints de autenticação e registro de usuários")
 public class AuthController {
 
     private final AuthService authService;
@@ -31,20 +31,20 @@ public class AuthController {
     }
 
     /**
-     * Register a new user with email and password
+     * Registra um novo usuário com email e senha
      *
-     * @param request registration data with validation
-     * @return created user without password
+     * @param request dados de registro com validação
+     * @return usuário criado sem password
      */
     @PostMapping("/register")
     @Operation(
-        summary = "Register new user",
-        description = "Creates a new user account with email, username, and password. Password is hashed with BCrypt."
+        summary = "Registrar novo usuário",
+        description = "Cria uma nova conta de usuário com email, username e senha. Senha é hasheada com BCrypt."
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "User successfully created"),
-        @ApiResponse(responseCode = "400", description = "Invalid input data (validation errors)"),
-        @ApiResponse(responseCode = "409", description = "Email or username already exists")
+        @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos (erros de validação)"),
+        @ApiResponse(responseCode = "409", description = "Email ou username já existe")
     })
     public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         User user = authService.register(request);

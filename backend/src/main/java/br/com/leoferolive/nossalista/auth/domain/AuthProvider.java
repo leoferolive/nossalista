@@ -1,16 +1,16 @@
 package br.com.leoferolive.nossalista.auth.domain;
 
 /**
- * Authentication provider types supported by the application
+ * Tipos de provedores de autenticação suportados pela aplicação
  */
 public enum AuthProvider {
     /**
-     * Email and password authentication
+     * Autenticação com email e senha
      */
     EMAIL,
 
     /**
-     * Google OAuth2 authentication
+     * Autenticação via Google OAuth2
      */
     GOOGLE
 }

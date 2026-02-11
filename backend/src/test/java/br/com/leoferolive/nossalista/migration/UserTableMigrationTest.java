@@ -12,7 +12,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration test for V1__create_users_table.sql migration
+ * Teste de integração para migration V1__create_users_table.sql
  */
 @SpringBootTest
 @ActiveProfiles("dev")
@@ -38,7 +38,7 @@ class UserTableMigrationTest {
         // Verify all expected columns exist
         assertThat(columns)
             .containsExactly("ID", "USERNAME", "EMAIL", "PASSWORD", "NAME",
-                           "AVATAR_URL", "AUTH_PROVIDER", "CREATED_AT", "UPDATED_AT");
+                           "AVATAR_URL", "AUTH_PROVIDER", "ROLE", "CREATED_AT", "UPDATED_AT");
     }
 
     @Test

@@ -4,17 +4,17 @@ import br.com.leoferolive.nossalista.auth.domain.User;
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper to convert User entity to DTOs
+ * Mapper para converter entidade User em DTOs
  */
 @Component
 public class UserMapper {
 
     /**
-     * Convert User entity to RegisterResponse DTO
-     * Password field is NOT included in the response for security
+     * Converte entidade User em DTO RegisterResponse
+     * Campo password NÃO é incluído na resposta por segurança
      *
-     * @param user the user entity
-     * @return RegisterResponse DTO without password
+     * @param user a entidade user
+     * @return DTO RegisterResponse sem password
      */
     public RegisterResponse toRegisterResponse(User user) {
         return new RegisterResponse(

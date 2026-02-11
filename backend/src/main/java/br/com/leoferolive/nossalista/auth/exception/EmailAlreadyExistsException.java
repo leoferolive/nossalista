@@ -1,7 +1,7 @@
 package br.com.leoferolive.nossalista.auth.exception;
 
 /**
- * Exception thrown when attempting to register with an email that already exists
+ * Exceção lançada ao tentar registrar com um email que já existe
  */
 public class EmailAlreadyExistsException extends RuntimeException {
 

@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.auth.repository;
 
 import br.com.leoferolive.nossalista.auth.domain.AuthProvider;
+import br.com.leoferolive.nossalista.auth.domain.Role;
 import br.com.leoferolive.nossalista.auth.domain.User;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests for UserRepository
+ * Testes de integração para UserRepository
  */
 @SpringBootTest
 @Transactional
@@ -144,6 +145,7 @@ class UserRepositoryTest {
         user.setUsername(username);
         user.setPassword("hashedPassword");
         user.setAuthProvider(AuthProvider.EMAIL);
+        user.setRole(Role.USER);
         return user;
     }
 }
