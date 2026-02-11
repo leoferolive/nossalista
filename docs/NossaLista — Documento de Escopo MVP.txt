@@ -1,0 +1,404 @@
+> **Listas compartilhadas em tempo real.**
+> `nossalista.leoferolive.com.br`
+
+---
+
+## 1. Visão do Produto
+
+NossaLista é um aplicativo web de listas compartilhadas onde usuários podem criar diferentes tipos de lista, convidar outras pessoas e colaborar em tempo real. O foco é simplicidade, com uma interface moderna e minimalista.
+
+---
+
+## 2. Stack Técnica
+
+| Camada       | Tecnologia                                    |
+|-------------|-----------------------------------------------|
+| Frontend    | React 19 + TypeScript + Vite                  |
+| Backend     | Java 25 + Spring Boot 4                       |
+| Real-time   | Spring WebSocket (STOMP + SockJS)             |
+| Auth        | Google OAuth2 + email/senha (fallback)        |
+| BD Produção | PostgreSQL                                    |
+| BD Local    | H2 (testes/dev)                               |
+| Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel      |
+| CI/CD       | GitHub Actions → deploy no Pi                 |
+| Domínio     | nossalista.leoferolive.com.br                 |
+
+---
+
+## 3. Funcionalidades do MVP
+
+### 3.1 Autenticação
+- Login com Google (OAuth2) — método principal
+- Login com email/senha — fallback
+- Registro de usuário com username único (usado para convites)
+- Sessão persistente via JWT
+
+### 3.2 Tipos de Lista (pré-definidos)
+
+Cada tipo define quais campos um item possui:
+
+| Tipo       | Campos do Item                          |
+|-----------|------------------------------------------|
+| 🛒 Compras | nome, quantidade, checkbox              |
+| ✅ Tarefas  | nome, prazo (data), checkbox            |
+| 🎁 Wishlist | nome, link/URL, checkbox               |
+| 📝 Genérica | nome, checkbox                         |
+
+### 3.3 Gestão de Listas
+- Criar lista (escolher tipo + nome da lista)
+- Editar nome da lista
+- Excluir lista (apenas o dono)
+- Visualizar todas as listas (próprias + compartilhadas)
+
+### 3.4 Gestão de Itens
+- Adicionar item à lista (campos variam por tipo)
+- Editar item
+- Marcar/desmarcar checkbox
+- Remover item
+- Reordenar itens (drag & drop — nice to have)
+
+### 3.5 Compartilhamento
+- Convidar por username (busca dentro do app)
+- Convidar por link de convite (gera link único com expiração)
+- Todos os convidados têm permissão total (CRUD de itens)
+- Dono pode remover participantes
+- Participante pode sair da lista
+
+### 3.6 Sincronização em Tempo Real
+- WebSocket (STOMP sobre SockJS)
+- Alterações em itens refletem instantaneamente para todos os participantes online
+- Indicador de quem está online na lista (nice to have)
+
+### 3.7 Histórico
+- Log simples de ações: quem fez o quê e quando
+- Exemplos: "Leo adicionou 'Arroz'" · "Ana marcou 'Leite' como concluído"
+- Visualização em timeline dentro da lista
+
+---
+
+## 4. Modelo de Dados (simplificado)
+
+```
+┌──────────────┐       ┌──────────────────┐
+│    users     │       │   list_types     │
+├──────────────┤       ├──────────────────┤
+│ id (UUID)    │       │ id               │
+│ username     │       │ name             │
+│ email        │       │ slug             │
+│ name         │       │ field_schema     │
+│ avatar_url   │       │   (JSONB)        │
+│ password     │       └──────────────────┘
+│   (nullable) │
+│ auth_provider│
+│ created_at   │
+└──────┬───────┘
+       │
+       │ 1:N
+       ▼
+┌──────────────┐        ┌──────────────────┐
+│    lists     │        │  list_members    │
+├──────────────┤        ├──────────────────┤
+│ id (UUID)    │◄──────►│ list_id          │
+│ name         │  N:M   │ user_id          │
+│ type_id      │        │ role (OWNER /    │
+│ owner_id(FK) │        │       MEMBER)    │
+│ invite_code  │        │ joined_at        │
+│ created_at   │        └──────────────────┘
+│ updated_at   │
+└──────┬───────┘
+       │
+       │ 1:N
+       ▼
+┌──────────────────┐
+│   list_items     │
+├──────────────────┤
+│ id (UUID)        │
+│ list_id (FK)     │
+│ name             │
+│ checked          │
+│ quantity         │
+│   (nullable)     │
+│ due_date         │
+│   (nullable)     │
+│ url (nullable)   │
+│ position (int)   │
+│ created_by (FK)  │
+│ created_at       │
+│ updated_at       │
+└──────┬───────────┘
+       │
+       │ 1:N
+       ▼
+┌──────────────────┐
+│  activity_log    │
+├──────────────────┤
+│ id (UUID)        │
+│ list_id (FK)     │
+│ user_id (FK)     │
+│ action           │
+│  (ADDED/CHECKED/ │
+│   REMOVED/EDITED)│
+│ target_name      │
+│ details (JSONB)  │
+│ created_at       │
+└──────────────────┘
+```
+
+### Notas sobre o modelo:
+- **list_types.field_schema**: JSONB que define os campos dinâmicos por tipo. Ex: `{"fields": [{"name": "quantity", "type": "number"}, {"name": "due_date", "type": "date"}]}`
+- **list_items**: colunas nullable para campos opcionais — abordagem simples para o MVP. Alternativa futura: coluna JSONB para dados extras.
+- **password nullable**: usuários que logam via Google não precisam de senha.
+
+---
+
+## 5. Arquitetura
+
+```
+                    ┌─────────────────────────┐
+                    │   Cloudflare Tunnel      │
+                    │ nossalista.leoferolive   │
+                    │         .com.br          │
+                    └────────────┬─────────────┘
+                                 │
+                    ┌────────────▼─────────────┐
+                    │     Traefik (Ingress)     │
+                    │         K3s - Pi 4        │
+                    └─────┬──────────┬─────────┘
+                          │          │
+              ┌───────────▼──┐  ┌────▼───────────┐
+              │   Frontend   │  │    Backend      │
+              │  React+Vite  │  │  Spring Boot 4  │
+              │  (nginx pod) │  │   Java 25       │
+              │   :80        │  │   :8080         │
+              └──────────────┘  └────┬──────┬─────┘
+                                     │      │
+                              ┌──────▼──┐ ┌─▼──────────┐
+                              │ Postgres│ │  WebSocket  │
+                              │  :5432  │ │  (STOMP)    │
+                              └─────────┘ └─────────────┘
+```
+
+### Roteamento (Traefik):
+- `nossalista.leoferolive.com.br` → Frontend (SPA)
+- `nossalista.leoferolive.com.br/api/**` → Backend REST
+- `nossalista.leoferolive.com.br/ws/**` → Backend WebSocket
+
+---
+
+## 6. API REST — Endpoints Principais
+
+### Auth
+```
+POST   /api/auth/register          Registro email/senha
+POST   /api/auth/login             Login email/senha
+GET    /api/auth/google            Redirect OAuth2 Google
+GET    /api/auth/google/callback   Callback OAuth2
+POST   /api/auth/refresh           Refresh token
+```
+
+### Users
+```
+GET    /api/users/me               Perfil do usuário logado
+PATCH  /api/users/me               Atualizar perfil
+GET    /api/users/search?q=        Buscar por username (p/ convite)
+```
+
+### Lists
+```
+GET    /api/lists                  Listar listas do usuário
+POST   /api/lists                  Criar lista
+GET    /api/lists/{id}             Detalhe da lista
+PATCH  /api/lists/{id}             Editar lista
+DELETE /api/lists/{id}             Excluir lista (dono)
+```
+
+### List Members
+```
+POST   /api/lists/{id}/invite          Convidar por username
+POST   /api/lists/{id}/invite-link     Gerar link de convite
+POST   /api/lists/join/{inviteCode}    Aceitar convite via link
+DELETE /api/lists/{id}/members/{uid}   Remover membro
+POST   /api/lists/{id}/leave           Sair da lista
+```
+
+### List Items
+```
+GET    /api/lists/{id}/items       Listar itens
+POST   /api/lists/{id}/items       Adicionar item
+PATCH  /api/lists/{id}/items/{iid} Editar item
+DELETE /api/lists/{id}/items/{iid} Remover item
+PATCH  /api/lists/{id}/items/reorder  Reordenar
+```
+
+### Activity Log
+```
+GET    /api/lists/{id}/activity    Histórico da lista
+```
+
+---
+
+## 7. WebSocket — Tópicos STOMP
+
+```
+SUBSCRIBE  /topic/list/{listId}          Receber atualizações da lista
+SEND       /app/list/{listId}/item.add    Adicionar item
+SEND       /app/list/{listId}/item.update Atualizar item
+SEND       /app/list/{listId}/item.delete Remover item
+SEND       /app/list/{listId}/item.check  Marcar/desmarcar
+```
+
+Mensagem de evento (broadcast):
+```json
+{
+  "type": "ITEM_ADDED",
+  "payload": { "id": "...", "name": "Arroz", "quantity": 2 },
+  "userId": "uuid",
+  "username": "leo",
+  "timestamp": "2026-02-09T15:30:00Z"
+}
+```
+
+---
+
+## 8. Estrutura de Projetos
+
+### Backend
+```
+nossalista-api/
+├── src/main/java/br/com/leoferolive/nossalista/
+│   ├── NossaListaApplication.java
+│   ├── config/
+│   │   ├── SecurityConfig.java
+│   │   ├── WebSocketConfig.java
+│   │   └── CorsConfig.java
+│   ├── auth/
+│   │   ├── AuthController.java
+│   │   ├── AuthService.java
+│   │   ├── JwtService.java
+│   │   └── OAuth2SuccessHandler.java
+│   ├── user/
+│   │   ├── User.java
+│   │   ├── UserController.java
+│   │   ├── UserRepository.java
+│   │   └── UserService.java
+│   ├── list/
+│   │   ├── Lista.java
+│   │   ├── ListType.java
+│   │   ├── ListController.java
+│   │   ├── ListRepository.java
+│   │   └── ListService.java
+│   ├── listitem/
+│   │   ├── ListItem.java
+│   │   ├── ListItemController.java
+│   │   ├── ListItemRepository.java
+│   │   └── ListItemService.java
+│   ├── member/
+│   │   ├── ListMember.java
+│   │   ├── MemberController.java
+│   │   ├── MemberRepository.java
+│   │   └── MemberService.java
+│   ├── activity/
+│   │   ├── ActivityLog.java
+│   │   ├── ActivityController.java
+│   │   ├── ActivityRepository.java
+│   │   └── ActivityService.java
+│   └── websocket/
+│       ├── ListWebSocketController.java
+│       └── WebSocketAuthInterceptor.java
+├── src/main/resources/
+│   ├── application.yml
+│   ├── application-dev.yml (H2)
+│   └── application-prod.yml (PostgreSQL)
+└── pom.xml
+```
+
+### Frontend
+```
+nossalista-web/
+├── src/
+│   ├── main.tsx
+│   ├── App.tsx
+│   ├── api/
+│   │   ├── client.ts          (axios instance)
+│   │   ├── auth.ts
+│   │   ├── lists.ts
+│   │   └── websocket.ts       (STOMP client)
+│   ├── hooks/
+│   │   ├── useAuth.ts
+│   │   ├── useLists.ts
+│   │   └── useWebSocket.ts
+│   ├── pages/
+│   │   ├── Login.tsx
+│   │   ├── Register.tsx
+│   │   ├── Home.tsx           (minhas listas)
+│   │   ├── ListView.tsx       (detalhe da lista)
+│   │   └── JoinList.tsx       (aceitar convite)
+│   ├── components/
+│   │   ├── Layout.tsx
+│   │   ├── ListCard.tsx
+│   │   ├── ListItem.tsx
+│   │   ├── CreateListModal.tsx
+│   │   ├── InviteModal.tsx
+│   │   ├── ActivityTimeline.tsx
+│   │   └── UserAvatar.tsx
+│   ├── contexts/
+│   │   └── AuthContext.tsx
+│   ├── types/
+│   │   └── index.ts
+│   └── styles/
+│       └── global.css         (Tailwind)
+├── index.html
+├── vite.config.ts
+├── tailwind.config.ts
+└── package.json
+```
+
+---
+
+## 9. Roadmap MVP
+
+### Fase 1 — Fundação (Backend)
+- [ ] Setup Spring Boot 4 + Java 25
+- [ ] Modelo de dados + Flyway migrations
+- [ ] Spring Security + JWT
+- [ ] OAuth2 Google + registro email/senha
+- [ ] CRUD de listas e itens
+- [ ] Profiles dev (H2) / prod (PostgreSQL)
+
+### Fase 2 — Compartilhamento
+- [ ] Sistema de convites (username + link)
+- [ ] Membros da lista (join/leave/remove)
+- [ ] Activity log
+
+### Fase 3 — Real-time
+- [ ] WebSocket config (STOMP + SockJS)
+- [ ] Broadcast de alterações em itens
+- [ ] Auth no WebSocket (JWT)
+
+### Fase 4 — Frontend
+- [ ] Setup React + Vite + Tailwind
+- [ ] Auth flow (Google + email/senha)
+- [ ] Tela Home (listar listas)
+- [ ] Tela ListView (itens + real-time)
+- [ ] Modais de criação e convite
+- [ ] Timeline de atividade
+
+### Fase 5 — Infra & Deploy
+- [ ] Dockerfiles (frontend + backend)
+- [ ] Manifests K3s (Deployment, Service, Ingress)
+- [ ] GitHub Actions pipeline
+- [ ] Cloudflare Tunnel → nossalista.leoferolive.com.br
+- [ ] PostgreSQL no cluster (ou volume local)
+
+---
+
+## 10. Decisões Técnicas
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Campos por tipo de lista | Colunas nullable no `list_items` | Simples pro MVP; migrar para JSONB se escalar |
+| Auth | JWT stateless | Funciona bem com WebSocket e SPA |
+| Real-time | STOMP sobre WebSocket | Suporte nativo Spring, pub/sub por lista |
+| CSS | Tailwind CSS | Rápido, minimalista, responsivo |
+| Estado frontend | React Context + hooks | Sem necessidade de Redux pro MVP |
+| Migrations | Flyway | Controle de schema versionado |
