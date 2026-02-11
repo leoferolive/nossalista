@@ -3,7 +3,7 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/nossalista}
     driver-class-name: org.postgresql.Driver
     username: ${DATABASE_USER:nossalista}
-    password: ${DATABASE_PASSWORD:changeme}
+    password: ${DATABASE_PASSWORD}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
