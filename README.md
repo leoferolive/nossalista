@@ -53,21 +53,21 @@ NossaLista é um aplicativo web colaborativo que permite criar e compartilhar li
 | Migrations  | Flyway                               |
 | Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
 
-## 📁 Estrutura do Projeto
+## 📁 Estrutura do Projeto (Monorepo)
 
 ```
 nossalista/
-├── nossalista-api/          # Backend Spring Boot
+├── backend/                 # Backend Spring Boot 4
 │   └── src/main/java/br/com/leoferolive/nossalista/
 │       ├── config/          # Security, WebSocket, CORS
 │       ├── auth/            # AuthController, AuthService, JWT
 │       ├── user/            # User entity e CRUD
 │       ├── list/            # Lista, ListType, CRUD
-│       ├── listitem/        # ListItem entity
+│       ├── item/            # ListItem entity
 │       ├── member/          # ListMember, convites
 │       ├── activity/        # ActivityLog
 │       └── websocket/       # STOMP controllers
-├── nossalista-web/          # Frontend React
+├── frontend/                # Frontend React 19
 │   └── src/
 │       ├── api/             # Axios client, endpoints
 │       ├── hooks/           # useAuth, useLists, useWebSocket
@@ -75,6 +75,7 @@ nossalista/
 │       ├── components/      # Componentes reutilizáveis
 │       ├── contexts/        # AuthContext
 │       └── types/           # TypeScript types
+├── deploy/                  # Scripts e configs de deploy
 ├── k8s/                     # Manifests Kubernetes
 │   ├── deployment.yaml
 │   ├── service.yaml
@@ -89,31 +90,37 @@ nossalista/
 
 ### Pré-requisitos
 
-- Java 21+
-- Node.js 18+
-- Docker e Docker Compose (opcional)
-- Kubernetes k3s (para deploy local)
-- kubectl (para deploy em cluster)
+- Java 25 (LTS)
+- Maven 3.9+
+- Node.js 18+ e npm
+- Docker (opcional, para containerização)
+- Kubernetes K3s (para deploy em produção)
+- kubectl (para gerenciar cluster)
 
-### Backend
+### Backend (Spring Boot 4)
 
 ```bash
-cd nossalista-api
+cd backend
 
-# Executar com Maven
-./mvnw spring-boot:run
+# Executar com Maven (perfil dev usa H2)
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 # Ou com Docker
 docker build -t nossalista-api .
-docker run -p 8080:8080 nossalista-api
+docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=dev nossalista-api
 ```
 
 O backend estará disponível em `http://localhost:8080`
 
-### Frontend
+Endpoints úteis:
+- Health check: `http://localhost:8080/api/health`
+- H2 Console: `http://localhost:8080/h2-console` (dev only)
+- API docs: `http://localhost:8080/api` (quando disponível)
+
+### Frontend (React 19 + Vite)
 
 ```bash
-cd nossalista-web
+cd frontend
 
 # Instalar dependências
 npm install

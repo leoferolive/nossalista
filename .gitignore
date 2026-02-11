@@ -86,10 +86,19 @@ Thumbs.db
 .env.local
 .env.*.local
 
-# Node modules (for future frontend)
+# Node modules and frontend build
 node_modules/
 dist/
+dist-ssr/
 .cache/
+*.local
+.vite/
+
+# Frontend specific
+frontend/dist/
+frontend/node_modules/
+frontend/.env
+frontend/.env.local
 
 # Logs
 logs/
