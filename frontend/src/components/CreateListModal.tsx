@@ -7,7 +7,7 @@ interface CreateListModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (listId: string) => void;
-  onSubmit: (request: CreateListRequest) => Promise<void>;
+  onSubmit: (request: CreateListRequest) => Promise<{ id: string }>;
 }
 
 /**
@@ -60,16 +60,28 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
     setError(null);
 
     try {
-      await onSubmit({
+      const result = await onSubmit({
         name: name.trim(),
         typeId: selectedTypeId!,
       });
 
-      // Chama onSuccess com ID (será usado para toast e navegação)
-      onSuccess('created');
+      // Chama onSuccess com ID real da lista criada
+      onSuccess(result.id);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Erro ao criar lista';
+      const axiosError = err as { response?: { data?: { detail?: string; errors?: Record<string, string> } } };
+      const fieldErrors = axiosError.response?.data?.errors;
+      const detail = axiosError.response?.data?.detail;
+
+      let errorMessage = 'Erro ao criar lista';
+      if (fieldErrors) {
+        // Exibe primeiro erro de campo específico (RFC 7807)
+        const firstError = Object.values(fieldErrors)[0];
+        errorMessage = firstError || detail || 'Erro ao criar lista';
+      } else if (detail) {
+        errorMessage = detail;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
       setError(errorMessage);
     } finally {
       setLoading(false);

@@ -50,7 +50,7 @@ development_status:
 
   epic-2: in-progress
   2-1-modelagem-de-dados-de-listas-e-tipos: done
-  2-2-criar-nova-lista: done  # Code review completo. Issues corrigidos (slug inconsistente, async em testes). 16 testes frontend + 21 testes backend passando.
+  2-2-criar-nova-lista: done
   2-3-listar-todas-as-listas-do-usuario: review  # Backend + Frontend completos. 21 testes passing. Pronto para code review
   2-4-ver-detalhes-de-uma-lista: backlog
   2-5-editar-nome-da-lista: backlog

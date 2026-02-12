@@ -110,7 +110,7 @@ describe('CreateListModal', () => {
   });
 
   it('deve submeter ao pressionar Enter quando válido', async () => {
-    mockOnSubmit.mockResolvedValue(undefined as never);
+    mockOnSubmit.mockResolvedValue({ id: 'test-list-id' });
 
     render(
       <CreateListModal
@@ -132,6 +132,7 @@ describe('CreateListModal', () => {
 
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalledOnce();
+      expect(mockOnSuccess).toHaveBeenCalledWith('test-list-id');
     });
   });
 

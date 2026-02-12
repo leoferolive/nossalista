@@ -22,19 +22,22 @@ export const Home: React.FC = () => {
     name: string;
     typeId: number;
   }) => {
-    await createList(request);
+    const newList = await createList(request);
+    return { id: newList.id };
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = async (listId: string) => {
+    // AC4: Modal fecha primeiro (evita race condition com refetch)
+    setIsModalOpen(false);
+
     // AC4: Toast "Lista criada" (success, 300ms animation)
     showToast('Lista criada!', 'success');
 
-    // AC4: Modal fecha
-    setIsModalOpen(false);
+    // AC4: Refetch listas após modal fechar
+    await fetchLists();
 
-    // AC4: Refetch listas (ou navegue para lista criada)
-    fetchLists();
-    // Alternativa: navigate(`/lists/${listId}`) se usar React Router
+    // Opcional: navegar para lista criada
+    // navigate(`/lists/${listId}`);
   };
 
   return (

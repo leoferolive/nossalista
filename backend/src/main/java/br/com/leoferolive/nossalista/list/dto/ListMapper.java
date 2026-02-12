@@ -42,12 +42,32 @@ public class ListMapper {
                 typeEntity.getSlug()
             );
         } else {
-            // Fallback se typeEntity não carregado (LAZY)
-            typeResponse = new ListResponse.TypeResponse(
-                list.getTypeId(),
-                list.getType().name(),
-                list.getType().getSlug()
-            );
+            // Fallback seguro se typeEntity não carregado (LAZY)
+            Integer typeId = list.getTypeId();
+            String typeName = "Unknown";
+            String typeSlug = "unknown";
+
+            // Mapeamento seguro dos tipos conhecidos
+            switch (typeId) {
+                case 1:
+                    typeName = "Compras";
+                    typeSlug = "compras";
+                    break;
+                case 2:
+                    typeName = "Tarefas";
+                    typeSlug = "tarefas";
+                    break;
+                case 3:
+                    typeName = "Wishlist";
+                    typeSlug = "wishlist";
+                    break;
+                case 4:
+                    typeName = "Genérica";
+                    typeSlug = "generica";
+                    break;
+            }
+
+            typeResponse = new ListResponse.TypeResponse(typeId, typeName, typeSlug);
         }
 
         User owner = list.getOwner();

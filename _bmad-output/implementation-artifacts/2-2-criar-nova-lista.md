@@ -465,20 +465,22 @@ backend/src/main/java/br/com/leoferolive/nossalista/list/
 
 backend/src/test/java/br/com/leoferolive/nossalista/list/
 ├── controller/
-│   └── ListControllerIntegrationTest.java   # 14 testes integração completos
+│   └── ListControllerIntegrationTest.java   # 21 testes integração completos
 ├── dto/
 │   └── CreateListRequestTest.java           # Testes de validação DTO
 ├── service/
-│   └── ListServiceTest.java                 # 3 testes unitários
+│   └── ListServiceTest.java                 # 5 testes unitários (inclui retry de colisão)
 └── repository/
     └── ListRepositoryTest.java              # Testes repositório
 ```
 
-**Backend - Arquivos Modificados (3 files):**
+**Backend - Arquivos Modificados (5 files):**
 ```
 backend/pom.xml                                          # SpringDoc OpenAPI dependency
 backend/src/main/java/.../config/GlobalExceptionHandler.java  # Handler InvalidListTypeException
-backend/src/main/java/.../list/repository/ListRepository.java # Adicionado existsByInviteCode()
+backend/src/main/java/.../list/repository/ListRepository.java # Adicionado existsByInviteCode(), renomeado método
+backend/src/main/java/.../list/dto/ListMapper.java           # Fallback seguro para type mapping
+backend/src/main/java/.../list/service/ListService.java      # Usa novo nome do método repository
 ```
 
 **Frontend - Novos Arquivos (12 files):**
@@ -507,12 +509,15 @@ frontend/src/
     └── setup.ts                      # Setup do Vitest
 ```
 
-**Frontend - Arquivos Modificados (4 files):**
+**Frontend - Arquivos Modificados (7 files):**
 ```
-frontend/package.json                 # Adicionadas dependências de teste
-frontend/src/index.css                # Adicionado @keyframes slideIn (300ms)
-frontend/src/main.tsx                 # Configurado BrowserRouter + AuthProvider
-frontend/src/types/List.ts            # Corrigido slug 'genérica' → 'generica' (code review fix)
+frontend/package.json                      # Adicionadas dependências de teste
+frontend/src/index.css                     # Adicionado @keyframes slideIn (300ms)
+frontend/src/main.tsx                      # Configurado BrowserRouter + AuthProvider
+frontend/src/types/List.ts                 # Corrigido slug 'genérica' → 'generica' (code review fix)
+frontend/src/components/CreateListModal.tsx    # Retorna listId real, exibe erros RFC 7807
+frontend/src/pages/Home.tsx                # Evita race condition no refetch
+frontend/src/components/CreateListModal.test.tsx  # Atualizado para nova interface
 ```
 
 **Frontend - Configuração de Testes (1 file):**
@@ -713,6 +718,7 @@ testUser.setPassword("hashedPassword");
 
 | Data | Autor | Descrição |
 |------|-------|-----------|
+| 2026-02-12 | Claude | **Code Review Adversarial Completo** - 8 issues corrigidos: CreateListModal retorna listId real, ListMapper com fallback seguro, retry de colisão testado, erros RFC 7807 exibidos, race condition corrigida, método renomeado para clareza. Status mantido "done" |
 | 2026-02-12 | Claude | Code review concluído: Corrigidos slug inconsistente (genérica→generica) e async em teste. Status alterado para "done" |
 | 2026-02-12 | Claude | Resolvidos code review follow-ups: configurado Vitest (16 testes frontend passando), implementado redirecionamento 401 com AuthContext e Login page |
 | 2026-02-12 | Claude | Story completa: Backend (14 testes) + Frontend (16 testes) + Integração. Status alterado para "review" |
@@ -767,6 +773,31 @@ testUser.setPassword("hashedPassword");
 2. ✅ **[MEDIUM] Teste async faltante** - Corrigido `frontend/src/components/CreateListModal.test.tsx` linha 57:
    - Adicionado `async` na função do teste "deve desabilitar botão quando tipo não selecionado"
    - Adicionado `await` na chamada `userEvent.type()` linha 69
+
+3. ✅ **[HIGH] CreateListModal retornando listId real** - Code review fix:
+   - Alterada interface `onSubmit` para retornar `{ id: string }`
+   - Modal agora passa o ID real da lista criada para `onSuccess`
+   - Corrigido teste que verifica `mockOnSuccess` recebe o ID correto
+
+4. ✅ **[HIGH] ListMapper com fallback seguro** - Code review fix:
+   - Substituído `list.getType()` (pode lançar IllegalStateException) por switch case seguro
+   - Fallback agora mapeia typeId 1-4 manualmente sem depender do enum
+
+5. ✅ **[MEDIUM] findByOwnerIdOrMemberId renomeado** - Code review fix:
+   - Renomeado para `findAllByOwnerOrderByUpdatedAtDesc` para refletir implementação atual
+   - Atualizado `ListService` e comentários no `ListRepository`
+
+6. ✅ **[MEDIUM] Testes de retry de colisão adicionados** - Code review fix:
+   - Adicionado `shouldRetryWhenInviteCodeCollides` - testa retry após colisão
+   - Adicionado `shouldThrowExceptionAfterMaxRetries` - testa limite de 10 tentativas
+
+7. ✅ **[MEDIUM] CreateListModal exibe erros RFC 7807** - Code review fix:
+   - Agora exibe `errors[field]` do ProblemDetail quando disponível
+   - Fallback para `detail` message ou mensagem genérica
+
+8. ✅ **[MEDIUM] Race condition corrigida em Home.tsx** - Code review fix:
+   - `handleSuccess` agora é async e fecha modal antes do refetch
+   - `handleCreateList` retorna `{ id: newList.id }` para o modal
 
 ### Pendências Resolvidas ✓
 

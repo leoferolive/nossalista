@@ -3,6 +3,7 @@ package br.com.leoferolive.nossalista.list.service;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
+import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -111,5 +112,49 @@ class ListServiceTest {
         // Assert
         assertNotEquals(list1.getInviteCode(), list2.getInviteCode(),
             "Códigos de convite devem ser únicos entre criações consecutivas");
+    }
+
+    @Test
+    @DisplayName("Deve fazer retry quando houver colisão de invite code")
+    void shouldRetryWhenInviteCodeCollides() {
+        // Arrange
+        CreateListRequest request = new CreateListRequest("Lista com Colisão", 1);
+        when(listTypeRepository.existsById(1)).thenReturn(true);
+        // Simula colisão no primeiro código, aceita no segundo
+        when(listRepository.existsByInviteCode(any())).thenReturn(true, false);
+        when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
+            List list = invocation.getArgument(0);
+            return list;
+        });
+
+        // Act
+        List result = listService.createList(request, testUser);
+
+        // Assert - verifica que o retry foi executado (existsByInviteCode chamado 2x)
+        assertNotNull(result.getInviteCode());
+        verify(listRepository, times(2)).existsByInviteCode(any());
+        verify(listRepository).save(any(List.class));
+    }
+
+    @Test
+    @DisplayName("Deve lançar InviteCodeGenerationException após máximo de tentativas")
+    void shouldThrowExceptionAfterMaxRetries() {
+        // Arrange
+        CreateListRequest request = new CreateListRequest("Lista Colisão Máxima", 1);
+        when(listTypeRepository.existsById(1)).thenReturn(true);
+        // Simula colisão nas primeiras 9 tentativas (a 10ª verificação não ocorre pois o throw acontece antes)
+        when(listRepository.existsByInviteCode(any())).thenReturn(
+            true, true, true, true, true, true, true, true, true
+        );
+
+        // Act & Assert
+        InviteCodeGenerationException exception = assertThrows(
+            InviteCodeGenerationException.class,
+            () -> listService.createList(request, testUser)
+        );
+
+        assertEquals(10, exception.getMaxAttempts());
+        verify(listRepository, times(9)).existsByInviteCode(any());
+        verify(listRepository, never()).save(any(List.class));
     }
 }
