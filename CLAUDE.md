@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Commit Guidelines
+
+**CRITICAL:** Do NOT include "Co-Authored-By: Claude" or any AI attribution in commit messages. Keep commits clean and professional.
+
 ## Sobre o Projeto
 
 NossaLista é um aplicativo web de listas compartilhadas em tempo real. O projeto está atualmente em fase de planejamento MVP e ainda não possui código implementado.

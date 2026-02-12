@@ -17,10 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Testes de integração para UserRepository
+ * Flyway auto-executa migrations - não precisa @Sql manual
  */
 @SpringBootTest
-@Sql(scripts = "/db/migration/V1__create_users_table.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 @Transactional
 class UserRepositoryTest {
 

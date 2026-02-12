@@ -8,12 +8,12 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create  # Cria tabelas automaticamente para testes
+      ddl-auto: validate  # Flyway gerencia schema, JPA apenas valida
     show-sql: true
 
   flyway:
-    enabled: false  # Usar JPA auto-create em vez de Flyway em testes
-    locations: classpath:db/migration,classpath:test-data.sql
+    enabled: true  # Usar Flyway para executar migrations e seeds
+    locations: classpath:db/migration
     baseline-on-migrate: true
     clean-disabled: false
 

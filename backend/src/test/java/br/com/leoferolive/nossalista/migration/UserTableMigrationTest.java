@@ -31,9 +31,9 @@ class UserTableMigrationTest {
 
         List<String> columns = jdbcTemplate.queryForList(query, String.class);
 
-        // Verify all expected columns exist
+        // Verify all expected columns exist (order may vary in H2)
         assertThat(columns)
-            .containsExactly("id", "username", "email", "password", "name",
+            .containsExactlyInAnyOrder("id", "username", "email", "password", "name",
                            "avatar_url", "auth_provider", "role", "created_at", "updated_at");
     }
 
