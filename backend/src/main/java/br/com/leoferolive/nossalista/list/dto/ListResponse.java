@@ -47,11 +47,13 @@ public record ListResponse(
      *
      * @param id       ID do usuário
      * @param username Nome de usuário único
+     * @param name     Nome completo do usuário
      * @param avatarUrl URL do avatar (pode ser null)
      */
     public record OwnerResponse(
         UUID id,
         String username,
+        String name,
         String avatarUrl
     ) {
     }

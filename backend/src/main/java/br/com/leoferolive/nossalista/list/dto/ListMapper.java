@@ -81,6 +81,7 @@ public class ListMapper {
         ListResponse.OwnerResponse ownerResponse = new ListResponse.OwnerResponse(
             owner.getId(),
             owner.getUsername(),
+            owner.getName(),
             owner.getAvatarUrl()
         );
 
@@ -94,7 +95,7 @@ public class ListMapper {
             ownerResponse,
             list.getInviteCode(),
             isOwner,
-            0, // itemsCount - placeholder, será implementado em story futura
+            0, // TODO: itemsCount - placeholder, implementar na Story 3.x quando ListItem for criado
             list.getCreatedAt(),
             list.getUpdatedAt()
         );

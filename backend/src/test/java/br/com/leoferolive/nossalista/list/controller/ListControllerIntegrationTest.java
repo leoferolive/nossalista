@@ -463,6 +463,7 @@ class ListControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].type.slug").exists())
                     .andExpect(jsonPath("$[0].owner.id").value(testUser.getId().toString()))
                     .andExpect(jsonPath("$[0].owner.username").value("listowner"))
+                    .andExpect(jsonPath("$[0].owner.name").value("List Owner"))
                     .andExpect(jsonPath("$[0].inviteCode").exists())
                     .andExpect(jsonPath("$[0].isOwner").value(true))
                     .andExpect(jsonPath("$[0].itemsCount").value(0))

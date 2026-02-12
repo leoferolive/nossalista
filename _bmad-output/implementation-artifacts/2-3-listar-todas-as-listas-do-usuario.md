@@ -1,6 +1,6 @@
 # Story 2.3: Listar Todas as Listas do Usuário
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -97,11 +97,12 @@ So that possa acessar rapidamente o que preciso.
 
 ### Manual Testing
 
-- [x] Backend: Testar via Swagger UI (cenários: owner, member, misto, vazio)
-- [ ] Frontend: Testar Home com 0, 1, 3, 10 listas
-- [ ] Frontend: Testar estados de loading e erro
-- [ ] Frontend: Testar grid responsivo (mobile, tablet, desktop)
-- [ ] Integration: Clicar em ListCard navega para ListView
+- [x] Backend: Testar via Swagger UI (cenários: owner, vazio)
+- [ ] Backend: Testar via Swagger UI (cenários: member, misto) - será possível na Story 4.3
+- [x] Frontend: Testar Home com 0, 1, 3, 10 listas
+- [x] Frontend: Testar estados de loading e erro
+- [x] Frontend: Testar grid responsivo (mobile, tablet, desktop)
+- [x] Integration: Clicar em ListCard navega para ListView
 
 ## Dev Notes
 
@@ -586,12 +587,18 @@ feat(list): implement list retrieval endpoint (story 2-3)
 - backend/src/main/java/br/com/leoferolive/nossalista/list/controller/ListController.java
 - backend/src/test/java/br/com/leoferolive/nossalista/list/controller/ListControllerIntegrationTest.java
 
+### Backend Files Created
+- backend/src/main/java/br/com/leoferolive/nossalista/member/domain/ListMember.java
+- backend/src/main/java/br/com/leoferolive/nossalista/member/domain/MemberRole.java
+- backend/src/main/resources/db/migration/V3__create_list_members.sql
+
 ### Frontend Files Modified
 - frontend/src/types/List.ts
 - frontend/src/pages/Home.tsx
 
 ### Frontend Files Created
 - frontend/src/components/ListCard.tsx
+- frontend/src/components/ListCard.test.tsx
 
 ## Change Log
 
@@ -601,6 +608,13 @@ feat(list): implement list retrieval endpoint (story 2-3)
 - Created ListCard component with responsive grid
 - Updated Home page with loading/error states and useEffect
 - All 21 integration tests passing (6 new tests added for GET endpoint)
+
+**Date: 2026-02-12 (Code Review Fixes)**
+- Added ListMember entity and V3 migration (suporte completo a owner + member)
+- Fixed OwnerResponse DTO - added missing 'name' field
+- Fixed race condition in Home.tsx - added try/catch on refetch
+- Created ListCard.test.tsx with 12 unit tests
+- Updated query to use LEFT JOIN with ListMember for shared lists support
 
 ## References
 

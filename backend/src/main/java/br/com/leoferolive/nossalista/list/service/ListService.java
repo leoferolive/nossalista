@@ -103,6 +103,6 @@ public class ListService {
      * @return Lista de listas pertencentes ao usuário ou onde ele é membro
      */
     public java.util.List<List> getAllListsForUser(UUID userId) {
-        return listRepository.findAllByOwnerOrderByUpdatedAtDesc(userId);
+        return listRepository.findAllByOwnerOrMemberOrderByUpdatedAtDesc(userId);
     }
 }

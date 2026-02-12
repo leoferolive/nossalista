@@ -40,18 +40,17 @@ public interface ListRepository extends JpaRepository<List, UUID> {
     boolean existsByInviteCode(String inviteCode);
 
     /**
-     * Busca todas as listas onde o usuário é owner.
-     * Nota: Na Story 4.1, quando ListMember for criada, este método será expandido
-     * para incluir LEFT JOIN com list_members e retornar também listas onde o usuário é membro.
+     * Busca todas as listas onde o usuário é owner OU member.
+     * Usa LEFT JOIN com list_members para incluir listas compartilhadas.
      *
      * @param userId o ID do usuário
-     * @return lista de listas pertencentes ao usuário, ordenadas por updatedAt DESC
+     * @return lista de listas onde o usuário é owner ou membro, ordenadas por updatedAt DESC
      */
     @Query("SELECT DISTINCT l FROM lists l " +
-           "WHERE l.owner.id = :userId " +
+           "LEFT JOIN ListMember lm ON lm.list.id = l.id AND lm.user.id = :userId " +
+           "WHERE l.owner.id = :userId OR lm.user.id = :userId " +
            "ORDER BY l.updatedAt DESC")
-    java.util.List<List> findAllByOwnerOrderByUpdatedAtDesc(@Param("userId") UUID userId);
+    java.util.List<List> findAllByOwnerOrMemberOrderByUpdatedAtDesc(@Param("userId") UUID userId);
 
     // TODO: Adicionar countItems() na Story 3.1 quando ListItem for criado
-    // TODO: Atualizar findAllByOwnerOrderByUpdatedAtDesc() com LEFT JOIN list_members na Story 4.1
 }

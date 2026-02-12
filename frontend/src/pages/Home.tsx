@@ -34,7 +34,11 @@ export const Home: React.FC = () => {
     showToast('Lista criada!', 'success');
 
     // AC4: Refetch listas após modal fechar
-    await fetchLists();
+    try {
+      await fetchLists();
+    } catch {
+      showToast('Lista criada, mas houve erro ao atualizar a lista.', 'error');
+    }
 
     // Opcional: navegar para lista criada
     // navigate(`/lists/${listId}`);
