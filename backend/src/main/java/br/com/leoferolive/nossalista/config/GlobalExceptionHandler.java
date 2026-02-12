@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
+import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -169,5 +170,26 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
+    /**
+     * Trata exceção de falha na geração de código de convite
+     * Retorna 500 Internal Server Error com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(InviteCodeGenerationException.class)
+    public ResponseEntity<ProblemDetail> handleInviteCodeGeneration(
+        InviteCodeGenerationException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/invite-code-generation-failed"));
+        problem.setTitle("Falha ao gerar código de convite");
+        problem.setProperty("maxAttempts", ex.getMaxAttempts());
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
     }
 }

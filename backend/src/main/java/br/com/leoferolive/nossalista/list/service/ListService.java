@@ -3,12 +3,14 @@ package br.com.leoferolive.nossalista.list.service;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
+import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.util.UUID;
 
 /**
  * Service para lógica de negócio de listas
@@ -76,10 +78,31 @@ public class ListService {
             attempt++;
 
             if (attempt >= maxAttempts) {
-                throw new RuntimeException("Falha ao gerar código de convite único após " + maxAttempts + " tentativas");
+                throw new InviteCodeGenerationException(maxAttempts);
             }
         } while (listRepository.existsByInviteCode(code));
 
         return code;
+    }
+
+    /**
+     * Busca todas as listas de um usuário
+     *
+     * @param owner Usuário dono das listas
+     * @return Lista de listas pertencentes ao usuário
+     */
+    public java.util.List<List> getAllListsByOwner(User owner) {
+        return listRepository.findByOwnerId(owner.getId());
+    }
+
+    /**
+     * Busca todas as listas onde o usuário é owner OU member
+     * Retorna listas ordenadas por updatedAt DESC
+     *
+     * @param userId ID do usuário
+     * @return Lista de listas pertencentes ao usuário ou onde ele é membro
+     */
+    public java.util.List<List> getAllListsForUser(UUID userId) {
+        return listRepository.findByOwnerIdOrMemberId(userId);
     }
 }

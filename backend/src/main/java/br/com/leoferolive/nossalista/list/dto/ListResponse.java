@@ -11,6 +11,8 @@ import java.util.UUID;
  * @param type       Tipo da lista (com id, nome e slug)
  * @param owner      Dono da lista (com id, username e avatarUrl)
  * @param inviteCode Código de convite para compartilhar
+ * @param isOwner    Indica se o usuário atual é o dono da lista
+ * @param itemsCount Número de itens na lista
  * @param createdAt  Data de criação
  * @param updatedAt  Data da última atualização
  */
@@ -20,6 +22,8 @@ public record ListResponse(
     TypeResponse type,
     OwnerResponse owner,
     String inviteCode,
+    boolean isOwner,
+    int itemsCount,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {

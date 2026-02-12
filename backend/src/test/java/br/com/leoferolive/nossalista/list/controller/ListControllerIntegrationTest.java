@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -422,6 +423,116 @@ class ListControllerIntegrationTest {
             // Assert - verificar que todas foram criadas
             assertEquals(3, listRepository.count());
             assertEquals(3, listRepository.findByOwnerId(testUser.getId()).size());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/lists - Listar Listas")
+    class GetAllListsTests {
+
+        @Test
+        @DisplayName("Deve retornar 200 OK com array vazio quando usuário não tem listas")
+        void shouldReturn200WithEmptyArrayWhenUserHasNoLists() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$").isEmpty());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 200 OK com array de listas quando usuário tem listas")
+        void shouldReturn200WithListsArrayWhenUserHasLists() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            listService.createList(new CreateListRequest("Mercado Semanal", 1), testUser);
+            listService.createList(new CreateListRequest("Tarefas do Projeto", 2), testUser);
+            listService.createList(new CreateListRequest("Wishlist Aniversário", 3), testUser);
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(3))
+                    .andExpect(jsonPath("$[0].id").exists())
+                    .andExpect(jsonPath("$[0].name").exists())
+                    .andExpect(jsonPath("$[0].type.id").exists())
+                    .andExpect(jsonPath("$[0].type.slug").exists())
+                    .andExpect(jsonPath("$[0].owner.id").value(testUser.getId().toString()))
+                    .andExpect(jsonPath("$[0].owner.username").value("listowner"))
+                    .andExpect(jsonPath("$[0].inviteCode").exists())
+                    .andExpect(jsonPath("$[0].isOwner").value(true))
+                    .andExpect(jsonPath("$[0].itemsCount").value(0))
+                    .andExpect(jsonPath("$[0].createdAt").exists())
+                    .andExpect(jsonPath("$[0].updatedAt").exists());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 quando não autenticado")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
+            // Arrange - não autentica usuário
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Deve retornar listas ordenadas por updatedAt DESC")
+        void shouldReturnListsOrderedByUpdatedAtDesc() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+
+            // Criar 3 listas em ordem (primeira criada terá updatedAt mais antigo)
+            List list1 = listService.createList(new CreateListRequest("Lista 1", 1), testUser);
+            Thread.sleep(10); // Pequeno delay para garantir updatedAt diferente
+            List list2 = listService.createList(new CreateListRequest("Lista 2", 2), testUser);
+            Thread.sleep(10);
+            List list3 = listService.createList(new CreateListRequest("Lista 3", 3), testUser);
+
+            // Act & Assert - a mais recente deve vir primeiro
+            mockMvc.perform(get("/api/lists"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(3))
+                    .andExpect(jsonPath("$[0].id").value(list3.getId().toString()))
+                    .andExpect(jsonPath("$[1].id").value(list2.getId().toString()))
+                    .andExpect(jsonPath("$[2].id").value(list1.getId().toString()));
+        }
+
+        @Test
+        @DisplayName("Deve verificar que isOwner é true quando usuário é dono")
+        void shouldVerifyIsOwnerTrueWhenUserIsOwner() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            listService.createList(new CreateListRequest("Minha Lista", 1), testUser);
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].isOwner").value(true))
+                    .andExpect(jsonPath("$[0].owner.id").value(testUser.getId().toString()));
+        }
+
+        @Test
+        @DisplayName("Deve incluir todos os tipos de lista corretamente")
+        void shouldIncludeAllListTypesCorrectly() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            listService.createList(new CreateListRequest("Compras", 1), testUser);
+            listService.createList(new CreateListRequest("Tarefas", 2), testUser);
+            listService.createList(new CreateListRequest("Wishlist", 3), testUser);
+            listService.createList(new CreateListRequest("Genérica", 4), testUser);
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(4))
+                    .andExpect(jsonPath("$[*].type.id").exists())
+                    .andExpect(jsonPath("$[*].type.slug").exists());
         }
     }
 }

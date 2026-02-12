@@ -31,6 +31,7 @@ client.interceptors.request.use(
 
 /**
  * Interceptor para tratamento de erros de resposta
+ * Redireciona para /login quando token é inválido ou expirado
  */
 client.interceptors.response.use(
   (response) => response,
@@ -38,8 +39,12 @@ client.interceptors.response.use(
     // Se 401 Unauthorized, limpar token e redirecionar para login
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
-      // TODO: Redirecionar para /login quando router estiver configurado
-      console.error('Token inválido ou expirado. Faça login novamente.');
+      localStorage.removeItem('user');
+
+      // Redirecionar para login (evita redirecionamento se já estiver na página de login)
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
 
     return Promise.reject(error);

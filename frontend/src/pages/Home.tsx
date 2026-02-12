@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreateListModal } from '../components/CreateListModal';
 import { Toast, useToast } from '../components/Toast';
 import { useLists } from '../hooks/useLists';
+import { ListCard } from '../components/ListCard';
 
 /**
  * Página Home - Exemplo de integração com CreateListModal
@@ -9,8 +10,13 @@ import { useLists } from '../hooks/useLists';
  */
 export const Home: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { createList, lists, fetchLists } = useLists();
+  const { createList, lists, fetchLists, loading, error, clearError } = useLists();
   const { toasts, showToast, removeToast } = useToast();
+
+  // Carregar listas ao montar o componente
+  useEffect(() => {
+    fetchLists();
+  }, [fetchLists]);
 
   const handleCreateList = async (request: {
     name: string;
@@ -45,34 +51,49 @@ export const Home: React.FC = () => {
           </button>
         </div>
 
-        {/* Lista de cards (placeholder) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {lists.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 text-lg mb-4">
-                Você ainda não tem listas
-              </p>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                + Criar Primeira Lista
-              </button>
-            </div>
-          ) : (
-            lists.map((list) => (
-              <div
-                key={list.id}
-                className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
-              >
-                <h3 className="text-xl font-semibold mb-2">{list.name}</h3>
-                <p className="text-gray-600 text-sm">
-                  Tipo: {list.type.name}
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="col-span-full text-center py-12">
+            <p className="text-red-500 text-lg mb-4">{error}</p>
+            <button
+              onClick={() => {
+                clearError();
+                fetchLists();
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Tentar Novamente
+            </button>
+          </div>
+        )}
+
+        {/* Lista de cards */}
+        {!loading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {lists.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-500 text-lg mb-4">
+                  Você ainda não tem listas. Crie sua primeira lista!
                 </p>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  + Criar Primeira Lista
+                </button>
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              lists.map((list) => <ListCard key={list.id} list={list} />)
+            )}
+          </div>
+        )}
 
         {/* Modal de criar lista */}
         <CreateListModal

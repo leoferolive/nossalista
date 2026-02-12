@@ -9,6 +9,7 @@ import br.com.leoferolive.nossalista.user.domain.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -18,6 +19,7 @@ import org.springframework.http.ProblemDetail;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -76,5 +78,35 @@ public class ListController {
             @AuthenticationPrincipal User owner) {
         List list = listService.createList(request, owner);
         return listMapper.toListResponse(list);
+    }
+
+    /**
+     * Lista todas as listas do usuário autenticado
+     * Retorna listas onde o usuário é owner OU member, ordenadas por updatedAt DESC
+     *
+     * @param authenticatedUser Usuário autenticado (injetado pelo JWT)
+     * @return Lista de DTOs com dados completos das listas
+     */
+    @GetMapping
+    @Operation(
+        summary = "Listar listas do usuário",
+        description = "Retorna todas as listas onde o usuário é dono ou membro, ordenadas por data de atualização"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Listas retornadas com sucesso (array vazio se sem listas)",
+            content = @Content(array = @ArraySchema(schema = @Schema(implementation = ListResponse.class)))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public java.util.List<ListResponse> getAllLists(@AuthenticationPrincipal User authenticatedUser) {
+        return listService.getAllListsForUser(authenticatedUser.getId()).stream()
+                .map(list -> listMapper.toListResponse(list, authenticatedUser.getId()))
+                .toList();
     }
 }
