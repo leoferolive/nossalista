@@ -2,9 +2,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext.tsx'
-import App from './App.tsx'
 import Login from './pages/Login.tsx'
-import Home from './pages/Home.tsx'
+import { Home } from './pages/Home.tsx'
 import './index.css'
 
 /**

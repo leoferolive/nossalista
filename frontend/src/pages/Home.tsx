@@ -27,6 +27,7 @@ export const Home: React.FC = () => {
   };
 
   const handleSuccess = async (listId: string) => {
+    void listId;
     // AC4: Modal fecha primeiro (evita race condition com refetch)
     setIsModalOpen(false);
 
