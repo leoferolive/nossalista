@@ -15,7 +15,8 @@ NossaLista é um aplicativo web de listas compartilhadas em tempo real. O projet
 | Real-time   | Spring WebSocket (STOMP + SockJS)    |
 | Auth        | Google OAuth2 + email/senha          |
 | BD Produção | PostgreSQL                           |
-| BD Local    | H2 (testes/dev)                      |
+| BD Dev      | PostgreSQL (Docker Compose)          |
+| BD Testes   | H2 (MODE=PostgreSQL)                 |
 | Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
 
 ## Documentação de Referência

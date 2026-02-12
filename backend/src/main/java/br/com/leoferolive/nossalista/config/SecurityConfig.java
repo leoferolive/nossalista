@@ -45,8 +45,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/health", "/actuator/health").permitAll()
                         // OAuth2 endpoints (Spring Security gerencia automaticamente)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        // H2 Console (apenas dev)
-                        .requestMatchers("/h2-console/**").permitAll()
                         // Endpoints da API requerem autenticação
                         .requestMatchers("/api/**").authenticated()
                         // Negar tudo que não se enquadra nas regras acima
@@ -57,9 +55,6 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-                // Permitir frames para H2 Console (apenas dev)
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
 
                 // Configurar OAuth2 Login
                 .oauth2Login(oauth2 -> oauth2

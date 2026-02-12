@@ -4,8 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.jdbc.Sql;
 
 import java.util.List;
 
@@ -15,8 +13,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Teste de integração para migration V1__create_users_table.sql
  */
 @SpringBootTest
-@ActiveProfiles("dev")
-@Sql(scripts = "/db/migration/V1__create_users_table.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class UserTableMigrationTest {
 
     @Autowired
@@ -26,10 +22,10 @@ class UserTableMigrationTest {
     void shouldCreateUsersTableWithCorrectColumns() {
         // Verify table was created by Flyway migration
         String query = """
-            SELECT COLUMN_NAME
+            SELECT LOWER(COLUMN_NAME)
             FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = 'USERS'
-            AND TABLE_SCHEMA = 'PUBLIC'
+            WHERE LOWER(TABLE_NAME) = 'users'
+            AND LOWER(TABLE_SCHEMA) = 'public'
             ORDER BY ORDINAL_POSITION
             """;
 
@@ -37,8 +33,8 @@ class UserTableMigrationTest {
 
         // Verify all expected columns exist
         assertThat(columns)
-            .containsExactly("ID", "USERNAME", "EMAIL", "PASSWORD", "NAME",
-                           "AVATAR_URL", "AUTH_PROVIDER", "ROLE", "CREATED_AT", "UPDATED_AT");
+            .containsExactly("id", "username", "email", "password", "name",
+                           "avatar_url", "auth_provider", "role", "created_at", "updated_at");
     }
 
     @Test

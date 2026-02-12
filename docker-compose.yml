@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nossalista-postgres
+    environment:
+      POSTGRES_DB: nossalista_dev
+      POSTGRES_USER: nossalista
+      POSTGRES_PASSWORD: nossalista
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nossalista -d nossalista_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

@@ -49,7 +49,8 @@ NossaLista é um aplicativo web colaborativo que permite criar e compartilhar li
 | Real-time   | Spring WebSocket (STOMP + SockJS)    |
 | Autenticação| JWT + OAuth2 (Google)                |
 | BD Produção | PostgreSQL                           |
-| BD Local    | H2 (testes/dev)                      |
+| BD Dev      | PostgreSQL (Docker Compose)          |
+| BD Testes   | H2 (MODE=PostgreSQL)                 |
 | Migrations  | Flyway                               |
 | Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
 
@@ -100,21 +101,18 @@ nossalista/
 ### Backend (Spring Boot 4)
 
 ```bash
+# 1. Subir PostgreSQL para desenvolvimento
+docker compose up -d
+
+# 2. Executar com Maven (perfil dev usa PostgreSQL local)
 cd backend
-
-# Executar com Maven (perfil dev usa H2)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-
-# Ou com Docker
-docker build -t nossalista-api .
-docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=dev nossalista-api
 ```
 
 O backend estará disponível em `http://localhost:8080`
 
 Endpoints úteis:
 - Health check: `http://localhost:8080/api/health`
-- H2 Console: `http://localhost:8080/h2-console` (dev only)
 - API docs: `http://localhost:8080/api` (quando disponível)
 
 ### Frontend (React 19 + Vite)
@@ -131,17 +129,20 @@ npm run dev
 
 O frontend estará disponível em `http://localhost:5173`
 
-### Com Docker Compose
+### Docker Compose (PostgreSQL dev)
 
 ```bash
-# Subir todos os serviços
-docker-compose up -d
+# Subir PostgreSQL para desenvolvimento
+docker compose up -d
 
-# Ver logs
-docker-compose logs -f
+# Ver logs do banco
+docker compose logs -f postgres
 
-# Parar serviços
-docker-compose down
+# Parar e manter dados
+docker compose down
+
+# Parar e apagar dados (reset completo)
+docker compose down -v
 ```
 
 ## 🚢 Deploy
