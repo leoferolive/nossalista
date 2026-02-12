@@ -1,0 +1,94 @@
+# generated: 2026-02-11
+# project: nossalista
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: /home/leoferolive/projetos/nossalista/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-02-11
+project: nossalista
+project_key: NOKEY
+tracking_system: file-system
+story_location: /home/leoferolive/projetos/nossalista/_bmad-output/implementation-artifacts
+
+development_status:
+  epic-1: in-progress
+  1-1-setup-do-projeto-e-configuracao-de-seguranca: done
+  1-2-registro-com-email-senha: done
+  1-3-login-com-email-senha: done
+  1-4-integracao-google-oauth2: done
+  1-5-perfil-e-busca-de-usuarios: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-modelagem-de-dados-de-listas-e-tipos: backlog
+  2-2-criar-nova-lista: backlog
+  2-3-listar-todas-as-listas-do-usuario: backlog
+  2-4-ver-detalhes-de-uma-lista: backlog
+  2-5-editar-nome-da-lista: backlog
+  2-6-excluir-lista: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-modelagem-de-dados-de-itens: backlog
+  3-2-adicionar-item-a-lista: backlog
+  3-3-listar-itens-de-uma-lista: backlog
+  3-4-marcar-desmarcar-item-como-concluido: backlog
+  3-5-editar-item: backlog
+  3-6-remover-item: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-modelagem-de-dados-de-membros-e-convites: backlog
+  4-2-gerar-link-de-convite: backlog
+  4-3-aceitar-convite-via-link-read-only-mode: backlog
+  4-4-entrar-na-lista-autenticado: backlog
+  4-5-convidar-por-username: backlog
+  4-6-ver-membros-e-sair-da-lista: backlog
+  4-7-remover-participante: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-setup-e-configuracao-de-websocket: backlog
+  5-2-formato-de-mensagem-e-broadcast-de-itens: backlog
+  5-3-sincronizacao-de-checkbox-item-check: backlog
+  5-4-indicadores-online-e-membros: backlog
+  5-5-reconexao-automatica: backlog
+  5-6-performance-e-otimizacoes: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-modelagem-de-dados-de-activity-log: backlog
+  6-2-registro-de-atividades-de-itens: backlog
+  6-3-registro-de-atividades-de-membros: backlog
+  6-4-api-e-frontend-de-timeline: backlog
+  6-5-integracao-com-real-time-e-limpeza: backlog
+  epic-6-retrospective: optional
