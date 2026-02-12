@@ -9,6 +9,7 @@ import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -129,5 +130,42 @@ public class UserService {
     @Transactional
     public User save(User user) {
         return userRepository.save(user);
+    }
+
+    /**
+     * Atualiza perfil de usuário (apenas name e avatarUrl)
+     *
+     * @param userId    ID do usuário
+     * @param name       novo nome (opcional)
+     * @param avatarUrl  novo avatar (opcional)
+     * @return usuário atualizado
+     * @throws RuntimeException se usuário não existe
+     */
+    @Transactional
+    public User updateProfile(UUID userId, String name, String avatarUrl) {
+        User user = findById(userId)
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + userId));
+
+        // Atualizar apenas campos permitidos
+        if (name != null) {
+            user.setName(name);
+        }
+        if (avatarUrl != null) {
+            user.setAvatarUrl(avatarUrl);
+        }
+
+        // @PreUpdate da entidade User atualiza updatedAt automaticamente
+        return userRepository.save(user);
+    }
+
+    /**
+     * Busca usuários por username (case-insensitive e parcial)
+     *
+     * @param query termo de busca
+     * @return lista de usuários encontrados
+     */
+    @Transactional(readOnly = true)
+    public List<User> searchByUsername(String query) {
+        return userRepository.findByUsernameContainingIgnoreCase(query);
     }
 }

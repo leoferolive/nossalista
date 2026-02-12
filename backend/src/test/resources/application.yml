@@ -3,17 +3,17 @@ spring:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver
     username: sa
-    password:
+    password: ""  # Required but can be empty for H2
 
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: create  # Cria tabelas automaticamente para testes
     show-sql: true
 
   flyway:
-    enabled: true
-    locations: classpath:db/migration
+    enabled: false  # Usar JPA auto-create em vez de Flyway em testes
+    locations: classpath:db/migration,classpath:test-data.sql
     baseline-on-migrate: true
     clean-disabled: false
 

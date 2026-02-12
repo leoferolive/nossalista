@@ -24,10 +24,16 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2SuccessHandler oauth2SuccessHandler;
+    private final Http401UnauthorizedEntryPoint unauthorizedEntryPoint;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, OAuth2SuccessHandler oauth2SuccessHandler) {
+    public SecurityConfig(
+        JwtAuthenticationFilter jwtAuthenticationFilter,
+        OAuth2SuccessHandler oauth2SuccessHandler,
+        Http401UnauthorizedEntryPoint unauthorizedEntryPoint
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.oauth2SuccessHandler = oauth2SuccessHandler;
+        this.unauthorizedEntryPoint = unauthorizedEntryPoint;
     }
 
     @Bean
@@ -54,6 +60,11 @@ public class SecurityConfig {
                 // Session Management - Stateless (sem sessões server-side)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // Exception Handling - Retornar 401 RFC 7807 para APIs REST (não redirecionar)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(unauthorizedEntryPoint)
                 )
 
                 // Configurar OAuth2 Login

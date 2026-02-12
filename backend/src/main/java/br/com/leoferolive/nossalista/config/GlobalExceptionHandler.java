@@ -3,6 +3,7 @@ package br.com.leoferolive.nossalista.config;
 import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
+import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -106,5 +107,45 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata exceção de argumento ilegal (validação manual)
+     * Retorna 400 Bad Request com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ProblemDetail> handleIllegalArgument(
+        IllegalArgumentException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/validation-error"));
+        problem.setTitle("Validation Error");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata exceção de usuário não autenticado
+     * Retorna 401 Unauthorized com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(NotAuthenticatedException.class)
+    public ResponseEntity<ProblemDetail> handleNotAuthenticated(
+        NotAuthenticatedException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.UNAUTHORIZED,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/not-authenticated"));
+        problem.setTitle("Não autenticado");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
 }

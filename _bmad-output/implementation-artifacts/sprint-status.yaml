@@ -45,7 +45,7 @@ development_status:
   1-2-registro-com-email-senha: done
   1-3-login-com-email-senha: done
   1-4-integracao-google-oauth2: done
-  1-5-perfil-e-busca-de-usuarios: backlog
+  1-5-perfil-e-busca-de-usuarios: done
   epic-1-retrospective: optional
 
   epic-2: backlog

@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,4 +45,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return true se username existe, false caso contrário
      */
     boolean existsByUsername(String username);
+
+    /**
+     * Busca usuários por username (case-insensitive e parcial)
+     *
+     * @param query termo de busca
+     * @return Lista de usuários que contêm o termo no username
+     */
+    List<User> findByUsernameContainingIgnoreCase(String query);
 }
