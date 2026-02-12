@@ -20,11 +20,14 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 /**
  * REST controller para gerenciamento de listas
@@ -77,6 +80,7 @@ public class ListController {
             @Valid @RequestBody CreateListRequest request,
             @AuthenticationPrincipal User owner) {
         List list = listService.createList(request, owner);
+        // Usa toListResponse(list) sem currentUserId - mapper usa owner.getId() automaticamente
         return listMapper.toListResponse(list);
     }
 
@@ -105,8 +109,53 @@ public class ListController {
         )
     })
     public java.util.List<ListResponse> getAllLists(@AuthenticationPrincipal User authenticatedUser) {
+        // Passa currentUserId explicitamente para calcular isOwner corretamente
+        // (usuário autenticado pode não ser owner em listas compartilhadas)
         return listService.getAllListsForUser(authenticatedUser.getId()).stream()
                 .map(list -> listMapper.toListResponse(list, authenticatedUser.getId()))
                 .toList();
+    }
+
+    /**
+     * Obtém detalhes de uma lista específica
+     * Retorna dados completos da lista se o usuário for owner ou member
+     *
+     * @param id                ID da lista (UUID)
+     * @param authenticatedUser Usuário autenticado (injetado pelo JWT)
+     * @return DTO com dados completos da lista
+     */
+    @GetMapping("/{id}")
+    @Operation(
+        summary = "Obter detalhes de uma lista",
+        description = "Retorna detalhes completos de uma lista específica. Usuário deve ser dono ou membro."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista retornada com sucesso",
+            content = @Content(schema = @Schema(implementation = ListResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Usuário não tem permissão para acessar esta lista",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista não encontrada",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public ListResponse getListById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User authenticatedUser) {
+        List list = listService.getListById(id, authenticatedUser.getId());
+        // Passa currentUserId explicitamente para calcular isOwner corretamente
+        return listMapper.toListResponse(list, authenticatedUser.getId());
     }
 }

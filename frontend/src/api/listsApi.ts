@@ -1,5 +1,7 @@
 import client from './client';
 import { CreateListRequest, ListResponse } from '../types/List';
+import { ProblemDetail } from '../types/ProblemDetail';
+import { AxiosError } from 'axios';
 
 /**
  * API para gerenciamento de listas
@@ -28,9 +30,33 @@ export const listsApi = {
    * Busca uma lista específica por ID
    * @param id - UUID da lista
    * @returns Promise com a lista encontrada
+   * @throws Error com mensagem específica baseada no status HTTP
    */
   async getListById(id: string): Promise<ListResponse> {
-    const response = await client.get<ListResponse>(`/api/lists/${id}`);
-    return response.data;
+    try {
+      const response = await client.get<ListResponse>(`/api/lists/${id}`);
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 404) {
+          throw new Error('Lista não encontrada');
+        } else if (status === 403) {
+          throw new Error('Você não tem permissão para acessar esta lista');
+        } else if (status === 401) {
+          throw new Error('Sessão expirada. Faça login novamente.');
+        } else {
+          throw new Error(
+            problemDetail?.detail || 'Erro ao carregar lista. Tente novamente.'
+          );
+        }
+      }
+
+      throw new Error('Erro de conexão. Verifique sua internet.');
+    }
   },
 };

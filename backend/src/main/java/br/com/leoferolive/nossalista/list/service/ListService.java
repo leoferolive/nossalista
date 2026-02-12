@@ -1,9 +1,11 @@
 package br.com.leoferolive.nossalista.list.service;
 
+import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
+import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -104,5 +106,30 @@ public class ListService {
      */
     public java.util.List<List> getAllListsForUser(UUID userId) {
         return listRepository.findAllByOwnerOrMemberOrderByUpdatedAtDesc(userId);
+    }
+
+    /**
+     * Busca uma lista específica por ID, validando permissões do usuário
+     * Usuário deve ser owner OU member da lista para acessar
+     *
+     * @param listId        ID da lista
+     * @param currentUserId ID do usuário autenticado
+     * @return A lista se encontrada e usuário tem permissão
+     * @throws ListNotFoundException se a lista não existir
+     * @throws ForbiddenException    se o usuário não for owner nem member
+     */
+    public List getListById(UUID listId, UUID currentUserId) {
+        List list = listRepository.findById(listId)
+                .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        // Verificar se usuário é owner
+        boolean isOwner = list.getOwner().getId().equals(currentUserId);
+
+        // Por enquanto, apenas owner pode ver (Story 4.1 adiciona membros)
+        if (!isOwner) {
+            throw new ForbiddenException("Você não tem permissão para acessar esta lista");
+        }
+
+        return list;
     }
 }

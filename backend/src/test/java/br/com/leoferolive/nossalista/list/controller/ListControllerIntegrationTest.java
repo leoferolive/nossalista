@@ -536,4 +536,119 @@ class ListControllerIntegrationTest {
                     .andExpect(jsonPath("$[*].type.slug").exists());
         }
     }
+
+    @Nested
+    @DisplayName("GET /api/lists/{id} - Obter Detalhes da Lista")
+    class GetListByIdTests {
+
+        @Test
+        @DisplayName("Deve retornar 200 OK com dados completos quando lista existe e usuário é owner")
+        void shouldReturn200WithCompleteDataWhenListExistsAndUserIsOwner() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Minha Lista Detalhada", 1), testUser);
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists/{id}", createdList.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(createdList.getId().toString()))
+                    .andExpect(jsonPath("$.name").value("Minha Lista Detalhada"))
+                    .andExpect(jsonPath("$.type.id").value(1))
+                    .andExpect(jsonPath("$.type.slug").value("compras"))
+                    .andExpect(jsonPath("$.owner.id").value(testUser.getId().toString()))
+                    .andExpect(jsonPath("$.owner.username").value("listowner"))
+                    .andExpect(jsonPath("$.owner.name").value("List Owner"))
+                    .andExpect(jsonPath("$.inviteCode").exists())
+                    .andExpect(jsonPath("$.isOwner").value(true))
+                    .andExpect(jsonPath("$.itemsCount").value(0))
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando lista não existe")
+        void shouldReturn404WhenListDoesNotExist() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            UUID nonExistentId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists/{id}", nonExistentId))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.title").value("Lista Não Encontrada"))
+                    .andExpect(jsonPath("$.detail").value("Lista não encontrada"));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 403 quando usuário não tem permissão (não é owner)")
+        void shouldReturn403WhenUserHasNoPermission() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+
+            // Criar outro usuário
+            User otherUser = userService.createUser(
+                    "otheruser",
+                    "other@example.com",
+                    "hashedPassword",
+                    "Other User",
+                    AuthProvider.EMAIL
+            );
+
+            // Autenticar como outro usuário
+            authenticateUser(otherUser);
+
+            // Act & Assert - tentar acessar lista do primeiro usuário
+            mockMvc.perform(get("/api/lists/{id}", createdList.getId()))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.title").value("Acesso Negado"))
+                    .andExpect(jsonPath("$.detail").value("Você não tem permissão para acessar esta lista"));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 quando não autenticado")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
+            // Arrange - criar lista sem autenticar
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+
+            // Limpar autenticação
+            SecurityContextHolder.clearContext();
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists/{id}", createdList.getId()))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Deve retornar lista de Tarefas (typeId=2) corretamente")
+        void shouldReturnTaskListSuccessfully() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Tarefas Importantes", 2), testUser);
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists/{id}", createdList.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name").value("Tarefas Importantes"))
+                    .andExpect(jsonPath("$.type.id").value(2))
+                    .andExpect(jsonPath("$.type.slug").value("tarefas"))
+                    .andExpect(jsonPath("$.isOwner").value(true));
+        }
+
+        @Test
+        @DisplayName("Deve retornar Wishlist (typeId=3) corretamente")
+        void shouldReturnWishlistSuccessfully() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Presentes Desejados", 3), testUser);
+
+            // Act & Assert
+            mockMvc.perform(get("/api/lists/{id}", createdList.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name").value("Presentes Desejados"))
+                    .andExpect(jsonPath("$.type.id").value(3))
+                    .andExpect(jsonPath("$.type.slug").value("wishlist"));
+        }
+    }
 }

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext.tsx'
 import Login from './pages/Login.tsx'
 import { Home } from './pages/Home.tsx'
+import { ListView } from './pages/ListView.tsx'
 import './index.css'
 
 /**
@@ -27,6 +28,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Home />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lists/:id"
+        element={
+          <ProtectedRoute>
+            <ListView />
           </ProtectedRoute>
         }
       />

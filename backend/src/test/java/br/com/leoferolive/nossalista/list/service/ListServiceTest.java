@@ -1,20 +1,24 @@
 package br.com.leoferolive.nossalista.list.service;
 
+import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
+import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -156,5 +160,75 @@ class ListServiceTest {
         assertEquals(10, exception.getMaxAttempts());
         verify(listRepository, times(9)).existsByInviteCode(any());
         verify(listRepository, never()).save(any(List.class));
+    }
+
+    @Nested
+    @DisplayName("getListById - Buscar Lista por ID")
+    class GetListByIdTests {
+
+        private List testList;
+        private UUID listId;
+
+        @BeforeEach
+        void setUpList() {
+            listId = UUID.randomUUID();
+            testList = new List();
+            testList.setId(listId);
+            testList.setName("Minha Lista de Teste");
+            testList.setTypeId(1);
+            testList.setOwner(testUser);
+            testList.setInviteCode("TEST12345678");
+        }
+
+        @Test
+        @DisplayName("Deve retornar lista quando usuário é owner")
+        void shouldReturnListWhenUserIsOwner() {
+            // Arrange
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+
+            // Act
+            List result = listService.getListById(listId, testUser.getId());
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(listId, result.getId());
+            assertEquals("Minha Lista de Teste", result.getName());
+            assertEquals(testUser.getId(), result.getOwner().getId());
+            verify(listRepository).findById(listId);
+        }
+
+        @Test
+        @DisplayName("Deve lançar ListNotFoundException quando lista não existe")
+        void shouldThrowListNotFoundExceptionWhenListDoesNotExist() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            when(listRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            ListNotFoundException exception = assertThrows(
+                ListNotFoundException.class,
+                () -> listService.getListById(nonExistentId, testUser.getId())
+            );
+
+            assertEquals("Lista não encontrada", exception.getMessage());
+            verify(listRepository).findById(nonExistentId);
+        }
+
+        @Test
+        @DisplayName("Deve lançar ForbiddenException quando usuário não é owner")
+        void shouldThrowForbiddenExceptionWhenUserIsNotOwner() {
+            // Arrange
+            UUID otherUserId = UUID.randomUUID();
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+
+            // Act & Assert
+            ForbiddenException exception = assertThrows(
+                ForbiddenException.class,
+                () -> listService.getListById(listId, otherUserId)
+            );
+
+            assertEquals("Você não tem permissão para acessar esta lista", exception.getMessage());
+            verify(listRepository).findById(listId);
+        }
     }
 }
