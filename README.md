@@ -3,7 +3,7 @@
 > Aplicativo web de listas compartilhadas em tempo real
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/leoferolive/nossalista/actions/workflows/ci.yml/badge.svg)](https://github.com/leoferolive/nossalista/actions/workflows/ci.yml)
+[![CI](https://github.com/leoferolive/nossalista/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/leoferolive/nossalista/actions/workflows/ci.yml)
 
 ## 📋 Sobre o Projeto
 
