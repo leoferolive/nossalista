@@ -3,6 +3,7 @@ package br.com.leoferolive.nossalista.config;
 import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
+import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -81,6 +82,27 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
+    /**
+     * Trata exceção de tipo de lista inválido
+     * Retorna 400 Bad Request com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(InvalidListTypeException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidListType(
+        InvalidListTypeException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/invalid-list-type"));
+        problem.setTitle("Tipo de lista inválido");
+        problem.setProperty("invalidTypeId", ex.getInvalidTypeId());
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.badRequest().body(problem);
     }
 
     /**

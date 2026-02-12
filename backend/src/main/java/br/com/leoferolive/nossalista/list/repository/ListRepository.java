@@ -29,5 +29,13 @@ public interface ListRepository extends JpaRepository<List, UUID> {
      */
     Optional<List> findByInviteCode(String inviteCode);
 
+    /**
+     * Verifica se já existe uma lista com o código de convite fornecido.
+     *
+     * @param inviteCode o código de convite a verificar
+     * @return true se o código já existe, false caso contrário
+     */
+    boolean existsByInviteCode(String inviteCode);
+
     // TODO: Adicionar countItems() na Story 3.1 quando ListItem for criado
 }

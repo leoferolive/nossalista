@@ -30,3 +30,19 @@ body {
   margin: 0 auto;
   text-align: center;
 }
+
+/* Animação para Toast (300ms conforme AC4) */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 300ms ease-out;
+}
