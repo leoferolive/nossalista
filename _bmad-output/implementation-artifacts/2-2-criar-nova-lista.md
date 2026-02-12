@@ -1,6 +1,6 @@
 # Story 2.2: Criar Nova Lista
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -387,6 +387,19 @@ N/A - Primeira implementação da story
 
 ### Completion Notes List
 
+**✅ Code Review Follow-ups Resolvidos (2026-02-12)**
+
+1. **Testes Frontend Configurados e Executando**
+   - Instaladas dependências: vitest@3.0.0, @testing-library/react@16.1.0, @testing-library/jest-dom@6.6.3, @testing-library/user-event@14.6.0, jsdom@26.0.0
+   - Corrigido TypeCard.test.tsx: adicionado `beforeEach(vi.clearAllMocks)` e alterado para usar `userEvent.keyboard()` após `card.focus()`
+   - Todos os 16 testes passando (7 TypeCard + 9 CreateListModal)
+
+2. **Redirecionamento 401 Implementado**
+   - Criado AuthContext.tsx com gerenciamento de estado de autenticação
+   - Criado Login.tsx com formulário de login (email/senha + Google OAuth2 placeholder)
+   - Atualizado main.tsx com BrowserRouter, AuthProvider e ProtectedRoute
+   - Atualizado client.ts: interceptor de response agora redireciona para /login quando recebe 401
+
 **✅ Backend Implementation Complete (AC1 + AC2)**
 
 **Implementações Realizadas:**
@@ -468,7 +481,7 @@ backend/src/main/java/.../config/GlobalExceptionHandler.java  # Handler InvalidL
 backend/src/main/java/.../list/repository/ListRepository.java # Adicionado existsByInviteCode()
 ```
 
-**Frontend - Novos Arquivos (9 files):**
+**Frontend - Novos Arquivos (12 files):**
 ```
 frontend/src/
 ├── types/
@@ -481,15 +494,30 @@ frontend/src/
 │   └── useLists.ts                   # Hook para gerenciar listas com loading/error states
 ├── components/
 │   ├── TypeCard.tsx                  # Card visual 160px min, keyboard accessible
+│   ├── TypeCard.test.tsx             # Testes do TypeCard (7 testes)
 │   ├── CreateListModal.tsx           # Modal completo com validações e Enter submit
+│   ├── CreateListModal.test.tsx      # Testes do CreateListModal (9 testes)
 │   └── Toast.tsx                     # Sistema de notificações + useToast hook
-└── pages/
-    └── Home.tsx                      # Exemplo de integração completa
+├── contexts/
+│   └── AuthContext.tsx               # Contexto de autenticação
+├── pages/
+│   ├── Home.tsx                      # Exemplo de integração completa
+│   └── Login.tsx                     # Página de login
+└── test/
+    └── setup.ts                      # Setup do Vitest
 ```
 
-**Frontend - Arquivos Modificados (1 file):**
+**Frontend - Arquivos Modificados (4 files):**
 ```
+frontend/package.json                 # Adicionadas dependências de teste
 frontend/src/index.css                # Adicionado @keyframes slideIn (300ms)
+frontend/src/main.tsx                 # Configurado BrowserRouter + AuthProvider
+frontend/src/types/List.ts            # Corrigido slug 'genérica' → 'generica' (code review fix)
+```
+
+**Frontend - Configuração de Testes (1 file):**
+```
+frontend/vitest.config.ts             # Configuração do Vitest
 ```
 
 **Story - Arquivos Criados (1 file):**
@@ -497,7 +525,7 @@ frontend/src/index.css                # Adicionado @keyframes slideIn (300ms)
 _bmad-output/implementation-artifacts/2-2-criar-nova-lista.md  # Este arquivo
 ```
 
-**Total:** 25 arquivos (21 novos, 4 modificados)
+**Total:** 30 arquivos (24 novos, 6 modificados)
 
 ## Testing Strategy
 
@@ -681,6 +709,14 @@ testUser.setPassword("hashedPassword");
 { "name": "Test List", "typeId": null }
 ```
 
+## Change Log
+
+| Data | Autor | Descrição |
+|------|-------|-----------|
+| 2026-02-12 | Claude | Code review concluído: Corrigidos slug inconsistente (genérica→generica) e async em teste. Status alterado para "done" |
+| 2026-02-12 | Claude | Resolvidos code review follow-ups: configurado Vitest (16 testes frontend passando), implementado redirecionamento 401 com AuthContext e Login page |
+| 2026-02-12 | Claude | Story completa: Backend (14 testes) + Frontend (16 testes) + Integração. Status alterado para "review" |
+
 ## References
 
 ### Epics e Stories
@@ -713,6 +749,54 @@ testUser.setPassword("hashedPassword");
 **CLAUDE.md:**
 - [Deploy Commands](CLAUDE.md#comandos-de-deploy)
 - [CI/CD Pipeline](CLAUDE.md#cicd)
+
+## Code Review Follow-ups
+
+### Issues Corrigidos Durante Review
+
+1. ✅ **[HIGH] InviteCodeGenerationException criada** - Substituiu RuntimeException genérica por exceção customizada
+2. ✅ **[HIGH] GET /api/lists implementado** - Endpoint faltante no controller adicionado
+3. ✅ **[HIGH] Slug "genérica" corrigido** - Alterado de "generica" para "genérica" (sem acento no slug, mas mantendo consistência)
+4. ✅ **[MEDIUM] Testes Frontend criados** - CreateListModal.test.tsx e TypeCard.test.tsx
+
+### Issues Corrigidos Durante Code Review (2026-02-12)
+
+1. ✅ **[MEDIUM] Slug inconsistente no tipo Genérico** - Corrigido `frontend/src/types/List.ts` linha 80:
+   - Alterado de `slug: 'genérica'` para `slug: 'generica'` (sem acento, consistente com backend)
+
+2. ✅ **[MEDIUM] Teste async faltante** - Corrigido `frontend/src/components/CreateListModal.test.tsx` linha 57:
+   - Adicionado `async` na função do teste "deve desabilitar botão quando tipo não selecionado"
+   - Adicionado `await` na chamada `userEvent.type()` linha 69
+
+### Pendências Resolvidas ✓
+
+1. ✅ **[MEDIUM] Testes Frontend configurados e executando** - Vitest configurado corretamente
+   - Instaladas dependências: vitest, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, jsdom
+   - vitest.config.ts já existia e está funcional
+   - Script "test" configurado no package.json
+   - 16 testes passando (7 TypeCard + 9 CreateListModal)
+
+2. ✅ **[MEDIUM] Redirecionamento 401 implementado** - client.ts agora redireciona para /login quando token expira
+   - Criada página Login.tsx com formulário de autenticação
+   - Criado AuthContext.tsx para gerenciamento de estado de autenticação
+   - Configurado BrowserRouter no main.tsx com rotas protegidas
+   - Interceptor de response no client.ts limpa token e redireciona para /login
+
+3. ⚠️ **[LOW] Compatibilidade String.repeat()** - Adicionar comentário sobre ES2015 support (opcional - não crítico para MVP)
+
+### Novos Arquivos Criados por Review
+
+**Backend:**
+- `InviteCodeGenerationException.java` - Exceção customizada para falha na geração de invite code
+
+**Frontend:**
+- `vitest.config.ts` - Configuração do Vitest
+- `src/test/setup.ts` - Setup dos testes
+- `src/components/CreateListModal.test.tsx` - Testes do CreateListModal
+- `src/components/TypeCard.test.tsx` - Testes do TypeCard
+- `src/pages/Login.tsx` - Página de login
+- `src/contexts/AuthContext.tsx` - Contexto de autenticação
+- `src/main.tsx` - Atualizado com BrowserRouter e AuthProvider
 
 ## Implementation Checklist
 
@@ -803,6 +887,6 @@ testUser.setPassword("hashedPassword");
 
 ---
 
-**Story Status:** ready-for-dev ✅
+**Story Status:** done ✅
 
 **Next Story:** 2.3 - Listar Todas as Listas (usará ListResponse, ListMapper, useLists desta story)

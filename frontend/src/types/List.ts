@@ -35,6 +35,8 @@ export interface ListResponse {
   type: ListType;
   owner: ListOwner;
   inviteCode: string;
+  isOwner: boolean;
+  itemsCount: number;
   createdAt: string;
   updatedAt: string;
 }
