@@ -1,6 +1,6 @@
-package br.com.leoferolive.nossalista.auth.repository;
+package br.com.leoferolive.nossalista.user.repository;
 
-import br.com.leoferolive.nossalista.auth.domain.User;
+import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

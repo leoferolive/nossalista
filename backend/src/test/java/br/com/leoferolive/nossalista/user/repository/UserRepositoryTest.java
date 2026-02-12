@@ -1,12 +1,13 @@
-package br.com.leoferolive.nossalista.auth.repository;
+package br.com.leoferolive.nossalista.user.repository;
 
-import br.com.leoferolive.nossalista.auth.domain.AuthProvider;
-import br.com.leoferolive.nossalista.auth.domain.Role;
-import br.com.leoferolive.nossalista.auth.domain.User;
+import br.com.leoferolive.nossalista.user.domain.AuthProvider;
+import br.com.leoferolive.nossalista.user.domain.Role;
+import br.com.leoferolive.nossalista.user.domain.User;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Testes de integração para UserRepository
  */
 @SpringBootTest
+@Sql(scripts = "/db/migration/V1__create_users_table.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 @Transactional
 class UserRepositoryTest {
 

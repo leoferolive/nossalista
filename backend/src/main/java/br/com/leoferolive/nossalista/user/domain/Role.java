@@ -1,4 +1,4 @@
-package br.com.leoferolive.nossalista.auth.domain;
+package br.com.leoferolive.nossalista.user.domain;
 
 /**
  * Papéis (roles) de usuários no sistema

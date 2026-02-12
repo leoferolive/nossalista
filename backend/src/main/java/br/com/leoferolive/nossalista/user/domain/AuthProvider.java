@@ -1,4 +1,4 @@
-package br.com.leoferolive.nossalista.auth.domain;
+package br.com.leoferolive.nossalista.user.domain;
 
 /**
  * Tipos de provedores de autenticação suportados pela aplicação

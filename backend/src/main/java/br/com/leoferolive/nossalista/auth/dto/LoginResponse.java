@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.auth.dto;
 
-import br.com.leoferolive.nossalista.auth.domain.AuthProvider;
+import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import java.time.LocalDateTime;
 import java.util.UUID;
 

@@ -1,4 +1,4 @@
-package br.com.leoferolive.nossalista.auth.domain;
+package br.com.leoferolive.nossalista.user.domain;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

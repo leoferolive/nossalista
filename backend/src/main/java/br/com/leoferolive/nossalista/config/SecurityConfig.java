@@ -1,12 +1,11 @@
 package br.com.leoferolive.nossalista.config;
 
+import br.com.leoferolive.nossalista.auth.OAuth2SuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -17,16 +16,18 @@ import java.util.Arrays;
 
 /**
  * Configuração de segurança da aplicação NossaLista.
- * Define políticas de CORS, autenticação JWT e endpoints públicos.
+ * Define políticas de CORS, autenticação JWT, OAuth2 e endpoints públicos.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OAuth2SuccessHandler oauth2SuccessHandler;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, OAuth2SuccessHandler oauth2SuccessHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.oauth2SuccessHandler = oauth2SuccessHandler;
     }
 
     @Bean
@@ -42,6 +43,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints públicos - não requerem autenticação
                         .requestMatchers("/api/auth/**", "/api/health", "/actuator/health").permitAll()
+                        // OAuth2 endpoints (Spring Security gerencia automaticamente)
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         // H2 Console (apenas dev)
                         .requestMatchers("/h2-console/**").permitAll()
                         // Endpoints da API requerem autenticação
@@ -57,6 +60,14 @@ public class SecurityConfig {
 
                 // Permitir frames para H2 Console (apenas dev)
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+
+                // Configurar OAuth2 Login
+                .oauth2Login(oauth2 -> oauth2
+                        .redirectionEndpoint(redirect ->
+                                redirect.baseUri("/api/auth/google/callback")
+                        )
+                        .successHandler(oauth2SuccessHandler)
+                )
 
                 // Adicionar JWT Authentication Filter ANTES de UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -104,12 +115,4 @@ public class SecurityConfig {
         return source;
     }
 
-    /**
-     * Encoder de senha usando BCrypt.
-     * Usado para hash de senhas antes de armazenar no banco.
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
 }

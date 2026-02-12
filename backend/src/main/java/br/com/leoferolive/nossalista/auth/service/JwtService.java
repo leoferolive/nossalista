@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.auth.service;
 
-import br.com.leoferolive.nossalista.auth.domain.User;
+import br.com.leoferolive.nossalista.user.domain.User;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;

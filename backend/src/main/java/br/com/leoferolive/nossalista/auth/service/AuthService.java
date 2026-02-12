@@ -1,14 +1,12 @@
 package br.com.leoferolive.nossalista.auth.service;
 
-import br.com.leoferolive.nossalista.auth.domain.AuthProvider;
-import br.com.leoferolive.nossalista.auth.domain.Role;
-import br.com.leoferolive.nossalista.auth.domain.User;
+import br.com.leoferolive.nossalista.user.domain.AuthProvider;
+import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.auth.dto.LoginRequest;
 import br.com.leoferolive.nossalista.auth.dto.RegisterRequest;
-import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
-import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
-import br.com.leoferolive.nossalista.auth.repository.UserRepository;
+import br.com.leoferolive.nossalista.user.repository.UserRepository;
+import br.com.leoferolive.nossalista.user.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthService {
 
+    private final UserService userService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserService userService, UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userService = userService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -32,8 +32,6 @@ public class AuthService {
      *
      * @param request dados de registro
      * @return usuário criado
-     * @throws EmailAlreadyExistsException se email já existe
-     * @throws UsernameAlreadyExistsException se username já existe
      */
     @Transactional
     public User register(RegisterRequest request) {
@@ -43,26 +41,21 @@ public class AuthService {
         String trimmedPassword = request.password().trim();
         String trimmedName = request.name() != null ? request.name().trim() : null;
 
-        // Check for duplicate email
-        if (userRepository.existsByEmail(normalizedEmail)) {
-            throw new EmailAlreadyExistsException(normalizedEmail);
-        }
+        // Validate email and username don't exist
+        userService.validateEmailNotExists(normalizedEmail);
+        userService.validateUsernameNotExists(normalizedUsername);
 
-        // Check for duplicate username
-        if (userRepository.existsByUsername(normalizedUsername)) {
-            throw new UsernameAlreadyExistsException(normalizedUsername);
-        }
+        // Hash password
+        String hashedPassword = passwordEncoder.encode(trimmedPassword);
 
-        // Create user with hashed password
-        User user = new User();
-        user.setEmail(normalizedEmail);
-        user.setUsername(normalizedUsername);
-        user.setPassword(passwordEncoder.encode(trimmedPassword)); // Hash password with BCrypt
-        user.setName(trimmedName);
-        user.setAuthProvider(AuthProvider.EMAIL);
-        user.setRole(Role.USER); // Set default role
-
-        return userRepository.save(user);
+        // Create user via UserService
+        return userService.createUser(
+            normalizedUsername,
+            normalizedEmail,
+            hashedPassword,
+            trimmedName,
+            AuthProvider.EMAIL
+        );
     }
 
     /**
@@ -79,7 +72,7 @@ public class AuthService {
         String password = request.password().trim();
 
         // Buscar usuário por email
-        User user = userRepository.findByEmail(normalizedEmail)
+        User user = userService.findByEmailOptional(normalizedEmail)
             .orElseThrow(() -> new InvalidCredentialsException());
 
         // Validar senha com BCrypt
@@ -88,5 +81,44 @@ public class AuthService {
         }
 
         return user;
+    }
+
+    /**
+     * Gera um username único a partir de um email
+     * <p>
+     * Extrai o prefixo do email (parte antes do @), normaliza,
+     * e adiciona número incremental se já existir.
+     *
+     * @param email email para gerar username
+     * @return username único disponível
+     */
+    @Transactional(readOnly = true)
+    public String generateUniqueUsername(String email) {
+        // Extrair prefixo do email (antes do @)
+        String baseUsername = email.split("@")[0];
+
+        // Remover caracteres especiais e normalizar
+        baseUsername = baseUsername.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+
+        // Limitar tamanho máximo
+        if (baseUsername.length() > 20) {
+            baseUsername = baseUsername.substring(0, 20);
+        }
+
+        // Se ficou vazio após normalização, usar fallback
+        if (baseUsername.isBlank()) {
+            baseUsername = "user";
+        }
+
+        // Verificar disponibilidade e adicionar contador se necessário
+        String username = baseUsername;
+        int counter = 1;
+
+        while (userRepository.findByUsername(username).isPresent()) {
+            username = baseUsername + counter;
+            counter++;
+        }
+
+        return username;
     }
 }

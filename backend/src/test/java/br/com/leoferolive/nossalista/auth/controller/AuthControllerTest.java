@@ -1,9 +1,9 @@
 package br.com.leoferolive.nossalista.auth.controller;
 
-import br.com.leoferolive.nossalista.auth.domain.AuthProvider;
-import br.com.leoferolive.nossalista.auth.domain.Role;
-import br.com.leoferolive.nossalista.auth.domain.User;
-import br.com.leoferolive.nossalista.auth.repository.UserRepository;
+import br.com.leoferolive.nossalista.user.domain.AuthProvider;
+import br.com.leoferolive.nossalista.user.domain.Role;
+import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Testes de integração para endpoint de registro do AuthController
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Sql(scripts = "/db/migration/V1__create_users_table.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @Transactional
 class AuthControllerTest {
 
@@ -401,6 +400,30 @@ class AuthControllerTest {
         mockMvc.perform(get("/api/health")
                 .header("Authorization", "Bearer " + invalidToken))
             .andExpect(status().isOk()); // /api/health is public, so still works
+    }
+
+    @Test
+    void shouldReturn401WhenOAuth2UserTriesEmailPasswordLogin() throws Exception {
+        // Given - create OAuth2 user (password is NULL)
+        User user = new User();
+        user.setEmail("oauth2user@gmail.com");
+        user.setUsername("oauth2user");
+        user.setPassword(null); // OAuth2 users have no password
+        user.setAuthProvider(AuthProvider.GOOGLE);
+        user.setRole(Role.USER);
+        userRepository.save(user);
+
+        Map<String, String> loginRequest = new HashMap<>();
+        loginRequest.put("email", "oauth2user@gmail.com");
+        loginRequest.put("password", "any-password");
+
+        // When & Then - should return 401 because password is NULL (BCrypt returns false)
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/invalid-credentials"))
+            .andExpect(jsonPath("$.title").value("Credenciais inválidas"));
     }
 
     @Test

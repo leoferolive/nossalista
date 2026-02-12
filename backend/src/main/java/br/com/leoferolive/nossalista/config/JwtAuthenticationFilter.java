@@ -1,7 +1,7 @@
 package br.com.leoferolive.nossalista.config;
 
-import br.com.leoferolive.nossalista.auth.domain.User;
-import br.com.leoferolive.nossalista.auth.repository.UserRepository;
+import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.service.UserService;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -25,11 +25,11 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserService userService) {
         this.jwtService = jwtService;
-        this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     @Override
@@ -61,7 +61,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         UUID userId = jwtService.extractUserId(token);
 
         // Buscar usuário no database
-        User user = userRepository.findById(userId).orElse(null);
+        User user = userService.findById(userId).orElse(null);
 
         // Se usuário não existe mais, continuar sem autenticar
         if (user == null) {

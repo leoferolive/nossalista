@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.auth.controller;
 
-import br.com.leoferolive.nossalista.auth.domain.User;
+import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.auth.dto.LoginRequest;
 import br.com.leoferolive.nossalista.auth.dto.LoginResponse;
 import br.com.leoferolive.nossalista.auth.dto.RegisterRequest;
@@ -12,11 +12,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 
 /**
@@ -87,5 +89,28 @@ public class AuthController {
         LoginResponse response = userMapper.toLoginResponse(user, token, expiresAt);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Inicia fluxo de autenticação OAuth2 com Google
+     * <p>
+     * Redireciona para o endpoint do Spring Security que inicia o fluxo OAuth2.
+     * Spring Security automaticamente redireciona para o Google consent screen.
+     *
+     * @param response resposta HTTP para fazer redirect
+     * @throws IOException se houver erro no redirect
+     */
+    @GetMapping("/google")
+    @Operation(
+        summary = "Iniciar login com Google OAuth2",
+        description = "Inicia o fluxo de autenticação OAuth2 com Google. Redireciona para consent screen do Google."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "302", description = "Redirect para Google consent screen"),
+        @ApiResponse(responseCode = "500", description = "Erro ao iniciar fluxo OAuth2")
+    })
+    public void initiateGoogleLogin(HttpServletResponse response) throws IOException {
+        // Spring Security intercepta /oauth2/authorization/google e inicia fluxo OAuth2
+        response.sendRedirect("/oauth2/authorization/google");
     }
 }

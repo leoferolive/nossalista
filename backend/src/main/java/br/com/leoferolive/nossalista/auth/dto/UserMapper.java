@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.auth.dto;
 
-import br.com.leoferolive.nossalista.auth.domain.User;
+import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
