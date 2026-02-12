@@ -73,10 +73,6 @@ bin/
 # VS Code
 .vscode/
 
-# BMD / Agent outputs
-_bmad/
-_bmad-output/
-
 # OS
 .DS_Store
 Thumbs.db
