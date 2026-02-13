@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Service para lógica de negócio de itens de lista
@@ -179,5 +180,35 @@ public class ListItemService {
         // Por enquanto, apenas donos são considerados participantes
 
         return false;
+    }
+
+    /**
+     * Busca todos os itens de uma lista
+     * Valida permissões (usuário deve ser participante)
+     *
+     * @param listId ID da lista
+     * @param user   Usuário solicitante
+     * @return Lista de DTOs com todos os itens ordenados por position
+     * @throws ListNotFoundException se a lista não existir
+     * @throws ForbiddenException    se o usuário não for participante
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<ListItemResponseDTO> getItemsByListId(UUID listId, User user) {
+        // 1. Verificar se lista existe
+        List list = listRepository.findById(listId)
+                .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        // 2. Verificar se usuário é participante
+        if (!isParticipant(list, user)) {
+            throw new ForbiddenException("Você não tem permissão para ver os itens desta lista");
+        }
+
+        // 3. Buscar itens ordenados por position ASC
+        java.util.List<ListItem> items = listItemRepository.findByListIdOrderByPositionAsc(listId);
+
+        // 4. Mapear para DTOs
+        return items.stream()
+                .map(listItemMapper::toListItemResponseDTO)
+                .collect(Collectors.toList());
     }
 }

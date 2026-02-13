@@ -16,12 +16,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -89,5 +91,49 @@ public class ListItemController {
 
         ListItemResponseDTO response = listItemService.addItem(listId, dto, creator);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Retorna todos os itens de uma lista ordenados por position
+     * Usuário deve ser participante da lista (dono ou membro)
+     *
+     * @param listId      ID da lista
+     * @param userDetails Usuário autenticado (injetado pelo JWT)
+     * @return Lista de DTOs com todos os itens, status 200 OK
+     */
+    @GetMapping
+    @Operation(
+        summary = "Listar itens da lista",
+        description = "Retorna todos os itens de uma lista ordenados por position. " +
+                      "Usuário deve ser dono ou membro da lista."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Itens retornados com sucesso",
+            content = @Content(schema = @Schema(implementation = ListItemResponseDTO.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Usuário não tem permissão para ver os itens desta lista",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista não encontrada",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public ResponseEntity<List<ListItemResponseDTO>> getItems(
+            @PathVariable UUID listId,
+            @AuthenticationPrincipal User user) {
+
+        List<ListItemResponseDTO> items = listItemService.getItemsByListId(listId, user);
+        return ResponseEntity.ok(items);
     }
 }

@@ -3,11 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { ListView } from './ListView';
 import { useLists } from '../hooks/useLists';
+import { useItems } from '../hooks/useItems';
 import { useToast } from '../components/Toast';
 import { ListResponse } from '../types/List';
 
 // Mock hooks
 vi.mock('../hooks/useLists');
+vi.mock('../hooks/useItems');
 vi.mock('../components/Toast');
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -28,7 +30,7 @@ describe('ListView - Delete Functionality', () => {
     id: 'test-list-id',
     name: 'Lista de Teste',
     type: { id: 1, name: 'Compras', slug: 'compras' },
-    owner: { id: 'owner-id', username: 'testuser', name: 'Test User' },
+    owner: { id: 'owner-id', username: 'testuser', name: 'Test User', avatarUrl: null },
     inviteCode: 'ABC123',
     isOwner: true,
     itemsCount: 0,
@@ -55,6 +57,16 @@ describe('ListView - Delete Functionality', () => {
       toasts: [],
       showToast: mockShowToast,
       removeToast: mockRemoveToast,
+    });
+
+    (useItems as any).mockReturnValue({
+      items: [],
+      loadingItems: false,
+      errorItems: null,
+      addingItem: false,
+      fetchItems: vi.fn(),
+      addItem: vi.fn(),
+      clearItemsError: vi.fn(),
     });
   });
 

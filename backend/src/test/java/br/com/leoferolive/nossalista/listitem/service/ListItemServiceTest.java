@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -400,6 +401,127 @@ class ListItemServiceTest {
 
             // Assert - não lança exceção e métodos foram chamados
             verify(listItemRepository).save(any(ListItem.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("getItemsByListId - Buscar Itens da Lista")
+    class GetItemsByListIdTests {
+
+        @Test
+        @DisplayName("Deve retornar itens ordenados por position quando usuário é participante")
+        void shouldReturnItemsOrderedByPositionWhenUserIsParticipant() {
+            // Arrange
+            ListItem item1 = createTestItem("Item 1", 0);
+            ListItem item2 = createTestItem("Item 2", 1);
+            ListItem item3 = createTestItem("Item 3", 2);
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findByListIdOrderByPositionAsc(listId))
+                .thenReturn(java.util.List.of(item1, item2, item3));
+
+            ListItemResponseDTO.CreatorResponse creatorResponse = new ListItemResponseDTO.CreatorResponse(
+                testUser.getId(), testUser.getUsername(), "Test User", null
+            );
+
+            ListItemResponseDTO dto1 = new ListItemResponseDTO(
+                item1.getId(), "Item 1", false, null, null, null, 0,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+            ListItemResponseDTO dto2 = new ListItemResponseDTO(
+                item2.getId(), "Item 2", false, null, null, null, 1,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+            ListItemResponseDTO dto3 = new ListItemResponseDTO(
+                item3.getId(), "Item 3", false, null, null, null, 2,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+
+            when(listItemMapper.toListItemResponseDTO(item1)).thenReturn(dto1);
+            when(listItemMapper.toListItemResponseDTO(item2)).thenReturn(dto2);
+            when(listItemMapper.toListItemResponseDTO(item3)).thenReturn(dto3);
+
+            // Act
+            java.util.List<ListItemResponseDTO> result = listItemService.getItemsByListId(listId, testUser);
+
+            // Assert
+            assertEquals(3, result.size());
+            assertEquals("Item 1", result.get(0).name());
+            assertEquals("Item 2", result.get(1).name());
+            assertEquals("Item 3", result.get(2).name());
+            assertEquals(0, result.get(0).position());
+            assertEquals(1, result.get(1).position());
+            assertEquals(2, result.get(2).position());
+
+            verify(listRepository).findById(listId);
+            verify(listItemRepository).findByListIdOrderByPositionAsc(listId);
+            verify(listItemMapper, times(3)).toListItemResponseDTO(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve retornar lista vazia quando não há itens")
+        void shouldReturnEmptyListWhenNoItems() {
+            // Arrange
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findByListIdOrderByPositionAsc(listId))
+                .thenReturn(Collections.emptyList());
+
+            // Act
+            java.util.List<ListItemResponseDTO> result = listItemService.getItemsByListId(listId, testUser);
+
+            // Assert
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+
+            verify(listRepository).findById(listId);
+            verify(listItemRepository).findByListIdOrderByPositionAsc(listId);
+            verify(listItemMapper, never()).toListItemResponseDTO(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ListNotFoundException quando lista não existe")
+        void shouldThrowListNotFoundExceptionWhenListDoesNotExist() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            when(listRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            ListNotFoundException exception = assertThrows(
+                ListNotFoundException.class,
+                () -> listItemService.getItemsByListId(nonExistentId, testUser)
+            );
+
+            assertEquals("Lista não encontrada", exception.getMessage());
+            verify(listRepository).findById(nonExistentId);
+            verify(listItemRepository, never()).findByListIdOrderByPositionAsc(any());
+        }
+
+        @Test
+        @DisplayName("Deve lançar ForbiddenException quando usuário não é participante")
+        void shouldThrowForbiddenExceptionWhenUserIsNotParticipant() {
+            // Arrange
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+
+            // Act & Assert - otherUser não é dono da lista
+            ForbiddenException exception = assertThrows(
+                ForbiddenException.class,
+                () -> listItemService.getItemsByListId(listId, otherUser)
+            );
+
+            assertEquals("Você não tem permissão para ver os itens desta lista", exception.getMessage());
+            verify(listRepository).findById(listId);
+            verify(listItemRepository, never()).findByListIdOrderByPositionAsc(any());
+        }
+
+        private ListItem createTestItem(String name, int position) {
+            ListItem item = new ListItem();
+            item.setId(UUID.randomUUID());
+            item.setName(name);
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(position);
+            item.setChecked(false);
+            return item;
         }
     }
 }

@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -375,6 +376,139 @@ class ListItemControllerTest {
             // Verify in database
             var items = listItemRepository.findByListIdOrderByPositionAsc(testList.getId());
             assertThat(items.get(0).getName()).isEqualTo("Arroz Integral");
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/lists/{listId}/items - Listar Itens")
+    class GetItemsTests {
+
+        @Test
+        @DisplayName("Deve retornar itens ordenados por position quando usuário é dono")
+        void shouldReturnItemsOrderedByPosition() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+
+            // Criar 3 itens
+            createItem(testList, "Item 1", 0);
+            createItem(testList, "Item 2", 1);
+            createItem(testList, "Item 3", 2);
+
+            // When & Then
+            mockMvc.perform(get("/api/lists/{listId}/items", testList.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].name").value("Item 1"))
+                .andExpect(jsonPath("$[0].position").value(0))
+                .andExpect(jsonPath("$[1].name").value("Item 2"))
+                .andExpect(jsonPath("$[1].position").value(1))
+                .andExpect(jsonPath("$[2].name").value("Item 3"))
+                .andExpect(jsonPath("$[2].position").value(2));
+        }
+
+        @Test
+        @DisplayName("Deve retornar lista vazia quando não há itens")
+        void shouldReturnEmptyListWhenNoItems() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista Vazia", 1), testUser);
+
+            // When & Then
+            mockMvc.perform(get("/api/lists/{listId}/items", testList.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando lista não existe")
+        void shouldReturn404WhenListDoesNotExist() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            UUID nonExistentId = UUID.randomUUID();
+
+            // When & Then
+            mockMvc.perform(get("/api/lists/{listId}/items", nonExistentId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/list-not-found"))
+                .andExpect(jsonPath("$.title").value("Lista Não Encontrada"))
+                .andExpect(jsonPath("$.status").value(404));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 403 quando usuário não é participante")
+        void shouldReturn403WhenUserIsNotParticipant() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+
+            // Limpar e autenticar como outro usuário
+            SecurityContextHolder.clearContext();
+            authenticateUser(otherUser);
+
+            // When & Then
+            mockMvc.perform(get("/api/lists/{listId}/items", testList.getId()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/access-forbidden"))
+                .andExpect(jsonPath("$.title").value("Acesso Negado"))
+                .andExpect(jsonPath("$.status").value(403));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 quando não há token")
+        void shouldReturn401WhenNoToken() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+
+            // Limpar autenticação
+            SecurityContextHolder.clearContext();
+
+            // When & Then
+            mockMvc.perform(get("/api/lists/{listId}/items", testList.getId()))
+                .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Deve retornar campos completos de cada item")
+        void shouldReturnCompleteItemFields() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista de Compras", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Arroz Integral");
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(false);
+            item.setQuantity(5);
+            listItemRepository.save(item);
+
+            // When & Then
+            mockMvc.perform(get("/api/lists/{listId}/items", testList.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").exists())
+                .andExpect(jsonPath("$[0].name").value("Arroz Integral"))
+                .andExpect(jsonPath("$[0].checked").value(false))
+                .andExpect(jsonPath("$[0].quantity").value(5))
+                .andExpect(jsonPath("$[0].position").value(0))
+                .andExpect(jsonPath("$[0].createdBy.id").value(testUser.getId().toString()))
+                .andExpect(jsonPath("$[0].createdBy.username").value("testitemuser"))
+                .andExpect(jsonPath("$[0].createdAt").exists())
+                .andExpect(jsonPath("$[0].updatedAt").exists());
+        }
+
+        private void createItem(List list, String name, int position) {
+            ListItem item = new ListItem();
+            item.setName(name);
+            item.setList(list);
+            item.setCreatedBy(testUser);
+            item.setPosition(position);
+            item.setChecked(false);
+            listItemRepository.save(item);
         }
     }
 }

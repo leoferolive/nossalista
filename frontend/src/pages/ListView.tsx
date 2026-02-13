@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
+import { useItems } from '../hooks/useItems';
 import { LIST_TYPES } from '../types/List';
 import { EditListNameModal } from '../components/EditListNameModal';
 import { DeleteListModal } from '../components/DeleteListModal';
+import { ListItemComponent } from '../components/ListItem';
 import { useToast, Toast } from '../components/Toast';
 import { ApiError } from '../types/ApiError';
+import { ListItem } from '../types/Item';
 
 /**
  * Página de visualização de detalhes de uma lista
@@ -28,18 +31,33 @@ export const ListView: React.FC = () => {
   } = useLists();
   const { toasts, showToast, removeToast } = useToast();
 
+  // Hook para gerenciar itens
+  const {
+    items,
+    loadingItems,
+    errorItems,
+    addingItem,
+    fetchItems,
+    addItem,
+    clearItemsError,
+  } = useItems();
+
   // Estado do modal de edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Estado do modal de exclusão
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // Carregar dados da lista ao montar o componente
+  // Estado do formulário de adicionar item
+  const [newItemName, setNewItemName] = useState('');
+
+  // Carregar dados da lista e itens ao montar o componente
   useEffect(() => {
     if (id) {
       fetchListById(id);
+      fetchItems(id);
     }
-  }, [id, fetchListById]);
+  }, [id, fetchListById, fetchItems]);
 
   // Handler para abrir modal de edição
   const handleOpenEditModal = () => {
@@ -105,6 +123,36 @@ export const ListView: React.FC = () => {
     }
   };
 
+  // Handler para toggle de item (marcar/desmarcar)
+  const handleToggleItem = (_itemId: string) => {
+    // TODO: Implementar no Story 3.4
+    showToast('Funcionalidade disponível em breve', 'info');
+  };
+
+  // Handler para editar item
+  const handleEditItem = (_item: ListItem) => {
+    // TODO: Implementar no Story 3.5
+    showToast('Funcionalidade disponível em breve', 'info');
+  };
+
+  // Handler para adicionar novo item
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!id || !newItemName.trim()) return;
+
+    showToast('Adicionando item...', 'info');
+
+    try {
+      await addItem(id, { name: newItemName.trim() });
+      setNewItemName(''); // Limpa o campo
+      showToast('Item adicionado', 'success');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao adicionar item';
+      showToast(message, 'error');
+    }
+  };
+
   // Determinar emoji do tipo de lista
   const typeEmoji = currentList
     ? LIST_TYPES.find((t) => t.id === currentList.type.id)?.emoji || '📝'
@@ -135,8 +183,11 @@ export const ListView: React.FC = () => {
           {/* Skeleton Items Section */}
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4" />
-            <div className="h-4 w-full bg-gray-200 rounded animate-pulse mb-2" />
-            <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+            <div className="space-y-3">
+              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
+              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
+              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
+            </div>
           </div>
         </div>
       </div>
@@ -306,14 +357,53 @@ export const ListView: React.FC = () => {
           </div>
         </div>
 
-        {/* Seção "Itens": Título + área vazia */}
+        {/* Seção "Itens": Título + lista de itens */}
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Itens ({currentList.itemsCount})
+            Itens ({items.length})
           </h2>
 
+          {/* Loading state para itens */}
+          {loadingItems && (
+            <div className="space-y-3">
+              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
+              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
+              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
+            </div>
+          )}
+
+          {/* Error state para itens */}
+          {errorItems && !loadingItems && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+              <p className="text-red-800 mb-2">{errorItems}</p>
+              <button
+                onClick={() => {
+                  clearItemsError();
+                  if (id) fetchItems(id);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+              >
+                Tentar Novamente
+              </button>
+            </div>
+          )}
+
+          {/* Lista de itens */}
+          {!loadingItems && !errorItems && items.length > 0 && (
+            <div className="space-y-2">
+              {items.map((item) => (
+                <ListItemComponent
+                  key={item.id}
+                  item={item}
+                  onToggle={handleToggleItem}
+                  onEdit={handleEditItem}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Estado vazio */}
-          {currentList.itemsCount === 0 && (
+          {!loadingItems && !errorItems && items.length === 0 && (
             <div className="text-center py-12 text-gray-500">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -336,31 +426,44 @@ export const ListView: React.FC = () => {
             </div>
           )}
 
-          {/* Botão "Adicionar Item" - disabled (será habilitado no Epic 3) */}
-          <button
-            disabled
-            className="w-full mt-4 py-3 px-4 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed font-medium flex items-center justify-center gap-2"
-            title="Disponível no Epic 3"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
+          {/* Formulário para adicionar item */}
+          <form onSubmit={handleAddItem} className="mt-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                placeholder="Adicionar novo item..."
+                disabled={addingItem}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                maxLength={200}
               />
-            </svg>
-            Adicionar Item
-          </button>
-          <p className="text-center text-xs text-gray-400 mt-2">
-            (Funcionalidade disponível no Epic 3)
-          </p>
+              <button
+                type="submit"
+                disabled={addingItem || !newItemName.trim()}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 min-w-[44px] min-h-[44px]"
+                title="Adicionar item"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                <span className="hidden sm:inline">
+                  {addingItem ? 'Adicionando...' : 'Adicionar'}
+                </span>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
