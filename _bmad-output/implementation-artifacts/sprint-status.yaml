@@ -59,7 +59,7 @@ development_status:
 
   epic-3: in-progress
   3-1-modelagem-de-dados-de-itens: done
-  3-2-adicionar-item-a-lista: backlog
+  3-2-adicionar-item-a-lista: done
   3-3-listar-itens-de-uma-lista: backlog
   3-4-marcar-desmarcar-item-como-concluido: backlog
   3-5-editar-item: backlog

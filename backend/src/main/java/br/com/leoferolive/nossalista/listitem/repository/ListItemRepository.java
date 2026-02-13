@@ -36,4 +36,14 @@ public interface ListItemRepository extends JpaRepository<ListItem, UUID> {
      * Conta quantos itens existem em uma lista.
      */
     Long countByListId(UUID listId);
+
+    /**
+     * Retorna o valor máximo de position em uma lista.
+     * Retorna -1 se a lista não tiver itens (próximo será 0).
+     *
+     * @param listId ID da lista
+     * @return max position ou -1 se lista vazia
+     */
+    @Query("SELECT COALESCE(MAX(li.position), -1) FROM list_items li WHERE li.list.id = :listId")
+    Integer findMaxPositionByListId(@Param("listId") UUID listId);
 }

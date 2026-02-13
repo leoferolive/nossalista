@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
+import br.com.leoferolive.nossalista.common.exception.ValidationException;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
@@ -149,6 +150,26 @@ public class GlobalExceptionHandler {
         );
         problem.setType(URI.create("https://api.nossalista.com/docs/errors/validation-error"));
         problem.setTitle("Validation Error");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata exceção de validação de regras de negócio
+     * Retorna 400 Bad Request com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ProblemDetail> handleValidation(
+        ValidationException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/validation-error"));
+        problem.setTitle("Erro de Validação");
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.badRequest().body(problem);
