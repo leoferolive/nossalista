@@ -1,6 +1,7 @@
 import client from './client';
 import { CreateListRequest, ListResponse } from '../types/List';
 import { ProblemDetail } from '../types/ProblemDetail';
+import { ApiError } from '../types/ApiError';
 import { AxiosError } from 'axios';
 
 /**
@@ -94,6 +95,40 @@ export const listsApi = {
       }
 
       throw new Error('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  /**
+   * Exclui uma lista existente
+   * @param id - UUID da lista
+   * @returns Promise void (204 No Content)
+   * @throws ApiError com status code e mensagem específica
+   */
+  async deleteList(id: string): Promise<void> {
+    try {
+      await client.delete(`/api/lists/${id}`);
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 403) {
+          throw new ApiError('Você não tem permissão para excluir esta lista', 403);
+        } else if (status === 404) {
+          throw new ApiError('Lista não encontrada', 404);
+        } else if (status === 401) {
+          throw new ApiError('Sessão expirada. Faça login novamente.', 401);
+        } else {
+          throw new ApiError(
+            problemDetail?.detail || 'Erro ao excluir lista. Tente novamente.',
+            status
+          );
+        }
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
     }
   },
 };

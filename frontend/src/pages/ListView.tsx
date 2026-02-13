@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
 import { LIST_TYPES } from '../types/List';
 import { EditListNameModal } from '../components/EditListNameModal';
+import { DeleteListModal } from '../components/DeleteListModal';
 import { useToast, Toast } from '../components/Toast';
+import { ApiError } from '../types/ApiError';
 
 /**
  * Página de visualização de detalhes de uma lista
@@ -18,14 +20,19 @@ export const ListView: React.FC = () => {
     loadingList,
     errorList,
     updatingList,
+    deletingList,
     fetchListById,
     updateListName,
+    deleteList,
     clearListError,
   } = useLists();
   const { toasts, showToast, removeToast } = useToast();
 
   // Estado do modal de edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Estado do modal de exclusão
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Carregar dados da lista ao montar o componente
   useEffect(() => {
@@ -58,6 +65,43 @@ export const ListView: React.FC = () => {
       const message = err instanceof Error ? err.message : 'Erro ao atualizar lista';
       showToast(message, 'error');
       throw err; // Re-throw para o modal saber que falhou
+    }
+  };
+
+  // Handler para abrir modal de exclusão
+  const handleOpenDeleteModal = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  // Handler para fechar modal de exclusão
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+  };
+
+  // Handler para confirmar exclusão
+  const handleConfirmDelete = async () => {
+    if (!id) return;
+
+    // AC3: Toast "Excluindo..." ao clicar Excluir
+    showToast('Excluindo...', 'info');
+
+    try {
+      await deleteList(id);
+      showToast('Lista excluída', 'success');
+      // AC3: Redireciona para Home após sucesso
+      navigate('/');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao excluir lista';
+      showToast(message, 'error');
+
+      // AC4: Fecha modal e redireciona em erro 403/404
+      // Mantém aberto em erros 500 para retry
+      // FIX: Usa status code em vez de string matching (mais robusto)
+      if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
+        setIsDeleteModalOpen(false);
+        navigate('/');
+      }
+      throw err;
     }
   };
 
@@ -180,29 +224,54 @@ export const ListView: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 flex-1">
             {currentList.name}
           </h1>
-          {/* Botão editar - apenas para dono da lista */}
+          {/* Menu de ações - apenas para dono da lista */}
           {currentList.isOwner && (
-            <button
-              onClick={handleOpenEditModal}
-              className="p-3 min-w-[44px] min-h-[44px] hover:bg-gray-200 rounded-lg transition-colors flex items-center justify-center"
-              aria-label="Editar nome da lista"
-              title="Editar nome da lista"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-gray-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            <div className="flex items-center gap-1">
+              {/* Botão editar */}
+              <button
+                onClick={handleOpenEditModal}
+                className="p-3 min-w-[44px] min-h-[44px] hover:bg-gray-200 rounded-lg transition-colors flex items-center justify-center"
+                aria-label="Editar nome da lista"
+                title="Editar nome da lista"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                />
-              </svg>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-gray-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
+                </svg>
+              </button>
+              {/* Botão excluir */}
+              <button
+                onClick={handleOpenDeleteModal}
+                className="p-3 min-w-[44px] min-h-[44px] hover:bg-red-100 rounded-lg transition-colors flex items-center justify-center"
+                aria-label="Excluir lista"
+                title="Excluir lista"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
 
@@ -302,6 +371,15 @@ export const ListView: React.FC = () => {
         onClose={handleCloseEditModal}
         onSave={handleSaveListName}
         isSaving={updatingList}
+      />
+
+      {/* Modal de confirmação de exclusão */}
+      <DeleteListModal
+        isOpen={isDeleteModalOpen}
+        listName={currentList.name}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        isDeleting={deletingList}
       />
 
       {/* Toasts */}

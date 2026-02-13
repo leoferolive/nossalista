@@ -10,6 +10,8 @@ import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ import java.util.UUID;
 @Service
 public class ListService {
 
+    private static final Logger log = LoggerFactory.getLogger(ListService.class);
     private static final String INVITE_CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int INVITE_CODE_LENGTH = 12;
     private final SecureRandom random = new SecureRandom();
@@ -170,5 +173,34 @@ public class ListService {
 
         // @PreUpdate vai atualizar o updatedAt automaticamente
         return listRepository.save(list);
+    }
+
+    /**
+     * Exclui uma lista existente
+     * Apenas o dono da lista pode excluí-la
+     * CASCADE automático via database deleta itens e membros associados
+     *
+     * @param listId        ID da lista a ser excluída
+     * @param currentUserId ID do usuário autenticado
+     * @throws ListNotFoundException se a lista não existir
+     * @throws ForbiddenException    se o usuário não for o dono da lista
+     */
+    @Transactional
+    public void deleteList(UUID listId, UUID currentUserId) {
+        // Buscar a lista com JOIN FETCH para evitar LazyInitializationException
+        List list = listRepository.findByIdWithDetails(listId)
+                .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        // Verificar se usuário é dono
+        if (!list.getOwner().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Apenas o dono pode excluir esta lista");
+        }
+
+        // Audit log (SECURITY/COMPLIANCE)
+        log.info("List deletion: listId={}, listName='{}', ownerId={}, deletedBy={}, typeId={}",
+                list.getId(), list.getName(), list.getOwner().getId(), currentUserId, list.getTypeId());
+
+        // Deletar a lista (CASCADE automático via database deleta itens e membros)
+        listRepository.delete(list);
     }
 }

@@ -365,4 +365,74 @@ class ListServiceTest {
             verify(listRepository, never()).save(any(List.class));
         }
     }
+
+    @Nested
+    @DisplayName("deleteList - Excluir Lista")
+    class DeleteListTests {
+
+        private List testList;
+        private UUID listId;
+
+        @BeforeEach
+        void setUpList() {
+            listId = UUID.randomUUID();
+            testList = new List();
+            testList.setId(listId);
+            testList.setName("Lista para Excluir");
+            testList.setTypeId(1);
+            testList.setOwner(testUser);
+            testList.setInviteCode("TEST12345678");
+        }
+
+        @Test
+        @DisplayName("Deve excluir lista quando usuário é dono")
+        void shouldDeleteListWhenUserIsOwner() {
+            // Arrange
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+            doNothing().when(listRepository).delete(testList);
+
+            // Act
+            listService.deleteList(listId, testUser.getId());
+
+            // Assert
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository).delete(testList);
+        }
+
+        @Test
+        @DisplayName("Deve lançar ListNotFoundException quando lista não existe")
+        void shouldThrowListNotFoundExceptionWhenListDoesNotExist() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            when(listRepository.findByIdWithDetails(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            ListNotFoundException exception = assertThrows(
+                ListNotFoundException.class,
+                () -> listService.deleteList(nonExistentId, testUser.getId())
+            );
+
+            assertEquals("Lista não encontrada", exception.getMessage());
+            verify(listRepository).findByIdWithDetails(nonExistentId);
+            verify(listRepository, never()).delete(any(List.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ForbiddenException quando usuário não é dono")
+        void shouldThrowForbiddenExceptionWhenUserIsNotOwner() {
+            // Arrange
+            UUID otherUserId = UUID.randomUUID();
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+
+            // Act & Assert
+            ForbiddenException exception = assertThrows(
+                ForbiddenException.class,
+                () -> listService.deleteList(listId, otherUserId)
+            );
+
+            assertEquals("Apenas o dono pode excluir esta lista", exception.getMessage());
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository, never()).delete(any(List.class));
+        }
+    }
 }

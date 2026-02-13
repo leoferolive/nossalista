@@ -20,6 +20,8 @@ import org.springframework.http.ProblemDetail;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -208,5 +210,47 @@ public class ListController {
             @AuthenticationPrincipal User authenticatedUser) {
         List list = listService.updateListName(id, authenticatedUser.getId(), request);
         return listMapper.toListResponse(list, authenticatedUser.getId());
+    }
+
+    /**
+     * Exclui uma lista existente
+     * Apenas o dono da lista pode excluí-la
+     * Itens e membros são deletados automaticamente via CASCADE
+     *
+     * @param id                ID da lista (UUID)
+     * @param authenticatedUser Usuário autenticado (injetado pelo JWT)
+     * @return ResponseEntity com status 204 No Content
+     */
+    @DeleteMapping("/{id}")
+    @Operation(
+        summary = "Excluir lista",
+        description = "Exclui uma lista permanentemente. Apenas o dono pode realizar esta ação. Todos os itens e membros serão removidos automaticamente."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "Lista excluída com sucesso"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Apenas o dono pode excluir esta lista",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista não encontrada",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public ResponseEntity<Void> deleteList(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User authenticatedUser) {
+        listService.deleteList(id, authenticatedUser.getId());
+        return ResponseEntity.noContent().build();
     }
 }

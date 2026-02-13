@@ -24,11 +24,15 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -55,6 +59,12 @@ class ListControllerIntegrationTest {
 
     @Autowired
     private ListRepository listRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
@@ -852,5 +862,167 @@ class ListControllerIntegrationTest {
             List updatedList = listRepository.findById(createdList.getId()).orElseThrow();
             assertEquals("Lista Renomeada Persistida", updatedList.getName());
         }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/lists/{id} - Excluir Lista")
+    class DeleteListTests {
+
+        @Test
+        @DisplayName("Deve retornar 204 No Content quando exclui lista com sucesso")
+        void shouldReturn204WhenDeleteListSuccessfully() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista para Excluir", 1), testUser);
+
+            // Act & Assert
+            mockMvc.perform(delete("/api/lists/{id}", createdList.getId()))
+                    .andExpect(status().isNoContent());
+
+            // Verificar que a lista foi removida do banco
+            assertFalse(listRepository.findById(createdList.getId()).isPresent());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 403 quando usuário não é dono da lista")
+        void shouldReturn403WhenUserIsNotOwner() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+
+            // Criar outro usuário
+            User otherUser = userService.createUser(
+                    "otheruser",
+                    "other@example.com",
+                    "hashedPassword",
+                    "Other User",
+                    AuthProvider.EMAIL
+            );
+
+            // Autenticar como outro usuário
+            authenticateUser(otherUser);
+
+            // Act & Assert
+            mockMvc.perform(delete("/api/lists/{id}", createdList.getId()))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.title").value("Acesso Negado"))
+                    .andExpect(jsonPath("$.detail").value("Apenas o dono pode excluir esta lista"));
+
+            // Verificar que a lista NÃO foi removida
+            assertTrue(listRepository.findById(createdList.getId()).isPresent());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando lista não existe")
+        void shouldReturn404WhenListDoesNotExist() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            UUID nonExistentId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(delete("/api/lists/{id}", nonExistentId))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.title").value("Lista Não Encontrada"))
+                    .andExpect(jsonPath("$.detail").value("Lista não encontrada"));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 quando não autenticado")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+
+            // Limpar autenticação
+            SecurityContextHolder.clearContext();
+
+            // Act & Assert
+            mockMvc.perform(delete("/api/lists/{id}", createdList.getId()))
+                    .andExpect(status().isUnauthorized());
+
+            // Verificar que a lista NÃO foi removida
+            assertTrue(listRepository.findById(createdList.getId()).isPresent());
+        }
+
+        @Test
+        @DisplayName("Deve remover lista do banco de dados após exclusão")
+        void shouldRemoveListFromDatabaseAfterDeletion() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista para Excluir", 1), testUser);
+            UUID listId = createdList.getId();
+
+            // Verificar que existe antes
+            assertTrue(listRepository.findById(listId).isPresent());
+
+            // Act
+            mockMvc.perform(delete("/api/lists/{id}", listId))
+                    .andExpect(status().isNoContent());
+
+            // Assert - verificar que não existe mais
+            assertFalse(listRepository.findById(listId).isPresent());
+            assertEquals(0, listRepository.count());
+        }
+
+        // NOTE: Teste de CASCADE para list_items será adicionado no Epic 3
+        // quando a tabela list_items for criada via migration V4 ou superior
+
+        @Test
+        @DisplayName("Deve deletar members via CASCADE quando lista é excluída")
+        void shouldCascadeDeleteMembersWhenListDeleted() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista com Membros", 1), testUser);
+            UUID listId = createdList.getId();
+
+            // Criar outro usuário para ser membro
+            User member1 = userService.createUser("member1", "member1@example.com", "pass", "Member 1", AuthProvider.EMAIL);
+            User member2 = userService.createUser("member2", "member2@example.com", "pass", "Member 2", AuthProvider.EMAIL);
+
+            // CRITICAL: Flush JPA entities para DB antes de INSERT via JDBC
+            entityManager.flush();
+            entityManager.clear();
+
+            // Inserir members diretamente via SQL
+            // Schema da V3: id, list_id, user_id, role, created_at, updated_at
+            jdbcTemplate.update(
+                    "INSERT INTO list_members (id, list_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                    UUID.randomUUID(), listId, member1.getId(), "MEMBER"
+            );
+            jdbcTemplate.update(
+                    "INSERT INTO list_members (id, list_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                    UUID.randomUUID(), listId, member2.getId(), "MEMBER"
+            );
+
+            // Verificar que members existem
+            Integer membersCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM list_members WHERE list_id = ?",
+                    Integer.class,
+                    listId
+            );
+            assertEquals(2, membersCount, "Deve ter 2 members antes da exclusão");
+
+            // Act - DELETE lista
+            mockMvc.perform(delete("/api/lists/{id}", listId))
+                    .andExpect(status().isNoContent());
+
+            // CRITICAL: Flush após DELETE para garantir persistência
+            entityManager.flush();
+            entityManager.clear();
+
+            // Assert - verificar que lista foi deletada
+            assertFalse(listRepository.findById(listId).isPresent(), "Lista deve ser deletada");
+
+            // Assert - verificar CASCADE: members foram deletados
+            Integer membersCountAfter = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM list_members WHERE list_id = ?",
+                    Integer.class,
+                    listId
+            );
+            assertEquals(0, membersCountAfter, "Members devem ser deletados via CASCADE");
+        }
+
+        // NOTE: Teste combinado de CASCADE (items + members) será adicionado no Epic 3
+        // quando ambas as tabelas estiverem disponíveis
     }
 }

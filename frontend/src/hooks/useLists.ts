@@ -18,11 +18,15 @@ interface UseListsReturn {
   // Update state
   updatingList: boolean;
 
+  // Delete state
+  deletingList: boolean;
+
   // Actions
   fetchLists: () => Promise<void>;
   fetchListById: (id: string) => Promise<void>;
   createList: (request: CreateListRequest) => Promise<ListResponse>;
   updateListName: (id: string, name: string) => Promise<ListResponse>;
+  deleteList: (id: string) => Promise<boolean>;
   clearError: () => void;
   clearListError: () => void;
 }
@@ -43,6 +47,9 @@ export const useLists = (): UseListsReturn => {
 
   // Update state
   const [updatingList, setUpdatingList] = useState(false);
+
+  // Delete state
+  const [deletingList, setDeletingList] = useState(false);
 
   /**
    * Busca todas as listas do usuário
@@ -142,6 +149,35 @@ export const useLists = (): UseListsReturn => {
   );
 
   /**
+   * Exclui uma lista existente
+   */
+  const deleteList = useCallback(
+    async (id: string): Promise<boolean> => {
+      setDeletingList(true);
+      setErrorList(null);
+
+      try {
+        await listsApi.deleteList(id);
+        // Remove a lista do array de listas
+        setLists((prev) => prev.filter((list) => list.id !== id));
+        // Limpa currentList se a lista deletada era a atual
+        if (currentList?.id === id) {
+          setCurrentList(null);
+        }
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Erro ao excluir lista';
+        setErrorList(message);
+        throw new Error(message);
+      } finally {
+        setDeletingList(false);
+      }
+    },
+    [currentList]
+  );
+
+  /**
    * Limpa o erro da lista de listas
    */
   const clearError = useCallback(() => {
@@ -163,10 +199,12 @@ export const useLists = (): UseListsReturn => {
     loadingList,
     errorList,
     updatingList,
+    deletingList,
     fetchLists,
     fetchListById,
     createList,
     updateListName,
+    deleteList,
     clearError,
     clearListError,
   };
