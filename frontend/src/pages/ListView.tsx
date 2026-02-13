@@ -37,8 +37,10 @@ export const ListView: React.FC = () => {
     loadingItems,
     errorItems,
     addingItem,
+    togglingItemId,
     fetchItems,
     addItem,
+    toggleItem,
     clearItemsError,
   } = useItems();
 
@@ -124,9 +126,16 @@ export const ListView: React.FC = () => {
   };
 
   // Handler para toggle de item (marcar/desmarcar)
-  const handleToggleItem = (_itemId: string) => {
-    // TODO: Implementar no Story 3.4
-    showToast('Funcionalidade disponível em breve', 'info');
+  const handleToggleItem = async (itemId: string) => {
+    if (!id || togglingItemId === itemId) return;
+
+    try {
+      await toggleItem(id, itemId);
+      showToast('Sincronizado', 'success');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao sincronizar';
+      showToast(message, 'error');
+    }
   };
 
   // Handler para editar item

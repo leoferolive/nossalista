@@ -35,6 +35,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -509,6 +510,169 @@ class ListItemControllerTest {
             item.setPosition(position);
             item.setChecked(false);
             listItemRepository.save(item);
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/lists/{listId}/items/{itemId}/check - Toggle Item Check")
+    class ToggleItemCheckTests {
+
+        @Test
+        @DisplayName("Deve inverter checked de false para true")
+        void shouldToggleCheckedFromFalseToTrue() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Item Teste");
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(false);
+            listItemRepository.save(item);
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{listId}/items/{itemId}/check", testList.getId(), item.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(item.getId().toString()))
+                .andExpect(jsonPath("$.name").value("Item Teste"))
+                .andExpect(jsonPath("$.checked").value(true));
+
+            // Verify in database
+            var updatedItem = listItemRepository.findById(item.getId()).orElseThrow();
+            assertThat(updatedItem.isChecked()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Deve inverter checked de true para false")
+        void shouldToggleCheckedFromTrueToFalse() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Item Teste");
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(true); // Começa como true
+            listItemRepository.save(item);
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{listId}/items/{itemId}/check", testList.getId(), item.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.checked").value(false));
+
+            // Verify in database
+            var updatedItem = listItemRepository.findById(item.getId()).orElseThrow();
+            assertThat(updatedItem.isChecked()).isFalse();
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando lista não existe")
+        void shouldReturn404WhenListDoesNotExist() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            UUID nonExistentListId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{listId}/items/{itemId}/check", nonExistentListId, itemId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/list-not-found"))
+                .andExpect(jsonPath("$.title").value("Lista Não Encontrada"))
+                .andExpect(jsonPath("$.status").value(404));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando item não existe")
+        void shouldReturn404WhenItemDoesNotExist() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            UUID nonExistentItemId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{listId}/items/{itemId}/check", testList.getId(), nonExistentItemId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/item-not-found"))
+                .andExpect(jsonPath("$.title").value("Item Não Encontrado"))
+                .andExpect(jsonPath("$.status").value(404));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 403 quando usuário não é participante")
+        void shouldReturn403WhenUserIsNotParticipant() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Item Teste");
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(false);
+            listItemRepository.save(item);
+
+            // Limpar e autenticar como outro usuário
+            SecurityContextHolder.clearContext();
+            authenticateUser(otherUser);
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{listId}/items/{itemId}/check", testList.getId(), item.getId()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/access-forbidden"))
+                .andExpect(jsonPath("$.title").value("Acesso Negado"))
+                .andExpect(jsonPath("$.status").value(403));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 quando não há token")
+        void shouldReturn401WhenNoToken() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Item Teste");
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(false);
+            listItemRepository.save(item);
+
+            // Limpar autenticação
+            SecurityContextHolder.clearContext();
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{listId}/items/{itemId}/check", testList.getId(), item.getId()))
+                .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando item não pertence à lista")
+        void shouldReturn404WhenItemDoesNotBelongToList() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List testList = listService.createList(new CreateListRequest("Lista 1", 1), testUser);
+            List otherList = listService.createList(new CreateListRequest("Lista 2", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Item da Lista 2");
+            item.setList(otherList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(false);
+            listItemRepository.save(item);
+
+            // Act & Assert - Tentar acessar item da Lista 2 através da Lista 1
+            mockMvc.perform(patch("/api/lists/{listId}/items/{itemId}/check", testList.getId(), item.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/item-not-found"))
+                .andExpect(jsonPath("$.title").value("Item Não Encontrado"))
+                .andExpect(jsonPath("$.status").value(404));
         }
     }
 }

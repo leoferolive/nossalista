@@ -524,4 +524,165 @@ class ListItemServiceTest {
             return item;
         }
     }
+
+    @Nested
+    @DisplayName("toggleItemCheck - Marcar/Desmarcar Item")
+    class ToggleItemCheckTests {
+
+        private ListItem createTestItem(String name, int position) {
+            ListItem item = new ListItem();
+            item.setId(UUID.randomUUID());
+            item.setName(name);
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(position);
+            item.setChecked(false);
+            return item;
+        }
+
+        @Test
+        @DisplayName("Deve inverter checked de false para true")
+        void shouldToggleCheckedFromFalseToTrue() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            ListItem item = createTestItem("Item Teste", 0);
+            item.setId(itemId);
+            item.setChecked(false);
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            ListItemResponseDTO.CreatorResponse creatorResponse = new ListItemResponseDTO.CreatorResponse(
+                testUser.getId(), testUser.getUsername(), "Test User", null
+            );
+            ListItemResponseDTO expectedResponse = new ListItemResponseDTO(
+                itemId, "Item Teste", true, null, null, null, 0,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(expectedResponse);
+
+            // Act
+            ListItemResponseDTO result = listItemService.toggleItemCheck(listId, itemId, testUser);
+
+            // Assert
+            assertTrue(result.checked());
+            verify(listItemRepository).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve inverter checked de true para false")
+        void shouldToggleCheckedFromTrueToFalse() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            ListItem item = createTestItem("Item Teste", 0);
+            item.setId(itemId);
+            item.setChecked(true); // Começa como true
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            ListItemResponseDTO.CreatorResponse creatorResponse = new ListItemResponseDTO.CreatorResponse(
+                testUser.getId(), testUser.getUsername(), "Test User", null
+            );
+            ListItemResponseDTO expectedResponse = new ListItemResponseDTO(
+                itemId, "Item Teste", false, null, null, null, 0,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(expectedResponse);
+
+            // Act
+            ListItemResponseDTO result = listItemService.toggleItemCheck(listId, itemId, testUser);
+
+            // Assert
+            assertFalse(result.checked());
+            verify(listItemRepository).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ListNotFoundException quando lista não existe")
+        void shouldThrowListNotFoundExceptionWhenListDoesNotExist() {
+            // Arrange
+            UUID nonExistentListId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+
+            when(listRepository.findById(nonExistentListId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            ListNotFoundException exception = assertThrows(
+                ListNotFoundException.class,
+                () -> listItemService.toggleItemCheck(nonExistentListId, itemId, testUser)
+            );
+
+            assertEquals("Lista não encontrada", exception.getMessage());
+            verify(listRepository).findById(nonExistentListId);
+            verify(listItemRepository, never()).findById(any());
+        }
+
+        @Test
+        @DisplayName("Deve lançar ForbiddenException quando usuário não é participante")
+        void shouldThrowForbiddenExceptionWhenUserIsNotParticipant() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+
+            // Act & Assert
+            ForbiddenException exception = assertThrows(
+                ForbiddenException.class,
+                () -> listItemService.toggleItemCheck(listId, itemId, otherUser)
+            );
+
+            assertEquals("Você não tem permissão para modificar itens desta lista", exception.getMessage());
+            verify(listRepository).findById(listId);
+            verify(listItemRepository, never()).findById(any());
+        }
+
+        @Test
+        @DisplayName("Deve lançar ItemNotFoundException quando item não existe")
+        void shouldThrowItemNotFoundExceptionWhenItemDoesNotExist() {
+            // Arrange
+            UUID nonExistentItemId = UUID.randomUUID();
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(nonExistentItemId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThrows(
+                br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException.class,
+                () -> listItemService.toggleItemCheck(listId, nonExistentItemId, testUser)
+            );
+
+            verify(listRepository).findById(listId);
+            verify(listItemRepository).findById(nonExistentItemId);
+        }
+
+        @Test
+        @DisplayName("Deve lançar ItemNotFoundException quando item não pertence à lista")
+        void shouldThrowItemNotFoundExceptionWhenItemDoesNotBelongToList() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            List otherList = new List();
+            otherList.setId(UUID.randomUUID());
+            otherList.setOwner(testUser);
+
+            ListItem item = createTestItem("Item de Outra Lista", 0);
+            item.setId(itemId);
+            item.setList(otherList); // Item pertence a outra lista
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+
+            // Act & Assert
+            assertThrows(
+                br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException.class,
+                () -> listItemService.toggleItemCheck(listId, itemId, testUser)
+            );
+
+            verify(listRepository).findById(listId);
+            verify(listItemRepository).findById(itemId);
+            verify(listItemRepository, never()).save(any(ListItem.class));
+        }
+    }
 }

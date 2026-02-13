@@ -10,6 +10,7 @@ import br.com.leoferolive.nossalista.listitem.domain.ListItem;
 import br.com.leoferolive.nossalista.listitem.dto.CreateItemRequestDTO;
 import br.com.leoferolive.nossalista.listitem.dto.ListItemMapper;
 import br.com.leoferolive.nossalista.listitem.dto.ListItemResponseDTO;
+import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.slf4j.Logger;
@@ -210,5 +211,51 @@ public class ListItemService {
         return items.stream()
                 .map(listItemMapper::toListItemResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Toggle do estado checked de um item
+     * Valida permissões (usuário deve ser participante)
+     *
+     * @param listId ID da lista
+     * @param itemId ID do item
+     * @param user   Usuário solicitante
+     * @return DTO com item atualizado
+     * @throws ListNotFoundException se a lista não existir
+     * @throws ItemNotFoundException se o item não existir
+     * @throws ForbiddenException    se o usuário não for participante
+     */
+    @Transactional
+    public ListItemResponseDTO toggleItemCheck(UUID listId, UUID itemId, User user) {
+        // 1. Verificar se lista existe
+        List list = listRepository.findById(listId)
+                .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        // 2. Verificar se usuário é participante
+        if (!isParticipant(list, user)) {
+            throw new ForbiddenException("Você não tem permissão para modificar itens desta lista");
+        }
+
+        // 3. Buscar item
+        ListItem item = listItemRepository.findById(itemId)
+                .orElseThrow(() -> new ItemNotFoundException("Item não encontrado"));
+
+        // 4. Verificar se item pertence à lista
+        if (!item.getList().getId().equals(listId)) {
+            throw new ItemNotFoundException("Item não encontrado nesta lista");
+        }
+
+        // 5. Toggle checked
+        item.setChecked(!item.isChecked());
+
+        // 6. Salvar (updated_at atualizado automaticamente via @PreUpdate)
+        ListItem saved = listItemRepository.save(item);
+
+        // 7. Log
+        log.info("Item toggled: itemId={}, checked={}, listId={}, user={}",
+                itemId, saved.isChecked(), listId, user.getId());
+
+        // 8. Retornar DTO
+        return listItemMapper.toListItemResponseDTO(saved);
     }
 }

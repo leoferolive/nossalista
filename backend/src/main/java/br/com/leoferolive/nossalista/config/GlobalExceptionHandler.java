@@ -8,6 +8,7 @@ import br.com.leoferolive.nossalista.common.exception.ValidationException;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
+import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -231,6 +232,26 @@ public class GlobalExceptionHandler {
         );
         problem.setType(URI.create("https://api.nossalista.com/docs/errors/list-not-found"));
         problem.setTitle("Lista Não Encontrada");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
+    }
+
+    /**
+     * Trata exceção de item não encontrado
+     * Retorna 404 Not Found com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(ItemNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleItemNotFound(
+        ItemNotFoundException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.NOT_FOUND,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/item-not-found"));
+        problem.setTitle("Item Não Encontrado");
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);

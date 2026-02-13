@@ -77,4 +77,39 @@ export const itemsApi = {
       throw new Error('Erro de conexão. Verifique sua internet.');
     }
   },
+
+  /**
+   * Marca/desmarca um item como concluído (toggle)
+   * @param listId - UUID da lista
+   * @param itemId - UUID do item
+   * @returns Promise com o item atualizado
+   * @throws Error com mensagem específica baseada no status HTTP
+   */
+  async toggleItemCheck(listId: string, itemId: string): Promise<ListItem> {
+    try {
+      const response = await client.patch<ListItem>(`/api/lists/${listId}/items/${itemId}/check`);
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 404) {
+          throw new Error('Item não encontrado');
+        } else if (status === 403) {
+          throw new Error('Você não tem permissão para modificar itens desta lista');
+        } else if (status === 401) {
+          throw new Error('Sessão expirada. Faça login novamente.');
+        } else {
+          throw new Error(
+            problemDetail?.detail || 'Erro ao atualizar item. Tente novamente.'
+          );
+        }
+      }
+
+      throw new Error('Erro de conexão. Verifique sua internet.');
+    }
+  },
 };

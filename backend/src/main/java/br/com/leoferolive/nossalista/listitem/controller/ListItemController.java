@@ -17,6 +17,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -135,5 +136,46 @@ public class ListItemController {
 
         List<ListItemResponseDTO> items = listItemService.getItemsByListId(listId, user);
         return ResponseEntity.ok(items);
+    }
+
+    /**
+     * PATCH /api/lists/{listId}/items/{itemId}/check
+     * Toggle do estado checked de um item
+     */
+    @PatchMapping("/{itemId}/check")
+    @Operation(
+        summary = "Marcar/desmarcar item como concluído",
+        description = "Inverte o estado checked do item (toggle). " +
+                      "Usuário deve ser dono ou membro da lista."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Item atualizado com sucesso",
+            content = @Content(schema = @Schema(implementation = ListItemResponseDTO.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Usuário não tem permissão para modificar itens desta lista",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista ou item não encontrado",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public ResponseEntity<ListItemResponseDTO> toggleItemCheck(
+            @PathVariable UUID listId,
+            @PathVariable UUID itemId,
+            @AuthenticationPrincipal User user) {
+
+        ListItemResponseDTO updated = listItemService.toggleItemCheck(listId, itemId, user);
+        return ResponseEntity.ok(updated);
     }
 }
