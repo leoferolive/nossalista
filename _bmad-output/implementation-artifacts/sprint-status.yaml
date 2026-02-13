@@ -55,10 +55,10 @@ development_status:
   2-4-ver-detalhes-de-uma-lista: done
   2-5-editar-nome-da-lista: done
   2-6-excluir-lista: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
-  epic-3: backlog
-  3-1-modelagem-de-dados-de-itens: backlog
+  epic-3: in-progress
+  3-1-modelagem-de-dados-de-itens: done
   3-2-adicionar-item-a-lista: backlog
   3-3-listar-itens-de-uma-lista: backlog
   3-4-marcar-desmarcar-item-como-concluido: backlog
