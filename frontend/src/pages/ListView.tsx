@@ -1,7 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
 import { LIST_TYPES } from '../types/List';
+import { EditListNameModal } from '../components/EditListNameModal';
+import { useToast, Toast } from '../components/Toast';
 
 /**
  * Página de visualização de detalhes de uma lista
@@ -11,8 +13,19 @@ import { LIST_TYPES } from '../types/List';
 export const ListView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentList, loadingList, errorList, fetchListById, clearListError } =
-    useLists();
+  const {
+    currentList,
+    loadingList,
+    errorList,
+    updatingList,
+    fetchListById,
+    updateListName,
+    clearListError,
+  } = useLists();
+  const { toasts, showToast, removeToast } = useToast();
+
+  // Estado do modal de edição
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Carregar dados da lista ao montar o componente
   useEffect(() => {
@@ -20,6 +33,33 @@ export const ListView: React.FC = () => {
       fetchListById(id);
     }
   }, [id, fetchListById]);
+
+  // Handler para abrir modal de edição
+  const handleOpenEditModal = () => {
+    setIsEditModalOpen(true);
+  };
+
+  // Handler para fechar modal de edição
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+  };
+
+  // Handler para salvar novo nome
+  const handleSaveListName = async (newName: string) => {
+    if (!id) return;
+
+    // AC3: Toast "Atualizando..." ao clicar Salvar
+    showToast('Atualizando...', 'info');
+
+    try {
+      await updateListName(id, newName);
+      showToast('Lista atualizada', 'success');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar lista';
+      showToast(message, 'error');
+      throw err; // Re-throw para o modal saber que falhou
+    }
+  };
 
   // Determinar emoji do tipo de lista
   const typeEmoji = currentList
@@ -115,7 +155,7 @@ export const ListView: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-4">
-        {/* Header: Nome da lista + botão voltar */}
+        {/* Header: Nome da lista + botão voltar + botão editar */}
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate(-1)}
@@ -137,9 +177,33 @@ export const ListView: React.FC = () => {
               />
             </svg>
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 flex-1">
             {currentList.name}
           </h1>
+          {/* Botão editar - apenas para dono da lista */}
+          {currentList.isOwner && (
+            <button
+              onClick={handleOpenEditModal}
+              className="p-3 min-w-[44px] min-h-[44px] hover:bg-gray-200 rounded-lg transition-colors flex items-center justify-center"
+              aria-label="Editar nome da lista"
+              title="Editar nome da lista"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-gray-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Info da lista: Tipo (emoji + nome), Dono (avatar + username) */}
@@ -230,6 +294,25 @@ export const ListView: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Modal de edição de nome */}
+      <EditListNameModal
+        isOpen={isEditModalOpen}
+        listName={currentList.name}
+        onClose={handleCloseEditModal}
+        onSave={handleSaveListName}
+        isSaving={updatingList}
+      />
+
+      {/* Toasts */}
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
     </div>
   );
 };

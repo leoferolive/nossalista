@@ -15,10 +15,14 @@ interface UseListsReturn {
   loadingList: boolean;
   errorList: string | null;
 
+  // Update state
+  updatingList: boolean;
+
   // Actions
   fetchLists: () => Promise<void>;
   fetchListById: (id: string) => Promise<void>;
   createList: (request: CreateListRequest) => Promise<ListResponse>;
+  updateListName: (id: string, name: string) => Promise<ListResponse>;
   clearError: () => void;
   clearListError: () => void;
 }
@@ -36,6 +40,9 @@ export const useLists = (): UseListsReturn => {
   const [currentList, setCurrentList] = useState<ListResponse | null>(null);
   const [loadingList, setLoadingList] = useState(false);
   const [errorList, setErrorList] = useState<string | null>(null);
+
+  // Update state
+  const [updatingList, setUpdatingList] = useState(false);
 
   /**
    * Busca todas as listas do usuário
@@ -106,6 +113,35 @@ export const useLists = (): UseListsReturn => {
   );
 
   /**
+   * Atualiza o nome de uma lista existente
+   */
+  const updateListName = useCallback(
+    async (id: string, name: string): Promise<ListResponse> => {
+      setUpdatingList(true);
+      setErrorList(null);
+
+      try {
+        const updatedList = await listsApi.updateListName(id, name);
+        // Atualiza currentList com os novos dados
+        setCurrentList(updatedList);
+        // Atualiza a lista no array de listas (se existir)
+        setLists((prev) =>
+          prev.map((list) => (list.id === id ? updatedList : list))
+        );
+        return updatedList;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Erro ao atualizar lista';
+        setErrorList(message);
+        throw new Error(message);
+      } finally {
+        setUpdatingList(false);
+      }
+    },
+    []
+  );
+
+  /**
    * Limpa o erro da lista de listas
    */
   const clearError = useCallback(() => {
@@ -126,9 +162,11 @@ export const useLists = (): UseListsReturn => {
     currentList,
     loadingList,
     errorList,
+    updatingList,
     fetchLists,
     fetchListById,
     createList,
+    updateListName,
     clearError,
     clearListError,
   };

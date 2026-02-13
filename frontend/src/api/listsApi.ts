@@ -59,4 +59,41 @@ export const listsApi = {
       throw new Error('Erro de conexão. Verifique sua internet.');
     }
   },
+
+  /**
+   * Atualiza o nome de uma lista existente
+   * @param id - UUID da lista
+   * @param name - Novo nome da lista
+   * @returns Promise com a lista atualizada
+   * @throws Error com mensagem específica baseada no status HTTP
+   */
+  async updateListName(id: string, name: string): Promise<ListResponse> {
+    try {
+      const response = await client.patch<ListResponse>(`/api/lists/${id}`, { name });
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 400) {
+          throw new Error(problemDetail?.detail || 'Nome inválido. Use entre 3 e 100 caracteres.');
+        } else if (status === 403) {
+          throw new Error('Você não tem permissão para editar esta lista');
+        } else if (status === 404) {
+          throw new Error('Lista não encontrada');
+        } else if (status === 401) {
+          throw new Error('Sessão expirada. Faça login novamente.');
+        } else {
+          throw new Error(
+            problemDetail?.detail || 'Erro ao atualizar lista. Tente novamente.'
+          );
+        }
+      }
+
+      throw new Error('Erro de conexão. Verifique sua internet.');
+    }
+  },
 };
