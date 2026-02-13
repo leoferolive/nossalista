@@ -3,6 +3,7 @@ package br.com.leoferolive.nossalista.list.service;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
+import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
@@ -10,6 +11,7 @@ import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.UUID;
@@ -131,5 +133,42 @@ public class ListService {
         }
 
         return list;
+    }
+
+    /**
+     * Atualiza o nome de uma lista existente
+     * Apenas o dono da lista pode editar o nome
+     *
+     * @param listId        ID da lista a ser atualizada
+     * @param currentUserId ID do usuário autenticado
+     * @param request       DTO com o novo nome
+     * @return A lista atualizada com novo nome e updated_at
+     * @throws ListNotFoundException se a lista não existir
+     * @throws ForbiddenException    se o usuário não for o dono da lista
+     */
+    @Transactional
+    public List updateListName(UUID listId, UUID currentUserId, UpdateListNameRequest request) {
+        // Buscar a lista com JOIN FETCH para evitar LazyInitializationException
+        List list = listRepository.findByIdWithDetails(listId)
+                .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        // Verificar se usuário é dono
+        if (!list.getOwner().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Apenas o dono pode editar esta lista");
+        }
+
+        // Validar nome após trim (CRÍTICO: @Size valida antes do trim)
+        String trimmedName = request.name().trim();
+        if (trimmedName.length() < 3) {
+            throw new IllegalArgumentException("Nome da lista deve ter pelo menos 3 caracteres");
+        }
+        if (trimmedName.length() > 100) {
+            throw new IllegalArgumentException("Nome da lista deve ter no máximo 100 caracteres");
+        }
+
+        list.setName(trimmedName);
+
+        // @PreUpdate vai atualizar o updatedAt automaticamente
+        return listRepository.save(list);
     }
 }

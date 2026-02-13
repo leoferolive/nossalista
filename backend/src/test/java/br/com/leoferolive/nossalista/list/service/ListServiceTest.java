@@ -3,6 +3,7 @@ package br.com.leoferolive.nossalista.list.service;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
+import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
@@ -229,6 +230,139 @@ class ListServiceTest {
 
             assertEquals("Você não tem permissão para acessar esta lista", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
+        }
+    }
+
+    @Nested
+    @DisplayName("updateListName - Atualizar Nome da Lista")
+    class UpdateListNameTests {
+
+        private List testList;
+        private UUID listId;
+
+        @BeforeEach
+        void setUpList() {
+            listId = UUID.randomUUID();
+            testList = new List();
+            testList.setId(listId);
+            testList.setName("Nome Original");
+            testList.setTypeId(1);
+            testList.setOwner(testUser);
+            testList.setInviteCode("TEST12345678");
+        }
+
+        @Test
+        @DisplayName("Deve atualizar nome quando usuário é dono")
+        void shouldUpdateNameWhenUserIsOwner() {
+            // Arrange
+            UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome da Lista");
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+            when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
+                List list = invocation.getArgument(0);
+                return list;
+            });
+
+            // Act
+            List result = listService.updateListName(listId, testUser.getId(), request);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals("Novo Nome da Lista", result.getName());
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository).save(any(List.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ListNotFoundException quando lista não existe")
+        void shouldThrowListNotFoundExceptionWhenListDoesNotExist() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome");
+            when(listRepository.findByIdWithDetails(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            ListNotFoundException exception = assertThrows(
+                ListNotFoundException.class,
+                () -> listService.updateListName(nonExistentId, testUser.getId(), request)
+            );
+
+            assertEquals("Lista não encontrada", exception.getMessage());
+            verify(listRepository).findByIdWithDetails(nonExistentId);
+            verify(listRepository, never()).save(any(List.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ForbiddenException quando usuário não é dono")
+        void shouldThrowForbiddenExceptionWhenUserIsNotOwner() {
+            // Arrange
+            UUID otherUserId = UUID.randomUUID();
+            UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome");
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+
+            // Act & Assert
+            ForbiddenException exception = assertThrows(
+                ForbiddenException.class,
+                () -> listService.updateListName(listId, otherUserId, request)
+            );
+
+            assertEquals("Apenas o dono pode editar esta lista", exception.getMessage());
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository, never()).save(any(List.class));
+        }
+
+        @Test
+        @DisplayName("Deve fazer trim no nome antes de salvar")
+        void shouldTrimNameBeforeSaving() {
+            // Arrange
+            UpdateListNameRequest request = new UpdateListNameRequest("  Nome com espaços  ");
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+            when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
+                List list = invocation.getArgument(0);
+                return list;
+            });
+
+            // Act
+            List result = listService.updateListName(listId, testUser.getId(), request);
+
+            // Assert
+            assertEquals("Nome com espaços", result.getName());
+        }
+
+        @Test
+        @DisplayName("Deve lançar IllegalArgumentException quando nome pós-trim tem menos de 3 caracteres")
+        void shouldThrowExceptionWhenTrimmedNameTooShort() {
+            // Arrange
+            UpdateListNameRequest request = new UpdateListNameRequest("  AB  "); // 4 chars original, 2 pós-trim
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+
+            // Act & Assert
+            IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> listService.updateListName(listId, testUser.getId(), request)
+            );
+
+            assertEquals("Nome da lista deve ter pelo menos 3 caracteres", exception.getMessage());
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository, never()).save(any(List.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar IllegalArgumentException quando nome pós-trim tem mais de 100 caracteres")
+        void shouldThrowExceptionWhenTrimmedNameTooLong() {
+            // Arrange - 102 chars com espaços, 101 pós-trim
+            String longName = " " + "A".repeat(101) + " ";
+            UpdateListNameRequest request = new UpdateListNameRequest(longName);
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+
+            // Act & Assert
+            IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> listService.updateListName(listId, testUser.getId(), request)
+            );
+
+            assertEquals("Nome da lista deve ter no máximo 100 caracteres", exception.getMessage());
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository, never()).save(any(List.class));
         }
     }
 }

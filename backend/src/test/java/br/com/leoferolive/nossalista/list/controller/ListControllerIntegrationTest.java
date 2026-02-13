@@ -2,6 +2,7 @@ package br.com.leoferolive.nossalista.list.controller;
 
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
+import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.service.ListService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -649,6 +651,206 @@ class ListControllerIntegrationTest {
                     .andExpect(jsonPath("$.name").value("Presentes Desejados"))
                     .andExpect(jsonPath("$.type.id").value(3))
                     .andExpect(jsonPath("$.type.slug").value("wishlist"));
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/lists/{id} - Atualizar Nome da Lista")
+    class UpdateListNameTests {
+
+        @Test
+        @DisplayName("Deve retornar 200 OK quando atualiza nome com sucesso")
+        void shouldReturn200WhenUpdateNameSuccessfully() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Nome Original", 1), testUser);
+
+            UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome da Lista");
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", createdList.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(createdList.getId().toString()))
+                    .andExpect(jsonPath("$.name").value("Novo Nome da Lista"))
+                    .andExpect(jsonPath("$.type.id").value(1))
+                    .andExpect(jsonPath("$.isOwner").value(true));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 400 quando nome tem menos de 3 caracteres")
+        void shouldReturn400WhenNameTooShort() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+
+            UpdateListNameRequest request = new UpdateListNameRequest("AB");
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", createdList.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").exists());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 400 quando nome está vazio")
+        void shouldReturn400WhenNameIsEmpty() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+
+            UpdateListNameRequest request = new UpdateListNameRequest("");
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", createdList.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 403 quando usuário não é dono da lista")
+        void shouldReturn403WhenUserIsNotOwner() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+
+            // Criar outro usuário
+            User otherUser = userService.createUser(
+                    "otheruser",
+                    "other@example.com",
+                    "hashedPassword",
+                    "Other User",
+                    AuthProvider.EMAIL
+            );
+
+            // Autenticar como outro usuário
+            authenticateUser(otherUser);
+
+            UpdateListNameRequest request = new UpdateListNameRequest("Tentativa de Renomear");
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", createdList.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.title").value("Acesso Negado"))
+                    .andExpect(jsonPath("$.detail").value("Apenas o dono pode editar esta lista"));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando lista não existe")
+        void shouldReturn404WhenListDoesNotExist() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            UUID nonExistentId = UUID.randomUUID();
+
+            UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome");
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", nonExistentId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.title").value("Lista Não Encontrada"))
+                    .andExpect(jsonPath("$.detail").value("Lista não encontrada"));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 quando não autenticado")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+
+            // Limpar autenticação
+            SecurityContextHolder.clearContext();
+
+            UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome");
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", createdList.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Deve aceitar nome no limite máximo de 100 caracteres")
+        void shouldAcceptNameAtMaxLength() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+
+            String longName = "A".repeat(100);
+            UpdateListNameRequest request = new UpdateListNameRequest(longName);
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", createdList.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name").value(longName));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 400 quando nome excede 100 caracteres")
+        void shouldReturn400WhenNameExceedsMaxLength() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+
+            String tooLongName = "A".repeat(101);
+            UpdateListNameRequest request = new UpdateListNameRequest(tooLongName);
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", createdList.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Deve ignorar campos desconhecidos no request body")
+        void shouldIgnoreUnknownFieldsInRequestBody() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+
+            // Enviar JSON com campo extra "typeId" que deve ser ignorado
+            String jsonWithExtraField = "{\"name\": \"Novo Nome\", \"typeId\": 2}";
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", createdList.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonWithExtraField))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name").value("Novo Nome"))
+                    .andExpect(jsonPath("$.type.id").value(1)); // Tipo não deve mudar
+        }
+
+        @Test
+        @DisplayName("Deve persistir novo nome no banco de dados")
+        void shouldPersistNewNameInDatabase() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Original", 1), testUser);
+
+            UpdateListNameRequest request = new UpdateListNameRequest("Lista Renomeada Persistida");
+
+            // Act & Assert
+            mockMvc.perform(patch("/api/lists/{id}", createdList.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name").value("Lista Renomeada Persistida"));
+
+            // Verificar persistência no banco
+            List updatedList = listRepository.findById(createdList.getId()).orElseThrow();
+            assertEquals("Lista Renomeada Persistida", updatedList.getName());
         }
     }
 }

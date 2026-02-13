@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.list.controller;
 
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
+import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.dto.ListMapper;
 import br.com.leoferolive.nossalista.list.dto.ListResponse;
 import br.com.leoferolive.nossalista.list.domain.List;
@@ -20,6 +21,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -156,6 +158,55 @@ public class ListController {
             @AuthenticationPrincipal User authenticatedUser) {
         List list = listService.getListById(id, authenticatedUser.getId());
         // Passa currentUserId explicitamente para calcular isOwner corretamente
+        return listMapper.toListResponse(list, authenticatedUser.getId());
+    }
+
+    /**
+     * Atualiza o nome de uma lista existente
+     * Apenas o dono da lista pode editar o nome
+     *
+     * @param id                ID da lista (UUID)
+     * @param request           DTO com o novo nome da lista
+     * @param authenticatedUser Usuário autenticado (injetado pelo JWT)
+     * @return DTO com dados completos da lista atualizada
+     */
+    @PatchMapping("/{id}")
+    @Operation(
+        summary = "Atualizar nome da lista",
+        description = "Atualiza o nome de uma lista existente. Apenas o dono pode editar. O tipo da lista não pode ser alterado."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Nome atualizado com sucesso",
+            content = @Content(schema = @Schema(implementation = ListResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Nome inválido (< 3 caracteres) ou tentativa de alterar typeId",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Apenas o dono pode editar esta lista",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista não encontrada",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public ListResponse updateListName(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateListNameRequest request,
+            @AuthenticationPrincipal User authenticatedUser) {
+        List list = listService.updateListName(id, authenticatedUser.getId(), request);
         return listMapper.toListResponse(list, authenticatedUser.getId());
     }
 }
