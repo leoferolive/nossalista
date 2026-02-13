@@ -184,7 +184,7 @@ class ListServiceTest {
         @DisplayName("Deve retornar lista quando usuário é owner")
         void shouldReturnListWhenUserIsOwner() {
             // Arrange
-            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
 
             // Act
             List result = listService.getListById(listId, testUser.getId());
@@ -194,7 +194,7 @@ class ListServiceTest {
             assertEquals(listId, result.getId());
             assertEquals("Minha Lista de Teste", result.getName());
             assertEquals(testUser.getId(), result.getOwner().getId());
-            verify(listRepository).findById(listId);
+            verify(listRepository).findByIdWithDetails(listId);
         }
 
         @Test
@@ -202,7 +202,7 @@ class ListServiceTest {
         void shouldThrowListNotFoundExceptionWhenListDoesNotExist() {
             // Arrange
             UUID nonExistentId = UUID.randomUUID();
-            when(listRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+            when(listRepository.findByIdWithDetails(nonExistentId)).thenReturn(Optional.empty());
 
             // Act & Assert
             ListNotFoundException exception = assertThrows(
@@ -211,7 +211,7 @@ class ListServiceTest {
             );
 
             assertEquals("Lista não encontrada", exception.getMessage());
-            verify(listRepository).findById(nonExistentId);
+            verify(listRepository).findByIdWithDetails(nonExistentId);
         }
 
         @Test
@@ -219,7 +219,7 @@ class ListServiceTest {
         void shouldThrowForbiddenExceptionWhenUserIsNotOwner() {
             // Arrange
             UUID otherUserId = UUID.randomUUID();
-            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
 
             // Act & Assert
             ForbiddenException exception = assertThrows(
@@ -228,7 +228,7 @@ class ListServiceTest {
             );
 
             assertEquals("Você não tem permissão para acessar esta lista", exception.getMessage());
-            verify(listRepository).findById(listId);
+            verify(listRepository).findByIdWithDetails(listId);
         }
     }
 }

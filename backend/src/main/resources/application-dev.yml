@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/nossalista_dev
+    url: jdbc:postgresql://192.168.3.63:30001/nossalista_dev
     driver-class-name: org.postgresql.Driver
-    username: nossalista
-    password: nossalista
+    username: nossalista_dev
+    password: nossalistadev
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect

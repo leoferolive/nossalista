@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext.tsx'
 import Login from './pages/Login.tsx'
+import { AuthCallback } from './pages/AuthCallback.tsx'
 import { Home } from './pages/Home.tsx'
 import { ListView } from './pages/ListView.tsx'
 import './index.css'
@@ -23,6 +24,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         path="/"
         element={

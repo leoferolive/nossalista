@@ -1,5 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import client from '../api/client';
+
+interface LoginResponse {
+  id: string;
+  username: string;
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  token: string;
+}
 
 /**
  * Página de Login
@@ -7,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
  */
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,15 +30,29 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // TODO: Implementar chamada real à API de autenticação
-      // const response = await authApi.login({ email, password });
-      // localStorage.setItem('authToken', response.token);
+      const { data } = await client.post<LoginResponse>('/api/auth/login', {
+        email,
+        password,
+      });
+
+      login(data.token, {
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        displayName: data.name,
+        avatarUrl: data.avatarUrl,
+      });
       navigate('/');
-    } catch (err) {
+    } catch {
       setError('Email ou senha inválidos');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '');
+    window.location.href = `${baseUrl}/api/auth/google`;
   };
 
   return (
@@ -89,7 +115,7 @@ export default function Login() {
           </p>
           <button
             className="mt-2 w-full bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onClick={() => {/* TODO: Google OAuth2 */}}
+            onClick={handleGoogleLogin}
           >
             Google
           </button>

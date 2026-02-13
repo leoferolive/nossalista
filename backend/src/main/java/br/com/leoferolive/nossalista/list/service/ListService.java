@@ -119,7 +119,7 @@ public class ListService {
      * @throws ForbiddenException    se o usuário não for owner nem member
      */
     public List getListById(UUID listId, UUID currentUserId) {
-        List list = listRepository.findById(listId)
+        List list = listRepository.findByIdWithDetails(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // Verificar se usuário é owner

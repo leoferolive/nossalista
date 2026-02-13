@@ -47,10 +47,18 @@ public interface ListRepository extends JpaRepository<List, UUID> {
      * @return lista de listas onde o usuário é owner ou membro, ordenadas por updatedAt DESC
      */
     @Query("SELECT DISTINCT l FROM lists l " +
+           "JOIN FETCH l.owner o " +
+           "JOIN FETCH l.typeEntity t " +
            "LEFT JOIN ListMember lm ON lm.list.id = l.id AND lm.user.id = :userId " +
            "WHERE l.owner.id = :userId OR lm.user.id = :userId " +
            "ORDER BY l.updatedAt DESC")
     java.util.List<List> findAllByOwnerOrMemberOrderByUpdatedAtDesc(@Param("userId") UUID userId);
+
+    @Query("SELECT l FROM lists l " +
+           "JOIN FETCH l.owner o " +
+           "JOIN FETCH l.typeEntity t " +
+           "WHERE l.id = :listId")
+    Optional<List> findByIdWithDetails(@Param("listId") UUID listId);
 
     // TODO: Adicionar countItems() na Story 3.1 quando ListItem for criado
 }
