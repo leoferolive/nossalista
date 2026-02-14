@@ -33,9 +33,9 @@
 # - SM cria próxima story após anterior estar 'done' para incorporar aprendizados
 # - Dev move story para 'review', depois run code-review (auto-aprova)
 #
-# Status Atual: Epic 3 em desenvolvimento, stories 3.1-3.5 completas, 3.6 próxima
-# Code review de 3.5 realizado com 7 correções críticas+médias aprovadas
-# Story 3.5 marcada como done após correções
+# Status Atual: Epic 3 em desenvolvimento, stories 3.1-3.5 completas, 3.6 ready-for-dev
+# Story 3.6 (remover-item) criada com análise exhaustiva de contexto
+# Pronta para implementação pelo dev agent
 
 generated: 2026-02-12
 project: nossalista
@@ -67,7 +67,7 @@ development_status:
   3-3-listar-itens-de-uma-lista: done
   3-4-marcar-desmarcar-item-como-concluido: done
   3-5-editar-item: done
-  3-6-remover-item: backlog
+  3-6-remover-item: done
   epic-3-retrospective: optional
 
   epic-4: backlog

@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -226,5 +227,46 @@ public class ListItemController {
 
         ListItemResponseDTO updated = listItemService.updateItem(listId, itemId, request, user);
         return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * DELETE /api/lists/{listId}/items/{itemId}
+     * Remove um item da lista
+     */
+    @DeleteMapping("/{itemId}")
+    @Operation(
+        summary = "Remover item",
+        description = "Remove um item da lista e reordena positions dos itens restantes. " +
+                      "Usuário deve ser dono ou membro da lista. " +
+                      "Item é deletado permanentemente do database."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "Item removido com sucesso (sem conteúdo)"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Usuário não tem permissão para remover itens desta lista",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista ou item não encontrado",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public ResponseEntity<Void> deleteItem(
+            @PathVariable UUID listId,
+            @PathVariable UUID itemId,
+            @AuthenticationPrincipal User user) {
+
+        listItemService.deleteItem(listId, itemId, user);
+        return ResponseEntity.noContent().build();
     }
 }

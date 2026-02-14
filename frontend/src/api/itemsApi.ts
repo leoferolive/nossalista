@@ -150,4 +150,38 @@ export const itemsApi = {
       throw new Error('Erro de conexão. Verifique sua internet.');
     }
   },
+
+  /**
+   * Remove um item da lista
+   * @param listId - UUID da lista
+   * @param itemId - UUID do item
+   * @returns Promise<void> (204 No Content)
+   * @throws Error com mensagem específica baseada no status HTTP
+   */
+  async deleteItem(listId: string, itemId: string): Promise<void> {
+    try {
+      await client.delete(`/api/lists/${listId}/items/${itemId}`);
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 403) {
+          throw new Error('Você não tem permissão para remover itens desta lista');
+        } else if (status === 404) {
+          throw new Error('Item não encontrado');
+        } else if (status === 401) {
+          throw new Error('Sessão expirada. Faça login novamente.');
+        } else {
+          throw new Error(
+            problemDetail?.detail || 'Erro ao remover item. Tente novamente.'
+          );
+        }
+      }
+
+      throw new Error('Erro de conexão. Verifique sua internet.');
+    }
+  },
 };

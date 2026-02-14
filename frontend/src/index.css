@@ -56,3 +56,57 @@ body {
 .animate-pop {
   animation: pop 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
+/* Animação fade-in para modais e menus (200ms conforme AC) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 200ms ease-out;
+}
+
+/* Animação fade-out para remoção de item (200ms conforme AC Story 3.6) */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+.animate-fade-out {
+  animation: fadeOut 200ms ease-out forwards;
+}
+
+/* Animação scale-in para modais */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 200ms ease-out;
+}
+
+/* Glassmorphism para cards e modais */
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}

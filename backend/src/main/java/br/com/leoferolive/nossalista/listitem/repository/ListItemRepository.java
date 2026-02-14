@@ -46,4 +46,14 @@ public interface ListItemRepository extends JpaRepository<ListItem, UUID> {
      */
     @Query("SELECT COALESCE(MAX(li.position), -1) FROM list_items li WHERE li.list.id = :listId")
     Integer findMaxPositionByListId(@Param("listId") UUID listId);
+
+    /**
+     * Busca todos os itens com position maior que o valor especificado.
+     * Usado para reordenação após deletar um item.
+     *
+     * @param listId ID da lista
+     * @param position Position de referência
+     * @return Lista de itens com position > referência, ordenados por position ASC
+     */
+    List<ListItem> findByListIdAndPositionGreaterThanOrderByPositionAsc(UUID listId, Integer position);
 }

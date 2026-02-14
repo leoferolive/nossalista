@@ -10,12 +10,14 @@ interface UseItemsReturn {
   addingItem: boolean;
   togglingItemId: string | null;
   updatingItemId: string | null;
+  deletingItemId: string | null;
 
   // Actions
   fetchItems: (listId: string) => Promise<void>;
   addItem: (listId: string, request: CreateItemRequest) => Promise<ListItem>;
   toggleItem: (listId: string, itemId: string) => Promise<ListItem>;
   updateItem: (listId: string, itemId: string, request: UpdateItemRequest) => Promise<ListItem>;
+  deleteItem: (listId: string, itemId: string) => Promise<void>;
   clearItemsError: () => void;
 }
 
@@ -29,6 +31,7 @@ export const useItems = (): UseItemsReturn => {
   const [addingItem, setAddingItem] = useState(false);
   const [togglingItemId, setTogglingItemId] = useState<string | null>(null);
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   /**
    * Busca todos os itens de uma lista
@@ -173,6 +176,45 @@ export const useItems = (): UseItemsReturn => {
   );
 
   /**
+   * Remove um item da lista
+   * AC Story 3.6: Fade-out animation (200ms) before removing
+   * Aguarda animação CSS completar antes de remover do estado
+   */
+  const deleteItem = useCallback(
+    async (listId: string, itemId: string): Promise<void> => {
+      setDeletingItemId(itemId);
+      setErrorItems(null);
+
+      // Encontrar item atual
+      const item = items.find((i) => i.id === itemId);
+      if (!item) {
+        setDeletingItemId(null);
+        throw new Error('Item não encontrado');
+      }
+
+      try {
+        // Fazer request para backend
+        await itemsApi.deleteItem(listId, itemId);
+
+        // Aguardar 200ms para animação fade-out completar
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        // Remover do estado local após animação
+        setItems((prev) => prev.filter((i) => i.id !== itemId));
+      } catch (err) {
+        // Em caso de erro, não remove do estado
+        const message =
+          err instanceof Error ? err.message : 'Erro ao remover item';
+        setErrorItems(message);
+        throw new Error(message);
+      } finally {
+        setDeletingItemId(null);
+      }
+    },
+    [items]
+  );
+
+  /**
    * Limpa o erro de itens
    */
   const clearItemsError = useCallback(() => {
@@ -186,10 +228,12 @@ export const useItems = (): UseItemsReturn => {
     addingItem,
     togglingItemId,
     updatingItemId,
+    deletingItemId,
     fetchItems,
     addItem,
     toggleItem,
     updateItem,
+    deleteItem,
     clearItemsError,
   };
 };

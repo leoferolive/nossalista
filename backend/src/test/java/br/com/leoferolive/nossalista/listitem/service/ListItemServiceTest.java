@@ -10,6 +10,7 @@ import br.com.leoferolive.nossalista.listitem.dto.CreateItemRequestDTO;
 import br.com.leoferolive.nossalista.listitem.dto.ListItemMapper;
 import br.com.leoferolive.nossalista.listitem.dto.ListItemResponseDTO;
 import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
+import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -1063,6 +1064,155 @@ class ListItemServiceTest {
                 () -> listItemService.updateItem(listId, itemId, request, testUser)
             );
             verify(listItemRepository, never()).save(any(ListItem.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("deleteItem - Remover Item da Lista")
+    class DeleteItemTests {
+
+        private ListItem createTestItem(String name, int position) {
+            ListItem item = new ListItem();
+            item.setId(UUID.randomUUID());
+            item.setName(name);
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(position);
+            item.setChecked(false);
+            return item;
+        }
+
+        @Test
+        @DisplayName("Deve deletar item com sucesso quando usuário é participante")
+        void shouldDeleteItemSuccessfullyWhenUserIsParticipant() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            ListItem item = createTestItem("Item to delete", 1);
+            item.setId(itemId);
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+            when(listItemRepository.findByListIdAndPositionGreaterThanOrderByPositionAsc(listId, 1))
+                .thenReturn(Collections.emptyList());
+
+            // Act
+            listItemService.deleteItem(listId, itemId, testUser);
+
+            // Assert
+            verify(listItemRepository).delete(item);
+            verify(listItemRepository).findByListIdAndPositionGreaterThanOrderByPositionAsc(listId, 1);
+        }
+
+        @Test
+        @DisplayName("Deve reordenar positions após deletar item")
+        void shouldReorderPositionsAfterDelete() {
+            // Arrange: Lista com items [0, 1, 2, 3], deletar position 1
+            UUID itemId = UUID.randomUUID();
+            ListItem itemToDelete = createTestItem("Item 1", 1);
+            itemToDelete.setId(itemId);
+
+            ListItem item2 = createTestItem("Item 2", 2);
+            ListItem item3 = createTestItem("Item 3", 3);
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(itemToDelete));
+            when(listItemRepository.findByListIdAndPositionGreaterThanOrderByPositionAsc(listId, 1))
+                .thenReturn(java.util.List.of(item2, item3));
+
+            // Act
+            listItemService.deleteItem(listId, itemId, testUser);
+
+            // Assert
+            assertEquals(1, item2.getPosition());
+            assertEquals(2, item3.getPosition());
+            verify(listItemRepository).saveAll(java.util.List.of(item2, item3));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ListNotFoundException quando lista não existe")
+        void shouldThrowListNotFoundExceptionWhenListDoesNotExist() {
+            // Arrange
+            UUID nonExistentListId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+
+            when(listRepository.findById(nonExistentListId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            ListNotFoundException exception = assertThrows(
+                ListNotFoundException.class,
+                () -> listItemService.deleteItem(nonExistentListId, itemId, testUser)
+            );
+
+            assertEquals("Lista não encontrada", exception.getMessage());
+            verify(listRepository).findById(nonExistentListId);
+            verify(listItemRepository, never()).delete(any());
+        }
+
+        @Test
+        @DisplayName("Deve lançar ForbiddenException quando usuário não é participante")
+        void shouldThrow403WhenNotParticipant() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+
+            // Act & Assert
+            ForbiddenException exception = assertThrows(
+                ForbiddenException.class,
+                () -> listItemService.deleteItem(listId, itemId, otherUser)
+            );
+
+            assertEquals("Você não tem permissão para remover itens desta lista", exception.getMessage());
+            verify(listRepository).findById(listId);
+            verify(listItemRepository, never()).delete(any());
+        }
+
+        @Test
+        @DisplayName("Deve lançar ItemNotFoundException quando item não existe")
+        void shouldThrow404WhenItemNotFound() {
+            // Arrange
+            UUID nonExistentItemId = UUID.randomUUID();
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(nonExistentItemId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThrows(
+                ItemNotFoundException.class,
+                () -> listItemService.deleteItem(listId, nonExistentItemId, testUser)
+            );
+
+            verify(listRepository).findById(listId);
+            verify(listItemRepository).findById(nonExistentItemId);
+            verify(listItemRepository, never()).delete(any());
+        }
+
+        @Test
+        @DisplayName("Deve lançar ItemNotFoundException quando item não pertence à lista")
+        void shouldThrow404WhenItemNotBelongsToList() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            List otherList = new List();
+            otherList.setId(UUID.randomUUID());
+            otherList.setOwner(testUser);
+
+            ListItem item = createTestItem("Item de Outra Lista", 0);
+            item.setId(itemId);
+            item.setList(otherList); // Item pertence a outra lista
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+
+            // Act & Assert
+            ItemNotFoundException exception = assertThrows(
+                ItemNotFoundException.class,
+                () -> listItemService.deleteItem(listId, itemId, testUser)
+            );
+
+            assertEquals("Item não encontrado nesta lista", exception.getMessage());
+            verify(listRepository).findById(listId);
+            verify(listItemRepository).findById(itemId);
+            verify(listItemRepository, never()).delete(any());
         }
     }
 }

@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -673,6 +674,176 @@ class ListItemControllerTest {
                 .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/item-not-found"))
                 .andExpect(jsonPath("$.title").value("Item Não Encontrado"))
                 .andExpect(jsonPath("$.status").value(404));
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/lists/{listId}/items/{itemId} - Remover Item")
+    class DeleteItemTests {
+
+        @Test
+        @DisplayName("Deve deletar item com sucesso e retornar 204")
+        void shouldDeleteItemAndReturn204() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Item para Deletar");
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(false);
+            listItemRepository.save(item);
+
+            // Act & Assert
+            mockMvc.perform(delete("/api/lists/{listId}/items/{itemId}", testList.getId(), item.getId()))
+                .andExpect(status().isNoContent());
+
+            // Verify item was deleted
+            var items = listItemRepository.findByListIdOrderByPositionAsc(testList.getId());
+            assertThat(items).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Deve reordenar positions após deletar item")
+        void shouldReorderPositionsAfterDelete() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+
+            // Criar 3 itens
+            ListItem item1 = createItem(testList, "Item 1", 0);
+            ListItem item2 = createItem(testList, "Item 2", 1);
+            ListItem item3 = createItem(testList, "Item 3", 2);
+
+            // Act - Deletar item do meio (position 1)
+            mockMvc.perform(delete("/api/lists/{listId}/items/{itemId}", testList.getId(), item2.getId()))
+                .andExpect(status().isNoContent());
+
+            // Assert - Verificar reordenação
+            var items = listItemRepository.findByListIdOrderByPositionAsc(testList.getId());
+            assertThat(items).hasSize(2);
+            assertThat(items.get(0).getName()).isEqualTo("Item 1");
+            assertThat(items.get(0).getPosition()).isEqualTo(0);
+            assertThat(items.get(1).getName()).isEqualTo("Item 3");
+            assertThat(items.get(1).getPosition()).isEqualTo(1); // Reordenado de 2 para 1
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando lista não existe")
+        void shouldReturn404WhenListDoesNotExist() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            UUID nonExistentListId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(delete("/api/lists/{listId}/items/{itemId}", nonExistentListId, itemId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/list-not-found"))
+                .andExpect(jsonPath("$.title").value("Lista Não Encontrada"))
+                .andExpect(jsonPath("$.status").value(404));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando item não existe")
+        void shouldReturn404WhenItemDoesNotExist() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            UUID nonExistentItemId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(delete("/api/lists/{listId}/items/{itemId}", testList.getId(), nonExistentItemId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/item-not-found"))
+                .andExpect(jsonPath("$.title").value("Item Não Encontrado"))
+                .andExpect(jsonPath("$.status").value(404));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 403 quando usuário não é participante")
+        void shouldReturn403WhenUserIsNotParticipant() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Item Teste");
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(false);
+            listItemRepository.save(item);
+
+            // Limpar e autenticar como outro usuário
+            SecurityContextHolder.clearContext();
+            authenticateUser(otherUser);
+
+            // Act & Assert
+            mockMvc.perform(delete("/api/lists/{listId}/items/{itemId}", testList.getId(), item.getId()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/access-forbidden"))
+                .andExpect(jsonPath("$.title").value("Acesso Negado"))
+                .andExpect(jsonPath("$.status").value(403));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 quando não há token")
+        void shouldReturn401WhenNoToken() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Item Teste");
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(false);
+            listItemRepository.save(item);
+
+            // Limpar autenticação
+            SecurityContextHolder.clearContext();
+
+            // Act & Assert
+            mockMvc.perform(delete("/api/lists/{listId}/items/{itemId}", testList.getId(), item.getId()))
+                .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando item não pertence à lista")
+        void shouldReturn404WhenItemDoesNotBelongToList() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista 1", 1), testUser);
+            br.com.leoferolive.nossalista.list.domain.List otherList = listService.createList(new CreateListRequest("Lista 2", 1), testUser);
+
+            ListItem item = new ListItem();
+            item.setName("Item da Lista 2");
+            item.setList(otherList);
+            item.setCreatedBy(testUser);
+            item.setPosition(0);
+            item.setChecked(false);
+            listItemRepository.save(item);
+
+            // Act & Assert - Tentar deletar item da Lista 2 através da Lista 1
+            mockMvc.perform(delete("/api/lists/{listId}/items/{itemId}", testList.getId(), item.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/item-not-found"))
+                .andExpect(jsonPath("$.title").value("Item Não Encontrado"))
+                .andExpect(jsonPath("$.status").value(404));
+        }
+
+        private ListItem createItem(br.com.leoferolive.nossalista.list.domain.List list, String name, int position) {
+            ListItem item = new ListItem();
+            item.setName(name);
+            item.setList(list);
+            item.setCreatedBy(testUser);
+            item.setPosition(position);
+            item.setChecked(false);
+            return listItemRepository.save(item);
         }
     }
 }

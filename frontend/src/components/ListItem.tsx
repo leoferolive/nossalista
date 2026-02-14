@@ -1,15 +1,24 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { ListItemProps } from '../types/Item';
+import { useLongPress } from '../hooks/useLongPress';
+import { ItemOptionsMenu } from './ItemOptionsMenu';
 
 /**
  * Componente de item de lista
  * AC: Renderiza checkbox customizado, nome, campos extras, criador
+ * AC: Suporta long-press (1 segundo) para abrir menu de opções
+ * AC: Animação fade-out (200ms) antes de remover
  */
 export const ListItemComponent: React.FC<ListItemProps> = ({
   item,
   onToggle,
   onEdit,
+  onDelete,
+  isDeleting = false,
 }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggle(item.id);
@@ -18,6 +27,31 @@ export const ListItemComponent: React.FC<ListItemProps> = ({
   const handleItemClick = () => {
     onEdit(item);
   };
+
+  // Handler para long-press
+  const handleLongPress = useCallback(() => {
+    // Calcular posição do menu (centro do item)
+    const element = document.getElementById(`list-item-${item.id}`);
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      setMenuPosition({
+        x: rect.left + rect.width / 2 - 60, // Centro - metade da largura do menu
+        y: rect.top + rect.height / 2,
+      });
+    } else {
+      // Fallback: usar posição do mouse ou centro da tela
+      setMenuPosition({
+        x: window.innerWidth / 2 - 60,
+        y: window.innerHeight / 2,
+      });
+    }
+    setMenuOpen(true);
+  }, [item.id]);
+
+  const longPressProps = useLongPress({
+    onLongPress: handleLongPress,
+    delay: 1000, // 1 segundo
+  });
 
   // Formatar data para exibição (pt-BR)
   const formatDate = (dateString: string | null): string => {
@@ -31,13 +65,17 @@ export const ListItemComponent: React.FC<ListItemProps> = ({
   };
 
   return (
-    <div
-      className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:bg-gray-50 ${
-        item.checked ? 'opacity-50' : ''
-      }`}
-      onClick={handleItemClick}
-      style={{ minHeight: '44px' }} // NFR-A4: Touch target ≥ 44px
-    >
+    <>
+      <div
+        id={`list-item-${item.id}`}
+        className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:bg-gray-50 ${
+          item.checked ? 'opacity-50' : ''
+        } ${isDeleting ? 'animate-fade-out' : ''}`}
+        onClick={handleItemClick}
+        {...longPressProps}
+        style={{ minHeight: '44px' }} // NFR-A4: Touch target ≥ 44px
+        data-testid={`list-item-${item.id}`}
+      >
       {/* Checkbox customizado com animação "pop" */}
       <button
         onClick={handleCheckboxClick}
@@ -155,5 +193,15 @@ export const ListItemComponent: React.FC<ListItemProps> = ({
         </span>
       </div>
     </div>
+
+    {/* Menu de opções (aparece após long-press) */}
+    <ItemOptionsMenu
+      isOpen={menuOpen}
+      onClose={() => setMenuOpen(false)}
+      onEdit={() => onEdit(item)}
+      onDelete={() => onDelete?.(item)}
+      position={menuPosition}
+    />
+    </>
   );
 };

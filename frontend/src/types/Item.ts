@@ -51,4 +51,6 @@ export interface ListItemProps {
   item: ListItem;
   onToggle: (id: string) => void;
   onEdit: (item: ListItem) => void;
+  onDelete?: (item: ListItem) => void;
+  isDeleting?: boolean;
 }

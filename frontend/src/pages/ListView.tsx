@@ -5,6 +5,7 @@ import { useItems } from '../hooks/useItems';
 import { LIST_TYPES } from '../types/List';
 import { EditListNameModal } from '../components/EditListNameModal';
 import { DeleteListModal } from '../components/DeleteListModal';
+import { DeleteConfirmModal } from '../components/DeleteConfirmModal';
 import { ListItemComponent } from '../components/ListItem';
 import { EditItemModal } from '../components/EditItemModal';
 import { useToast, Toast } from '../components/Toast';
@@ -39,10 +40,12 @@ export const ListView: React.FC = () => {
     errorItems,
     addingItem,
     togglingItemId,
+    deletingItemId,
     fetchItems,
     addItem,
     toggleItem,
     updateItem,
+    deleteItem,
     clearItemsError,
   } = useItems();
 
@@ -52,8 +55,12 @@ export const ListView: React.FC = () => {
   // Estado do modal de edição de item
   const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
 
-  // Estado do modal de exclusão
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  // Estado do modal de exclusão de lista
+  const [isDeleteListModalOpen, setIsDeleteListModalOpen] = useState(false);
+
+  // Estado do modal de confirmação de exclusão de item
+  const [isDeleteItemModalOpen, setIsDeleteItemModalOpen] = useState(false);
+  const [deletingItem, setDeletingItem] = useState<ListItem | null>(null);
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -93,14 +100,14 @@ export const ListView: React.FC = () => {
     }
   };
 
-  // Handler para abrir modal de exclusão
-  const handleOpenDeleteModal = () => {
-    setIsDeleteModalOpen(true);
+  // Handler para abrir modal de exclusão de lista
+  const handleOpenDeleteListModal = () => {
+    setIsDeleteListModalOpen(true);
   };
 
-  // Handler para fechar modal de exclusão
-  const handleCloseDeleteModal = () => {
-    setIsDeleteModalOpen(false);
+  // Handler para fechar modal de exclusão de lista
+  const handleCloseDeleteListModal = () => {
+    setIsDeleteListModalOpen(false);
   };
 
   // Handler para confirmar exclusão
@@ -122,7 +129,7 @@ export const ListView: React.FC = () => {
       // AC4: Fecha modal e redireciona em erro 403/404
       // FIX: Usa status code em vez de string matching (mais robusto)
       if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
-        setIsDeleteModalOpen(false);
+        setIsDeleteListModalOpen(false);
         navigate('/');
       }
       throw err;
@@ -150,6 +157,33 @@ export const ListView: React.FC = () => {
     setIsEditItemModalOpen(true);
   };
 
+  // Handler para iniciar exclusão de item (abre modal de confirmação)
+  const handleDeleteItem = (item: ListItem) => {
+    setDeletingItem(item);
+    setIsDeleteItemModalOpen(true);
+  };
+
+  // Handler para confirmar exclusão de item
+  const handleConfirmDeleteItem = async () => {
+    if (!id || !deletingItem) return;
+
+    try {
+      await deleteItem(id, deletingItem.id);
+      showToast('Item removido', 'success');
+      setIsDeleteItemModalOpen(false);
+      setDeletingItem(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao remover item';
+      showToast(message, 'error');
+    }
+  };
+
+  // Handler para cancelar exclusão de item
+  const handleCancelDeleteItem = () => {
+    setIsDeleteItemModalOpen(false);
+    setDeletingItem(null);
+  };
+
   const handleSaveEditItem = async (itemId: string, request: { name: string; quantity?: number; dueDate?: string; url?: string }) => {
     if (!id) return;
 
@@ -158,7 +192,7 @@ export const ListView: React.FC = () => {
       showToast('Sincronizando...', 'info');
 
       // USAR O HOOK - não fazer update direto!
-      const updated = await updateItem(id, itemId, request);
+      await updateItem(id, itemId, request);
 
       // Apenas após sucesso real, mostrar toast de sucesso
       showToast('Sincronizado', 'success');
@@ -338,7 +372,7 @@ export const ListView: React.FC = () => {
               </button>
               {/* Botão excluir */}
               <button
-                onClick={handleOpenDeleteModal}
+                onClick={handleOpenDeleteListModal}
                 className="p-3 min-w-[44px] min-h-[44px] hover:bg-red-100 rounded-lg transition-colors flex items-center justify-center"
                 aria-label="Excluir lista"
                 title="Excluir lista"
@@ -433,6 +467,8 @@ export const ListView: React.FC = () => {
                     item={item}
                     onToggle={handleToggleItem}
                     onEdit={handleEditItem}
+                    onDelete={handleDeleteItem}
+                    isDeleting={deletingItemId === item.id}
                 />
               ))}
             </div>
@@ -512,11 +548,11 @@ export const ListView: React.FC = () => {
         isSaving={updatingList}
       />
 
-      {/* Modal de confirmação de exclusão */}
+      {/* Modal de confirmação de exclusão de lista */}
       <DeleteListModal
-        isOpen={isDeleteModalOpen}
+        isOpen={isDeleteListModalOpen}
         listName={currentList.name}
-        onClose={handleCloseDeleteModal}
+        onClose={handleCloseDeleteListModal}
         onConfirm={handleConfirmDelete}
         isDeleting={deletingList}
       />
@@ -525,13 +561,23 @@ export const ListView: React.FC = () => {
       {editingItem && (
         <EditItemModal
           item={editingItem}
-          listType={currentList.type.id}
+          listType={String(currentList.type.id)}
           isOpen={isEditItemModalOpen}
           onClose={() => {
             setIsEditItemModalOpen(false);
             setEditingItem(null);
           }}
           onSave={handleSaveEditItem}
+        />
+      )}
+
+      {/* Modal de confirmação de exclusão de item */}
+      {deletingItem && (
+        <DeleteConfirmModal
+          isOpen={isDeleteItemModalOpen}
+          itemName={deletingItem.name}
+          onConfirm={handleConfirmDeleteItem}
+          onCancel={handleCancelDeleteItem}
         />
       )}
 

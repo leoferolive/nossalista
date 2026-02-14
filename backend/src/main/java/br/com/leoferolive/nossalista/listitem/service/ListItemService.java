@@ -352,6 +352,70 @@ public class ListItemService {
     }
 
     /**
+     * Remove um item da lista
+     * Valida permissões, deleta item e reordena positions
+     *
+     * @param listId ID da lista
+     * @param itemId ID do item
+     * @param user   Usuário solicitante
+     * @throws ListNotFoundException se a lista não existir
+     * @throws ItemNotFoundException se o item não existir
+     * @throws ForbiddenException    se o usuário não for participante
+     */
+    @Transactional
+    public void deleteItem(UUID listId, UUID itemId, User user) {
+        // 1. Verificar se lista existe
+        List list = listRepository.findById(listId)
+                .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        // 2. Verificar se usuário é participante
+        if (!isParticipant(list, user)) {
+            throw new ForbiddenException("Você não tem permissão para remover itens desta lista");
+        }
+
+        // 3. Buscar item
+        ListItem item = listItemRepository.findById(itemId)
+                .orElseThrow(() -> new ItemNotFoundException("Item não encontrado"));
+
+        // 4. Verificar se item pertence à lista
+        if (!item.getList().getId().equals(listId)) {
+            throw new ItemNotFoundException("Item não encontrado nesta lista");
+        }
+
+        // 5. Registrar activity log ANTES de deletar (para auditoria)
+        // Nota: Será implementado em Epic 6, mas já preparar para isso
+        // activityService.log(list, user, "ITEM_DELETED", item);
+
+        // 6. Deletar item
+        Integer deletedPosition = item.getPosition();
+        listItemRepository.delete(item);
+
+        // 7. Reordenar positions dos itens restantes
+        reorderPositions(listId, deletedPosition);
+
+        // 8. Log
+        log.info("Item deleted: itemId={}, listId={}, user={}", itemId, listId, user.getId());
+    }
+
+    /**
+     * Reordena positions após deletar item
+     * Items com position > deletedPosition têm position decrementada em 1
+     */
+    private void reorderPositions(UUID listId, Integer deletedPosition) {
+        // Buscar todos os itens com position > deletedPosition
+        java.util.List<ListItem> itemsToReorder = listItemRepository
+                .findByListIdAndPositionGreaterThanOrderByPositionAsc(listId, deletedPosition);
+
+        // Decrementar position de cada item
+        for (ListItem item : itemsToReorder) {
+            item.setPosition(item.getPosition() - 1);
+        }
+
+        // Salvar todos (batch update)
+        listItemRepository.saveAll(itemsToReorder);
+    }
+
+    /**
      * Valida campos da request conforme tipo de lista
      *
      * Regras por tipo:
