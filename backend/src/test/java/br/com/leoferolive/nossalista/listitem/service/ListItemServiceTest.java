@@ -692,6 +692,17 @@ class ListItemServiceTest {
     @DisplayName("updateItem - Atualizar Item Existente")
     class UpdateItemTests {
 
+        private ListItem createTestItem(String name, int position) {
+            ListItem item = new ListItem();
+            item.setId(UUID.randomUUID());
+            item.setName(name);
+            item.setList(testList);
+            item.setCreatedBy(testUser);
+            item.setPosition(position);
+            item.setChecked(false);
+            return item;
+        }
+
         @Test
         @DisplayName("Deve atualizar name com sucesso")
         void shouldUpdateItemName() {
@@ -1013,15 +1024,10 @@ class ListItemServiceTest {
         void shouldThrowForbiddenExceptionForUpdate() {
             // Arrange
             UUID itemId = UUID.randomUUID();
-            ListItem item = createTestItem("Item", 0);
-            item.setId(itemId);
-            item.setList(testList);
-
             UpdateItemRequest request = new UpdateItemRequest();
             request.setName("Item");
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
-            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
 
             // Act & Assert
             assertThrows(
@@ -1029,7 +1035,8 @@ class ListItemServiceTest {
                 () -> listItemService.updateItem(listId, itemId, request, otherUser)
             );
             verify(listRepository).findById(listId);
-            verify(listItemRepository).findById(itemId);
+            // Não deve chamar findById do item porque a exceção é lançada antes
+            verify(listItemRepository, never()).findById(any());
             verify(listItemRepository, never()).save(any(ListItem.class));
         }
 
