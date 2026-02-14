@@ -10,6 +10,7 @@ import br.com.leoferolive.nossalista.listitem.domain.ListItem;
 import br.com.leoferolive.nossalista.listitem.dto.CreateItemRequestDTO;
 import br.com.leoferolive.nossalista.listitem.dto.ListItemMapper;
 import br.com.leoferolive.nossalista.listitem.dto.ListItemResponseDTO;
+import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -257,5 +258,156 @@ public class ListItemService {
 
         // 8. Retornar DTO
         return listItemMapper.toListItemResponseDTO(saved);
+    }
+
+    /**
+     * Atualiza um item existente
+     * Valida permissões e campos por tipo de lista
+     *
+     * @param listId  ID da lista
+     * @param itemId  ID do item
+     * @param request DTO com campos para atualizar (opcionais)
+     * @param user    Usuário solicitante
+     * @return DTO com item atualizado
+     * @throws ListNotFoundException  se a lista não existir
+     * @throws ItemNotFoundException  se o item não existir
+     * @throws ForbiddenException     se o usuário não for participante
+     * @throws ValidationException     se campos inválidos para o tipo
+     */
+    @Transactional
+    public ListItemResponseDTO updateItem(
+            UUID listId,
+            UUID itemId,
+            UpdateItemRequest request,
+            User user) {
+
+        // 1. Verificar se lista existe
+        List list = listRepository.findById(listId)
+                .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        // 2. Verificar se usuário é participante
+        if (!isParticipant(list, user)) {
+            throw new ForbiddenException("Você não tem permissão para modificar itens desta lista");
+        }
+
+        // 3. Buscar item
+        ListItem item = listItemRepository.findById(itemId)
+                .orElseThrow(() -> new ItemNotFoundException("Item não encontrado"));
+
+        // 4. Verificar se item pertence à lista
+        if (!item.getList().getId().equals(listId)) {
+            throw new ItemNotFoundException("Item não encontrado nesta lista");
+        }
+
+        // 5. Validar campos por tipo de lista
+        validateUpdateFields(list.getType(), request);
+
+        // 6. Atualizar campos fornecidos
+        if (request.getName() != null && !request.getName().isBlank()) {
+            String trimmedName = request.getName().trim();
+            if (trimmedName.isEmpty()) {
+                throw new ValidationException("Nome não pode estar vazio");
+            }
+            item.setName(trimmedName);
+        }
+
+        // Atualizar campos específicos por tipo
+        switch (list.getType()) {
+            case SHOPPING:
+                if (request.getQuantity() != null) {
+                    item.setQuantity(request.getQuantity());
+                }
+                break;
+
+            case TASK:
+                if (request.getDueDate() != null) {
+                    item.setDueDate(request.getDueDate());
+                }
+                break;
+
+            case WISHLIST:
+                if (request.getUrl() != null && !request.getUrl().isBlank()) {
+                    item.setUrl(request.getUrl().trim());
+                }
+                break;
+
+            case GENERIC:
+                // Genérica: apenas name, outros campos ignorados
+                break;
+        }
+
+        // 7. Salvar (updated_at atualizado automaticamente via @PreUpdate)
+        ListItem saved = listItemRepository.save(item);
+
+        // 8. Log com campos alterados
+        log.info("Item updated: itemId={}, listId={}, user={}, fieldsChanged={}",
+                itemId, listId, user.getId(), 
+                request.getName() != null ? "name" : "",
+                request.getQuantity() != null ? "quantity" : "",
+                request.getDueDate() != null ? "dueDate" : "",
+                request.getUrl() != null ? "url" : "");
+
+        // 9. Retornar DTO
+        return listItemMapper.toListItemResponseDTO(saved);
+    }
+
+    /**
+     * Valida campos da request conforme tipo de lista
+     *
+     * Regras por tipo:
+     * - SHOPPING: Permite name, quantity; rejeita dueDate e url
+     * - TASK: Permite name, dueDate; rejeita quantity e url
+     * - WISHLIST: Permite name, url; rejeita quantity e dueDate
+     * - GENERIC: Permite apenas name; rejeita todos os outros
+     *
+     * @param listType Tipo da lista
+     * @param request  DTO com os campos a validar
+     * @throws ValidationException se campos inválidos para o tipo
+     */
+    private void validateUpdateFields(ListType listType, UpdateItemRequest request) {
+        // Validações de tipo - campos não permitidos devem ser null
+        switch (listType) {
+            case SHOPPING:
+                if (request.getDueDate() != null) {
+                    throw new ValidationException("Campo dueDate não é permitido para listas de Compras");
+                }
+                if (request.getUrl() != null) {
+                    throw new ValidationException("Campo url não é permitido para listas de Compras");
+                }
+                // quantity pode ser null (mantém valor atual) ou positivo
+                if (request.getQuantity() != null && request.getQuantity() < 1) {
+                    throw new ValidationException("Quantity deve ser positivo para listas de Compras");
+                }
+                break;
+
+            case TASK:
+                if (request.getQuantity() != null) {
+                    throw new ValidationException("Campo quantity não é permitido para listas de Tarefas");
+                }
+                if (request.getUrl() != null) {
+                    throw new ValidationException("Campo url não é permitido para listas de Tarefas");
+                }
+                break;
+
+            case WISHLIST:
+                if (request.getQuantity() != null) {
+                    throw new ValidationException("Campo quantity não é permitido para listas de Wishlist");
+                }
+                if (request.getDueDate() != null) {
+                    throw new ValidationException("Campo dueDate não é permitido para listas de Wishlist");
+                }
+                break;
+
+            case GENERIC:
+                // Lança erro APENAS se ALGUM campo foi fornecido
+                boolean anyFieldProvided = request.getQuantity() != null
+                        || request.getDueDate() != null
+                        || request.getUrl() != null;
+
+                if (anyFieldProvided) {
+                    throw new ValidationException("Listas Genéricas aceitam apenas o campo name");
+                }
+                break;
+        }
     }
 }

@@ -35,6 +35,16 @@ export interface CreateItemRequest {
 }
 
 /**
+ * Request para atualizar um item existente
+ */
+export interface UpdateItemRequest {
+  name: string;
+  quantity?: number;
+  dueDate?: string;
+  url?: string;
+}
+
+/**
  * Props para o componente ListItem
  */
 export interface ListItemProps {

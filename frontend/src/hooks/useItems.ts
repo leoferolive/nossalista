@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { itemsApi } from '../api/itemsApi';
-import { ListItem, CreateItemRequest } from '../types/Item';
+import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item';
 
 interface UseItemsReturn {
   // States
@@ -9,11 +9,13 @@ interface UseItemsReturn {
   errorItems: string | null;
   addingItem: boolean;
   togglingItemId: string | null;
+  updatingItemId: string | null;
 
   // Actions
   fetchItems: (listId: string) => Promise<void>;
   addItem: (listId: string, request: CreateItemRequest) => Promise<ListItem>;
   toggleItem: (listId: string, itemId: string) => Promise<ListItem>;
+  updateItem: (listId: string, itemId: string, request: UpdateItemRequest) => Promise<ListItem>;
   clearItemsError: () => void;
 }
 
@@ -26,6 +28,7 @@ export const useItems = (): UseItemsReturn => {
   const [errorItems, setErrorItems] = useState<string | null>(null);
   const [addingItem, setAddingItem] = useState(false);
   const [togglingItemId, setTogglingItemId] = useState<string | null>(null);
+  const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
 
   /**
    * Busca todos os itens de uma lista
@@ -56,8 +59,8 @@ export const useItems = (): UseItemsReturn => {
 
       try {
         const newItem = await itemsApi.addItem(listId, request);
-        // Adiciona e re-ordena por position para manter consistência
-        setItems((prev) => [...prev, newItem].sort((a, b) => a.position - b.position));
+        // Adiciona sem reordenar - o backend já retorna itens ordenados por position
+        setItems((prev) => [...prev, newItem]);
         return newItem;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Erro ao adicionar item';
@@ -117,6 +120,59 @@ export const useItems = (): UseItemsReturn => {
   );
 
   /**
+   * Atualiza um item existente
+   * Implementa optimistic update: atualiza UI imediatamente e reverte em caso de erro
+   */
+  const updateItem = useCallback(
+    async (listId: string, itemId: string, request: UpdateItemRequest): Promise<ListItem> => {
+      setUpdatingItemId(itemId);
+      setErrorItems(null);
+
+      // Encontrar item atual e seu estado
+      const item = items.find((i) => i.id === itemId);
+      if (!item) {
+        setUpdatingItemId(null);
+        throw new Error('Item não encontrado');
+      }
+
+      // Backup do estado original para rollback
+      const originalItem = { ...item };
+
+      // Optimistic update: merge inteligente - apenas atualiza campos fornecidos
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === itemId
+            ? {
+                ...i,
+                ...(request.name !== undefined && { name: request.name }),
+                ...(request.quantity !== undefined && { quantity: request.quantity }),
+                ...(request.dueDate !== undefined && { dueDate: request.dueDate }),
+                ...(request.url !== undefined && { url: request.url }),
+              }
+            : i
+        )
+      );
+
+      try {
+        const updated = await itemsApi.updateItem(listId, itemId, request);
+        return updated;
+      } catch (err) {
+        // Reverter em caso de erro
+        setItems((prev) =>
+          prev.map((i) => (i.id === itemId ? originalItem : i))
+        );
+        const message =
+          err instanceof Error ? err.message : 'Erro ao atualizar item';
+        setErrorItems(message);
+        throw new Error(message);
+      } finally {
+        setUpdatingItemId(null);
+      }
+    },
+    [items]
+  );
+
+  /**
    * Limpa o erro de itens
    */
   const clearItemsError = useCallback(() => {
@@ -129,9 +185,11 @@ export const useItems = (): UseItemsReturn => {
     errorItems,
     addingItem,
     togglingItemId,
+    updatingItemId,
     fetchItems,
     addItem,
     toggleItem,
+    updateItem,
     clearItemsError,
   };
 };

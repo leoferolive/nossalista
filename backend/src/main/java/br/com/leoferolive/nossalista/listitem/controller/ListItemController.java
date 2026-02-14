@@ -2,6 +2,7 @@ package br.com.leoferolive.nossalista.listitem.controller;
 
 import br.com.leoferolive.nossalista.listitem.dto.CreateItemRequestDTO;
 import br.com.leoferolive.nossalista.listitem.dto.ListItemResponseDTO;
+import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.service.ListItemService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import io.swagger.v3.oas.annotations.Operation;
@@ -176,6 +177,54 @@ public class ListItemController {
             @AuthenticationPrincipal User user) {
 
         ListItemResponseDTO updated = listItemService.toggleItemCheck(listId, itemId, user);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * PATCH /api/lists/{listId}/items/{itemId}
+     * Atualiza um item existente
+     */
+    @PatchMapping("/{itemId}")
+    @Operation(
+        summary = "Atualizar item",
+        description = "Atualiza campos específicos de um item existente. " +
+                      "Campos permitidos dependem do tipo da lista (Compras/Tarefas/Wishlist/Genérica). " +
+                      "Usuário deve ser dono ou membro da lista."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Item atualizado com sucesso",
+            content = @Content(schema = @Schema(implementation = ListItemResponseDTO.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Erro de validação (campos inválidos para o tipo)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Usuário não tem permissão para modificar itens desta lista",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista ou item não encontrado",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public ResponseEntity<ListItemResponseDTO> updateItem(
+            @PathVariable UUID listId,
+            @PathVariable UUID itemId,
+            @Valid @RequestBody UpdateItemRequest request,
+            @AuthenticationPrincipal User user) {
+
+        ListItemResponseDTO updated = listItemService.updateItem(listId, itemId, request, user);
         return ResponseEntity.ok(updated);
     }
 }

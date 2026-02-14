@@ -6,6 +6,7 @@ import { LIST_TYPES } from '../types/List';
 import { EditListNameModal } from '../components/EditListNameModal';
 import { DeleteListModal } from '../components/DeleteListModal';
 import { ListItemComponent } from '../components/ListItem';
+import { EditItemModal } from '../components/EditItemModal';
 import { useToast, Toast } from '../components/Toast';
 import { ApiError } from '../types/ApiError';
 import { ListItem } from '../types/Item';
@@ -41,11 +42,15 @@ export const ListView: React.FC = () => {
     fetchItems,
     addItem,
     toggleItem,
+    updateItem,
     clearItemsError,
   } = useItems();
 
-  // Estado do modal de edição
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // Estado do modal de edição de nome da lista
+  const [isEditListModalOpen, setIsEditListModalOpen] = useState(false);
+
+  // Estado do modal de edição de item
+  const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
 
   // Estado do modal de exclusão
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -61,14 +66,14 @@ export const ListView: React.FC = () => {
     }
   }, [id, fetchListById, fetchItems]);
 
-  // Handler para abrir modal de edição
+  // Handler para abrir modal de edição de nome da lista
   const handleOpenEditModal = () => {
-    setIsEditModalOpen(true);
+    setIsEditListModalOpen(true);
   };
 
-  // Handler para fechar modal de edição
+  // Handler para fechar modal de edição de nome da lista
   const handleCloseEditModal = () => {
-    setIsEditModalOpen(false);
+    setIsEditListModalOpen(false);
   };
 
   // Handler para salvar novo nome
@@ -115,7 +120,6 @@ export const ListView: React.FC = () => {
       showToast(message, 'error');
 
       // AC4: Fecha modal e redireciona em erro 403/404
-      // Mantém aberto em erros 500 para retry
       // FIX: Usa status code em vez de string matching (mais robusto)
       if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
         setIsDeleteModalOpen(false);
@@ -139,9 +143,32 @@ export const ListView: React.FC = () => {
   };
 
   // Handler para editar item
-  const handleEditItem = (_item: ListItem) => {
-    // TODO: Implementar no Story 3.5
-    showToast('Funcionalidade disponível em breve', 'info');
+  const [editingItem, setEditingItem] = useState<ListItem | null>(null);
+
+  const handleEditItem = (item: ListItem) => {
+    setEditingItem(item);
+    setIsEditItemModalOpen(true);
+  };
+
+  const handleSaveEditItem = async (itemId: string, request: { name: string; quantity?: number; dueDate?: string; url?: string }) => {
+    if (!id) return;
+
+    try {
+      // AC7: Toast "Sincronizando..." antes de enviar request
+      showToast('Sincronizando...', 'info');
+
+      // USAR O HOOK - não fazer update direto!
+      const updated = await updateItem(id, itemId, request);
+
+      // Apenas após sucesso real, mostrar toast de sucesso
+      showToast('Sincronizado', 'success');
+      setIsEditItemModalOpen(false);
+      setEditingItem(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar item';
+      showToast(message, 'error');
+      throw err;
+    }
   };
 
   // Handler para adicionar novo item
@@ -402,10 +429,10 @@ export const ListView: React.FC = () => {
             <div className="space-y-2">
               {items.map((item) => (
                 <ListItemComponent
-                  key={item.id}
-                  item={item}
-                  onToggle={handleToggleItem}
-                  onEdit={handleEditItem}
+                    key={item.id}
+                    item={item}
+                    onToggle={handleToggleItem}
+                    onEdit={handleEditItem}
                 />
               ))}
             </div>
@@ -459,7 +486,7 @@ export const ListView: React.FC = () => {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
-                >
+                  >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -478,7 +505,7 @@ export const ListView: React.FC = () => {
 
       {/* Modal de edição de nome */}
       <EditListNameModal
-        isOpen={isEditModalOpen}
+        isOpen={isEditListModalOpen}
         listName={currentList.name}
         onClose={handleCloseEditModal}
         onSave={handleSaveListName}
@@ -493,6 +520,20 @@ export const ListView: React.FC = () => {
         onConfirm={handleConfirmDelete}
         isDeleting={deletingList}
       />
+
+      {/* Modal de edição de item */}
+      {editingItem && (
+        <EditItemModal
+          item={editingItem}
+          listType={currentList.type.id}
+          isOpen={isEditItemModalOpen}
+          onClose={() => {
+            setIsEditItemModalOpen(false);
+            setEditingItem(null);
+          }}
+          onSave={handleSaveEditItem}
+        />
+      )}
 
       {/* Toasts */}
       {toasts.map((toast) => (

@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.listitem.service;
 
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
+import br.com.leoferolive.nossalista.common.exception.ValidationException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
@@ -8,6 +9,7 @@ import br.com.leoferolive.nossalista.listitem.domain.ListItem;
 import br.com.leoferolive.nossalista.listitem.dto.CreateItemRequestDTO;
 import br.com.leoferolive.nossalista.listitem.dto.ListItemMapper;
 import br.com.leoferolive.nossalista.listitem.dto.ListItemResponseDTO;
+import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -682,6 +684,377 @@ class ListItemServiceTest {
 
             verify(listRepository).findById(listId);
             verify(listItemRepository).findById(itemId);
+            verify(listItemRepository, never()).save(any(ListItem.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("updateItem - Atualizar Item Existente")
+    class UpdateItemTests {
+
+        @Test
+        @DisplayName("Deve atualizar name com sucesso")
+        void shouldUpdateItemName() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            testList.setTypeId(1); // SHOPPING
+            ListItem item = createTestItem("Old Name", 0);
+            item.setId(itemId);
+            item.setList(testList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("New Name");
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+                ListItem saved = invocation.getArgument(0);
+                saved.setId(itemId);
+                return saved;
+            });
+
+            ListItemResponseDTO.CreatorResponse creatorResponse = new ListItemResponseDTO.CreatorResponse(
+                testUser.getId(), testUser.getUsername(), "Test User", null
+            );
+            ListItemResponseDTO expectedResponse = new ListItemResponseDTO(
+                itemId, "New Name", false, null, null, null, 0,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(expectedResponse);
+
+            // Act
+            ListItemResponseDTO result = listItemService.updateItem(listId, itemId, request, testUser);
+
+            // Assert
+            assertEquals("New Name", result.name());
+            verify(listItemRepository).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve atualizar quantity para lista SHOPPING")
+        void shouldUpdateItemQuantityForShoppingList() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            testList.setTypeId(1); // SHOPPING
+            ListItem item = createTestItem("Arroz", 0);
+            item.setId(itemId);
+            item.setQuantity(1);
+            item.setList(testList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Arroz");
+            request.setQuantity(3);
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+                ListItem saved = invocation.getArgument(0);
+                saved.setId(itemId);
+                return saved;
+            });
+
+            ListItemResponseDTO.CreatorResponse creatorResponse = new ListItemResponseDTO.CreatorResponse(
+                testUser.getId(), testUser.getUsername(), "Test User", null
+            );
+            ListItemResponseDTO expectedResponse = new ListItemResponseDTO(
+                itemId, "Arroz", false, 3, null, null, 0,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(expectedResponse);
+
+            // Act
+            ListItemResponseDTO result = listItemService.updateItem(listId, itemId, request, testUser);
+
+            // Assert
+            assertEquals(3, result.quantity());
+            verify(listItemRepository).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve atualizar dueDate para lista TASK")
+        void shouldUpdateItemDueDateForTaskList() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            testList.setTypeId(2); // TASK
+            LocalDateTime newDueDate = LocalDateTime.of(2026, 12, 31, 10, 0);
+            ListItem item = createTestItem("Task Item", 0);
+            item.setId(itemId);
+            item.setList(testList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Task Item");
+            request.setDueDate(newDueDate);
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+                ListItem saved = invocation.getArgument(0);
+                saved.setId(itemId);
+                return saved;
+            });
+
+            ListItemResponseDTO.CreatorResponse creatorResponse = new ListItemResponseDTO.CreatorResponse(
+                testUser.getId(), testUser.getUsername(), "Test User", null
+            );
+            ListItemResponseDTO expectedResponse = new ListItemResponseDTO(
+                itemId, "Task Item", false, null, newDueDate, null, 0,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(expectedResponse);
+
+            // Act
+            ListItemResponseDTO result = listItemService.updateItem(listId, itemId, request, testUser);
+
+            // Assert
+            assertEquals(newDueDate, result.dueDate());
+            verify(listItemRepository).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve atualizar url para lista WISHLIST")
+        void shouldUpdateItemUrlForWishlistList() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            testList.setTypeId(3); // WISHLIST
+            ListItem item = createTestItem("Product", 0);
+            item.setId(itemId);
+            item.setList(testList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Product");
+            request.setUrl("https://example.com/product");
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+                ListItem saved = invocation.getArgument(0);
+                saved.setId(itemId);
+                return saved;
+            });
+
+            ListItemResponseDTO.CreatorResponse creatorResponse = new ListItemResponseDTO.CreatorResponse(
+                testUser.getId(), testUser.getUsername(), "Test User", null
+            );
+            ListItemResponseDTO expectedResponse = new ListItemResponseDTO(
+                itemId, "Product", false, null, null, "https://example.com/product", 0,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(expectedResponse);
+
+            // Act
+            ListItemResponseDTO result = listItemService.updateItem(listId, itemId, request, testUser);
+
+            // Assert
+            assertEquals("https://example.com/product", result.url());
+            verify(listItemRepository).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve atualizar apenas name para lista GENERIC")
+        void shouldUpdateOnlyNameForGenericList() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            testList.setTypeId(4); // GENERIC
+            ListItem item = createTestItem("Note", 0);
+            item.setId(itemId);
+            item.setList(testList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Updated Note");
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+                ListItem saved = invocation.getArgument(0);
+                saved.setId(itemId);
+                return saved;
+            });
+
+            ListItemResponseDTO.CreatorResponse creatorResponse = new ListItemResponseDTO.CreatorResponse(
+                testUser.getId(), testUser.getUsername(), "Test User", null
+            );
+            ListItemResponseDTO expectedResponse = new ListItemResponseDTO(
+                itemId, "Updated Note", false, null, null, null, 0,
+                creatorResponse, LocalDateTime.now(), LocalDateTime.now()
+            );
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(expectedResponse);
+
+            // Act
+            ListItemResponseDTO result = listItemService.updateItem(listId, itemId, request, testUser);
+
+            // Assert
+            assertEquals("Updated Note", result.name());
+            assertNull(result.quantity());
+            assertNull(result.dueDate());
+            assertNull(result.url());
+            verify(listItemRepository).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ValidationException quando campo inválido para tipo SHOPPING")
+        void shouldThrowValidationExceptionForInvalidFieldShopping() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            testList.setTypeId(1); // SHOPPING
+            ListItem item = createTestItem("Item", 0);
+            item.setId(itemId);
+            item.setList(testList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Item");
+            request.setDueDate(LocalDateTime.now()); // Campo inválido para SHOPPING
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+
+            // Act & Assert
+            assertThrows(
+                ValidationException.class,
+                () -> listItemService.updateItem(listId, itemId, request, testUser)
+            );
+            verify(listItemRepository, never()).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ValidationException quando quantity < 1")
+        void shouldThrowValidationExceptionForNegativeQuantity() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            testList.setTypeId(1); // SHOPPING
+            ListItem item = createTestItem("Item", 0);
+            item.setId(itemId);
+            item.setList(testList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Item");
+            request.setQuantity(0); // Inválido
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+
+            // Act & Assert
+            assertThrows(
+                ValidationException.class,
+                () -> listItemService.updateItem(listId, itemId, request, testUser)
+            );
+            verify(listItemRepository, never()).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ListNotFoundException quando lista não existe")
+        void shouldThrowListNotFoundExceptionForUpdate() {
+            // Arrange
+            UUID nonExistentListId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Item");
+
+            when(listRepository.findById(nonExistentListId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThrows(
+                ListNotFoundException.class,
+                () -> listItemService.updateItem(nonExistentListId, itemId, request, testUser)
+            );
+            verify(listRepository).findById(nonExistentListId);
+            verify(listItemRepository, never()).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ItemNotFoundException quando item não existe")
+        void shouldThrowItemNotFoundExceptionForUpdate() {
+            // Arrange
+            UUID nonExistentItemId = UUID.randomUUID();
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Item");
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(nonExistentItemId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThrows(
+                br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException.class,
+                () -> listItemService.updateItem(listId, nonExistentItemId, request, testUser)
+            );
+            verify(listItemRepository).findById(nonExistentItemId);
+            verify(listItemRepository, never()).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ItemNotFoundException quando item não pertence à lista")
+        void shouldThrowItemNotFoundWhenItemDoesNotBelongToListForUpdate() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            List otherList = new List();
+            otherList.setId(UUID.randomUUID());
+            otherList.setOwner(testUser);
+
+            ListItem item = createTestItem("Item de Outra Lista", 0);
+            item.setId(itemId);
+            item.setList(otherList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Item");
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+
+            // Act & Assert
+            assertThrows(
+                br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException.class,
+                () -> listItemService.updateItem(listId, itemId, request, testUser)
+            );
+            verify(listItemRepository).findById(itemId);
+            verify(listItemRepository, never()).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ForbiddenException quando usuário não é participante")
+        void shouldThrowForbiddenExceptionForUpdate() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            ListItem item = createTestItem("Item", 0);
+            item.setId(itemId);
+            item.setList(testList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Item");
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+
+            // Act & Assert
+            assertThrows(
+                ForbiddenException.class,
+                () -> listItemService.updateItem(listId, itemId, request, otherUser)
+            );
+            verify(listRepository).findById(listId);
+            verify(listItemRepository).findById(itemId);
+            verify(listItemRepository, never()).save(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ValidationException para lista GENERIC com campos extras")
+        void shouldThrowValidationExceptionForGenericListWithExtraFields() {
+            // Arrange
+            UUID itemId = UUID.randomUUID();
+            testList.setTypeId(4); // GENERIC
+            ListItem item = createTestItem("Note", 0);
+            item.setId(itemId);
+            item.setList(testList);
+
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Note");
+            request.setQuantity(1); // Campo inválido para GENERIC
+
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+
+            // Act & Assert
+            assertThrows(
+                ValidationException.class,
+                () -> listItemService.updateItem(listId, itemId, request, testUser)
+            );
             verify(listItemRepository, never()).save(any(ListItem.class));
         }
     }

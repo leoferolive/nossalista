@@ -1,5 +1,5 @@
 import client from './client';
-import { ListItem, CreateItemRequest } from '../types/Item';
+import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item';
 import { ProblemDetail } from '../types/ProblemDetail';
 import { AxiosError } from 'axios';
 
@@ -100,6 +100,44 @@ export const itemsApi = {
           throw new Error('Item não encontrado');
         } else if (status === 403) {
           throw new Error('Você não tem permissão para modificar itens desta lista');
+        } else if (status === 401) {
+          throw new Error('Sessão expirada. Faça login novamente.');
+        } else {
+          throw new Error(
+            problemDetail?.detail || 'Erro ao atualizar item. Tente novamente.'
+          );
+        }
+      }
+
+      throw new Error('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  /**
+   * Atualiza um item existente
+   * @param listId - UUID da lista
+   * @param itemId - UUID do item
+   * @param request - Dados para atualizar (name, quantity, dueDate, url)
+   * @returns Promise com o item atualizado
+   * @throws Error com mensagem específica baseada no status HTTP
+   */
+  async updateItem(listId: string, itemId: string, request: UpdateItemRequest): Promise<ListItem> {
+    try {
+      const response = await client.patch<ListItem>(`/api/lists/${listId}/items/${itemId}`, request);
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 400) {
+          throw new Error(problemDetail?.detail || 'Campos inválidos para este tipo de lista');
+        } else if (status === 403) {
+          throw new Error('Você não tem permissão para editar itens desta lista');
+        } else if (status === 404) {
+          throw new Error('Item não encontrado');
         } else if (status === 401) {
           throw new Error('Sessão expirada. Faça login novamente.');
         } else {
