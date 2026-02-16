@@ -70,8 +70,8 @@ development_status:
   3-6-remover-item: done
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-modelagem-de-dados-de-membros-e-convites: backlog
+  epic-4: in-progress
+  4-1-modelagem-de-dados-de-membros-e-convites: done
   4-2-gerar-link-de-convite: backlog
   4-3-aceitar-convite-via-link-read-only-mode: backlog
   4-4-entrar-na-lista-autenticado: backlog

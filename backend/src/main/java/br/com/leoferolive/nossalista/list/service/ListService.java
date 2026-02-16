@@ -9,6 +9,9 @@ import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationExceptio
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
+import br.com.leoferolive.nossalista.member.domain.ListMember;
+import br.com.leoferolive.nossalista.member.domain.MemberRole;
+import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,10 +34,14 @@ public class ListService {
 
     private final ListRepository listRepository;
     private final ListTypeRepository listTypeRepository;
+    private final ListMemberRepository listMemberRepository;
 
-    public ListService(ListRepository listRepository, ListTypeRepository listTypeRepository) {
+    public ListService(ListRepository listRepository,
+                       ListTypeRepository listTypeRepository,
+                       ListMemberRepository listMemberRepository) {
         this.listRepository = listRepository;
         this.listTypeRepository = listTypeRepository;
+        this.listMemberRepository = listMemberRepository;
     }
 
     /**
@@ -45,6 +52,7 @@ public class ListService {
      * @return A lista criada com ID, inviteCode e timestamps gerados
      * @throws InvalidListTypeException se o typeId não existir no database
      */
+    @Transactional
     public List createList(CreateListRequest request, User owner) {
         // Validar se o typeId existe
         if (!listTypeRepository.existsById(request.typeId())) {
@@ -61,7 +69,16 @@ public class ListService {
 
         // @PrePersist vai preencher createdAt e updatedAt
 
-        return listRepository.save(list);
+        List savedList = listRepository.save(list);
+
+        // Criar membro OWNER automaticamente (Story 4.1)
+        ListMember ownerMember = new ListMember();
+        ownerMember.setList(savedList);
+        ownerMember.setUser(owner);
+        ownerMember.setRole(MemberRole.OWNER);
+        listMemberRepository.save(ownerMember);
+
+        return savedList;
     }
 
     /**
@@ -130,7 +147,7 @@ public class ListService {
         // Verificar se usuário é owner
         boolean isOwner = list.getOwner().getId().equals(currentUserId);
 
-        // Por enquanto, apenas owner pode ver (Story 4.1 adiciona membros)
+        // TODO Story 4.x: Validar se usuário é MEMBER além de OWNER
         if (!isOwner) {
             throw new ForbiddenException("Você não tem permissão para acessar esta lista");
         }
