@@ -39,7 +39,7 @@ describe('useItems - toggleItem', () => {
   it('deve fazer optimistic update imediatamente', async () => {
     // Mock fetchItems para carregar items inicialmente
     vi.mocked(itemsApi.getItemsByListId).mockResolvedValue([mockItem]);
-    
+
     // Mock toggleItemCheck para retornar sucesso
     vi.mocked(itemsApi.toggleItemCheck).mockResolvedValue({
       ...mockItem,
@@ -56,9 +56,9 @@ describe('useItems - toggleItem', () => {
     // Verificar estado inicial
     expect(result.current.items[0].checked).toBe(false);
 
-    // Chamar toggle
-    act(() => {
-      result.current.toggleItem('list-1', 'item-1');
+    // Chamar toggle e aguardar conclusão
+    await act(async () => {
+      await result.current.toggleItem('list-1', 'item-1');
     });
 
     // Verificar optimistic update (deve estar true imediatamente)
@@ -209,15 +209,18 @@ describe('useItems - deleteItem', () => {
     });
 
     // Tentar deletar (vai falhar)
+    let errorCaught = false;
     await act(async () => {
       try {
-        const promise = result.current.deleteItem('list-1', 'item-1');
+        await result.current.deleteItem('list-1', 'item-1');
         await vi.runAllTimersAsync();
-        await promise;
       } catch (e) {
-        // Esperado
+        errorCaught = true;
       }
     });
+
+    // Verificar que o erro foi capturado
+    expect(errorCaught).toBe(true);
 
     // Item ainda deve estar no estado
     expect(result.current.items).toHaveLength(1);
