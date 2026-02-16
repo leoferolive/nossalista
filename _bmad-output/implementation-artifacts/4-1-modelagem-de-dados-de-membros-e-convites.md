@@ -1,6 +1,6 @@
 # Story 4.1: modelagem-de-dados-de-membros-e-convites
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -65,10 +65,10 @@ so that o sistema possa gerenciar quem tem acesso a cada lista.
 
 ### Review Follow-ups (Code Review 2026-02-16)
 
-- [ ] [AI-Review][HIGH] Documentar divergência AC #1: AC pede V4__create_list_members.sql mas implementação usa V3__create_list_members.sql
-- [ ] [AI-Review][HIGH] Decisão de design: AC pede campo `joined_at` mas implementação usa `created_at` - avaliar se renomear ou documentar decisão
-- [ ] [AI-Review][HIGH] Decisão de design: AC pede campo `joinedAt` na entidade mas usa `createdAt` - manter consistência com migration
-- [ ] [AI-Review][MEDIUM] Divergência nomes de índices: AC pede `idx_list_members_list` mas implementado `idx_list_members_list_id` - documentar ou renomear
+- [x] [AI-Review][HIGH] Documentar divergência AC #1: AC pede V4__create_list_members.sql mas implementação usa V3__create_list_members.sql → **RESOLVIDO:** Documentado nos Dev Notes
+- [x] [AI-Review][HIGH] Decisão de design: AC pede campo `joined_at` mas implementação usa `created_at` - avaliar se renomear ou documentar decisão → **RESOLVIDO:** Documentado nos Dev Notes (padrão do projeto)
+- [x] [AI-Review][HIGH] Decisão de design: AC pede campo `joinedAt` na entidade mas usa `createdAt` - manter consistência com migration → **RESOLVIDO:** Documentado nos Dev Notes (consistência)
+- [x] [AI-Review][MEDIUM] Divergência nomes de índices: AC pede `idx_list_members_list` mas implementado `idx_list_members_list_id` - documentar ou renomear → **RESOLVIDO:** Documentado nos Dev Notes (clareza)
 
 ## Dev Notes
 
@@ -87,6 +87,25 @@ Esta story tem **implementação parcial de stories anteriores** (Epic 2). Antes
   - Usa @CreationTimestamp e @UpdateTimestamp
 - Enum `MemberRole.java` (OWNER, MEMBER)
 - Campo `invite_code` na tabela `lists` (VARCHAR(20) UNIQUE)
+
+### 📋 DECISÕES DE DESIGN DOCUMENTADAS (Code Review 2026-02-16)
+
+**1. Migration V3 vs V4 (AC especifica V4):**
+- **Decisão:** Usar V3__create_list_members.sql (já existente de Story 2.3)
+- **Razão:** Migration foi criada antecipadamente em Epic 2 para preparar infraestrutura de membros
+- **Impacto:** Nenhum - numeração de migrations é sequencial e V3 está correta
+
+**2. Campo `created_at` vs `joined_at` (AC especifica joined_at):**
+- **Decisão:** Usar `created_at` na tabela e entidade
+- **Razão:** Consistência com padrão do projeto (todas as entidades usam created_at/updated_at)
+- **Semântica:** `created_at` em list_members equivale a `joined_at` no contexto de domínio
+- **Impacto:** Nenhum - significado é idêntico, apenas nomenclatura diferente
+
+**3. Nomes de índices (AC pede idx_list_members_list, implementado idx_list_members_list_id):**
+- **Decisão:** Usar sufixo `_list_id` e `_user_id` nos nomes de índices
+- **Razão:** Clareza - especifica exatamente qual coluna está indexada
+- **Padrão do projeto:** Outros índices seguem padrão `idx_{table}_{column_name}`
+- **Impacto:** Nenhum - convenção de nomenclatura mais clara e consistente
 
 **❌ FALTA IMPLEMENTAR (foco desta story):**
 1. **Campo `invite_expires_at`** na tabela `lists`
@@ -294,6 +313,16 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - backend/src/main/resources/db/migration/V3__create_list_members.sql (migration existente validada)
 
 ### Change Log
+
+**2026-02-16 - Code Review e Correções Aplicadas**
+- 🔍 Code review adversarial executado (9 issues encontrados: 4 HIGH, 3 MEDIUM, 2 LOW)
+- ✅ [FIXED] Comentário desatualizado em ListService.getListById() atualizado
+- ✅ [FIXED] File List reorganizado com categorização clara (CREATED/MODIFIED/VALIDATED)
+- ✅ [FIXED] sprint-status.yaml adicionado à File List
+- ✅ [FIXED] Arquivos novos adicionados ao git staging
+- 📝 [DOCUMENTED] 4 decisões de design documentadas (V3 vs V4, created_at vs joined_at, nomes de índices)
+- ✅ [RESOLVED] Todos os action items resolvidos via documentação
+- Story status: review → in-progress → done (code review completo e aprovado)
 
 **2026-02-15 - Story 4.1 Validação Completa**
 - ✅ Validada implementação existente de migration V5 (invite_expires_at)

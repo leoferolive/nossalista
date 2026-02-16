@@ -44,6 +44,9 @@ public class List {
     @Column(name = "invite_code", unique = true, length = 20)
     private String inviteCode;
 
+    @Column(name = "invite_expires_at")
+    private LocalDateTime inviteExpiresAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -137,6 +140,14 @@ public class List {
 
     public void setInviteCode(String inviteCode) {
         this.inviteCode = inviteCode;
+    }
+
+    public LocalDateTime getInviteExpiresAt() {
+        return inviteExpiresAt;
+    }
+
+    public void setInviteExpiresAt(LocalDateTime inviteExpiresAt) {
+        this.inviteExpiresAt = inviteExpiresAt;
     }
 
     public LocalDateTime getCreatedAt() {

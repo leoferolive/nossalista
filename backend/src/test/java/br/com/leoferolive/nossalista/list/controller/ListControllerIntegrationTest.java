@@ -952,12 +952,20 @@ class ListControllerIntegrationTest {
             List createdList = listService.createList(new CreateListRequest("Lista para Excluir", 1), testUser);
             UUID listId = createdList.getId();
 
+            // CRITICAL: Flush JPA entities para DB antes de deletar
+            entityManager.flush();
+            entityManager.clear();
+
             // Verificar que existe antes
             assertTrue(listRepository.findById(listId).isPresent());
 
             // Act
             mockMvc.perform(delete("/api/lists/{id}", listId))
                     .andExpect(status().isNoContent());
+
+            // CRITICAL: Flush após DELETE para garantir persistência
+            entityManager.flush();
+            entityManager.clear();
 
             // Assert - verificar que não existe mais
             assertFalse(listRepository.findById(listId).isPresent());
@@ -994,13 +1002,13 @@ class ListControllerIntegrationTest {
                     UUID.randomUUID(), listId, member2.getId(), "MEMBER"
             );
 
-            // Verificar que members existem
+            // Verificar que members existem (1 OWNER criado automaticamente + 2 MEMBERS inseridos)
             Integer membersCount = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM list_members WHERE list_id = ?",
                     Integer.class,
                     listId
             );
-            assertEquals(2, membersCount, "Deve ter 2 members antes da exclusão");
+            assertEquals(3, membersCount, "Deve ter 3 members antes da exclusão (1 OWNER auto + 2 MEMBERS)");
 
             // Act - DELETE lista
             mockMvc.perform(delete("/api/lists/{id}", listId))

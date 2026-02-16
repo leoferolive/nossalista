@@ -9,12 +9,16 @@ import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationExceptio
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
+import br.com.leoferolive.nossalista.member.domain.ListMember;
+import br.com.leoferolive.nossalista.member.domain.MemberRole;
+import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -38,6 +42,9 @@ class ListServiceTest {
     @Mock
     private ListTypeRepository listTypeRepository;
 
+    @Mock
+    private ListMemberRepository listMemberRepository;
+
     @InjectMocks
     private ListService listService;
 
@@ -52,8 +59,8 @@ class ListServiceTest {
     }
 
     @Test
-    @DisplayName("Deve criar lista com dados válidos")
-    void shouldCreateListWithValidData() {
+    @DisplayName("Deve criar lista com dados válidos e membro OWNER automaticamente")
+    void shouldCreateListWithValidDataAndOwnerMember() {
         // Arrange
         CreateListRequest request = new CreateListRequest("Mercado Semanal", 1);
         when(listTypeRepository.existsById(1)).thenReturn(true);
@@ -61,11 +68,15 @@ class ListServiceTest {
             List list = invocation.getArgument(0);
             return list;
         });
+        when(listMemberRepository.save(any(ListMember.class))).thenAnswer(invocation -> {
+            ListMember member = invocation.getArgument(0);
+            return member;
+        });
 
         // Act
         List result = listService.createList(request, testUser);
 
-        // Assert
+        // Assert - Lista
         assertNotNull(result.getId(), "ID deve ser gerado");
         assertEquals("Mercado Semanal", result.getName(), "Nome deve ser o mesmo da request");
         assertEquals(1, result.getTypeId(), "typeId deve ser o mesmo da request");
@@ -73,6 +84,14 @@ class ListServiceTest {
         assertNotNull(result.getInviteCode(), "inviteCode deve ser gerado");
         assertEquals(12, result.getInviteCode().length(), "inviteCode deve ter 12 caracteres");
         assertTrue(result.getInviteCode().matches("[A-Z0-9]+"), "inviteCode deve ser alfanumérico uppercase");
+
+        // Assert - Membro OWNER criado automaticamente (Story 4.1)
+        ArgumentCaptor<ListMember> memberCaptor = ArgumentCaptor.forClass(ListMember.class);
+        verify(listMemberRepository).save(memberCaptor.capture());
+        ListMember savedMember = memberCaptor.getValue();
+        assertEquals(result.getId(), savedMember.getList().getId(), "Membro deve estar associado à lista criada");
+        assertEquals(testUser.getId(), savedMember.getUser().getId(), "Membro deve ser o usuário owner");
+        assertEquals(MemberRole.OWNER, savedMember.getRole(), "Role deve ser OWNER");
 
         verify(listTypeRepository).existsById(1);
         verify(listRepository).save(any(List.class));
@@ -109,6 +128,10 @@ class ListServiceTest {
             List list = invocation.getArgument(0);
             return list;
         });
+        when(listMemberRepository.save(any(ListMember.class))).thenAnswer(invocation -> {
+            ListMember member = invocation.getArgument(0);
+            return member;
+        });
 
         // Act
         List list1 = listService.createList(request, testUser);
@@ -131,6 +154,10 @@ class ListServiceTest {
             List list = invocation.getArgument(0);
             return list;
         });
+        when(listMemberRepository.save(any(ListMember.class))).thenAnswer(invocation -> {
+            ListMember member = invocation.getArgument(0);
+            return member;
+        });
 
         // Act
         List result = listService.createList(request, testUser);
@@ -139,6 +166,7 @@ class ListServiceTest {
         assertNotNull(result.getInviteCode());
         verify(listRepository, times(2)).existsByInviteCode(any());
         verify(listRepository).save(any(List.class));
+        verify(listMemberRepository).save(any(ListMember.class));
     }
 
     @Test
