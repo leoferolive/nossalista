@@ -6,6 +6,7 @@ import Login from './pages/Login.tsx'
 import { AuthCallback } from './pages/AuthCallback.tsx'
 import { Home } from './pages/Home.tsx'
 import { ListView } from './pages/ListView.tsx'
+import { JoinListPage } from './pages/JoinListPage.tsx'
 import './index.css'
 
 /**
@@ -41,6 +42,8 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* Rota pública para join via convite - NÃO usar ProtectedRoute */}
+      <Route path="/join/:inviteCode" element={<JoinListPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

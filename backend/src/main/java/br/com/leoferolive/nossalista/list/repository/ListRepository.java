@@ -32,6 +32,19 @@ public interface ListRepository extends JpaRepository<List, UUID> {
     Optional<List> findByInviteCode(String inviteCode);
 
     /**
+     * Busca uma lista pelo código de convite com owner e type carregados (JOIN FETCH).
+     * Usado para endpoint público de join (evita LazyInitializationException).
+     *
+     * @param inviteCode o código de convite
+     * @return Optional contendo a lista com owner e typeEntity carregados
+     */
+    @Query("SELECT l FROM lists l " +
+           "JOIN FETCH l.owner o " +
+           "JOIN FETCH l.typeEntity t " +
+           "WHERE l.inviteCode = :inviteCode")
+    Optional<List> findByInviteCodeWithDetails(@Param("inviteCode") String inviteCode);
+
+    /**
      * Verifica se já existe uma lista com o código de convite fornecido.
      *
      * @param inviteCode o código de convite a verificar

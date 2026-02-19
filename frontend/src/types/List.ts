@@ -60,6 +60,36 @@ export interface InviteLinkResponse {
 }
 
 /**
+ * Item de lista no modo read-only (via convite)
+ */
+export interface JoinListItem {
+  id: string;
+  name: string;
+  checked: boolean;
+  quantity: number | null;
+  due_date: string | null;
+  url: string | null;
+  position: number;
+}
+
+/**
+ * Resposta da API ao visualizar lista via convite (modo read-only)
+ */
+export interface JoinListResponse {
+  id: string;
+  name: string;
+  type_slug: string;
+  type_name: string;
+  owner_username: string;
+  owner_name: string;
+  owner_avatar_url: string | null;
+  items: JoinListItem[];
+  invite_code: string;
+  expires_at: string;
+  mode: 'READ_ONLY';
+}
+
+/**
  * Definições dos tipos de lista com emoji e descrição
  */
 export const LIST_TYPES = [

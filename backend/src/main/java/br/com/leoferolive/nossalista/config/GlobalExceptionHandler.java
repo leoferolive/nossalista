@@ -7,6 +7,7 @@ import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.ValidationException;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
+import br.com.leoferolive.nossalista.list.exception.InviteExpiredException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
@@ -275,5 +276,25 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
+
+    /**
+     * Trata exceção de link de convite expirado
+     * Retorna 410 Gone com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(InviteExpiredException.class)
+    public ResponseEntity<ProblemDetail> handleInviteExpired(
+        InviteExpiredException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.GONE,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/invite-expired"));
+        problem.setTitle("Link de convite expirado");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.GONE).body(problem);
     }
 }

@@ -1,8 +1,8 @@
 import client from './client';
-import { CreateListRequest, ListResponse, InviteLinkResponse } from '../types/List';
+import { AxiosError } from 'axios';
+import { CreateListRequest, ListResponse, InviteLinkResponse, JoinListResponse } from '../types/List';
 import { ProblemDetail } from '../types/ProblemDetail';
 import { ApiError } from '../types/ApiError';
-import { AxiosError } from 'axios';
 
 /**
  * API para gerenciamento de listas
@@ -159,6 +159,41 @@ export const listsApi = {
         } else {
           throw new ApiError(
             problemDetail?.detail || 'Erro ao gerar link de convite. Tente novamente.',
+            status
+          );
+        }
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  /**
+   * Busca uma lista pelo código de convite (endpoint público, modo read-only)
+   * Não requer autenticação - usa o client compartilhado que omite o header
+   * Authorization quando não há token armazenado
+   * @param inviteCode - Código de convite
+   * @returns Promise com dados da lista em modo read-only
+   * @throws ApiError com status code para detecção de erro tipada
+   */
+  async getListByInviteCode(inviteCode: string): Promise<JoinListResponse> {
+    try {
+      const response = await client.get<JoinListResponse>(`/api/lists/join/${inviteCode}`);
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 404) {
+          throw new ApiError('Convite não encontrado. Este link pode ter sido desativado ou não existe.', 404);
+        } else if (status === 410) {
+          throw new ApiError('Este link de convite expirou. Peça um novo link ao dono da lista.', 410);
+        } else {
+          throw new ApiError(
+            problemDetail?.detail || 'Erro ao carregar lista. Tente novamente.',
             status
           );
         }
