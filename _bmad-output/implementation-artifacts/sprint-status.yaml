@@ -34,7 +34,8 @@
 # - Dev move story para 'review', depois run code-review (auto-aprova)
 #
 # Status Atual: Epic 3 completo, Epic 4 em andamento
-# Story 4.3 (aceitar-convite-via-link-read-only-mode) criada com análise exhaustiva de contexto
+# Story 4.4 (entrar-na-lista-autenticado) criada com análise exhaustiva de contexto
+# Completa fluxo de convite: visualizar read-only (4.3) → autenticar → entrar como membro (4.4)
 # Pronta para implementação pelo dev agent
 
 generated: 2026-02-12
@@ -74,7 +75,7 @@ development_status:
   4-1-modelagem-de-dados-de-membros-e-convites: done
   4-2-gerar-link-de-convite: done
   4-3-aceitar-convite-via-link-read-only-mode: done
-  4-4-entrar-na-lista-autenticado: backlog
+  4-4-entrar-na-lista-autenticado: done
   4-5-convidar-por-username: backlog
   4-6-ver-membros-e-sair-da-lista: backlog
   4-7-remover-participante: backlog

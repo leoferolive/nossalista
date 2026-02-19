@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { listsApi } from '../api/listsApi';
 import { JoinListResponse, JoinListItem, LIST_TYPES } from '../types/List';
 import { ApiError } from '../types/ApiError';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Tipo de erro possível na página de join
@@ -15,10 +16,38 @@ type JoinErrorType = 'not_found' | 'expired' | 'generic' | null;
  */
 export function JoinListPage() {
   const { inviteCode } = useParams<{ inviteCode: string }>();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<JoinErrorType>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [listData, setListData] = useState<JoinListResponse | null>(null);
+  const [joining, setJoining] = useState(false);
+
+  // Se o usuário já está autenticado e a lista carregou, entrar automaticamente
+  useEffect(() => {
+    if (isAuthenticated && inviteCode && listData && !loading && !error && !joining) {
+      setJoining(true);
+      listsApi.joinList(inviteCode)
+        .then((response) => {
+          navigate(`/lists/${response.id}`, {
+            replace: true,
+            state: { toastMessage: response.message, toastType: 'success' },
+          });
+        })
+        .catch((err) => {
+          if (err instanceof ApiError && err.status === 410) {
+            setError('expired');
+          } else if (err instanceof ApiError && err.status === 404) {
+            setError('not_found');
+          } else {
+            setError('generic');
+            setErrorMessage(err instanceof Error ? err.message : 'Erro ao entrar na lista');
+          }
+          setJoining(false);
+        });
+    }
+  }, [isAuthenticated, inviteCode, listData, loading, error, joining, navigate]);
 
   useEffect(() => {
     async function loadList() {
@@ -75,12 +104,28 @@ export function JoinListPage() {
    */
   const saveInviteCodeForRedirect = () => {
     if (inviteCode) {
-      sessionStorage.setItem('pendingJoinCode', inviteCode);
+      sessionStorage.setItem('pendingInviteCode', inviteCode);
     }
   };
 
-  // Loading state
-  if (loading) {
+  /**
+   * Handler para entrar com Google
+   */
+  const handleGoogleLogin = () => {
+    saveInviteCodeForRedirect();
+    window.location.href = '/api/auth/google';
+  };
+
+  /**
+   * Handler para entrar com Email
+   */
+  const handleEmailLogin = () => {
+    saveInviteCodeForRedirect();
+    navigate(`/login?redirect=${encodeURIComponent(`/join/${inviteCode}`)}`);
+  };
+
+  // Loading state (initial load or joining)
+  if (loading || joining) {
     return (
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b px-4 py-3">
@@ -92,15 +137,22 @@ export function JoinListPage() {
           </div>
         </header>
         <main className="max-w-lg mx-auto p-4">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded mb-4 w-2/3" />
-            <div className="h-4 bg-gray-200 rounded mb-6 w-1/2" />
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-14 bg-gray-100 rounded-lg" />
-              ))}
+          {joining ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Entrando na lista...</p>
             </div>
-          </div>
+          ) : (
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded mb-4 w-2/3" />
+              <div className="h-4 bg-gray-200 rounded mb-6 w-1/2" />
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-14 bg-gray-100 rounded-lg" />
+                ))}
+              </div>
+            </div>
+          )}
         </main>
       </div>
     );
@@ -217,13 +269,12 @@ export function JoinListPage() {
             <span className="text-2xl">📋</span>
             <span className="font-semibold text-gray-900">NossaLista</span>
           </div>
-          <Link
-            to="/login"
-            onClick={saveInviteCodeForRedirect}
+          <button
+            onClick={handleEmailLogin}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
             Entrar
-          </Link>
+          </button>
         </div>
       </header>
 
@@ -321,9 +372,8 @@ export function JoinListPage() {
           <p className="text-center text-sm text-gray-600 mb-3">
             Entre para participar desta lista
           </p>
-          <a
-            href="/api/auth/google"
-            onClick={saveInviteCodeForRedirect}
+          <button
+            onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -345,10 +395,9 @@ export function JoinListPage() {
               />
             </svg>
             Entrar com Google
-          </a>
-          <Link
-            to="/login"
-            onClick={saveInviteCodeForRedirect}
+          </button>
+          <button
+            onClick={handleEmailLogin}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,7 +409,7 @@ export function JoinListPage() {
               />
             </svg>
             Entrar com Email
-          </Link>
+          </button>
         </div>
       </footer>
     </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CreateListModal } from '../components/CreateListModal';
 import { Toast, useToast } from '../components/Toast';
 import { useLists } from '../hooks/useLists';
@@ -12,11 +13,21 @@ export const Home: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { createList, lists, fetchLists, loading, error, clearError } = useLists();
   const { toasts, showToast, removeToast } = useToast();
+  const location = useLocation();
 
   // Carregar listas ao montar o componente
   useEffect(() => {
     fetchLists();
   }, [fetchLists]);
+
+  // Exibir toast passado via navigation state (ex: erro após falha de join via convite)
+  useEffect(() => {
+    const state = location.state as { toastMessage?: string; toastType?: 'success' | 'error' | 'info' } | null;
+    if (state?.toastMessage) {
+      showToast(state.toastMessage, state.toastType ?? 'info');
+      window.history.replaceState({}, '');
+    }
+  }, [location.state, showToast]);
 
   const handleCreateList = async (request: {
     name: string;

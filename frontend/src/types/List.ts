@@ -90,6 +90,21 @@ export interface JoinListResponse {
 }
 
 /**
+ * Resposta da API ao entrar em uma lista via convite (autenticado)
+ * Retorna 201 para novo membro, 200 para membro existente
+ */
+export interface ListJoinedResponse {
+  id: string;
+  name: string;
+  type_slug: string;
+  type_name: string;
+  role: 'OWNER' | 'MEMBER';
+  message: string;
+  created: boolean;
+  list: ListResponse;
+}
+
+/**
  * Definições dos tipos de lista com emoji e descrição
  */
 export const LIST_TYPES = [

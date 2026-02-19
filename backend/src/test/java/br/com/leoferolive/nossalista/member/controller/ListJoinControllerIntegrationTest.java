@@ -25,7 +25,9 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
 /**
  * Testes de integração para ListJoinController
@@ -215,5 +217,110 @@ class ListJoinControllerIntegrationTest {
         item.setList(testList);
         item.setCreatedBy(testOwner);
         return item;
+    }
+
+    // ==================== TESTES PARA POST /join/{inviteCode} ====================
+
+    @Test
+    @DisplayName("POST join: Deve retornar 201 quando usuário entra como novo membro")
+    void shouldReturn201WhenUserJoinsAsNewMember() throws Exception {
+        // Create a new user (not owner)
+        User newUser = userService.createUser(
+            "pedro",
+            "pedro@example.com",
+            "hashedPassword",
+            "Pedro Santos",
+            AuthProvider.EMAIL
+        );
+
+        mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
+                .with(user(newUser.getId().toString())))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").value(testList.getId().toString()))
+            .andExpect(jsonPath("$.name").value("Mercado Semanal"))
+            .andExpect(jsonPath("$.role").value("MEMBER"))
+            .andExpect(jsonPath("$.message").value("Bem-vindo à lista Mercado Semanal!"))
+            .andExpect(jsonPath("$.type_slug").value("compras"))
+            .andExpect(jsonPath("$.list").exists());
+    }
+
+    @Test
+    @DisplayName("POST join: Deve retornar 200 quando usuário já é membro")
+    void shouldReturn200WhenUserAlreadyMember() throws Exception {
+        // Create a new user
+        User newUser = userService.createUser(
+            "pedro",
+            "pedro@example.com",
+            "hashedPassword",
+            "Pedro Santos",
+            AuthProvider.EMAIL
+        );
+
+        // First join - creates member
+        mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
+                .with(user(newUser.getId().toString())))
+            .andExpect(status().isCreated());
+
+        // Second join - should return 200 OK
+        mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
+                .with(user(newUser.getId().toString())))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.role").value("MEMBER"))
+            .andExpect(jsonPath("$.message").value("Você já é membro desta lista"));
+    }
+
+    @Test
+    @DisplayName("POST join: Deve retornar 200 quando usuário é o dono")
+    void shouldReturn200WhenUserIsOwner() throws Exception {
+        mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
+                .with(user(testOwner.getId().toString())))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.role").value("OWNER"))
+            .andExpect(jsonPath("$.message").value("Você é o dono desta lista"));
+    }
+
+    @Test
+    @DisplayName("POST join: Deve retornar 401 sem autenticação")
+    void shouldReturn401WithoutAuthentication() throws Exception {
+        mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST join: Deve retornar 404 quando invite code não existe")
+    void shouldReturn404WhenInviteCodeNotFoundForPost() throws Exception {
+        User newUser = userService.createUser(
+            "pedro",
+            "pedro@example.com",
+            "hashedPassword",
+            "Pedro Santos",
+            AuthProvider.EMAIL
+        );
+
+        mockMvc.perform(post("/api/lists/join/INVALIDCODE")
+                .with(user(newUser.getId().toString())))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.title").exists());
+    }
+
+    @Test
+    @DisplayName("POST join: Deve retornar 410 quando invite code expirou")
+    void shouldReturn410WhenInviteCodeExpiredForPost() throws Exception {
+        // Update list to have expired invite
+        testList.setInviteExpiresAt(LocalDateTime.now().minusHours(1));
+        listRepository.save(testList);
+
+        User newUser = userService.createUser(
+            "pedro",
+            "pedro@example.com",
+            "hashedPassword",
+            "Pedro Santos",
+            AuthProvider.EMAIL
+        );
+
+        mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
+                .with(user(newUser.getId().toString())))
+            .andExpect(status().isGone())
+            .andExpect(jsonPath("$.title").value(containsString("expirado")));
     }
 }

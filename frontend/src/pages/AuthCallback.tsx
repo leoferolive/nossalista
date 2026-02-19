@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import client from '../api/client';
+import { listsApi } from '../api/listsApi';
+import { ApiError } from '../types/ApiError';
 
 interface CurrentUserResponse {
   id: string;
@@ -44,9 +46,46 @@ export function AuthCallback() {
           displayName: data.name,
           avatarUrl: data.avatarUrl,
         });
+
+        // Verificar se há um pending invite code para processar
+        const pendingInviteCode = sessionStorage.getItem('pendingInviteCode');
+
+        if (pendingInviteCode) {
+          try {
+            // Tentar entrar na lista automaticamente
+            const joinResponse = await listsApi.joinList(pendingInviteCode);
+
+            // Limpar o código pendente
+            sessionStorage.removeItem('pendingInviteCode');
+
+            // Redirecionar para a lista passando a mensagem de boas-vindas via state
+            navigate(`/lists/${joinResponse.id}`, {
+              replace: true,
+              state: { toastMessage: joinResponse.message, toastType: 'success' },
+            });
+            return;
+          } catch (error) {
+            // Limpar o código pendente mesmo em caso de erro
+            sessionStorage.removeItem('pendingInviteCode');
+
+            if (error instanceof ApiError && error.status === 410) {
+              setError('Link de convite expirou. Peça um novo link.');
+            } else {
+              // Redirecionar para home com mensagem de erro via state
+              navigate('/', {
+                replace: true,
+                state: { toastMessage: 'Erro ao entrar na lista. Tente novamente.', toastType: 'error' },
+              });
+            }
+            return;
+          }
+        }
+
+        // Se não há pending invite, redirecionar para home normalmente
         navigate('/', { replace: true });
       } catch {
         localStorage.removeItem('authToken');
+        sessionStorage.removeItem('pendingInviteCode');
         setError('Não foi possível concluir o login com Google.');
       }
     };

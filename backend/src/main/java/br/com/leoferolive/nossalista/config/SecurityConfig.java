@@ -51,8 +51,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/health", "/actuator/health").permitAll()
                         // OAuth2 endpoints (Spring Security gerencia automaticamente)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        // Endpoint de join via convite - público (deve vir ANTES de /api/**)
-                        .requestMatchers("/api/lists/join/**").permitAll()
+                        // Endpoint de join via convite - GET é público (read-only), POST requer auth
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/lists/join/**").permitAll()
                         // Endpoints da API requerem autenticação
                         .requestMatchers("/api/**").authenticated()
                         // Negar tudo que não se enquadra nas regras acima

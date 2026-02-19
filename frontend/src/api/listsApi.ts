@@ -1,6 +1,6 @@
 import client from './client';
 import { AxiosError } from 'axios';
-import { CreateListRequest, ListResponse, InviteLinkResponse, JoinListResponse } from '../types/List';
+import { CreateListRequest, ListResponse, InviteLinkResponse, JoinListResponse, ListJoinedResponse } from '../types/List';
 import { ProblemDetail } from '../types/ProblemDetail';
 import { ApiError } from '../types/ApiError';
 
@@ -194,6 +194,42 @@ export const listsApi = {
         } else {
           throw new ApiError(
             problemDetail?.detail || 'Erro ao carregar lista. Tente novamente.',
+            status
+          );
+        }
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  /**
+   * Entra em uma lista via código de convite (endpoint autenticado)
+   * Requer autenticação JWT - criar membro na lista
+   * @param inviteCode - Código de convite
+   * @returns Promise com dados da lista e mensagem de boas-vindas
+   * @throws ApiError com status code para detecção de erro tipada
+   */
+  async joinList(inviteCode: string): Promise<ListJoinedResponse> {
+    try {
+      const response = await client.post<ListJoinedResponse>(`/api/lists/join/${inviteCode}`);
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 404) {
+          throw new ApiError('Convite não encontrado. Este link pode ter sido desativado ou não existe.', 404);
+        } else if (status === 410) {
+          throw new ApiError('Este link de convite expirou. Peça um novo link ao dono da lista.', 410);
+        } else if (status === 401) {
+          throw new ApiError('Sessão expirada. Faça login novamente.', 401);
+        } else {
+          throw new ApiError(
+            problemDetail?.detail || 'Erro ao entrar na lista. Tente novamente.',
             status
           );
         }

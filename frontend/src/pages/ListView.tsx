@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
 import { useItems } from '../hooks/useItems';
 import { LIST_TYPES } from '../types/List';
@@ -22,6 +22,7 @@ import { ListItem } from '../types/Item';
 export const ListView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     currentList,
     loadingList,
@@ -34,6 +35,15 @@ export const ListView: React.FC = () => {
     clearListError,
   } = useLists();
   const { toasts, showToast, removeToast } = useToast();
+
+  // Exibir toast passado via navigation state (ex: boas-vindas após join via convite)
+  useEffect(() => {
+    const state = location.state as { toastMessage?: string; toastType?: 'success' | 'error' | 'info' } | null;
+    if (state?.toastMessage) {
+      showToast(state.toastMessage, state.toastType ?? 'info');
+      window.history.replaceState({}, '');
+    }
+  }, [location.state, showToast]);
 
   // Hook para gerenciar itens
   const {

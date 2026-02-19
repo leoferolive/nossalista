@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import client from '../api/client';
 
@@ -18,11 +18,20 @@ interface LoginResponse {
  */
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Salvar redirect parameter no sessionStorage se presente
+  useEffect(() => {
+    const redirectPath = searchParams.get('redirect');
+    if (redirectPath) {
+      sessionStorage.setItem('postLoginRedirect', redirectPath);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +51,15 @@ export default function Login() {
         displayName: data.name,
         avatarUrl: data.avatarUrl,
       });
-      navigate('/');
+
+      // Verificar se há redirect pendente
+      const redirectPath = sessionStorage.getItem('postLoginRedirect');
+      if (redirectPath) {
+        sessionStorage.removeItem('postLoginRedirect');
+        navigate(redirectPath);
+      } else {
+        navigate('/');
+      }
     } catch {
       setError('Email ou senha inválidos');
     } finally {
@@ -51,6 +68,15 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
+    // Salvar invite code no sessionStorage se o redirect apontar para uma página de join
+    const redirectPath = searchParams.get('redirect');
+    if (redirectPath?.startsWith('/join/')) {
+      const inviteCode = redirectPath.slice('/join/'.length);
+      if (inviteCode) {
+        sessionStorage.setItem('pendingInviteCode', inviteCode);
+      }
+    }
+
     const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '');
     window.location.href = `${baseUrl}/api/auth/google`;
   };
