@@ -23,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -461,6 +462,144 @@ class ListServiceTest {
             assertEquals("Apenas o dono pode excluir esta lista", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
             verify(listRepository, never()).delete(any(List.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("generateInviteLink - Gerar Link de Convite")
+    class GenerateInviteLinkTests {
+
+        private List testList;
+        private UUID listId;
+
+        @BeforeEach
+        void setUpList() {
+            listId = UUID.randomUUID();
+            testList = new List();
+            testList.setId(listId);
+            testList.setName("Lista de Teste");
+            testList.setTypeId(1);
+            testList.setOwner(testUser);
+        }
+
+        @Test
+        @DisplayName("Deve gerar novo invite link quando não existe código")
+        void shouldGenerateNewInviteLinkWhenNoCodeExists() {
+            // Arrange
+            testList.setInviteCode(null);
+            testList.setInviteExpiresAt(null);
+
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+            when(listRepository.existsByInviteCode(any())).thenReturn(false);
+            when(listRepository.save(any(List.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            List result = listService.generateInviteLink(listId, testUser.getId());
+
+            // Assert
+            assertNotNull(result.getInviteCode(), "inviteCode deve ser gerado");
+            assertEquals(12, result.getInviteCode().length(), "inviteCode deve ter 12 caracteres");
+            assertNotNull(result.getInviteExpiresAt(), "expiresAt deve ser definido");
+
+            // Verificar expiração é aproximadamente 24h no futuro
+            LocalDateTime expectedExpiry = LocalDateTime.now().plusHours(24);
+            long minutesDiff = java.time.Duration.between(result.getInviteExpiresAt(), expectedExpiry).toMinutes();
+            assertTrue(Math.abs(minutesDiff) < 1, "expiresAt deve ser aproximadamente 24h no futuro");
+
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository).save(any(List.class));
+        }
+
+        @Test
+        @DisplayName("Deve reutilizar código válido existente quando não expirou")
+        void shouldReuseValidInviteCode() {
+            // Arrange
+            String existingCode = "ABC123XYZ789";
+            LocalDateTime futureExpiry = LocalDateTime.now().plusHours(12); // Ainda válido por 12h
+
+            testList.setInviteCode(existingCode);
+            testList.setInviteExpiresAt(futureExpiry);
+
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+
+            // Act
+            List result = listService.generateInviteLink(listId, testUser.getId());
+
+            // Assert
+            assertEquals(existingCode, result.getInviteCode(), "Deve reutilizar o código existente");
+            assertEquals(futureExpiry, result.getInviteExpiresAt(), "expiry não deve mudar");
+
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository, never()).save(any(List.class)); // Não deve salvar nada
+        }
+
+        @Test
+        @DisplayName("Deve regenerar código quando invite expirou")
+        void shouldRegenerateExpiredInviteCode() {
+            // Arrange
+            String expiredCode = "OLD123CODE99";
+            LocalDateTime pastExpiry = LocalDateTime.now().minusHours(1); // Expirado há 1h
+
+            testList.setInviteCode(expiredCode);
+            testList.setInviteExpiresAt(pastExpiry);
+
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+            when(listRepository.existsByInviteCode(any())).thenReturn(false);
+            when(listRepository.save(any(List.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            List result = listService.generateInviteLink(listId, testUser.getId());
+
+            // Assert
+            assertNotNull(result.getInviteCode());
+            assertNotEquals(expiredCode, result.getInviteCode(), "Deve gerar novo código, não reusar o expirado");
+            assertEquals(12, result.getInviteCode().length());
+
+            // Nova expiração deve ser no futuro
+            assertTrue(result.getInviteExpiresAt().isAfter(LocalDateTime.now()),
+                    "Nova expiração deve ser no futuro");
+
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository).save(any(List.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ForbiddenException quando usuário não é owner")
+        void shouldThrowForbiddenWhenUserIsNotOwner() {
+            // Arrange
+            UUID otherUserId = UUID.randomUUID();
+            testList.setInviteCode("TEST12345678");
+            testList.setInviteExpiresAt(LocalDateTime.now().plusHours(24));
+
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+
+            // Act & Assert
+            ForbiddenException exception = assertThrows(
+                    ForbiddenException.class,
+                    () -> listService.generateInviteLink(listId, otherUserId)
+            );
+
+            assertEquals("Apenas o dono pode gerar link de convite", exception.getMessage());
+            verify(listRepository).findByIdWithDetails(listId);
+            verify(listRepository, never()).save(any(List.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar ListNotFoundException quando lista não existe")
+        void shouldThrowListNotFoundWhenListDoesNotExist() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            when(listRepository.findByIdWithDetails(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            ListNotFoundException exception = assertThrows(
+                    ListNotFoundException.class,
+                    () -> listService.generateInviteLink(nonExistentId, testUser.getId())
+            );
+
+            assertEquals("Lista não encontrada", exception.getMessage());
+            verify(listRepository).findByIdWithDetails(nonExistentId);
+            verify(listRepository, never()).save(any(List.class));
         }
     }
 }

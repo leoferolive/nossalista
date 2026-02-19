@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -219,5 +220,58 @@ public class ListService {
 
         // Deletar a lista (CASCADE automático via database deleta itens e membros)
         listRepository.delete(list);
+    }
+
+    /**
+     * Gera ou retorna um link de convite válido para a lista.
+     * Apenas o dono da lista pode gerar links de convite.
+     *
+     * <p>Regras de negócio:
+     * <ul>
+     *   <li>Se código válido existe (não expirado): reutiliza o código existente</li>
+     *   <li>Se código expirou ou não existe: gera novo código com expiração de 24h</li>
+     *   <li>Apenas o dono pode gerar links (ForbiddenException para não-donos)</li>
+     * </ul>
+     *
+     * @param listId        ID da lista
+     * @param currentUserId ID do usuário autenticado
+     * @return A lista com código de convite válido e expiração atualizada
+     * @throws ListNotFoundException se a lista não existir
+     * @throws ForbiddenException    se o usuário não for o dono da lista
+     */
+    @Transactional
+    public List generateInviteLink(UUID listId, UUID currentUserId) {
+        // Buscar a lista com JOIN FETCH para evitar LazyInitializationException
+        List list = listRepository.findByIdWithDetails(listId)
+                .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        // Verificar se usuário é dono (CRITICAL: apenas owner pode gerar link)
+        if (!list.getOwner().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Apenas o dono pode gerar link de convite");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // Verificar se existe código válido (não expirado)
+        boolean hasValidInvite = list.getInviteCode() != null
+                && list.getInviteExpiresAt() != null
+                && list.getInviteExpiresAt().isAfter(now);
+
+        if (!hasValidInvite) {
+            // Gerar novo código e definir expiração de 24 horas
+            list.setInviteCode(generateInviteCode());
+            list.setInviteExpiresAt(now.plusHours(24));
+
+            // Salvar alterações
+            listRepository.save(list);
+
+            log.info("Invite link generated: listId={}, ownerId={}, expiresAt={}",
+                    list.getId(), currentUserId, list.getInviteExpiresAt());
+        } else {
+            log.debug("Reusing valid invite code: listId={}, expiresAt={}",
+                    list.getId(), list.getInviteExpiresAt());
+        }
+
+        return list;
     }
 }

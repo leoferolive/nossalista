@@ -41,6 +41,9 @@ jwt:
   secret: test-secret-key-minimum-32-characters-for-hmac-sha256-algorithm-testing
   expiration: 604800000  # 7 dias em milissegundos
 
+frontend:
+  url: http://localhost:5173
+
 logging:
   level:
     org.flywaydb: DEBUG

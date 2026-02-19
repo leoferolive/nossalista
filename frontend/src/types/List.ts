@@ -51,6 +51,15 @@ export interface CreateListRequest {
 }
 
 /**
+ * Resposta da API ao gerar link de convite
+ */
+export interface InviteLinkResponse {
+  invite_code: string;
+  invite_link: string;
+  expires_at: string;
+}
+
+/**
  * Definições dos tipos de lista com emoji e descrição
  */
 export const LIST_TYPES = [

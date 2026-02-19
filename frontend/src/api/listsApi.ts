@@ -1,5 +1,5 @@
 import client from './client';
-import { CreateListRequest, ListResponse } from '../types/List';
+import { CreateListRequest, ListResponse, InviteLinkResponse } from '../types/List';
 import { ProblemDetail } from '../types/ProblemDetail';
 import { ApiError } from '../types/ApiError';
 import { AxiosError } from 'axios';
@@ -123,6 +123,42 @@ export const listsApi = {
         } else {
           throw new ApiError(
             problemDetail?.detail || 'Erro ao excluir lista. Tente novamente.',
+            status
+          );
+        }
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  /**
+   * Gera ou retorna um link de convite válido para a lista
+   * Apenas o dono da lista pode gerar links de convite
+   * @param id - UUID da lista
+   * @returns Promise com o link de convite gerado
+   * @throws ApiError com status code e mensagem específica
+   */
+  async generateInviteLink(id: string): Promise<InviteLinkResponse> {
+    try {
+      const response = await client.post<InviteLinkResponse>(`/api/lists/${id}/invite-link`);
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 403) {
+          throw new ApiError('Apenas o dono pode gerar link de convite', 403);
+        } else if (status === 404) {
+          throw new ApiError('Lista não encontrada', 404);
+        } else if (status === 401) {
+          throw new ApiError('Sessão expirada. Faça login novamente.', 401);
+        } else {
+          throw new ApiError(
+            problemDetail?.detail || 'Erro ao gerar link de convite. Tente novamente.',
             status
           );
         }

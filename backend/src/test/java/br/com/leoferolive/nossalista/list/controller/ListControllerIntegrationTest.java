@@ -4,6 +4,8 @@ import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
+
+import java.time.LocalDateTime;
 import br.com.leoferolive.nossalista.list.service.ListService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -1032,5 +1034,118 @@ class ListControllerIntegrationTest {
 
         // NOTE: Teste combinado de CASCADE (items + members) será adicionado no Epic 3
         // quando ambas as tabelas estiverem disponíveis
+    }
+
+    @Nested
+    @DisplayName("POST /api/lists/{id}/invite-link - Gerar Link de Convite")
+    class GenerateInviteLinkTests {
+
+        @Test
+        @DisplayName("Deve retornar 200 OK com invite link quando owner gera link")
+        void shouldGenerateInviteLinkWhen200() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Convidar", 1), testUser);
+
+            // Act & Assert
+            MvcResult result = mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.invite_code").exists())
+                    .andExpect(jsonPath("$.invite_code").isString())
+                    .andExpect(jsonPath("$.invite_link").exists())
+                    .andExpect(jsonPath("$.invite_link").value(org.hamcrest.Matchers.containsString("/join/")))
+                    .andExpect(jsonPath("$.expires_at").exists())
+                    .andReturn();
+
+            // Verificar que o link foi salvo no banco
+            String responseJson = result.getResponse().getContentAsString();
+            String inviteCode = objectMapper.readTree(responseJson).get("invite_code").asText();
+
+            List updatedList = listRepository.findById(createdList.getId()).orElseThrow();
+            assertEquals(inviteCode, updatedList.getInviteCode());
+            assertNotNull(updatedList.getInviteExpiresAt());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 403 quando usuário não é owner")
+        void shouldReturn403WhenUserIsNotOwner() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+
+            // Criar outro usuário
+            User otherUser = userService.createUser(
+                    "otheruser",
+                    "other@example.com",
+                    "hashedPassword",
+                    "Other User",
+                    AuthProvider.EMAIL
+            );
+
+            // Autenticar como outro usuário
+            authenticateUser(otherUser);
+
+            // Act & Assert
+            mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.title").value("Acesso Negado"))
+                    .andExpect(jsonPath("$.detail").value("Apenas o dono pode gerar link de convite"));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 404 quando lista não existe")
+        void shouldReturn404WhenListNotFound() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            UUID nonExistentId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(post("/api/lists/{id}/invite-link", nonExistentId))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.title").value("Lista Não Encontrada"))
+                    .andExpect(jsonPath("$.detail").value("Lista não encontrada"));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 quando não autenticado")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+
+            // Limpar autenticação
+            SecurityContextHolder.clearContext();
+
+            // Act & Assert
+            mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Deve reutilizar código existente quando ainda válido")
+        void shouldReuseExistingCodeWhenStillValid() throws Exception {
+            // Arrange
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista Com Link", 1), testUser);
+
+            // Gerar link pela primeira vez
+            MvcResult firstResult = mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            String firstCode = objectMapper.readTree(firstResult.getResponse().getContentAsString())
+                    .get("invite_code").asText();
+
+            // Act - gerar novamente
+            MvcResult secondResult = mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            // Assert - código deve ser o mesmo
+            String secondCode = objectMapper.readTree(secondResult.getResponse().getContentAsString())
+                    .get("invite_code").asText();
+
+            assertEquals(firstCode, secondCode, "Deve reutilizar o mesmo código quando ainda válido");
+        }
     }
 }

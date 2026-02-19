@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.dto.ListMapper;
 import br.com.leoferolive.nossalista.list.dto.ListResponse;
+import br.com.leoferolive.nossalista.list.dto.InviteLinkResponse;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.service.ListService;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -18,6 +19,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ProblemDetail;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +46,9 @@ public class ListController {
 
     private final ListService listService;
     private final ListMapper listMapper;
+
+    @Value("${frontend.url}")
+    private String frontendBaseUrl;
 
     public ListController(ListService listService, ListMapper listMapper) {
         this.listService = listService;
@@ -252,5 +257,54 @@ public class ListController {
             @AuthenticationPrincipal User authenticatedUser) {
         listService.deleteList(id, authenticatedUser.getId());
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Gera ou retorna um link de convite válido para a lista
+     * Apenas o dono da lista pode gerar links de convite
+     *
+     * @param id                ID da lista (UUID)
+     * @param authenticatedUser Usuário autenticado (injetado pelo JWT)
+     * @return DTO com código de convite, link completo e data de expiração
+     */
+    @PostMapping("/{id}/invite-link")
+    @Operation(
+        summary = "Gerar link de convite",
+        description = "Gera ou retorna link de convite válido. Apenas o dono pode gerar. Links expiram em 24 horas."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Link gerado ou reutilizado com sucesso",
+            content = @Content(schema = @Schema(implementation = InviteLinkResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Apenas o dono pode gerar link de convite",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista não encontrada",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public InviteLinkResponse generateInviteLink(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User authenticatedUser) {
+        List list = listService.generateInviteLink(id, authenticatedUser.getId());
+
+        String inviteLink = frontendBaseUrl + "/join/" + list.getInviteCode();
+
+        return new InviteLinkResponse(
+                list.getInviteCode(),
+                inviteLink,
+                list.getInviteExpiresAt()
+        );
     }
 }

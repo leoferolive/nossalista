@@ -33,8 +33,8 @@
 # - SM cria próxima story após anterior estar 'done' para incorporar aprendizados
 # - Dev move story para 'review', depois run code-review (auto-aprova)
 #
-# Status Atual: Epic 3 em desenvolvimento, stories 3.1-3.5 completas, 3.6 ready-for-dev
-# Story 3.6 (remover-item) criada com análise exhaustiva de contexto
+# Status Atual: Epic 3 completo, Epic 4 em andamento
+# Story 4.2 (gerar-link-de-convite) criada com análise exhaustiva de contexto
 # Pronta para implementação pelo dev agent
 
 generated: 2026-02-12
@@ -72,7 +72,7 @@ development_status:
 
   epic-4: in-progress
   4-1-modelagem-de-dados-de-membros-e-convites: done
-  4-2-gerar-link-de-convite: backlog
+  4-2-gerar-link-de-convite: done
   4-3-aceitar-convite-via-link-read-only-mode: backlog
   4-4-entrar-na-lista-autenticado: backlog
   4-5-convidar-por-username: backlog

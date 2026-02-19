@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
 import { useItems } from '../hooks/useItems';
@@ -8,6 +8,8 @@ import { DeleteListModal } from '../components/DeleteListModal';
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal';
 import { ListItemComponent } from '../components/ListItem';
 import { EditItemModal } from '../components/EditItemModal';
+import { InviteModal } from '../components/InviteModal';
+import { listsApi } from '../api/listsApi';
 import { useToast, Toast } from '../components/Toast';
 import { ApiError } from '../types/ApiError';
 import { ListItem } from '../types/Item';
@@ -61,6 +63,9 @@ export const ListView: React.FC = () => {
   // Estado do modal de confirmação de exclusão de item
   const [isDeleteItemModalOpen, setIsDeleteItemModalOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<ListItem | null>(null);
+
+  // Estado do modal de convite
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -183,6 +188,22 @@ export const ListView: React.FC = () => {
     setIsDeleteItemModalOpen(false);
     setDeletingItem(null);
   };
+
+  // Handler para abrir modal de convite
+  const handleOpenInviteModal = () => {
+    setIsInviteModalOpen(true);
+  };
+
+  // Handler para fechar modal de convite
+  const handleCloseInviteModal = () => {
+    setIsInviteModalOpen(false);
+  };
+
+  // Handler para gerar link de convite
+  const handleGenerateInviteLink = useCallback(async () => {
+    if (!id) throw new Error('ID da lista não encontrado');
+    return await listsApi.generateInviteLink(id);
+  }, [id]);
 
   const handleSaveEditItem = async (itemId: string, request: { name: string; quantity?: number; dueDate?: string; url?: string }) => {
     if (!id) return;
@@ -348,6 +369,28 @@ export const ListView: React.FC = () => {
           {/* Menu de ações - apenas para dono da lista */}
           {currentList.isOwner && (
             <div className="flex items-center gap-1">
+              {/* Botão convidar */}
+              <button
+                onClick={handleOpenInviteModal}
+                className="p-3 min-w-[44px] min-h-[44px] hover:bg-green-100 rounded-lg transition-colors flex items-center justify-center"
+                aria-label="Convidar para lista"
+                title="Convidar para lista"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-green-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                  />
+                </svg>
+              </button>
               {/* Botão editar */}
               <button
                 onClick={handleOpenEditModal}
@@ -578,6 +621,16 @@ export const ListView: React.FC = () => {
           itemName={deletingItem.name}
           onConfirm={handleConfirmDeleteItem}
           onCancel={handleCancelDeleteItem}
+        />
+      )}
+
+      {/* Modal de convite */}
+      {currentList && (
+        <InviteModal
+          isOpen={isInviteModalOpen}
+          listName={currentList.name}
+          onClose={handleCloseInviteModal}
+          onGenerateLink={handleGenerateInviteLink}
         />
       )}
 
