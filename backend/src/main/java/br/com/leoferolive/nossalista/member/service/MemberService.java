@@ -7,6 +7,7 @@ import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.dto.InviteByUsernameResponse;
+import br.com.leoferolive.nossalista.member.dto.ListMemberResponse;
 import br.com.leoferolive.nossalista.member.exception.MemberInvitationConflictException;
 import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteException;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
@@ -71,5 +72,48 @@ public class MemberService {
             userToInvite.getUsername(),
             userToInvite.getUsername() + " adicionado!"
         );
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<ListMemberResponse> getMembers(UUID listId, UUID requesterId) {
+        ensureUserIsMember(listId, requesterId);
+
+        return listMemberRepository.findMembersForListOrdered(listId)
+            .stream()
+            .map(member -> new ListMemberResponse(
+                new ListMemberResponse.UserSummaryResponse(
+                    member.getUser().getId(),
+                    member.getUser().getUsername(),
+                    member.getUser().getName(),
+                    member.getUser().getAvatarUrl()
+                ),
+                member.getRole().name(),
+                member.getCreatedAt()
+            ))
+            .toList();
+    }
+
+    @Transactional
+    public void leaveList(UUID listId, UUID requesterId) {
+        ListMember membership = ensureUserIsMember(listId, requesterId);
+
+        if (membership.getRole() == MemberRole.OWNER) {
+            throw new ForbiddenException("O dono nao pode sair. Transfira ou exclua a lista.");
+        }
+
+        listMemberRepository.delete(membership);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isMember(UUID listId, UUID userId) {
+        return listMemberRepository.existsByListIdAndUserId(listId, userId);
+    }
+
+    private ListMember ensureUserIsMember(UUID listId, UUID requesterId) {
+        listRepository.findById(listId)
+            .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        return listMemberRepository.findByListIdAndUserId(listId, requesterId)
+            .orElseThrow(() -> new ForbiddenException("Você não tem permissão para acessar esta lista"));
     }
 }

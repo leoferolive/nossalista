@@ -6,17 +6,29 @@ import { useLists } from '../hooks/useLists';
 import { useItems } from '../hooks/useItems';
 import { useToast } from '../components/Toast';
 import { ListResponse } from '../types/List';
+import { listsApi } from '../api/listsApi';
+
+const mockNavigate = vi.fn();
 
 // Mock hooks
 vi.mock('../hooks/useLists');
 vi.mock('../hooks/useItems');
 vi.mock('../components/Toast');
+vi.mock('../api/listsApi', () => ({
+  listsApi: {
+    getListMembers: vi.fn(),
+    leaveList: vi.fn(),
+    generateInviteLink: vi.fn(),
+    searchUsers: vi.fn(),
+    inviteByUsername: vi.fn(),
+  },
+}));
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
     useParams: () => ({ id: 'test-list-id' }),
-    useNavigate: () => vi.fn(),
+    useNavigate: () => mockNavigate,
   };
 });
 
@@ -40,6 +52,16 @@ describe('ListView - Delete Functionality', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockNavigate.mockReset();
+
+    (listsApi.getListMembers as any).mockResolvedValue([
+      {
+        user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+        role: 'OWNER',
+        joined_at: new Date().toISOString(),
+      },
+    ]);
+    (listsApi.leaveList as any).mockResolvedValue(undefined);
 
     (useLists as any).mockReturnValue({
       currentList: mockList,
@@ -230,5 +252,105 @@ describe('ListView - Delete Functionality', () => {
 
     const deleteButton = screen.getByLabelText('Excluir lista');
     expect(deleteButton).toHaveClass('min-w-[44px]', 'min-h-[44px]');
+  });
+
+  it('deve abrir modal de membros e mostrar aviso para owner', async () => {
+    render(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+
+    fireEvent.click(screen.getByLabelText('Abrir membros'));
+
+    expect(await screen.findByRole('heading', { name: 'Membros' })).toBeInTheDocument();
+    expect(screen.getAllByText('Você é o dono').length).toBeGreaterThan(0);
+  });
+
+  it('deve mostrar botão sair da lista para membro', async () => {
+    (useLists as any).mockReturnValue({
+      currentList: { ...mockList, isOwner: false },
+      loadingList: false,
+      errorList: null,
+      updatingList: false,
+      deletingList: false,
+      fetchListById: mockFetchListById,
+      updateListName: vi.fn(),
+      deleteList: mockDeleteList,
+      clearListError: vi.fn(),
+    });
+    (listsApi.getListMembers as any).mockResolvedValue([
+      {
+        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatar_url: null },
+        role: 'OWNER',
+        joined_at: new Date().toISOString(),
+      },
+      {
+        user: { id: 'member-id', username: 'member', name: 'Member', avatar_url: null },
+        role: 'MEMBER',
+        joined_at: new Date().toISOString(),
+      },
+    ]);
+
+    render(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+
+    fireEvent.click(screen.getByLabelText('Abrir membros'));
+
+    expect(await screen.findByText('Sair da Lista')).toBeInTheDocument();
+  });
+
+  it('deve confirmar saída, chamar API e redirecionar para Home', async () => {
+    (useLists as any).mockReturnValue({
+      currentList: { ...mockList, isOwner: false },
+      loadingList: false,
+      errorList: null,
+      updatingList: false,
+      deletingList: false,
+      fetchListById: mockFetchListById,
+      updateListName: vi.fn(),
+      deleteList: mockDeleteList,
+      clearListError: vi.fn(),
+    });
+    (listsApi.getListMembers as any).mockResolvedValue([
+      {
+        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatar_url: null },
+        role: 'OWNER',
+        joined_at: new Date().toISOString(),
+      },
+      {
+        user: { id: 'member-id', username: 'member', name: 'Member', avatar_url: null },
+        role: 'MEMBER',
+        joined_at: new Date().toISOString(),
+      },
+    ]);
+    (listsApi.leaveList as any).mockResolvedValue(undefined);
+
+    render(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+
+    fireEvent.click(screen.getByLabelText('Abrir membros'));
+    fireEvent.click(await screen.findByText('Sair da Lista'));
+
+    expect(screen.getByText('Sair da lista? Você perderá acesso.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
+
+    await waitFor(() => {
+      expect(listsApi.leaveList).toHaveBeenCalledWith('test-list-id');
+      expect(mockNavigate).toHaveBeenCalledWith('/', {
+        state: {
+          toastMessage: 'Você saiu',
+          toastType: 'success',
+          refreshLists: true,
+        },
+      });
+    });
   });
 });

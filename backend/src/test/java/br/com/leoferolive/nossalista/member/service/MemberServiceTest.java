@@ -7,6 +7,7 @@ import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.dto.InviteByUsernameResponse;
+import br.com.leoferolive.nossalista.member.dto.ListMemberResponse;
 import br.com.leoferolive.nossalista.member.exception.MemberInvitationConflictException;
 import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteException;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
@@ -48,6 +49,7 @@ class MemberServiceTest {
     private List testList;
     private User owner;
     private User targetUser;
+    private User memberUser;
 
     @BeforeEach
     void setUp() {
@@ -58,6 +60,10 @@ class MemberServiceTest {
         targetUser = new User();
         targetUser.setId(UUID.randomUUID());
         targetUser.setUsername("pedro");
+
+        memberUser = new User();
+        memberUser.setId(UUID.randomUUID());
+        memberUser.setUsername("member");
 
         testList = new List();
         testList.setId(UUID.randomUUID());
@@ -132,5 +138,81 @@ class MemberServiceTest {
         assertThatThrownBy(() -> memberService.inviteByUsername(testList.getId(), owner.getId(), "pedro"))
             .isInstanceOf(ListNotFoundException.class)
             .hasMessageContaining("Lista não encontrada");
+    }
+
+    @Test
+    @DisplayName("Deve listar membros para usuário participante")
+    void shouldListMembersWhenRequesterIsParticipant() {
+        ListMember ownerMembership = new ListMember();
+        ownerMembership.setList(testList);
+        ownerMembership.setUser(owner);
+        ownerMembership.setRole(MemberRole.OWNER);
+
+        ListMember requesterMembership = new ListMember();
+        requesterMembership.setList(testList);
+        requesterMembership.setUser(memberUser);
+        requesterMembership.setRole(MemberRole.MEMBER);
+
+        when(listRepository.findById(testList.getId())).thenReturn(Optional.of(testList));
+        when(listMemberRepository.findByListIdAndUserId(testList.getId(), memberUser.getId()))
+            .thenReturn(Optional.of(requesterMembership));
+        when(listMemberRepository.findMembersForListOrdered(testList.getId()))
+            .thenReturn(java.util.List.of(ownerMembership, requesterMembership));
+
+        java.util.List<ListMemberResponse> result = memberService.getMembers(testList.getId(), memberUser.getId());
+
+        assertThat(result).hasSize(2);
+        assertThat(result.getFirst().role()).isEqualTo("OWNER");
+        assertThat(result.get(1).user().username()).isEqualTo("member");
+    }
+
+    @Test
+    @DisplayName("Deve remover membership quando membro sai da lista")
+    void shouldRemoveMembershipWhenMemberLeaves() {
+        ListMember requesterMembership = new ListMember();
+        requesterMembership.setList(testList);
+        requesterMembership.setUser(memberUser);
+        requesterMembership.setRole(MemberRole.MEMBER);
+
+        when(listRepository.findById(testList.getId())).thenReturn(Optional.of(testList));
+        when(listMemberRepository.findByListIdAndUserId(testList.getId(), memberUser.getId()))
+            .thenReturn(Optional.of(requesterMembership));
+
+        memberService.leaveList(testList.getId(), memberUser.getId());
+
+        verify(listMemberRepository).delete(requesterMembership);
+    }
+
+    @Test
+    @DisplayName("Deve bloquear saída do dono com 403")
+    void shouldBlockOwnerFromLeavingList() {
+        ListMember ownerMembership = new ListMember();
+        ownerMembership.setList(testList);
+        ownerMembership.setUser(owner);
+        ownerMembership.setRole(MemberRole.OWNER);
+
+        when(listRepository.findById(testList.getId())).thenReturn(Optional.of(testList));
+        when(listMemberRepository.findByListIdAndUserId(testList.getId(), owner.getId()))
+            .thenReturn(Optional.of(ownerMembership));
+
+        assertThatThrownBy(() -> memberService.leaveList(testList.getId(), owner.getId()))
+            .isInstanceOf(ForbiddenException.class)
+            .hasMessageContaining("O dono nao pode sair");
+    }
+
+    @Test
+    @DisplayName("Nao membro nao consegue listar membros")
+    void shouldDenyListMembersForNonMember() {
+        User outsider = new User();
+        outsider.setId(UUID.randomUUID());
+        outsider.setUsername("outsider");
+
+        when(listRepository.findById(testList.getId())).thenReturn(Optional.of(testList));
+        when(listMemberRepository.findByListIdAndUserId(testList.getId(), outsider.getId()))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> memberService.getMembers(testList.getId(), outsider.getId()))
+            .isInstanceOf(ForbiddenException.class)
+            .hasMessageContaining("Você não tem permissão para acessar esta lista");
     }
 }

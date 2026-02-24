@@ -148,8 +148,9 @@ public class ListService {
         // Verificar se usuário é owner
         boolean isOwner = list.getOwner().getId().equals(currentUserId);
 
-        // TODO Story 4.x: Validar se usuário é MEMBER além de OWNER
-        if (!isOwner) {
+        boolean isMember = listMemberRepository.existsByListIdAndUserId(listId, currentUserId);
+
+        if (!isOwner && !isMember) {
             throw new ForbiddenException("Você não tem permissão para acessar esta lista");
         }
 

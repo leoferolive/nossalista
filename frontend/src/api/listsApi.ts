@@ -8,6 +8,7 @@ import {
   ListJoinedResponse,
   UserSearchResult,
   InviteByUsernameResponse,
+  ListMemberResponse,
 } from '../types/List';
 import { ProblemDetail } from '../types/ProblemDetail';
 import { ApiError } from '../types/ApiError';
@@ -297,6 +298,57 @@ export const listsApi = {
         }
 
         throw new ApiError(problemDetail?.detail || 'Erro ao convidar usuário', status);
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  async getListMembers(listId: string): Promise<ListMemberResponse[]> {
+    try {
+      const response = await client.get<ListMemberResponse[]>(`/api/lists/${listId}/members`);
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 403) {
+          throw new ApiError(problemDetail?.detail || 'Você não tem permissão para ver os membros', 403);
+        } else if (status === 404) {
+          throw new ApiError(problemDetail?.detail || 'Lista não encontrada', 404);
+        } else if (status === 401) {
+          throw new ApiError('Sessão expirada. Faça login novamente.', 401);
+        }
+
+        throw new ApiError(problemDetail?.detail || 'Erro ao carregar membros', status);
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  async leaveList(listId: string): Promise<void> {
+    try {
+      await client.post(`/api/lists/${listId}/leave`);
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 403) {
+          throw new ApiError(problemDetail?.detail || 'O dono nao pode sair da lista', 403);
+        } else if (status === 404) {
+          throw new ApiError(problemDetail?.detail || 'Lista não encontrada', 404);
+        } else if (status === 401) {
+          throw new ApiError('Sessão expirada. Faça login novamente.', 401);
+        }
+
+        throw new ApiError(problemDetail?.detail || 'Erro ao sair da lista', status);
       }
 
       throw new ApiError('Erro de conexão. Verifique sua internet.');

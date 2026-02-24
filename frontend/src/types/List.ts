@@ -115,6 +115,19 @@ export interface InviteByUsernameResponse {
   message: string;
 }
 
+export interface ListMemberUser {
+  id: string;
+  username: string;
+  name: string;
+  avatar_url: string | null;
+}
+
+export interface ListMemberResponse {
+  user: ListMemberUser;
+  role: 'OWNER' | 'MEMBER';
+  joined_at: string;
+}
+
 /**
  * Definições dos tipos de lista com emoji e descrição
  */

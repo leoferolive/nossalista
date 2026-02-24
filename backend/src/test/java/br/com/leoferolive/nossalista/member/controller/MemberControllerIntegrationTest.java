@@ -22,6 +22,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -145,5 +146,52 @@ class MemberControllerIntegrationTest {
                 .content("{\"username\":\"owner\"}"))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.detail").value("Você não pode convidar a si mesmo"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar membros ordenados com OWNER primeiro")
+    void shouldReturnMembersOrderedWithOwnerFirst() throws Exception {
+        mockMvc.perform(get("/api/lists/{id}/members", list.getId())
+                .with(user(member.getId().toString())))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].user.username").value("owner"))
+            .andExpect(jsonPath("$[0].role").value("OWNER"))
+            .andExpect(jsonPath("$[1].user.username").value("member"))
+            .andExpect(jsonPath("$[1].role").value("MEMBER"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 401 no GET members sem autenticação")
+    void shouldReturn401OnGetMembersWithoutAuth() throws Exception {
+        mockMvc.perform(get("/api/lists/{id}/members", list.getId()))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Deve permitir MEMBER sair da lista com 204")
+    void shouldAllowMemberToLeaveList() throws Exception {
+        mockMvc.perform(post("/api/lists/{id}/leave", list.getId())
+                .with(user(member.getId().toString())))
+            .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/lists/{id}/members", list.getId())
+                .with(user(member.getId().toString())))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Deve retornar 403 quando OWNER tenta sair da lista")
+    void shouldReturn403WhenOwnerTriesToLeave() throws Exception {
+        mockMvc.perform(post("/api/lists/{id}/leave", list.getId())
+                .with(user(owner.getId().toString())))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.detail").value("O dono nao pode sair. Transfira ou exclua a lista."));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 401 no POST leave sem autenticação")
+    void shouldReturn401OnLeaveWithoutAuth() throws Exception {
+        mockMvc.perform(post("/api/lists/{id}/leave", list.getId()))
+            .andExpect(status().isUnauthorized());
     }
 }

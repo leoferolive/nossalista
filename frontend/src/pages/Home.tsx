@@ -29,6 +29,13 @@ export const Home: React.FC = () => {
     }
   }, [location.state, showToast]);
 
+  useEffect(() => {
+    const state = location.state as { refreshLists?: boolean } | null;
+    if (state?.refreshLists) {
+      fetchLists();
+    }
+  }, [location.state, fetchLists]);
+
   const handleCreateList = async (request: {
     name: string;
     typeId: number;

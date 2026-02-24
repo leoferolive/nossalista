@@ -13,6 +13,7 @@ import { listsApi } from '../api/listsApi';
 import { useToast, Toast } from '../components/Toast';
 import { ApiError } from '../types/ApiError';
 import { ListItem } from '../types/Item';
+import { ListMemberResponse } from '../types/List';
 
 /**
  * Página de visualização de detalhes de uma lista
@@ -77,6 +78,13 @@ export const ListView: React.FC = () => {
   // Estado do modal de convite
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [recentInvitedUsers, setRecentInvitedUsers] = useState<string[]>([]);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [members, setMembers] = useState<ListMemberResponse[]>([]);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [membersError, setMembersError] = useState<string | null>(null);
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
+  const [leavingList, setLeavingList] = useState(false);
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -86,6 +94,9 @@ export const ListView: React.FC = () => {
     if (id) {
       fetchListById(id);
       fetchItems(id);
+      listsApi.getListMembers(id)
+        .then((data) => setMemberCount(data.length))
+        .catch(() => setMemberCount(null));
     }
   }, [id, fetchListById, fetchItems]);
 
@@ -260,6 +271,63 @@ export const ListView: React.FC = () => {
     }
   };
 
+  const handleOpenMembersModal = async () => {
+    if (!id) {
+      return;
+    }
+
+    setIsMembersModalOpen(true);
+    setLoadingMembers(true);
+    setMembersError(null);
+
+    try {
+      const data = await listsApi.getListMembers(id);
+      setMembers(data);
+      setMemberCount(data.length);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar membros';
+      setMembersError(message);
+      showToast(message, 'error');
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const handleCloseMembersModal = () => {
+    if (leavingList) {
+      return;
+    }
+    setIsMembersModalOpen(false);
+    setMembersError(null);
+    setIsLeaveConfirmOpen(false);
+  };
+
+  const handleConfirmLeaveList = async () => {
+    if (!id || leavingList) {
+      return;
+    }
+
+    setLeavingList(true);
+
+    try {
+      await listsApi.leaveList(id);
+      setIsLeaveConfirmOpen(false);
+      setIsMembersModalOpen(false);
+      navigate('/', {
+        state: {
+          toastMessage: 'Você saiu',
+          toastType: 'success',
+          refreshLists: true,
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao sair da lista';
+      showToast(message, 'error');
+    } finally {
+      setLeavingList(false);
+    }
+  };
+
   // Handler para adicionar novo item
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -372,6 +440,8 @@ export const ListView: React.FC = () => {
     return null;
   }
 
+  const memberCountLabel = memberCount === null ? '--' : String(memberCount);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-4">
@@ -397,9 +467,16 @@ export const ListView: React.FC = () => {
               />
             </svg>
           </button>
-          <h1 className="text-2xl font-bold text-gray-900 flex-1">
-            {currentList.name}
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 flex-1">{currentList.name}</h1>
+          <button
+            onClick={handleOpenMembersModal}
+            className="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+            aria-label="Abrir membros"
+          >
+            <span aria-hidden="true">👥</span>
+            <span className="font-medium text-sm">Membros</span>
+            <span className="text-sm text-gray-600">👥 {memberCountLabel}</span>
+          </button>
           {/* Menu de ações - apenas para dono da lista */}
           {currentList.isOwner && (
             <div className="flex items-center gap-1">
@@ -675,6 +752,87 @@ export const ListView: React.FC = () => {
           onInviteByUsername={handleInviteByUsername}
           onInviteSuccess={handleInviteSuccess}
         />
+      )}
+
+      {isMembersModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="members-modal-title">
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 id="members-modal-title" className="text-xl font-bold text-gray-900">Membros</h2>
+              <button
+                onClick={handleCloseMembersModal}
+                className="p-2 min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Fechar membros"
+              >
+                ✕
+              </button>
+            </div>
+
+            {loadingMembers && <p className="text-sm text-gray-600">Carregando membros...</p>}
+
+            {!loadingMembers && membersError && (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">{membersError}</p>
+            )}
+
+            {!loadingMembers && !membersError && (
+              <div className="space-y-3 max-h-72 overflow-y-auto">
+                {members.map((member) => (
+                  <div key={member.user.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100">
+                    {member.user.avatar_url ? (
+                      <img src={member.user.avatar_url} alt={member.user.username} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm">
+                        {member.user.username.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{member.user.username}</p>
+                      <p className="text-xs text-gray-500 truncate">{member.user.name}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded font-medium ${member.role === 'OWNER' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {member.role === 'OWNER' ? 'Dono' : 'Membro'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!loadingMembers && !membersError && currentList.isOwner && (
+              <p className="mt-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">Você é o dono</p>
+            )}
+
+            {!loadingMembers && !membersError && !currentList.isOwner && (
+              <button
+                onClick={() => setIsLeaveConfirmOpen(true)}
+                className="w-full mt-4 px-4 py-3 min-h-[44px] rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors"
+              >
+                Sair da Lista
+              </button>
+            )}
+
+            {isLeaveConfirmOpen && (
+              <div className="mt-4 border border-red-200 bg-red-50 rounded-lg p-4">
+                <p className="text-sm text-red-900 mb-3">Sair da lista? Você perderá acesso.</p>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setIsLeaveConfirmOpen(false)}
+                    className="px-4 py-2 min-h-[44px] rounded-lg border border-gray-300 text-gray-700 hover:bg-white"
+                    disabled={leavingList}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmLeaveList}
+                    className="px-4 py-2 min-h-[44px] rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
+                    disabled={leavingList}
+                  >
+                    {leavingList ? 'Saindo...' : 'Sair'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Toasts */}
