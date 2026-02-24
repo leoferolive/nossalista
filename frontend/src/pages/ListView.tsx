@@ -76,6 +76,7 @@ export const ListView: React.FC = () => {
 
   // Estado do modal de convite
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [recentInvitedUsers, setRecentInvitedUsers] = useState<string[]>([]);
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -214,6 +215,29 @@ export const ListView: React.FC = () => {
     if (!id) throw new Error('ID da lista não encontrado');
     return await listsApi.generateInviteLink(id);
   }, [id]);
+
+  const handleSearchUsers = useCallback(async (query: string) => {
+    return await listsApi.searchUsers(query);
+  }, []);
+
+  const handleInviteByUsername = useCallback(async (username: string) => {
+    if (!id) throw new Error('ID da lista não encontrado');
+    return await listsApi.inviteByUsername(id, username);
+  }, [id]);
+
+  const handleInviteSuccess = useCallback(async (invitedUsername: string) => {
+    setRecentInvitedUsers((prev) => {
+      if (prev.includes(invitedUsername)) {
+        return prev;
+      }
+      return [...prev, invitedUsername].slice(-3);
+    });
+
+    if (!id) {
+      return;
+    }
+    await fetchListById(id);
+  }, [fetchListById, id]);
 
   const handleSaveEditItem = async (itemId: string, request: { name: string; quantity?: number; dueDate?: string; url?: string }) => {
     if (!id) return;
@@ -478,6 +502,12 @@ export const ListView: React.FC = () => {
               </span>
             )}
           </div>
+
+          {recentInvitedUsers.length > 0 && (
+            <p className="text-xs text-green-700 mt-2">
+              Convidados nesta sessao: {recentInvitedUsers.map((username) => `@${username}`).join(', ')}
+            </p>
+          )}
         </div>
 
         {/* Seção "Itens": Título + lista de itens */}
@@ -641,6 +671,9 @@ export const ListView: React.FC = () => {
           listName={currentList.name}
           onClose={handleCloseInviteModal}
           onGenerateLink={handleGenerateInviteLink}
+          onSearchUsers={handleSearchUsers}
+          onInviteByUsername={handleInviteByUsername}
+          onInviteSuccess={handleInviteSuccess}
         />
       )}
 

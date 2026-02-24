@@ -30,6 +30,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      */
     Optional<User> findByUsername(String username);
 
+    Optional<User> findByUsernameIgnoreCase(String username);
+
     /**
      * Verifica se um email já existe no banco de dados
      *

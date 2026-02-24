@@ -9,6 +9,8 @@ import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.list.exception.InviteExpiredException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
+import br.com.leoferolive.nossalista.member.exception.MemberInvitationConflictException;
+import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteException;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -296,5 +298,37 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.GONE).body(problem);
+    }
+
+    @ExceptionHandler(UserNotFoundForInviteException.class)
+    public ResponseEntity<ProblemDetail> handleUserNotFoundForInvite(
+        UserNotFoundForInviteException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.NOT_FOUND,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/user-not-found"));
+        problem.setTitle("Usuário não encontrado");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
+    }
+
+    @ExceptionHandler(MemberInvitationConflictException.class)
+    public ResponseEntity<ProblemDetail> handleMemberInvitationConflict(
+        MemberInvitationConflictException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.CONFLICT,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/member-invitation-conflict"));
+        problem.setTitle("Conflito ao convidar usuário");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
     }
 }

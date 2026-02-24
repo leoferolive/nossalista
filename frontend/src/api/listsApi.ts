@@ -1,6 +1,14 @@
 import client from './client';
 import { AxiosError } from 'axios';
-import { CreateListRequest, ListResponse, InviteLinkResponse, JoinListResponse, ListJoinedResponse } from '../types/List';
+import {
+  CreateListRequest,
+  ListResponse,
+  InviteLinkResponse,
+  JoinListResponse,
+  ListJoinedResponse,
+  UserSearchResult,
+  InviteByUsernameResponse,
+} from '../types/List';
 import { ProblemDetail } from '../types/ProblemDetail';
 import { ApiError } from '../types/ApiError';
 
@@ -233,6 +241,62 @@ export const listsApi = {
             status
           );
         }
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  async searchUsers(query: string): Promise<UserSearchResult[]> {
+    try {
+      const response = await client.get<UserSearchResult[]>('/api/users/search', {
+        params: { q: query },
+      });
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 400) {
+          throw new ApiError(problemDetail?.detail || 'Busca inválida', 400);
+        } else if (status === 401) {
+          throw new ApiError('Sessão expirada. Faça login novamente.', 401);
+        }
+
+        throw new ApiError(problemDetail?.detail || 'Erro ao buscar usuários', status);
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  async inviteByUsername(listId: string, username: string): Promise<InviteByUsernameResponse> {
+    try {
+      const response = await client.post<InviteByUsernameResponse>(`/api/lists/${listId}/invite`, {
+        username,
+      });
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 404) {
+          throw new ApiError(problemDetail?.detail || 'Usuário não encontrado', 404);
+        } else if (status === 409) {
+          throw new ApiError(problemDetail?.detail || 'Usuário já é membro', 409);
+        } else if (status === 403) {
+          throw new ApiError(problemDetail?.detail || 'Apenas o dono pode convidar', 403);
+        } else if (status === 401) {
+          throw new ApiError('Sessão expirada. Faça login novamente.', 401);
+        }
+
+        throw new ApiError(problemDetail?.detail || 'Erro ao convidar usuário', status);
       }
 
       throw new ApiError('Erro de conexão. Verifique sua internet.');

@@ -76,7 +76,7 @@ development_status:
   4-2-gerar-link-de-convite: done
   4-3-aceitar-convite-via-link-read-only-mode: done
   4-4-entrar-na-lista-autenticado: done
-  4-5-convidar-por-username: backlog
+  4-5-convidar-por-username: review
   4-6-ver-membros-e-sair-da-lista: backlog
   4-7-remover-participante: backlog
   epic-4-retrospective: optional

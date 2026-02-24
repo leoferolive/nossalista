@@ -104,6 +104,17 @@ export interface ListJoinedResponse {
   list: ListResponse;
 }
 
+export interface UserSearchResult {
+  username: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface InviteByUsernameResponse {
+  invited_username: string;
+  message: string;
+}
+
 /**
  * Definições dos tipos de lista com emoji e descrição
  */

@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { InviteLinkResponse } from '../types/List';
+import React, { useState, useCallback, useEffect } from 'react';
+import { InviteLinkResponse, InviteByUsernameResponse, UserSearchResult } from '../types/List';
 import { useToast } from './Toast';
 
 interface InviteModalProps {
@@ -7,6 +7,9 @@ interface InviteModalProps {
   listName: string;
   onClose: () => void;
   onGenerateLink: () => Promise<InviteLinkResponse>;
+  onSearchUsers: (query: string) => Promise<UserSearchResult[]>;
+  onInviteByUsername: (username: string) => Promise<InviteByUsernameResponse>;
+  onInviteSuccess?: (username: string) => void;
 }
 
 /**
@@ -19,12 +22,21 @@ export const InviteModal: React.FC<InviteModalProps> = ({
   listName,
   onClose,
   onGenerateLink,
+  onSearchUsers,
+  onInviteByUsername,
+  onInviteSuccess,
 }) => {
   const [inviteData, setInviteData] = useState<InviteLinkResponse | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copying, setCopying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const { showToast } = useToast();
 
   // Handler para gerar link
@@ -89,8 +101,73 @@ export const InviteModal: React.FC<InviteModalProps> = ({
     setInviteData(null);
     setError(null);
     setCopied(false);
+    setSearchQuery('');
+    setSelectedUser(null);
+    setSearchResults([]);
+    setSearchError(null);
     onClose();
   }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      setSearchError(null);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      setSearching(true);
+      setSearchError(null);
+
+      try {
+        const results = await onSearchUsers(searchQuery.trim());
+        setSearchResults(results);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao buscar usuários';
+        setSearchError(message);
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isOpen, onSearchUsers, searchQuery]);
+
+  const handleSelectUser = useCallback((user: UserSearchResult) => {
+    setSelectedUser(user);
+    setSearchQuery(user.username);
+    setSearchResults([]);
+    setSearchError(null);
+  }, []);
+
+  const handleInviteByUsername = useCallback(async () => {
+    if (!selectedUser) {
+      return;
+    }
+
+    setInviting(true);
+    setError(null);
+
+    try {
+      await onInviteByUsername(selectedUser.username);
+      showToast(`${selectedUser.username} convidado!`, 'success');
+      onInviteSuccess?.(selectedUser.username);
+      handleClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao convidar usuário';
+      setError(message);
+      showToast(message, 'error');
+    } finally {
+      setInviting(false);
+    }
+  }, [handleClose, onInviteByUsername, onInviteSuccess, selectedUser, showToast]);
 
   // Fecha ao clicar no backdrop
   const handleBackdropClick = useCallback(
@@ -141,6 +218,72 @@ export const InviteModal: React.FC<InviteModalProps> = ({
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
+          </button>
+        </div>
+
+        {/* Seção Convidar por Username */}
+        <div className="space-y-4 mb-6">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            Convidar por Username
+          </h3>
+
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setSelectedUser(null);
+              }}
+              placeholder="Buscar usuário"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            {searching && (
+              <p className="text-xs text-gray-500 mt-2">Buscando...</p>
+            )}
+
+            {searchError && (
+              <p className="text-xs text-red-600 mt-2">{searchError}</p>
+            )}
+
+            {searchResults.length > 0 && (
+              <div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-56 overflow-y-auto">
+                {searchResults.map((user) => (
+                  <button
+                    key={user.username}
+                    type="button"
+                    onClick={() => handleSelectUser(user)}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
+                  >
+                    {user.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.username}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs">
+                        {user.username.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{user.username}</p>
+                      <p className="text-xs text-gray-500">{user.name}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleInviteByUsername}
+            disabled={!selectedUser || inviting}
+            className="w-full px-6 py-3 min-h-[48px] bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-emerald-700 hover:-translate-y-0.5 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          >
+            {inviting ? 'Convidando...' : 'Convidar'}
           </button>
         </div>
 
@@ -328,22 +471,6 @@ export const InviteModal: React.FC<InviteModalProps> = ({
         </div>
       </div>
 
-      {/* Animation styles */}
-      <style>{`
-        @keyframes slide-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-slide-up {
-          animation: slide-up 300ms cubic-bezier(0.16, 1, 0.3, 1);
-        }
-      `}</style>
     </div>
   );
 };
