@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.member.dto.InviteByUsernameRequest;
 import br.com.leoferolive.nossalista.member.dto.InviteByUsernameResponse;
 import br.com.leoferolive.nossalista.member.dto.ListMemberResponse;
 import br.com.leoferolive.nossalista.member.service.MemberService;
+import br.com.leoferolive.nossalista.user.domain.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -60,9 +60,9 @@ public class MemberController {
     public ResponseEntity<InviteByUsernameResponse> inviteByUsername(
         @PathVariable UUID id,
         @Valid @RequestBody InviteByUsernameRequest request,
-        @AuthenticationPrincipal UserDetails userDetails
+        @AuthenticationPrincipal User authenticatedUser
     ) {
-        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        UUID requesterId = authenticatedUser.getId();
         InviteByUsernameResponse response = memberService.inviteByUsername(id, requesterId, request.username());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -85,9 +85,9 @@ public class MemberController {
     })
     public ResponseEntity<java.util.List<ListMemberResponse>> getMembers(
         @PathVariable UUID id,
-        @AuthenticationPrincipal UserDetails userDetails
+        @AuthenticationPrincipal User authenticatedUser
     ) {
-        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        UUID requesterId = authenticatedUser.getId();
         return ResponseEntity.ok(memberService.getMembers(id, requesterId));
     }
 
@@ -108,9 +108,9 @@ public class MemberController {
     })
     public ResponseEntity<Void> leaveList(
         @PathVariable UUID id,
-        @AuthenticationPrincipal UserDetails userDetails
+        @AuthenticationPrincipal User authenticatedUser
     ) {
-        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        UUID requesterId = authenticatedUser.getId();
         memberService.leaveList(id, requesterId);
         return ResponseEntity.noContent().header(HttpHeaders.CONTENT_LENGTH, "0").build();
     }
