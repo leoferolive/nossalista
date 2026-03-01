@@ -53,6 +53,8 @@ public class SecurityConfig {
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         // Endpoint de join via convite - GET é público (read-only), POST requer auth
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/lists/join/**").permitAll()
+                        // WebSocket endpoint - auth feita pelo WebSocketAuthInterceptor
+                        .requestMatchers("/ws/**").permitAll()
                         // Endpoints da API requerem autenticação
                         .requestMatchers("/api/**").authenticated()
                         // Negar tudo que não se enquadra nas regras acima

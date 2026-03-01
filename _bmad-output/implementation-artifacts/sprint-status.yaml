@@ -79,8 +79,8 @@ development_status:
   4-7-remover-participante: done
   epic-4-retrospective: optional
 
-  epic-5: backlog
-  5-1-setup-e-configuracao-de-websocket: backlog
+  epic-5: in-progress
+  5-1-setup-e-configuracao-de-websocket: done
   5-2-formato-de-mensagem-e-broadcast-de-itens: backlog
   5-3-sincronizacao-de-checkbox-item-check: backlog
   5-4-indicadores-online-e-membros: backlog

@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext.tsx'
+import { WebSocketProvider } from './contexts/WebSocketContext.tsx'
 import Login from './pages/Login.tsx'
 import { AuthCallback } from './pages/AuthCallback.tsx'
 import { Home } from './pages/Home.tsx'
@@ -62,7 +63,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <WebSocketProvider>
+          <AppRoutes />
+        </WebSocketProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,
