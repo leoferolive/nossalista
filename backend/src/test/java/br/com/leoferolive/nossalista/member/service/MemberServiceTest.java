@@ -9,6 +9,7 @@ import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.dto.InviteByUsernameResponse;
 import br.com.leoferolive.nossalista.member.dto.ListMemberResponse;
 import br.com.leoferolive.nossalista.member.exception.MemberInvitationConflictException;
+import br.com.leoferolive.nossalista.member.exception.MemberNotFoundException;
 import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteException;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -27,6 +28,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -198,6 +200,73 @@ class MemberServiceTest {
         assertThatThrownBy(() -> memberService.leaveList(testList.getId(), owner.getId()))
             .isInstanceOf(ForbiddenException.class)
             .hasMessageContaining("O dono nao pode sair");
+    }
+
+    @Test
+    @DisplayName("OWNER remove MEMBER com sucesso")
+    void shouldRemoveMemberSuccessfully() {
+        ListMember targetMembership = new ListMember();
+        targetMembership.setList(testList);
+        targetMembership.setUser(memberUser);
+        targetMembership.setRole(MemberRole.MEMBER);
+
+        when(listRepository.findByIdWithDetails(testList.getId())).thenReturn(Optional.of(testList));
+        when(listMemberRepository.findByListIdAndUserId(testList.getId(), memberUser.getId()))
+            .thenReturn(Optional.of(targetMembership));
+
+        memberService.removeMember(testList.getId(), owner.getId(), memberUser.getId());
+
+        verify(listMemberRepository).delete(targetMembership);
+    }
+
+    @Test
+    @DisplayName("Não-OWNER tenta remover → 403 'Apenas o dono pode remover participantes'")
+    void shouldThrow403WhenNonOwnerTriesToRemove() {
+        when(listRepository.findByIdWithDetails(testList.getId())).thenReturn(Optional.of(testList));
+
+        assertThatThrownBy(() -> memberService.removeMember(testList.getId(), memberUser.getId(), targetUser.getId()))
+            .isInstanceOf(ForbiddenException.class)
+            .hasMessageContaining("Apenas o dono pode remover participantes");
+
+        verify(listMemberRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("OWNER tenta remover o próprio OWNER → 403 'O dono não pode ser removido'")
+    void shouldThrow403WhenOwnerTriesToRemoveOwner() {
+        when(listRepository.findByIdWithDetails(testList.getId())).thenReturn(Optional.of(testList));
+
+        assertThatThrownBy(() -> memberService.removeMember(testList.getId(), owner.getId(), owner.getId()))
+            .isInstanceOf(ForbiddenException.class)
+            .hasMessageContaining("O dono não pode ser removido");
+
+        verify(listMemberRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("OWNER tenta remover usuário que não é membro → 404")
+    void shouldThrow404WhenTargetIsNotMember() {
+        when(listRepository.findByIdWithDetails(testList.getId())).thenReturn(Optional.of(testList));
+        when(listMemberRepository.findByListIdAndUserId(testList.getId(), targetUser.getId()))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> memberService.removeMember(testList.getId(), owner.getId(), targetUser.getId()))
+            .isInstanceOf(MemberNotFoundException.class)
+            .hasMessageContaining("Usuário não é membro desta lista");
+
+        verify(listMemberRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("Lista não encontrada em removeMember → 404")
+    void shouldThrow404WhenListNotFoundInRemoveMember() {
+        when(listRepository.findByIdWithDetails(testList.getId())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> memberService.removeMember(testList.getId(), owner.getId(), memberUser.getId()))
+            .isInstanceOf(ListNotFoundException.class)
+            .hasMessageContaining("Lista não encontrada");
+
+        verify(listMemberRepository, never()).delete(any());
     }
 
     @Test

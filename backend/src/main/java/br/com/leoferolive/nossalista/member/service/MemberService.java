@@ -9,6 +9,7 @@ import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.dto.InviteByUsernameResponse;
 import br.com.leoferolive.nossalista.member.dto.ListMemberResponse;
 import br.com.leoferolive.nossalista.member.exception.MemberInvitationConflictException;
+import br.com.leoferolive.nossalista.member.exception.MemberNotFoundException;
 import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteException;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -91,6 +92,30 @@ public class MemberService {
                 member.getCreatedAt()
             ))
             .toList();
+    }
+
+    @Transactional
+    public void removeMember(UUID listId, UUID requesterId, UUID targetUserId) {
+        List list = listRepository.findByIdWithDetails(listId)
+            .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        // AC3: Apenas OWNER pode remover participantes
+        if (!list.getOwner().getId().equals(requesterId)) {
+            throw new ForbiddenException("Apenas o dono pode remover participantes");
+        }
+
+        // AC2: O dono não pode ser removido
+        if (targetUserId.equals(list.getOwner().getId())) {
+            throw new ForbiddenException("O dono não pode ser removido");
+        }
+
+        // AC1: Verificar se targetUser é membro (404 para não vazar informações)
+        ListMember targetMembership = listMemberRepository.findByListIdAndUserId(listId, targetUserId)
+            .orElseThrow(() -> new MemberNotFoundException("Usuário não é membro desta lista"));
+
+        listMemberRepository.delete(targetMembership);
+
+        // TODO: Activity log hook (Epic 6) — notify member removed event
     }
 
     @Transactional

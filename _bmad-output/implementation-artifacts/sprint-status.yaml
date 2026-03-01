@@ -1,4 +1,4 @@
-# generated: 2026-02-12
+# generated: 2026-03-01
 # project: nossalista
 # project_key: NOKEY
 # tracking_system: file-system
@@ -33,12 +33,10 @@
 # - SM cria próxima story após anterior estar 'done' para incorporar aprendizados
 # - Dev move story para 'review', depois run code-review (auto-aprova)
 #
-# Status Atual: Epic 3 completo, Epic 4 em andamento
-# Story 4.4 (entrar-na-lista-autenticado) criada com análise exhaustiva de contexto
-# Completa fluxo de convite: visualizar read-only (4.3) → autenticar → entrar como membro (4.4)
-# Pronta para implementação pelo dev agent
+# Status Atual: Epic 3 completo (todas stories done, retrospective pendente),
+#               Epic 4 em andamento (story 4.5 em review, 4.7 no backlog)
 
-generated: 2026-02-12
+generated: 2026-03-01
 project: nossalista
 project_key: NOKEY
 tracking_system: file-system
@@ -46,7 +44,7 @@ story_location: /home/leoferolive/projetos/nossalista/_bmad-output/implementatio
 
 development_status:
   epic-1: done
-  1-1-setup-e-configuracao-de-seguranca: done
+  1-1-setup-do-projeto-e-configuracao-de-seguranca: done
   1-2-registro-com-email-senha: done
   1-3-login-com-email-senha: done
   1-4-integracao-google-oauth2: done
@@ -78,7 +76,7 @@ development_status:
   4-4-entrar-na-lista-autenticado: done
   4-5-convidar-por-username: review
   4-6-ver-membros-e-sair-da-lista: done
-  4-7-remover-participante: backlog
+  4-7-remover-participante: done
   epic-4-retrospective: optional
 
   epic-5: backlog

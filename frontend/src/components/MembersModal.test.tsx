@@ -39,6 +39,11 @@ describe('MembersModal', () => {
     isLeaveConfirmOpen: false,
     onConfirmLeave: vi.fn(),
     onCancelLeave: vi.fn(),
+    onRemoveMember: vi.fn(),
+    removingMemberId: null,
+    removeConfirmMemberId: null,
+    onConfirmRemove: vi.fn(),
+    onCancelRemove: vi.fn(),
   };
 
   it('não deve renderizar quando isOpen é false', () => {
@@ -113,5 +118,45 @@ describe('MembersModal', () => {
     render(<MembersModal {...defaultProps} onClose={onClose} />);
     fireEvent.click(screen.getByLabelText('Fechar membros'));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('deve mostrar botão de remoção para MEMBER quando isOwner é true', () => {
+    render(<MembersModal {...defaultProps} isOwner={true} />);
+    expect(screen.getByLabelText('Remover memberuser')).toBeInTheDocument();
+  });
+
+  it('não deve mostrar botão de remoção quando isOwner é false', () => {
+    render(<MembersModal {...defaultProps} isOwner={false} />);
+    expect(screen.queryByLabelText('Remover memberuser')).not.toBeInTheDocument();
+  });
+
+  it('OWNER não deve ter botão de remoção ao lado do próprio nome', () => {
+    render(<MembersModal {...defaultProps} isOwner={true} />);
+    expect(screen.queryByLabelText('Remover owneruser')).not.toBeInTheDocument();
+  });
+
+  it('deve mostrar modal de confirmação quando removeConfirmMemberId está definido', () => {
+    render(<MembersModal {...defaultProps} isOwner={true} removeConfirmMemberId="user-2" />);
+    expect(screen.getByText(/Remover memberuser\? Ação não pode ser desfeita\./)).toBeInTheDocument();
+    expect(screen.getByText('Confirmar Remoção')).toBeInTheDocument();
+  });
+
+  it('deve chamar onConfirmRemove ao confirmar e onCancelRemove ao cancelar', () => {
+    const onConfirmRemove = vi.fn();
+    const onCancelRemove = vi.fn();
+    render(
+      <MembersModal
+        {...defaultProps}
+        isOwner={true}
+        removeConfirmMemberId="user-2"
+        onConfirmRemove={onConfirmRemove}
+        onCancelRemove={onCancelRemove}
+      />
+    );
+    fireEvent.click(screen.getByText('Confirmar Remoção'));
+    expect(onConfirmRemove).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText('Cancelar'));
+    expect(onCancelRemove).toHaveBeenCalled();
   });
 });

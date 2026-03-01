@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -89,6 +90,31 @@ public class MemberController {
     ) {
         UUID requesterId = authenticatedUser.getId();
         return ResponseEntity.ok(memberService.getMembers(id, requesterId));
+    }
+
+    @DeleteMapping("/{id}/members/{userId}")
+    @Operation(
+        summary = "Remover participante da lista",
+        description = "Apenas o dono da lista pode remover participantes",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Participante removido"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "403", description = "Sem permissão",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "404", description = "Lista ou membro não encontrado",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    public ResponseEntity<Void> removeMember(
+        @PathVariable UUID id,
+        @PathVariable UUID userId,
+        @AuthenticationPrincipal User authenticatedUser
+    ) {
+        UUID requesterId = authenticatedUser.getId();
+        memberService.removeMember(id, requesterId, userId);
+        return ResponseEntity.noContent().header(HttpHeaders.CONTENT_LENGTH, "0").build();
     }
 
     @PostMapping("/{id}/leave")

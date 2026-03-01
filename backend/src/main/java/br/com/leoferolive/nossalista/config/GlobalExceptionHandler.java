@@ -10,6 +10,7 @@ import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationExceptio
 import br.com.leoferolive.nossalista.list.exception.InviteExpiredException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.member.exception.MemberInvitationConflictException;
+import br.com.leoferolive.nossalista.member.exception.MemberNotFoundException;
 import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteException;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
@@ -311,6 +312,22 @@ public class GlobalExceptionHandler {
         );
         problem.setType(URI.create("https://api.nossalista.com/docs/errors/user-not-found"));
         problem.setTitle("Usuário não encontrado");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
+    }
+
+    @ExceptionHandler(MemberNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleMemberNotFound(
+        MemberNotFoundException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.NOT_FOUND,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/member-not-found"));
+        problem.setTitle("Membro não encontrado");
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);

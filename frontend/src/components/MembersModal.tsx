@@ -16,6 +16,11 @@ export interface MembersModalProps {
   isLeaveConfirmOpen: boolean;
   onConfirmLeave: () => void;
   onCancelLeave: () => void;
+  onRemoveMember: (userId: string) => void;
+  removingMemberId: string | null;
+  removeConfirmMemberId: string | null;
+  onConfirmRemove: () => void;
+  onCancelRemove: () => void;
 }
 
 /**
@@ -36,6 +41,11 @@ export const MembersModal: React.FC<MembersModalProps> = ({
   isLeaveConfirmOpen,
   onConfirmLeave,
   onCancelLeave,
+  onRemoveMember,
+  removingMemberId,
+  removeConfirmMemberId,
+  onConfirmRemove,
+  onCancelRemove,
 }) => {
   if (!isOpen) return null;
 
@@ -70,40 +80,81 @@ export const MembersModal: React.FC<MembersModalProps> = ({
         {!loading && !error && (
           <div className="space-y-3 max-h-72 overflow-y-auto">
             {members.map((member) => (
-              <div key={member.user.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100">
-                {/* Avatar */}
-                {member.user.avatar_url ? (
-                  <img
-                    src={member.user.avatar_url}
-                    alt={member.user.username}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm">
-                    {member.user.username.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
+              <div key={member.user.id}>
+                <div className="flex items-center gap-3 p-2 rounded-lg border border-gray-100">
+                  {/* Avatar */}
+                  {member.user.avatar_url ? (
+                    <img
+                      src={member.user.avatar_url}
+                      alt={member.user.username}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm">
+                      {member.user.username.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
 
-                {/* Info do usuário */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {member.user.username}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {member.user.name}
-                  </p>
+                  {/* Info do usuário */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {member.user.username}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {member.user.name}
+                    </p>
+                  </div>
+
+                  {/* Badge de role */}
+                  <span
+                    className={`text-xs px-2 py-1 rounded font-medium ${
+                      member.role === 'OWNER'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    {member.role === 'OWNER' ? 'Dono' : 'Membro'}
+                  </span>
+
+                  {/* Botão remover: visível apenas para MEMBERs quando o usuário logado é OWNER */}
+                  {isOwner && member.role === 'MEMBER' && (
+                    <button
+                      onClick={() => onRemoveMember(member.user.id)}
+                      disabled={removingMemberId === member.user.id}
+                      className="p-1.5 min-w-[32px] min-h-[32px] text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      aria-label={`Remover ${member.user.username}`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
 
-                {/* Badge de role */}
-                <span
-                  className={`text-xs px-2 py-1 rounded font-medium ${
-                    member.role === 'OWNER'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  {member.role === 'OWNER' ? 'Dono' : 'Membro'}
-                </span>
+                {/* Confirmação inline de remoção */}
+                {removeConfirmMemberId === member.user.id && (
+                  <div className="mt-1 border border-red-200 bg-red-50 rounded-lg p-3">
+                    <p className="text-sm text-red-900 mb-2">
+                      Remover {member.user.username}? Ação não pode ser desfeita.
+                    </p>
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={onCancelRemove}
+                        className="px-3 py-1.5 min-h-[36px] rounded-lg border border-gray-300 text-gray-700 hover:bg-white text-sm"
+                        disabled={removingMemberId === member.user.id}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={onConfirmRemove}
+                        className="px-3 py-1.5 min-h-[36px] rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300 text-sm"
+                        disabled={removingMemberId === member.user.id}
+                      >
+                        {removingMemberId === member.user.id ? 'Removendo...' : 'Confirmar Remoção'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

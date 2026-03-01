@@ -99,6 +99,8 @@ export const ListView: React.FC = () => {
   const [membersError, setMembersError] = useState<string | null>(null);
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
   const [leavingList, setLeavingList] = useState(false);
+  const [removeConfirmMemberId, setRemoveConfirmMemberId] = useState<string | null>(null);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -308,12 +310,43 @@ export const ListView: React.FC = () => {
   };
 
   const handleCloseMembersModal = () => {
-    if (leavingList) {
+    if (leavingList || removingMemberId) {
       return;
     }
     setIsMembersModalOpen(false);
     setMembersError(null);
     setIsLeaveConfirmOpen(false);
+    setRemoveConfirmMemberId(null);
+  };
+
+  const handleRemoveMember = (userId: string) => {
+    setRemoveConfirmMemberId(userId);
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!id || !removeConfirmMemberId || removingMemberId) return;
+
+    const userId = removeConfirmMemberId;
+    const username = members.find((m) => m.user.id === userId)?.user.username ?? userId;
+    setRemovingMemberId(userId);
+
+    try {
+      await listsApi.deleteListMember(id, userId);
+      setMembers((prev) => prev.filter((m) => m.user.id !== userId));
+      setMemberCount((prev) => (prev !== null ? prev - 1 : null));
+      setRemoveConfirmMemberId(null);
+      setRemoveConfirmMemberUsername(null);
+      showToast(`${username} removido da lista`, 'success');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao remover participante';
+      showToast(message, 'error');
+    } finally {
+      setRemovingMemberId(null);
+    }
+  };
+
+  const handleCancelRemove = () => {
+    setRemoveConfirmMemberId(null);
   };
 
   const handleConfirmLeaveList = async () => {
@@ -489,7 +522,7 @@ export const ListView: React.FC = () => {
           >
             <span aria-hidden="true">👥</span>
             <span className="font-medium text-sm">Membros</span>
-            <span className="text-sm text-gray-600">👥 {memberCountLabel}</span>
+            <span className="text-sm text-gray-600">{memberCountLabel}</span>
           </button>
           {/* Menu de ações - apenas para dono da lista */}
           <button
@@ -790,6 +823,11 @@ export const ListView: React.FC = () => {
           isLeaveConfirmOpen={isLeaveConfirmOpen}
           onConfirmLeave={handleConfirmLeaveList}
           onCancelLeave={() => setIsLeaveConfirmOpen(false)}
+          onRemoveMember={handleRemoveMember}
+          removingMemberId={removingMemberId}
+          removeConfirmMemberId={removeConfirmMemberId}
+          onConfirmRemove={handleConfirmRemove}
+          onCancelRemove={handleCancelRemove}
         />
       )}
 

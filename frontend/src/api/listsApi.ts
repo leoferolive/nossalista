@@ -331,6 +331,31 @@ export const listsApi = {
     }
   },
 
+  async deleteListMember(listId: string, userId: string): Promise<void> {
+    try {
+      await client.delete(`/api/lists/${listId}/members/${userId}`);
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 403) {
+          throw new ApiError(problemDetail?.detail || 'Sem permissão para remover participante', 403);
+        } else if (status === 404) {
+          throw new ApiError(problemDetail?.detail || 'Membro não encontrado', 404);
+        } else if (status === 401) {
+          throw new ApiError('Sessão expirada. Faça login novamente.', 401);
+        }
+
+        throw new ApiError(problemDetail?.detail || 'Erro ao remover participante', status);
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
   async leaveList(listId: string): Promise<void> {
     try {
       await client.post(`/api/lists/${listId}/leave`);
