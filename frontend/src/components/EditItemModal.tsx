@@ -92,21 +92,24 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
         {/* Campo name (obrigatório para todos os tipos) */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Nome</label>
+          <label htmlFor="edit-item-name" className="block text-sm font-medium mb-1">Nome</label>
           <input
+            id="edit-item-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full p-2 border rounded-lg"
             placeholder="Nome do item"
+            data-testid="edit-item-name"
           />
         </div>
 
         {/* Campos específicos por tipo */}
         {listType === 'SHOPPING' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Quantidade</label>
+            <label htmlFor="edit-item-quantity" className="block text-sm font-medium mb-1">Quantidade</label>
             <input
+              id="edit-item-quantity"
               type="number"
               min="1"
               value={quantity}
@@ -118,8 +121,9 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
         {listType === 'TASK' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Data de Prazo</label>
+            <label htmlFor="edit-item-due-date" className="block text-sm font-medium mb-1">Data de Prazo</label>
             <input
+              id="edit-item-due-date"
               type="datetime-local"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
@@ -130,8 +134,9 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
         {listType === 'WISHLIST' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">URL/Link</label>
+            <label htmlFor="edit-item-url" className="block text-sm font-medium mb-1">URL/Link</label>
             <input
+              id="edit-item-url"
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}

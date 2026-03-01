@@ -253,8 +253,12 @@ openai/gpt-5.3-codex
 - `frontend/src/pages/ListView.tsx`
 - `frontend/src/pages/Home.tsx`
 - `frontend/src/pages/ListView.test.tsx`
+- `frontend/src/components/MembersModal.tsx`
+- `frontend/src/components/MembersModal.test.tsx`
 
 ### Change Log
 
 - 2026-02-24: Implementada Story 4.6 com endpoints de membros/leave, painel de membros no frontend e cobertura de testes backend/frontend.
 - 2026-02-24: Code review adversarial concluido; corrigidos issues HIGH/MEDIUM e story promovida para `done`.
+- 2026-02-28: Code review adversarial (2ª rodada). Corrigidos: bug de paginação em useActivities, onEdit→onCancelEdit em UserProfile, lazy loading de atividades em ListView, memory leak de objectURL, upload de avatar quebrado (substituído por URL input), toast duplicado, userName hardcoded em ActivityTimeline, File List desatualizada e testes de confirmação ausentes em MembersModal.
+- 2026-02-28: ATENÇÃO — mudanças não commitadas incluem features não documentadas (ActivityTimeline, UserProfile/Profile) que devem ser rastreadas em stories separadas antes do próximo commit.

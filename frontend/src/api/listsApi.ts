@@ -12,6 +12,7 @@ import {
 } from '../types/List';
 import { ProblemDetail } from '../types/ProblemDetail';
 import { ApiError } from '../types/ApiError';
+import { ActivityResponse } from '../types/ActivityLog';
 
 /**
  * API para gerenciamento de listas
@@ -349,6 +350,34 @@ export const listsApi = {
         }
 
         throw new ApiError(problemDetail?.detail || 'Erro ao sair da lista', status);
+      }
+
+      throw new ApiError('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  async getActivities(listId: string, page = 0, size = 50): Promise<ActivityResponse> {
+    try {
+      const response = await client.get<ActivityResponse>(`/api/lists/${listId}/activity`, {
+        params: { page, size },
+      });
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 403) {
+          throw new ApiError(problemDetail?.detail || 'Você não tem permissão para ver as atividades', 403);
+        } else if (status === 404) {
+          throw new ApiError(problemDetail?.detail || 'Lista não encontrada', 404);
+        } else if (status === 401) {
+          throw new ApiError('Sessão expirada. Faça login novamente.', 401);
+        }
+
+        throw new ApiError(problemDetail?.detail || 'Erro ao carregar atividades', status);
       }
 
       throw new ApiError('Erro de conexão. Verifique sua internet.');
