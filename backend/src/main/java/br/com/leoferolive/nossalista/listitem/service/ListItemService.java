@@ -13,6 +13,7 @@ import br.com.leoferolive.nossalista.listitem.dto.ListItemResponseDTO;
 import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
+import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
 import org.slf4j.Logger;
@@ -37,15 +38,18 @@ public class ListItemService {
     private final ListRepository listRepository;
     private final ListItemMapper listItemMapper;
     private final SimpMessagingTemplate simpMessagingTemplate;
+    private final ListMemberRepository listMemberRepository;
 
     public ListItemService(ListItemRepository listItemRepository,
                            ListRepository listRepository,
                            ListItemMapper listItemMapper,
-                           SimpMessagingTemplate simpMessagingTemplate) {
+                           SimpMessagingTemplate simpMessagingTemplate,
+                           ListMemberRepository listMemberRepository) {
         this.listItemRepository = listItemRepository;
         this.listRepository = listRepository;
         this.listItemMapper = listItemMapper;
         this.simpMessagingTemplate = simpMessagingTemplate;
+        this.listMemberRepository = listMemberRepository;
     }
 
     /**
@@ -185,10 +189,7 @@ public class ListItemService {
             return true;
         }
 
-        // TODO: Story 4.1 - Verificar se é membro da lista
-        // Por enquanto, apenas donos são considerados participantes
-
-        return false;
+        return listMemberRepository.existsByListIdAndUserId(list.getId(), user.getId());
     }
 
     /**
@@ -349,12 +350,15 @@ public class ListItemService {
         ListItem saved = listItemRepository.save(item);
 
         // 8. Log com campos alterados
+        String fieldsChanged = String.join(", ",
+            java.util.stream.Stream.of(
+                request.getName() != null ? "name" : null,
+                request.getQuantity() != null ? "quantity" : null,
+                request.getDueDate() != null ? "dueDate" : null,
+                request.getUrl() != null ? "url" : null
+            ).filter(java.util.Objects::nonNull).collect(Collectors.toList()));
         log.info("Item updated: itemId={}, listId={}, user={}, fieldsChanged={}",
-                itemId, listId, user.getId(), 
-                request.getName() != null ? "name" : "",
-                request.getQuantity() != null ? "quantity" : "",
-                request.getDueDate() != null ? "dueDate" : "",
-                request.getUrl() != null ? "url" : "");
+                itemId, listId, user.getId(), fieldsChanged);
 
         // 9. Broadcast WebSocket e retornar DTO
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);

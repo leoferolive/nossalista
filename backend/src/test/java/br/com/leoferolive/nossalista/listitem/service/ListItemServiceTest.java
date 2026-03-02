@@ -12,6 +12,7 @@ import br.com.leoferolive.nossalista.listitem.dto.ListItemResponseDTO;
 import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
+import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +52,9 @@ class ListItemServiceTest {
 
     @Mock
     private SimpMessagingTemplate simpMessagingTemplate;
+
+    @Mock
+    private ListMemberRepository listMemberRepository;
 
     @InjectMocks
     private ListItemService listItemService;
