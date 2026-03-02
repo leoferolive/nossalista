@@ -13,14 +13,17 @@ import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -28,7 +31,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -45,6 +48,9 @@ class ListItemServiceTest {
 
     @Mock
     private ListItemMapper listItemMapper;
+
+    @Mock
+    private SimpMessagingTemplate simpMessagingTemplate;
 
     @InjectMocks
     private ListItemService listItemService;
@@ -1213,6 +1219,124 @@ class ListItemServiceTest {
             verify(listRepository).findById(listId);
             verify(listItemRepository).findById(itemId);
             verify(listItemRepository, never()).delete(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("WebSocket Broadcast — AC2-5: Broadcast automático após operações de item")
+    class WebSocketBroadcastTests {
+
+        private ListItem testItem;
+        private UUID itemId;
+        private ListItemResponseDTO testResponseDTO;
+
+        @BeforeEach
+        void setUp() {
+            itemId = UUID.randomUUID();
+            testItem = new ListItem();
+            testItem.setId(itemId);
+            testItem.setName("Item WebSocket Test");
+            testItem.setList(testList);
+            testItem.setCreatedBy(testUser);
+            testItem.setPosition(0);
+            testItem.setChecked(false);
+
+            testResponseDTO = new ListItemResponseDTO(
+                    itemId, "Item WebSocket Test", false,
+                    null, null, null, 0,
+                    new ListItemResponseDTO.CreatorResponse(
+                            testUser.getId(), testUser.getUsername(), "Test User", null),
+                    LocalDateTime.now(), LocalDateTime.now()
+            );
+        }
+
+        @Test
+        @DisplayName("addItem deve publicar ITEM_ADDED com userId, username e payload corretos")
+        void addItem_shouldBroadcastItemAdded() {
+            // Arrange
+            CreateItemRequestDTO dto = new CreateItemRequestDTO("Item", null, null, null, null);
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(inv -> {
+                ListItem item = inv.getArgument(0);
+                item.setId(UUID.randomUUID());
+                return item;
+            });
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(testResponseDTO);
+
+            // Act
+            listItemService.addItem(listId, dto, testUser);
+
+            // Assert: verificar que convertAndSend foi chamado com destino correto e mensagem ITEM_ADDED
+            ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
+            WebSocketMessage captured = (WebSocketMessage) payloadCaptor.getValue();
+            assertEquals("ITEM_ADDED", captured.getType());
+            assertNotNull(captured.getPayload());
+            assertEquals(testUser.getId(), captured.getUserId());
+            assertEquals(testUser.getUsername(), captured.getUsername());
+            assertNotNull(captured.getTimestamp());
+        }
+
+        @Test
+        @DisplayName("updateItem deve publicar ITEM_UPDATED com type correto")
+        void updateItem_shouldBroadcastItemUpdated() {
+            // Arrange
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Item Atualizado");
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(testItem));
+            when(listItemRepository.save(any(ListItem.class))).thenReturn(testItem);
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(testResponseDTO);
+
+            // Act
+            listItemService.updateItem(listId, itemId, request, testUser);
+
+            // Assert
+            ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
+            assertEquals("ITEM_UPDATED", ((WebSocketMessage) payloadCaptor.getValue()).getType());
+        }
+
+        @Test
+        @DisplayName("toggleItemCheck deve publicar ITEM_CHECKED com type correto")
+        void toggleItemCheck_shouldBroadcastItemChecked() {
+            // Arrange
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(testItem));
+            when(listItemRepository.save(any(ListItem.class))).thenReturn(testItem);
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(testResponseDTO);
+
+            // Act
+            listItemService.toggleItemCheck(listId, itemId, testUser);
+
+            // Assert
+            ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
+            assertEquals("ITEM_CHECKED", ((WebSocketMessage) payloadCaptor.getValue()).getType());
+        }
+
+        @Test
+        @DisplayName("deleteItem deve publicar ITEM_REMOVED com DTO capturado antes da deleção")
+        void deleteItem_shouldBroadcastItemRemoved() {
+            // Arrange
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(testItem));
+            when(listItemRepository.findByListIdAndPositionGreaterThanOrderByPositionAsc(listId, 0))
+                .thenReturn(Collections.emptyList());
+            when(listItemMapper.toListItemResponseDTO(testItem)).thenReturn(testResponseDTO);
+
+            // Act
+            listItemService.deleteItem(listId, itemId, testUser);
+
+            // Assert: broadcast acontece APÓS a deleção, com DTO capturado antes
+            verify(listItemMapper).toListItemResponseDTO(testItem); // chamado antes de deletar
+            verify(listItemRepository).delete(testItem);
+            ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
+            WebSocketMessage captured = (WebSocketMessage) payloadCaptor.getValue();
+            assertEquals("ITEM_REMOVED", captured.getType());
+            assertEquals(testResponseDTO, captured.getPayload());
         }
     }
 }

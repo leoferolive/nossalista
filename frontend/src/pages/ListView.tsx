@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
 import { useItems } from '../hooks/useItems';
 import { useActivities } from '../hooks/useActivities';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { useAuth } from '../contexts/AuthContext';
 import { LIST_TYPES } from '../types/List';
 import { EditListNameModal } from '../components/EditListNameModal';
 import { DeleteListModal } from '../components/DeleteListModal';
@@ -17,6 +19,7 @@ import { useToast, Toast } from '../components/Toast';
 import { ApiError } from '../types/ApiError';
 import { ListItem } from '../types/Item';
 import { ListMemberResponse } from '../types/List';
+import { ListWebSocketMessage } from '../types/WebSocketMessage';
 
 /**
  * Página de visualização de detalhes de uma lista
@@ -27,6 +30,8 @@ export const ListView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user: currentUser } = useAuth();
+  const { status: wsStatus, connect, disconnect, subscribe, unsubscribe } = useWebSocket();
   const {
     currentList,
     loadingList,
@@ -52,6 +57,7 @@ export const ListView: React.FC = () => {
   // Hook para gerenciar itens
   const {
     items,
+    setItems,
     loadingItems,
     errorItems,
     addingItem,
@@ -104,6 +110,64 @@ export const ListView: React.FC = () => {
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
+
+  // Handler de mensagens WebSocket — processa eventos de itens em tempo real
+  const handleWebSocketMessage = useCallback((raw: unknown) => {
+    const message = raw as ListWebSocketMessage;
+    const isOwnAction = message.userId === currentUser?.id;
+
+    switch (message.type) {
+      case 'ITEM_ADDED':
+        if (!isOwnAction) {
+          setItems((prev) => {
+            if (prev.some((i) => i.id === message.payload.id)) return prev;
+            return [...prev, message.payload];
+          });
+          showToast(`${message.username} adicionou ${message.payload.name}`, 'info');
+        }
+        break;
+      case 'ITEM_UPDATED':
+        if (!isOwnAction) {
+          setItems((prev) =>
+            prev.map((i) => (i.id === message.payload.id ? message.payload : i))
+          );
+          showToast(`${message.username} editou ${message.payload.name}`, 'info');
+        }
+        break;
+      case 'ITEM_REMOVED':
+        if (!isOwnAction) {
+          setItems((prev) => prev.filter((i) => i.id !== message.payload.id));
+          showToast(`${message.username} removeu ${message.payload.name}`, 'info');
+        }
+        break;
+      case 'ITEM_CHECKED':
+        if (!isOwnAction) {
+          setItems((prev) =>
+            prev.map((i) =>
+              i.id === message.payload.id ? { ...i, checked: message.payload.checked } : i
+            )
+          );
+          const action = message.payload.checked ? 'marcou' : 'desmarcou';
+          showToast(`${message.username} ${action} ${message.payload.name}`, 'info');
+        }
+        break;
+    }
+  }, [currentUser?.id, setItems, showToast]);
+
+  // Conexão WebSocket: conectar ao montar, desconectar ao desmontar
+  useEffect(() => {
+    connect();
+    return () => disconnect();
+  }, [connect, disconnect]);
+
+  // Subscrição WebSocket: subscrever quando CONNECTED, desinscrever ao desmontar/trocar lista
+  useEffect(() => {
+    if (wsStatus === 'CONNECTED' && id) {
+      subscribe(id, handleWebSocketMessage);
+      return () => unsubscribe(id);
+    }
+    return undefined;
+  }, [wsStatus, id, subscribe, unsubscribe, handleWebSocketMessage]);
 
   // Carregar dados da lista e itens ao montar o componente
   useEffect(() => {
@@ -335,7 +399,6 @@ export const ListView: React.FC = () => {
       setMembers((prev) => prev.filter((m) => m.user.id !== userId));
       setMemberCount((prev) => (prev !== null ? prev - 1 : null));
       setRemoveConfirmMemberId(null);
-      setRemoveConfirmMemberUsername(null);
       showToast(`${username} removido da lista`, 'success');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao remover participante';
