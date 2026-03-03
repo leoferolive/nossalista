@@ -53,4 +53,5 @@ export interface ListItemProps {
   onEdit: (item: ListItem) => void;
   onDelete?: (item: ListItem) => void;
   isDeleting?: boolean;
+  isWsAdded?: boolean;
 }

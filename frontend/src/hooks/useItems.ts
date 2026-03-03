@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { itemsApi } from '../api/itemsApi';
 import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item';
 
@@ -13,6 +13,7 @@ interface UseItemsReturn {
   deletingItemId: string | null;
 
   // Actions
+  setItems: React.Dispatch<React.SetStateAction<ListItem[]>>;
   fetchItems: (listId: string) => Promise<void>;
   addItem: (listId: string, request: CreateItemRequest) => Promise<ListItem>;
   toggleItem: (listId: string, itemId: string) => Promise<ListItem>;
@@ -223,6 +224,7 @@ export const useItems = (): UseItemsReturn => {
 
   return {
     items,
+    setItems,
     loadingItems,
     errorItems,
     addingItem,

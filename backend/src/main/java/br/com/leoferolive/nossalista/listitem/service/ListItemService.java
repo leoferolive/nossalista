@@ -13,12 +13,16 @@ import br.com.leoferolive.nossalista.listitem.dto.ListItemResponseDTO;
 import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
+import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -33,13 +37,19 @@ public class ListItemService {
     private final ListItemRepository listItemRepository;
     private final ListRepository listRepository;
     private final ListItemMapper listItemMapper;
+    private final SimpMessagingTemplate simpMessagingTemplate;
+    private final ListMemberRepository listMemberRepository;
 
     public ListItemService(ListItemRepository listItemRepository,
                            ListRepository listRepository,
-                           ListItemMapper listItemMapper) {
+                           ListItemMapper listItemMapper,
+                           SimpMessagingTemplate simpMessagingTemplate,
+                           ListMemberRepository listMemberRepository) {
         this.listItemRepository = listItemRepository;
         this.listRepository = listRepository;
         this.listItemMapper = listItemMapper;
+        this.simpMessagingTemplate = simpMessagingTemplate;
+        this.listMemberRepository = listMemberRepository;
     }
 
     /**
@@ -100,11 +110,12 @@ public class ListItemService {
         log.info("Item added: itemId={}, itemName='{}', listId={}, createdBy={}, position={}",
                 saved.getId(), saved.getName(), listId, creator.getId(), nextPosition);
 
-        // 9. TODO: WebSocket broadcast (Story 5.2)
-        // broadcastItemAdded(saved, creator);
+        // 9. Broadcast WebSocket
+        ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
+        broadcastItemEvent("ITEM_ADDED", result, creator, listId);
 
         // 10. Retornar DTO
-        return listItemMapper.toListItemResponseDTO(saved);
+        return result;
     }
 
     /**
@@ -164,12 +175,13 @@ public class ListItemService {
     }
 
     /**
-     * Verifica se o usuário é participante da lista (dono ou membro)
-     * Por enquanto, apenas verifica se é o dono (Story 4.1 adicionará membros)
+     * Verifica se o usuário é participante da lista (dono ou membro ativo).
+     * Realiza o check de dono em memória antes de consultar o banco,
+     * evitando queries desnecessárias quando o dono acessa sua própria lista.
      *
      * @param list Lista a verificar
      * @param user Usuário a verificar
-     * @return true se o usuário for participante
+     * @return true se o usuário for dono ou membro da lista
      */
     private boolean isParticipant(List list, User user) {
         // Verificar se é o dono (tratando lazy loading)
@@ -178,10 +190,7 @@ public class ListItemService {
             return true;
         }
 
-        // TODO: Story 4.1 - Verificar se é membro da lista
-        // Por enquanto, apenas donos são considerados participantes
-
-        return false;
+        return listMemberRepository.existsByListIdAndUserId(list.getId(), user.getId());
     }
 
     /**
@@ -256,8 +265,10 @@ public class ListItemService {
         log.info("Item toggled: itemId={}, checked={}, listId={}, user={}",
                 itemId, saved.isChecked(), listId, user.getId());
 
-        // 8. Retornar DTO
-        return listItemMapper.toListItemResponseDTO(saved);
+        // 8. Broadcast WebSocket e retornar DTO
+        ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
+        broadcastItemEvent("ITEM_CHECKED", result, user, listId);
+        return result;
     }
 
     /**
@@ -340,15 +351,19 @@ public class ListItemService {
         ListItem saved = listItemRepository.save(item);
 
         // 8. Log com campos alterados
+        java.util.List<String> changed = new java.util.ArrayList<>();
+        if (request.getName() != null)     changed.add("name");
+        if (request.getQuantity() != null) changed.add("quantity");
+        if (request.getDueDate() != null)  changed.add("dueDate");
+        if (request.getUrl() != null)      changed.add("url");
+        String fieldsChanged = String.join(", ", changed);
         log.info("Item updated: itemId={}, listId={}, user={}, fieldsChanged={}",
-                itemId, listId, user.getId(), 
-                request.getName() != null ? "name" : "",
-                request.getQuantity() != null ? "quantity" : "",
-                request.getDueDate() != null ? "dueDate" : "",
-                request.getUrl() != null ? "url" : "");
+                itemId, listId, user.getId(), fieldsChanged);
 
-        // 9. Retornar DTO
-        return listItemMapper.toListItemResponseDTO(saved);
+        // 9. Broadcast WebSocket e retornar DTO
+        ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
+        broadcastItemEvent("ITEM_UPDATED", result, user, listId);
+        return result;
     }
 
     /**
@@ -386,15 +401,35 @@ public class ListItemService {
         // Nota: Será implementado em Epic 6, mas já preparar para isso
         // activityService.log(list, user, "ITEM_DELETED", item);
 
-        // 6. Deletar item
+        // 6. Capturar DTO ANTES de deletar (para broadcast ITEM_REMOVED)
+        ListItemResponseDTO itemDTO = listItemMapper.toListItemResponseDTO(item);
+
+        // 7. Deletar item
         Integer deletedPosition = item.getPosition();
         listItemRepository.delete(item);
 
-        // 7. Reordenar positions dos itens restantes
+        // 8. Reordenar positions dos itens restantes
         reorderPositions(listId, deletedPosition);
 
-        // 8. Log
+        // 9. Log
         log.info("Item deleted: itemId={}, listId={}, user={}", itemId, listId, user.getId());
+
+        // 10. Broadcast WebSocket
+        broadcastItemEvent("ITEM_REMOVED", itemDTO, user, listId);
+    }
+
+    /**
+     * Publica mensagem broadcast no tópico WebSocket da lista
+     */
+    private void broadcastItemEvent(String type, ListItemResponseDTO dto, User actor, UUID listId) {
+        WebSocketMessage message = WebSocketMessage.builder()
+                .type(type)
+                .payload(dto)
+                .userId(actor.getId())
+                .username(actor.getUsername())
+                .timestamp(Instant.now())
+                .build();
+        simpMessagingTemplate.convertAndSend("/topic/list/" + listId, message);
     }
 
     /**
