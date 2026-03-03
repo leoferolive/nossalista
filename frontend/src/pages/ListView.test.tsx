@@ -646,4 +646,102 @@ describe('ListView - WebSocket Integration', () => {
     expect(mockSetItems).toHaveBeenCalled();
     expect(mockShowToast).toHaveBeenCalledWith('maria removeu Item Existente', 'info');
   });
+
+  it('deve atualizar item no estado quando recebe ITEM_UPDATED de outro usuário', () => {
+    const updatedItem: ListItem = { ...existingItem, name: 'Item Atualizado' };
+
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      capturedHandler!({
+        type: 'ITEM_UPDATED',
+        payload: updatedItem,
+        userId: otherUserId,
+        username: 'maria',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    expect(mockSetItems).toHaveBeenCalled();
+    expect(mockShowToast).toHaveBeenCalledWith('maria editou Item Atualizado', 'info');
+  });
+
+  it('NÃO deve exibir Toast quando ITEM_UPDATED é do próprio usuário', () => {
+    const updatedItem: ListItem = { ...existingItem, name: 'Item Atualizado Próprio' };
+
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      capturedHandler!({
+        type: 'ITEM_UPDATED',
+        payload: updatedItem,
+        userId: currentUserId,
+        username: 'testuser',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    expect(mockSetItems).not.toHaveBeenCalled();
+    expect(mockShowToast).not.toHaveBeenCalledWith(
+      expect.stringContaining('editou'), 'info'
+    );
+  });
+
+  it('deve exibir Toast "marcou" quando recebe ITEM_CHECKED com checked=true de outro usuário', () => {
+    const checkedItem: ListItem = { ...existingItem, checked: true };
+
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      capturedHandler!({
+        type: 'ITEM_CHECKED',
+        payload: checkedItem,
+        userId: otherUserId,
+        username: 'maria',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    expect(mockSetItems).toHaveBeenCalled();
+    expect(mockShowToast).toHaveBeenCalledWith('maria marcou Item Existente', 'info');
+  });
+
+  it('deve exibir Toast "desmarcou" quando recebe ITEM_CHECKED com checked=false de outro usuário', () => {
+    const uncheckedItem: ListItem = { ...existingItem, checked: false };
+
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      capturedHandler!({
+        type: 'ITEM_CHECKED',
+        payload: uncheckedItem,
+        userId: otherUserId,
+        username: 'maria',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    expect(mockSetItems).toHaveBeenCalled();
+    expect(mockShowToast).toHaveBeenCalledWith('maria desmarcou Item Existente', 'info');
+  });
 });
