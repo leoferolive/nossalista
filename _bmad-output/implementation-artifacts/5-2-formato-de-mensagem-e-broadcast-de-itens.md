@@ -1,6 +1,6 @@
 # Story 5.2: Formato de Mensagem e Broadcast de Itens
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
