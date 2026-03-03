@@ -13,6 +13,7 @@ interface WebSocketActions {
   disconnect: () => void;
   subscribe: (listId: string, callback: (message: unknown) => void) => void;
   unsubscribe: (listId: string) => void;
+  send: (destination: string, body: unknown) => void;
 }
 
 interface WebSocketContextType extends WebSocketState, WebSocketActions {}
@@ -139,6 +140,19 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const send = useCallback((destination: string, body: unknown) => {
+    const client = clientRef.current;
+    if (!client?.connected) {
+      console.warn('[WebSocket] Tentativa de send sem conexão ativa');
+      return;
+    }
+
+    client.publish({
+      destination,
+      body: JSON.stringify(body),
+    });
+  }, []);
+
   return (
     <WebSocketContext.Provider
       value={{
@@ -147,6 +161,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         disconnect,
         subscribe,
         unsubscribe,
+        send,
       }}
     >
       {children}

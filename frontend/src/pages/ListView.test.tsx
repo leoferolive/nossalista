@@ -101,6 +101,7 @@ describe('ListView - Delete Functionality', () => {
       disconnect: vi.fn(),
       subscribe: vi.fn(),
       unsubscribe: vi.fn(),
+      send: vi.fn(),
     });
 
     (useAuth as any).mockReturnValue({
@@ -388,6 +389,7 @@ describe('ListView - WebSocket Integration', () => {
   const mockDisconnect = vi.fn();
   const mockSubscribe = vi.fn();
   const mockUnsubscribe = vi.fn();
+  const mockSend = vi.fn();
   const mockSetItems = vi.fn();
 
   const mockList: ListResponse = {
@@ -468,6 +470,7 @@ describe('ListView - WebSocket Integration', () => {
       disconnect: mockDisconnect,
       subscribe: mockSubscribe,
       unsubscribe: mockUnsubscribe,
+      send: mockSend,
     });
   });
 
@@ -864,6 +867,108 @@ describe('ListView - WebSocket Integration', () => {
 
     const elapsed = performance.now() - start;
     expect(elapsed).toBeLessThan(500);
+
+    vi.useRealTimers();
+  });
+
+  it('deve renderizar Online agora quando recebe MEMBER_ONLINE', async () => {
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      capturedHandler!({
+        type: 'MEMBER_ONLINE',
+        payload: {
+          userId: otherUserId,
+          username: 'maria',
+          name: 'Maria',
+          avatarUrl: null,
+        },
+        userId: otherUserId,
+        username: 'maria',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    expect(await screen.findByText('Online agora: 2')).toBeInTheDocument();
+  });
+
+  it('deve remover membro online quando recebe MEMBER_OFFLINE', async () => {
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      capturedHandler!({
+        type: 'MEMBER_ONLINE',
+        payload: {
+          userId: otherUserId,
+          username: 'maria',
+          name: 'Maria',
+          avatarUrl: null,
+        },
+        userId: otherUserId,
+        username: 'maria',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    expect(await screen.findByText('Online agora: 2')).toBeInTheDocument();
+
+    act(() => {
+      capturedHandler!({
+        type: 'MEMBER_OFFLINE',
+        payload: {
+          userId: otherUserId,
+          username: 'maria',
+        },
+        userId: otherUserId,
+        username: 'maria',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    expect(await screen.findByText('Apenas você online agora')).toBeInTheDocument();
+  });
+
+  it('deve enviar heartbeat a cada 30s quando conectado', () => {
+    vi.useFakeTimers();
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+
+    expect(mockSend).toHaveBeenCalledWith('/app/list/test-list-id/heartbeat', {});
+
+    vi.useRealTimers();
+  });
+
+  it('deve parar heartbeat ao desmontar o componente', () => {
+    vi.useFakeTimers();
+
+    const { unmount } = render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(mockSend).toHaveBeenCalledWith('/app/list/test-list-id/heartbeat', {});
+    mockSend.mockClear();
+
+    unmount();
+
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(mockSend).not.toHaveBeenCalledWith('/app/list/test-list-id/heartbeat', {});
 
     vi.useRealTimers();
   });

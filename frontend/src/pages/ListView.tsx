@@ -14,12 +14,14 @@ import { EditItemModal } from '../components/EditItemModal';
 import { InviteModal } from '../components/InviteModal';
 import { MembersModal } from '../components/MembersModal';
 import { ActivityTimeline } from '../components/ActivityTimeline';
+import { OnlineMembersBar } from '../components/OnlineMembersBar';
 import { listsApi } from '../api/listsApi';
 import { useToast, Toast } from '../components/Toast';
 import { ApiError } from '../types/ApiError';
 import { ListItem } from '../types/Item';
 import { ListMemberResponse } from '../types/List';
 import { ListWebSocketMessage } from '../types/WebSocketMessage';
+import { OnlineMember } from '../types/OnlineMember';
 
 /**
  * Página de visualização de detalhes de uma lista
@@ -31,7 +33,7 @@ export const ListView: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user: currentUser, isAuthenticated } = useAuth();
-  const { status: wsStatus, connect, disconnect, subscribe, unsubscribe } = useWebSocket();
+  const { status: wsStatus, connect, disconnect, subscribe, unsubscribe, send } = useWebSocket();
   const {
     currentList,
     loadingList,
@@ -112,6 +114,7 @@ export const ListView: React.FC = () => {
   const [wsAddedItemIds, setWsAddedItemIds] = useState<Set<string>>(new Set());
   const [wsCheckedItemIds, setWsCheckedItemIds] = useState<Set<string>>(new Set());
   const [wsCheckedHighlightItemIds, setWsCheckedHighlightItemIds] = useState<Set<string>>(new Set());
+  const [onlineMembers, setOnlineMembers] = useState<Map<string, OnlineMember>>(new Map());
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -182,6 +185,29 @@ export const ListView: React.FC = () => {
           showToast(`${message.username} ${action} ${message.payload.name}`, 'info');
         }
         break;
+      case 'MEMBER_ONLINE': {
+        const payload = message.payload;
+        setOnlineMembers((prev) => {
+          const next = new Map(prev);
+          next.set(payload.userId, {
+            userId: payload.userId,
+            username: payload.username,
+            name: payload.name,
+            avatarUrl: payload.avatarUrl,
+          });
+          return next;
+        });
+        break;
+      }
+      case 'MEMBER_OFFLINE': {
+        const payload = message.payload;
+        setOnlineMembers((prev) => {
+          const next = new Map(prev);
+          next.delete(payload.userId);
+          return next;
+        });
+        break;
+      }
     }
   }, [currentUser?.id, setItems, showToast]);
 
@@ -197,10 +223,41 @@ export const ListView: React.FC = () => {
   useEffect(() => {
     if (wsStatus === 'CONNECTED' && id) {
       subscribe(id, handleWebSocketMessage);
-      return () => unsubscribe(id);
+
+      if (currentUser) {
+        setOnlineMembers((prev) => {
+          const next = new Map(prev);
+          next.set(currentUser.id, {
+            userId: currentUser.id,
+            username: currentUser.username,
+            name: currentUser.displayName ?? currentUser.username,
+            avatarUrl: currentUser.avatarUrl ?? null,
+          });
+          return next;
+        });
+      }
+
+      return () => {
+        unsubscribe(id);
+        setOnlineMembers(new Map());
+      };
     }
+
+    setOnlineMembers(new Map());
     return undefined;
-  }, [wsStatus, id, subscribe, unsubscribe, handleWebSocketMessage]);
+  }, [wsStatus, id, subscribe, unsubscribe, handleWebSocketMessage, currentUser]);
+
+  useEffect(() => {
+    if (wsStatus !== 'CONNECTED' || !id) {
+      return undefined;
+    }
+
+    const heartbeatInterval = setInterval(() => {
+      send(`/app/list/${id}/heartbeat`, {});
+    }, 30_000);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [wsStatus, id, send]);
 
   // Carregar dados da lista e itens ao montar o componente
   useEffect(() => {
@@ -737,6 +794,13 @@ export const ListView: React.FC = () => {
             </p>
           )}
         </div>
+
+        {onlineMembers.size > 0 && (
+          <OnlineMembersBar
+            members={Array.from(onlineMembers.values())}
+            currentUserId={currentUser?.id ?? ''}
+          />
+        )}
 
         {/* Seção "Itens": Título + lista de itens */}
         <div className="bg-white rounded-lg p-4 shadow-sm">

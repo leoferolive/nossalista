@@ -64,7 +64,7 @@ public class WebSocketSubscriptionInterceptor implements ChannelInterceptor {
         return message;
     }
 
-    private User extractUser(StompHeaderAccessor accessor) {
+    User extractUser(StompHeaderAccessor accessor) {
         Principal principal = accessor.getUser();
         if (principal instanceof UsernamePasswordAuthenticationToken auth) {
             Object principalObj = auth.getPrincipal();

@@ -6,6 +6,7 @@ interface UseWebSocketReturn {
   disconnect: () => void;
   subscribe: (listId: string, callback: (message: unknown) => void) => void;
   unsubscribe: (listId: string) => void;
+  send: (destination: string, body: unknown) => void;
 }
 
 /**
@@ -15,7 +16,7 @@ interface UseWebSocketReturn {
  * @returns estado de conexão e métodos de subscribe/unsubscribe
  */
 export function useWebSocket(): UseWebSocketReturn {
-  const { status, connect, disconnect, subscribe, unsubscribe } = useWebSocketContext();
+  const { status, connect, disconnect, subscribe, unsubscribe, send } = useWebSocketContext();
 
-  return { status, connect, disconnect, subscribe, unsubscribe };
+  return { status, connect, disconnect, subscribe, unsubscribe, send };
 }

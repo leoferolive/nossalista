@@ -19,12 +19,26 @@ export type ListWebSocketEventType =
   | 'ITEM_ADDED'
   | 'ITEM_UPDATED'
   | 'ITEM_REMOVED'
-  | 'ITEM_CHECKED';
+  | 'ITEM_CHECKED'
+  | 'MEMBER_ONLINE'
+  | 'MEMBER_OFFLINE';
+
+export interface MemberOnlinePayload {
+  userId: string;
+  username: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface MemberOfflinePayload {
+  userId: string;
+  username: string;
+}
 
 /**
- * Tipo discriminado para mensagens de itens de lista
- * AC6: payload tipado como ListItem
+ * Union discriminada por tipo de evento — permite narrowing correto do payload no switch/case
  */
-export type ListWebSocketMessage = WebSocketMessage<ListItem> & {
-  type: ListWebSocketEventType;
-};
+export type ListWebSocketMessage =
+  | (WebSocketMessage<ListItem> & { type: 'ITEM_ADDED' | 'ITEM_UPDATED' | 'ITEM_REMOVED' | 'ITEM_CHECKED' })
+  | (WebSocketMessage<MemberOnlinePayload> & { type: 'MEMBER_ONLINE' })
+  | (WebSocketMessage<MemberOfflinePayload> & { type: 'MEMBER_OFFLINE' });
