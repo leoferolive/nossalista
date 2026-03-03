@@ -111,6 +111,7 @@ export const ListView: React.FC = () => {
   // Estado de itens adicionados via WebSocket (para animação pulse)
   const [wsAddedItemIds, setWsAddedItemIds] = useState<Set<string>>(new Set());
   const [wsCheckedItemIds, setWsCheckedItemIds] = useState<Set<string>>(new Set());
+  const [wsCheckedHighlightItemIds, setWsCheckedHighlightItemIds] = useState<Set<string>>(new Set());
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -163,6 +164,15 @@ export const ListView: React.FC = () => {
         }, 300);
 
         if (!isOwnAction) {
+          setWsCheckedHighlightItemIds((prev) => new Set([...prev, message.payload.id]));
+          setTimeout(() => {
+            setWsCheckedHighlightItemIds((prev) => {
+              const next = new Set(prev);
+              next.delete(message.payload.id);
+              return next;
+            });
+          }, 300);
+
           setItems((prev) =>
             prev.map((i) =>
               i.id === message.payload.id ? { ...i, checked: message.payload.checked } : i
@@ -768,10 +778,11 @@ export const ListView: React.FC = () => {
                     item={item}
                     onToggle={handleToggleItem}
                     onEdit={handleEditItem}
-                    onDelete={handleDeleteItem}
-                    isDeleting={deletingItemId === item.id}
-                    isWsAdded={wsAddedItemIds.has(item.id)}
-                    isWsChecked={wsCheckedItemIds.has(item.id)}
+                 onDelete={handleDeleteItem}
+                 isDeleting={deletingItemId === item.id}
+                 isWsAdded={wsAddedItemIds.has(item.id)}
+                 isWsChecked={wsCheckedItemIds.has(item.id)}
+                 isWsCheckedHighlight={wsCheckedHighlightItemIds.has(item.id)}
                 />
               ))}
             </div>

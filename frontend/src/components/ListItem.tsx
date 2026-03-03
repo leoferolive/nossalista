@@ -17,6 +17,7 @@ export const ListItemComponent: React.FC<ListItemProps> = ({
   isDeleting = false,
   isWsAdded = false,
   isWsChecked = false,
+  isWsCheckedHighlight = false,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -72,7 +73,7 @@ export const ListItemComponent: React.FC<ListItemProps> = ({
         id={`list-item-${item.id}`}
         className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:bg-gray-50 ${
           item.checked ? 'opacity-50' : ''
-        } ${isDeleting ? 'animate-fade-out' : ''} ${isWsAdded ? 'ws-item-added' : ''} ${isWsChecked ? 'ws-item-checked' : ''}`}
+        } ${isDeleting ? 'animate-fade-out' : ''} ${isWsAdded ? 'ws-item-added' : ''} ${isWsCheckedHighlight ? 'ws-item-checked' : ''}`}
         onClick={handleItemClick}
         {...longPressProps}
         style={{ minHeight: '44px' }} // NFR-A4: Touch target ≥ 44px

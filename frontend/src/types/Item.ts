@@ -55,4 +55,5 @@ export interface ListItemProps {
   isDeleting?: boolean;
   isWsAdded?: boolean;
   isWsChecked?: boolean;
+  isWsCheckedHighlight?: boolean;
 }

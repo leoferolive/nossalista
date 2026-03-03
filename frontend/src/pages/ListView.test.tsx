@@ -60,13 +60,7 @@ describe('ListView - Delete Functionality', () => {
     vi.clearAllMocks();
     mockNavigate.mockReset();
 
-    (listsApi.getListMembers as any).mockResolvedValue([
-      {
-        user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
-        role: 'OWNER',
-        joined_at: new Date().toISOString(),
-      },
-    ]);
+    (listsApi.getListMembers as any).mockImplementation(() => new Promise(() => {}));
     (listsApi.leaveList as any).mockResolvedValue(undefined);
 
     (useLists as any).mockReturnValue({
@@ -280,6 +274,14 @@ describe('ListView - Delete Functionality', () => {
   });
 
   it('deve abrir modal de membros e mostrar aviso para owner', async () => {
+    (listsApi.getListMembers as any).mockResolvedValue([
+      {
+        user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+        role: 'OWNER',
+        joined_at: new Date().toISOString(),
+      },
+    ]);
+
     render(
       <BrowserRouter>
         <ListView />
@@ -419,7 +421,7 @@ describe('ListView - WebSocket Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (listsApi.getListMembers as any).mockResolvedValue([]);
+    (listsApi.getListMembers as any).mockImplementation(() => new Promise(() => {}));
 
     (useLists as any).mockReturnValue({
       currentList: mockList,
@@ -721,6 +723,33 @@ describe('ListView - WebSocket Integration', () => {
     expect(mockShowToast).toHaveBeenCalledWith('maria marcou Item Existente', 'info');
   });
 
+  it('deve aplicar highlight amarelo apenas para ITEM_CHECKED de outro usuário', () => {
+    const checkedItem: ListItem = { ...existingItem, checked: true };
+
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      capturedHandler!({
+        type: 'ITEM_CHECKED',
+        payload: checkedItem,
+        userId: otherUserId,
+        username: 'maria',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    const itemContainer = screen.getByTestId('list-item-item-1');
+    const checkbox = screen.getByRole('checkbox');
+
+    expect(itemContainer).toHaveClass('ws-item-checked');
+    expect(checkbox).toHaveClass('animate-pop');
+  });
+
   it('deve exibir Toast "desmarcou" quando recebe ITEM_CHECKED com checked=false de outro usuário', () => {
     const uncheckedItem: ListItem = { ...existingItem, checked: false };
 
@@ -768,5 +797,74 @@ describe('ListView - WebSocket Integration', () => {
     expect(mockSetItems).not.toHaveBeenCalled();
     expect(mockShowToast).not.toHaveBeenCalledWith(expect.stringContaining('marcou'), 'info');
     expect(mockShowToast).not.toHaveBeenCalledWith(expect.stringContaining('desmarcou'), 'info');
+  });
+
+  it('não deve aplicar highlight amarelo para ITEM_CHECKED do próprio usuário', () => {
+    const ownCheckedItem: ListItem = { ...existingItem, checked: true };
+
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      capturedHandler!({
+        type: 'ITEM_CHECKED',
+        payload: ownCheckedItem,
+        userId: currentUserId,
+        username: 'testuser',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    const itemContainer = screen.getByTestId('list-item-item-1');
+    const checkbox = screen.getByRole('checkbox');
+
+    expect(itemContainer).not.toHaveClass('ws-item-checked');
+    expect(checkbox).toHaveClass('animate-pop');
+  });
+
+  it('deve limpar animações de ITEM_CHECKED em até 300ms (NFR-P1 local)', async () => {
+    vi.useFakeTimers();
+    const checkedItem: ListItem = { ...existingItem, checked: true };
+
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    const start = performance.now();
+
+    act(() => {
+      capturedHandler!({
+        type: 'ITEM_CHECKED',
+        payload: checkedItem,
+        userId: otherUserId,
+        username: 'maria',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    const itemContainer = screen.getByTestId('list-item-item-1');
+    const checkbox = screen.getByRole('checkbox');
+
+    expect(itemContainer).toHaveClass('ws-item-checked');
+    expect(checkbox).toHaveClass('animate-pop');
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(itemContainer).not.toHaveClass('ws-item-checked');
+    expect(checkbox).not.toHaveClass('animate-pop');
+
+    const elapsed = performance.now() - start;
+    expect(elapsed).toBeLessThan(500);
+
+    vi.useRealTimers();
   });
 });

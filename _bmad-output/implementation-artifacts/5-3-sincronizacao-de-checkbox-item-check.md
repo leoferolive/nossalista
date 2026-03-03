@@ -1,6 +1,6 @@
 # Story 5.3: Sincronização de Checkbox (Item Check)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -437,6 +437,22 @@ openai/gpt-5.3-codex
 - Mantida a regra de toast apenas para ações de outros usuários (`!isOwnAction`) e coberta com testes.
 - Testes atualizados e validados: frontend 127/127 passando; backend 327 testes sem falhas (1 skipped já existente).
 
+### Senior Developer Review (AI)
+
+- Data da revisão: 2026-03-03
+- Resultado: **Approve (com correções aplicadas)**
+- Correções aplicadas:
+  - Separado o comportamento visual de `ITEM_CHECKED` entre **pop do checkbox para todos** e **highlight amarelo apenas para outros usuários**.
+  - Adicionada prop dedicada de highlight (`isWsCheckedHighlight`) para evitar pulse amarelo em ação própria.
+  - Atualizados testes de `ListItem` e `ListView` para validar:
+    - highlight apenas para `!isOwnAction`
+    - pop em ação própria e de terceiros
+    - limpeza das animações em 300ms
+  - Ajustado setup dos testes de `ListView` para evitar atualizações assíncronas não controladas durante render.
+- Evidência de validação:
+  - `npm test -- --run src/components/ListItem.test.tsx src/pages/ListView.test.tsx`
+  - Resultado: **32/32 testes passando**.
+
 ### File List
 
 - `frontend/src/types/Item.ts`
@@ -445,7 +461,9 @@ openai/gpt-5.3-codex
 - `frontend/src/pages/ListView.tsx`
 - `frontend/src/components/ListItem.test.tsx`
 - `frontend/src/pages/ListView.test.tsx`
+- `_bmad-output/implementation-artifacts/5-3-sincronizacao-de-checkbox-item-check.md`
 
 ### Change Log
 
 - 2026-03-02: Implementada sincronização visual de `ITEM_CHECKED` (pop + highlight), ajustes em `ListView` e cobertura de testes para cenários de outros usuários e ação própria.
+- 2026-03-03: Code review adversarial aplicado; highlight amarelo restrito a eventos de outros usuários, testes de WebSocket ampliados (highlight/pop/cleanup) e story promovida para `done`.

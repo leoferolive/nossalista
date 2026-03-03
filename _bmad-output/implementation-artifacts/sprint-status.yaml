@@ -82,7 +82,7 @@ development_status:
   epic-5: in-progress
   5-1-setup-e-configuracao-de-websocket: done
   5-2-formato-de-mensagem-e-broadcast-de-itens: done
-  5-3-sincronizacao-de-checkbox-item-check: review
+  5-3-sincronizacao-de-checkbox-item-check: done
   5-4-indicadores-online-e-membros: backlog
   5-5-reconexao-automatica: backlog
   5-6-performance-e-otimizacoes: backlog

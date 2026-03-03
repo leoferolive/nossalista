@@ -88,13 +88,13 @@ describe('ListItemComponent', () => {
     expect(itemName).toHaveClass('line-through');
   });
 
-  it('deve aplicar classe ws-item-checked quando isWsChecked=true', () => {
+  it('deve aplicar classe ws-item-checked quando isWsCheckedHighlight=true', () => {
     render(
       <ListItemComponent
         item={mockItem}
         onToggle={vi.fn()}
         onEdit={vi.fn()}
-        isWsChecked
+        isWsCheckedHighlight
       />
     );
 
