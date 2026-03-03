@@ -87,4 +87,47 @@ describe('ListItemComponent', () => {
     const itemName = screen.getByText('Test Item');
     expect(itemName).toHaveClass('line-through');
   });
+
+  it('deve aplicar classe ws-item-checked quando isWsChecked=true', () => {
+    render(
+      <ListItemComponent
+        item={mockItem}
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+        isWsChecked
+      />
+    );
+
+    const itemContainer = screen.getByTestId(`list-item-${mockItem.id}`);
+    expect(itemContainer).toHaveClass('ws-item-checked');
+  });
+
+  it('deve aplicar classe animate-pop no checkbox quando isWsChecked=true', () => {
+    render(
+      <ListItemComponent
+        item={mockItem}
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+        isWsChecked
+      />
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).toHaveClass('animate-pop');
+  });
+
+  it('não deve aplicar classes de websocket quando isWsChecked=false', () => {
+    render(
+      <ListItemComponent
+        item={mockItem}
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+      />
+    );
+
+    const itemContainer = screen.getByTestId(`list-item-${mockItem.id}`);
+    const checkbox = screen.getByRole('checkbox');
+    expect(itemContainer).not.toHaveClass('ws-item-checked');
+    expect(checkbox).not.toHaveClass('animate-pop');
+  });
 });

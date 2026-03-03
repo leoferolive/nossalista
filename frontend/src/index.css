@@ -120,3 +120,17 @@ body {
 .ws-item-added {
   animation: pulse 300ms ease-out;
 }
+
+/* Animação para itens marcados/desmarcados via WebSocket */
+@keyframes wsCheckedPulse {
+  0% {
+    background-color: rgba(251, 191, 36, 0.4);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.ws-item-checked {
+  animation: wsCheckedPulse 300ms ease-out forwards;
+}

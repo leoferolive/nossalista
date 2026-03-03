@@ -110,6 +110,7 @@ export const ListView: React.FC = () => {
 
   // Estado de itens adicionados via WebSocket (para animação pulse)
   const [wsAddedItemIds, setWsAddedItemIds] = useState<Set<string>>(new Set());
+  const [wsCheckedItemIds, setWsCheckedItemIds] = useState<Set<string>>(new Set());
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -152,6 +153,15 @@ export const ListView: React.FC = () => {
         }
         break;
       case 'ITEM_CHECKED':
+        setWsCheckedItemIds((prev) => new Set([...prev, message.payload.id]));
+        setTimeout(() => {
+          setWsCheckedItemIds((prev) => {
+            const next = new Set(prev);
+            next.delete(message.payload.id);
+            return next;
+          });
+        }, 300);
+
         if (!isOwnAction) {
           setItems((prev) =>
             prev.map((i) =>
@@ -761,6 +771,7 @@ export const ListView: React.FC = () => {
                     onDelete={handleDeleteItem}
                     isDeleting={deletingItemId === item.id}
                     isWsAdded={wsAddedItemIds.has(item.id)}
+                    isWsChecked={wsCheckedItemIds.has(item.id)}
                 />
               ))}
             </div>

@@ -744,4 +744,29 @@ describe('ListView - WebSocket Integration', () => {
     expect(mockSetItems).toHaveBeenCalled();
     expect(mockShowToast).toHaveBeenCalledWith('maria desmarcou Item Existente', 'info');
   });
+
+  it('não deve exibir Toast de marcou/desmarcou para ITEM_CHECKED do próprio usuário', () => {
+    const ownCheckedItem: ListItem = { ...existingItem, checked: true };
+
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
+    render(<BrowserRouter><ListView /></BrowserRouter>);
+
+    act(() => {
+      capturedHandler!({
+        type: 'ITEM_CHECKED',
+        payload: ownCheckedItem,
+        userId: currentUserId,
+        username: 'testuser',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    expect(mockSetItems).not.toHaveBeenCalled();
+    expect(mockShowToast).not.toHaveBeenCalledWith(expect.stringContaining('marcou'), 'info');
+    expect(mockShowToast).not.toHaveBeenCalledWith(expect.stringContaining('desmarcou'), 'info');
+  });
 });

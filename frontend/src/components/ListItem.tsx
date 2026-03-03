@@ -16,6 +16,7 @@ export const ListItemComponent: React.FC<ListItemProps> = ({
   onDelete,
   isDeleting = false,
   isWsAdded = false,
+  isWsChecked = false,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -71,7 +72,7 @@ export const ListItemComponent: React.FC<ListItemProps> = ({
         id={`list-item-${item.id}`}
         className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:bg-gray-50 ${
           item.checked ? 'opacity-50' : ''
-        } ${isDeleting ? 'animate-fade-out' : ''} ${isWsAdded ? 'ws-item-added' : ''}`}
+        } ${isDeleting ? 'animate-fade-out' : ''} ${isWsAdded ? 'ws-item-added' : ''} ${isWsChecked ? 'ws-item-checked' : ''}`}
         onClick={handleItemClick}
         {...longPressProps}
         style={{ minHeight: '44px' }} // NFR-A4: Touch target ≥ 44px
@@ -84,12 +85,7 @@ export const ListItemComponent: React.FC<ListItemProps> = ({
           item.checked
             ? 'bg-blue-500 border-blue-500'
             : 'border-gray-300 hover:border-blue-400'
-        }`}
-        style={{
-          animation: item.checked
-            ? 'pop 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-            : 'none',
-        }}
+        } ${isWsChecked ? 'animate-pop' : ''}`}
         aria-label={item.checked ? 'Marcar como não concluído' : 'Marcar como concluído'}
         aria-checked={item.checked}
         role="checkbox"
