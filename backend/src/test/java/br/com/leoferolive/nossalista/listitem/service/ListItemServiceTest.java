@@ -1323,7 +1323,12 @@ class ListItemServiceTest {
             // Assert
             ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
             verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
-            assertEquals("ITEM_UPDATED", ((WebSocketMessage) payloadCaptor.getValue()).getType());
+            WebSocketMessage captured = (WebSocketMessage) payloadCaptor.getValue();
+            assertEquals("ITEM_UPDATED", captured.getType());
+            assertNotNull(captured.getPayload());
+            assertEquals(testUser.getId(), captured.getUserId());
+            assertEquals(testUser.getUsername(), captured.getUsername());
+            assertNotNull(captured.getTimestamp());
         }
 
         @Test
@@ -1341,7 +1346,12 @@ class ListItemServiceTest {
             // Assert
             ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
             verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
-            assertEquals("ITEM_CHECKED", ((WebSocketMessage) payloadCaptor.getValue()).getType());
+            WebSocketMessage captured = (WebSocketMessage) payloadCaptor.getValue();
+            assertEquals("ITEM_CHECKED", captured.getType());
+            assertNotNull(captured.getPayload());
+            assertEquals(testUser.getId(), captured.getUserId());
+            assertEquals(testUser.getUsername(), captured.getUsername());
+            assertNotNull(captured.getTimestamp());
         }
 
         @Test
@@ -1365,6 +1375,9 @@ class ListItemServiceTest {
             WebSocketMessage captured = (WebSocketMessage) payloadCaptor.getValue();
             assertEquals("ITEM_REMOVED", captured.getType());
             assertEquals(testResponseDTO, captured.getPayload());
+            assertEquals(testUser.getId(), captured.getUserId());
+            assertEquals(testUser.getUsername(), captured.getUsername());
+            assertNotNull(captured.getTimestamp());
         }
     }
 }
