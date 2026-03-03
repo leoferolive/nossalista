@@ -11,6 +11,15 @@ import { JoinListPage } from './pages/JoinListPage.tsx'
 import { Profile } from './pages/Profile.tsx'
 import './index.css'
 
+// sockjs-client still references the Node-style global object in browser builds.
+const browserGlobal = globalThis as typeof globalThis & {
+  global?: typeof globalThis
+}
+
+if (typeof browserGlobal.global === 'undefined') {
+  browserGlobal.global = globalThis
+}
+
 /**
  * Componente de rota protegida
  * Redireciona para login se usuário não estiver autenticado

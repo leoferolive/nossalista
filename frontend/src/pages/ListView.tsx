@@ -335,7 +335,6 @@ export const ListView: React.FC = () => {
       setMembers((prev) => prev.filter((m) => m.user.id !== userId));
       setMemberCount((prev) => (prev !== null ? prev - 1 : null));
       setRemoveConfirmMemberId(null);
-      setRemoveConfirmMemberUsername(null);
       showToast(`${username} removido da lista`, 'success');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao remover participante';
