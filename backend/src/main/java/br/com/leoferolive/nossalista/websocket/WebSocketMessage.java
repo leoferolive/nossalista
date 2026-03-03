@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.websocket;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -22,6 +23,33 @@ public class WebSocketMessage {
     public UUID getUserId() { return userId; }
     public String getUsername() { return username; }
     public Instant getTimestamp() { return timestamp; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof WebSocketMessage)) return false;
+        WebSocketMessage that = (WebSocketMessage) o;
+        return Objects.equals(type, that.type)
+            && Objects.equals(payload, that.payload)
+            && Objects.equals(userId, that.userId)
+            && Objects.equals(username, that.username)
+            && Objects.equals(timestamp, that.timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, payload, userId, username, timestamp);
+    }
+
+    @Override
+    public String toString() {
+        return "WebSocketMessage{" +
+            "type='" + type + '\'' +
+            ", userId=" + userId +
+            ", username='" + username + '\'' +
+            ", timestamp=" + timestamp +
+            '}';
+    }
 
     public static Builder builder() {
         return new Builder();

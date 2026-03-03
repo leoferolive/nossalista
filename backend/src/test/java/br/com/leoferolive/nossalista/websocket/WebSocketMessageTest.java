@@ -90,6 +90,26 @@ class WebSocketMessageTest {
     }
 
     @Test
+    @DisplayName("Dois WebSocketMessage iguais devem ser equals e ter mesmo hashCode")
+    void shouldBeEqualWhenSameFields() {
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-03-01T22:00:00Z");
+        Map<String, String> payload = Map.of("id", "abc");
+
+        WebSocketMessage m1 = WebSocketMessage.builder()
+                .type("ITEM_ADDED").payload(payload).userId(userId)
+                .username("user").timestamp(now).build();
+        WebSocketMessage m2 = WebSocketMessage.builder()
+                .type("ITEM_ADDED").payload(payload).userId(userId)
+                .username("user").timestamp(now).build();
+
+        assertEquals(m1, m2);
+        assertEquals(m1.hashCode(), m2.hashCode());
+        assertNotNull(m1.toString());
+        assertTrue(m1.toString().contains("ITEM_ADDED"));
+    }
+
+    @Test
     @DisplayName("Getters devem retornar valores corretos")
     void shouldReturnCorrectValuesFromGetters() {
         UUID userId = UUID.randomUUID();
