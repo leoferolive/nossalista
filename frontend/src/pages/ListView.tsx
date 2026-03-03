@@ -30,7 +30,7 @@ export const ListView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const { status: wsStatus, connect, disconnect, subscribe, unsubscribe } = useWebSocket();
   const {
     currentList,
@@ -108,6 +108,9 @@ export const ListView: React.FC = () => {
   const [removeConfirmMemberId, setRemoveConfirmMemberId] = useState<string | null>(null);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
 
+  // Estado de itens adicionados via WebSocket (para animação pulse)
+  const [wsAddedItemIds, setWsAddedItemIds] = useState<Set<string>>(new Set());
+
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
 
@@ -123,6 +126,14 @@ export const ListView: React.FC = () => {
             if (prev.some((i) => i.id === message.payload.id)) return prev;
             return [...prev, message.payload];
           });
+          setWsAddedItemIds((prev) => new Set([...prev, message.payload.id]));
+          setTimeout(() => {
+            setWsAddedItemIds((prev) => {
+              const next = new Set(prev);
+              next.delete(message.payload.id);
+              return next;
+            });
+          }, 300);
           showToast(`${message.username} adicionou ${message.payload.name}`, 'info');
         }
         break;
@@ -154,11 +165,13 @@ export const ListView: React.FC = () => {
     }
   }, [currentUser?.id, setItems, showToast]);
 
-  // Conexão WebSocket: conectar ao montar, desconectar ao desmontar
+  // Conexão WebSocket: conectar ao montar (apenas se autenticado), desconectar ao desmontar
   useEffect(() => {
-    connect();
+    if (isAuthenticated) {
+      connect();
+    }
     return () => disconnect();
-  }, [connect, disconnect]);
+  }, [connect, disconnect, isAuthenticated]);
 
   // Subscrição WebSocket: subscrever quando CONNECTED, desinscrever ao desmontar/trocar lista
   useEffect(() => {
@@ -747,6 +760,7 @@ export const ListView: React.FC = () => {
                     onEdit={handleEditItem}
                     onDelete={handleDeleteItem}
                     isDeleting={deletingItemId === item.id}
+                    isWsAdded={wsAddedItemIds.has(item.id)}
                 />
               ))}
             </div>
