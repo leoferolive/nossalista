@@ -415,6 +415,30 @@ class ListItemServiceTest {
             // Assert - não lança exceção e métodos foram chamados
             verify(listItemRepository).save(any(ListItem.class));
         }
+
+        @Test
+        @DisplayName("Deve permitir addItem quando usuário é membro (não dono)")
+        void shouldAllowAddItemWhenUserIsMember() {
+            // Arrange
+            CreateItemRequestDTO dto = new CreateItemRequestDTO("Item Membro", null, null, null, null);
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listMemberRepository.existsByListIdAndUserId(listId, otherUser.getId())).thenReturn(true);
+            when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(inv -> {
+                ListItem item = inv.getArgument(0);
+                item.setId(UUID.randomUUID());
+                return item;
+            });
+            ListItemResponseDTO mockDTO = new ListItemResponseDTO(
+                    UUID.randomUUID(), "Item Membro", false, null, null, null, 0,
+                    new ListItemResponseDTO.CreatorResponse(
+                            otherUser.getId(), otherUser.getUsername(), "Other User", null),
+                    LocalDateTime.now(), LocalDateTime.now());
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(mockDTO);
+
+            // Act & Assert — membro não-dono deve conseguir adicionar item
+            assertDoesNotThrow(() -> listItemService.addItem(listId, dto, otherUser));
+        }
     }
 
     @Nested

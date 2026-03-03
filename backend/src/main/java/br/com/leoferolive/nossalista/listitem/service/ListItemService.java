@@ -175,12 +175,13 @@ public class ListItemService {
     }
 
     /**
-     * Verifica se o usuário é participante da lista (dono ou membro)
-     * Por enquanto, apenas verifica se é o dono (Story 4.1 adicionará membros)
+     * Verifica se o usuário é participante da lista (dono ou membro ativo).
+     * Realiza o check de dono em memória antes de consultar o banco,
+     * evitando queries desnecessárias quando o dono acessa sua própria lista.
      *
      * @param list Lista a verificar
      * @param user Usuário a verificar
-     * @return true se o usuário for participante
+     * @return true se o usuário for dono ou membro da lista
      */
     private boolean isParticipant(List list, User user) {
         // Verificar se é o dono (tratando lazy loading)
@@ -350,13 +351,12 @@ public class ListItemService {
         ListItem saved = listItemRepository.save(item);
 
         // 8. Log com campos alterados
-        String fieldsChanged = String.join(", ",
-            java.util.stream.Stream.of(
-                request.getName() != null ? "name" : null,
-                request.getQuantity() != null ? "quantity" : null,
-                request.getDueDate() != null ? "dueDate" : null,
-                request.getUrl() != null ? "url" : null
-            ).filter(java.util.Objects::nonNull).collect(Collectors.toList()));
+        java.util.List<String> changed = new java.util.ArrayList<>();
+        if (request.getName() != null)     changed.add("name");
+        if (request.getQuantity() != null) changed.add("quantity");
+        if (request.getDueDate() != null)  changed.add("dueDate");
+        if (request.getUrl() != null)      changed.add("url");
+        String fieldsChanged = String.join(", ", changed);
         log.info("Item updated: itemId={}, listId={}, user={}, fieldsChanged={}",
                 itemId, listId, user.getId(), fieldsChanged);
 
