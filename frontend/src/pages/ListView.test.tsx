@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { ListView } from './ListView';
 import { useLists } from '../hooks/useLists';
@@ -13,6 +13,11 @@ import { listsApi } from '../api/listsApi';
 
 const mockNavigate = vi.fn();
 
+afterEach(() => {
+  vi.useRealTimers();
+  cleanup();
+});
+
 // Mock hooks
 vi.mock('../hooks/useLists');
 vi.mock('../hooks/useItems');
@@ -22,6 +27,7 @@ vi.mock('../contexts/AuthContext');
 vi.mock('../api/listsApi', () => ({
   listsApi: {
     getListMembers: vi.fn(),
+    getListState: vi.fn(),
     leaveList: vi.fn(),
     generateInviteLink: vi.fn(),
     searchUsers: vi.fn(),
@@ -462,6 +468,32 @@ describe('ListView - WebSocket Integration', () => {
   const currentUserId = 'owner-id';
   const otherUserId = 'other-user-id';
 
+  const createWsMessage = ({
+    type,
+    payload,
+    actorId,
+    actorUsername,
+    channel,
+  }: {
+    type: string;
+    payload: unknown;
+    actorId?: string;
+    actorUsername?: string;
+    channel?: 'items' | 'presence';
+  }) => ({
+    schemaVersion: 2,
+    eventId: `${type}-${Date.now()}`,
+    listId: 'test-list-id',
+    channel: channel ?? (type === 'PRESENCE_SNAPSHOT' || type.startsWith('MEMBER_') ? 'presence' : 'items'),
+    revision: channel === 'presence' || type === 'PRESENCE_SNAPSHOT' || type.startsWith('MEMBER_')
+      ? undefined
+      : Date.now(),
+    type,
+    payload,
+    ...(actorId && actorUsername ? { actor: { id: actorId, username: actorUsername } } : {}),
+    timestamp: new Date().toISOString(),
+  });
+
   const existingItem: ListItem = {
     id: 'item-1',
     name: 'Item Existente',
@@ -546,7 +578,8 @@ describe('ListView - WebSocket Integration', () => {
       </BrowserRouter>
     );
 
-    expect(mockSubscribe).toHaveBeenCalledWith('test-list-id', expect.any(Function));
+    expect(mockSubscribe).toHaveBeenCalledWith('test-list-id', 'items', expect.any(Function));
+    expect(mockSubscribe).toHaveBeenCalledWith('test-list-id', 'presence', expect.any(Function));
   });
 
   it('deve chamar disconnect() ao desmontar o componente', () => {
@@ -576,7 +609,7 @@ describe('ListView - WebSocket Integration', () => {
     };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
@@ -589,13 +622,12 @@ describe('ListView - WebSocket Integration', () => {
     expect(capturedHandler).not.toBeNull();
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_ADDED',
         payload: newItem,
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+      }));
     });
 
     expect(mockSetItems).toHaveBeenCalled();
@@ -616,7 +648,7 @@ describe('ListView - WebSocket Integration', () => {
     };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
@@ -627,13 +659,12 @@ describe('ListView - WebSocket Integration', () => {
     );
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_ADDED',
         payload: newItem,
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+      }));
     });
 
     expect(mockShowToast).toHaveBeenCalledWith('maria adicionou Item da Maria', 'info');
@@ -654,7 +685,7 @@ describe('ListView - WebSocket Integration', () => {
     };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
@@ -665,13 +696,12 @@ describe('ListView - WebSocket Integration', () => {
     );
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_ADDED',
         payload: ownItem,
-        userId: currentUserId,
-        username: 'testuser',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: currentUserId,
+        actorUsername: 'testuser',
+      }));
     });
 
     expect(mockShowToast).not.toHaveBeenCalledWith(
@@ -683,7 +713,7 @@ describe('ListView - WebSocket Integration', () => {
 
   it('deve remover item do estado quando recebe ITEM_REMOVED de outro usuário', () => {
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
@@ -694,13 +724,12 @@ describe('ListView - WebSocket Integration', () => {
     );
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_REMOVED',
         payload: existingItem,
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+      }));
     });
 
     expect(mockSetItems).toHaveBeenCalled();
@@ -711,20 +740,19 @@ describe('ListView - WebSocket Integration', () => {
     const updatedItem: ListItem = { ...existingItem, name: 'Item Atualizado' };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
     render(<BrowserRouter><ListView /></BrowserRouter>);
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_UPDATED',
         payload: updatedItem,
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+      }));
     });
 
     expect(mockSetItems).toHaveBeenCalled();
@@ -735,20 +763,19 @@ describe('ListView - WebSocket Integration', () => {
     const updatedItem: ListItem = { ...existingItem, name: 'Item Atualizado Próprio' };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
     render(<BrowserRouter><ListView /></BrowserRouter>);
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_UPDATED',
         payload: updatedItem,
-        userId: currentUserId,
-        username: 'testuser',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: currentUserId,
+        actorUsername: 'testuser',
+      }));
     });
 
     expect(mockSetItems).not.toHaveBeenCalled();
@@ -761,20 +788,19 @@ describe('ListView - WebSocket Integration', () => {
     const checkedItem: ListItem = { ...existingItem, checked: true };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
     render(<BrowserRouter><ListView /></BrowserRouter>);
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_CHECKED',
         payload: checkedItem,
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+      }));
     });
 
     expect(mockSetItems).toHaveBeenCalled();
@@ -785,20 +811,19 @@ describe('ListView - WebSocket Integration', () => {
     const checkedItem: ListItem = { ...existingItem, checked: true };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
     render(<BrowserRouter><ListView /></BrowserRouter>);
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_CHECKED',
         payload: checkedItem,
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+      }));
     });
 
     const itemContainer = screen.getByTestId('list-item-item-1');
@@ -812,20 +837,19 @@ describe('ListView - WebSocket Integration', () => {
     const uncheckedItem: ListItem = { ...existingItem, checked: false };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
     render(<BrowserRouter><ListView /></BrowserRouter>);
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_CHECKED',
         payload: uncheckedItem,
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+      }));
     });
 
     expect(mockSetItems).toHaveBeenCalled();
@@ -836,20 +860,19 @@ describe('ListView - WebSocket Integration', () => {
     const ownCheckedItem: ListItem = { ...existingItem, checked: true };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
     render(<BrowserRouter><ListView /></BrowserRouter>);
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_CHECKED',
         payload: ownCheckedItem,
-        userId: currentUserId,
-        username: 'testuser',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: currentUserId,
+        actorUsername: 'testuser',
+      }));
     });
 
     expect(mockSetItems).not.toHaveBeenCalled();
@@ -861,20 +884,19 @@ describe('ListView - WebSocket Integration', () => {
     const ownCheckedItem: ListItem = { ...existingItem, checked: true };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
     render(<BrowserRouter><ListView /></BrowserRouter>);
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_CHECKED',
         payload: ownCheckedItem,
-        userId: currentUserId,
-        username: 'testuser',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: currentUserId,
+        actorUsername: 'testuser',
+      }));
     });
 
     const itemContainer = screen.getByTestId('list-item-item-1');
@@ -889,7 +911,7 @@ describe('ListView - WebSocket Integration', () => {
     const checkedItem: ListItem = { ...existingItem, checked: true };
 
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
@@ -898,13 +920,12 @@ describe('ListView - WebSocket Integration', () => {
     const start = performance.now();
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'ITEM_CHECKED',
         payload: checkedItem,
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+      }));
     });
 
     const itemContainer = screen.getByTestId('list-item-item-1');
@@ -928,14 +949,28 @@ describe('ListView - WebSocket Integration', () => {
 
   it('deve renderizar Online agora quando recebe MEMBER_ONLINE', async () => {
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
     render(<BrowserRouter><ListView /></BrowserRouter>);
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
+        type: 'PRESENCE_SNAPSHOT',
+        payload: {
+          members: [
+            {
+              userId: currentUserId,
+              username: 'testuser',
+              name: 'Test User',
+              avatarUrl: null,
+            },
+          ],
+        },
+        channel: 'presence',
+      }));
+      capturedHandler!(createWsMessage({
         type: 'MEMBER_ONLINE',
         payload: {
           userId: otherUserId,
@@ -943,10 +978,10 @@ describe('ListView - WebSocket Integration', () => {
           name: 'Maria',
           avatarUrl: null,
         },
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+        channel: 'presence',
+      }));
     });
 
     expect(await screen.findByText('Online agora: 2')).toBeInTheDocument();
@@ -954,14 +989,28 @@ describe('ListView - WebSocket Integration', () => {
 
   it('deve remover membro online quando recebe MEMBER_OFFLINE', async () => {
     let capturedHandler: ((msg: unknown) => void) | null = null;
-    mockSubscribe.mockImplementation((_listId: string, handler: (msg: unknown) => void) => {
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
       capturedHandler = handler;
     });
 
     render(<BrowserRouter><ListView /></BrowserRouter>);
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
+        type: 'PRESENCE_SNAPSHOT',
+        payload: {
+          members: [
+            {
+              userId: currentUserId,
+              username: 'testuser',
+              name: 'Test User',
+              avatarUrl: null,
+            },
+          ],
+        },
+        channel: 'presence',
+      }));
+      capturedHandler!(createWsMessage({
         type: 'MEMBER_ONLINE',
         payload: {
           userId: otherUserId,
@@ -969,25 +1018,25 @@ describe('ListView - WebSocket Integration', () => {
           name: 'Maria',
           avatarUrl: null,
         },
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+        channel: 'presence',
+      }));
     });
 
     expect(await screen.findByText('Online agora: 2')).toBeInTheDocument();
 
     act(() => {
-      capturedHandler!({
+      capturedHandler!(createWsMessage({
         type: 'MEMBER_OFFLINE',
         payload: {
           userId: otherUserId,
           username: 'maria',
         },
-        userId: otherUserId,
-        username: 'maria',
-        timestamp: new Date().toISOString(),
-      });
+        actorId: otherUserId,
+        actorUsername: 'maria',
+        channel: 'presence',
+      }));
     });
 
     expect(await screen.findByText('Apenas você online agora')).toBeInTheDocument();
@@ -1051,7 +1100,13 @@ describe('ListView - Reconnection UX', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (listsApi.getListMembers as any).mockImplementation(() => new Promise(() => {}));
+    (listsApi.getListMembers as any).mockResolvedValue([]);
+    (listsApi.getListState as any).mockResolvedValue({
+      listId: 'test-list-id',
+      revision: 100,
+      updatedAt: new Date().toISOString(),
+      itemsCount: 0,
+    });
 
     (useLists as any).mockReturnValue({
       currentList: mockList,
@@ -1116,15 +1171,91 @@ describe('ListView - Reconnection UX', () => {
     mockFetchItems.mockClear();
     wsStatus = 'CONNECTED';
 
-    rerender(
+    await act(async () => {
+      rerender(
+        <BrowserRouter>
+          <ListView />
+        </BrowserRouter>
+      );
+      await Promise.resolve();
+    });
+
+    expect(listsApi.getListState).toHaveBeenCalledWith('test-list-id');
+    expect(mockFetchItems).toHaveBeenCalledWith('test-list-id');
+  });
+
+  it('nao deve recarregar itens na reconexao quando revision do backend nao avancou', async () => {
+    let wsStatus: 'RECONNECTING' | 'CONNECTED' = 'RECONNECTING';
+    let capturedHandler: ((msg: unknown) => void) | null = null;
+
+    (listsApi.getListState as any).mockResolvedValue({
+      listId: 'test-list-id',
+      revision: 100,
+      updatedAt: new Date().toISOString(),
+      itemsCount: 1,
+    });
+
+    (useWebSocket as any).mockImplementation(() => ({
+      status: wsStatus,
+      connect: mockConnect,
+      disconnect: mockDisconnect,
+      subscribe: (_listId: string, _channel: string, handler: (msg: unknown) => void) => {
+        capturedHandler = handler;
+      },
+      unsubscribe: mockUnsubscribe,
+      send: mockSend,
+    }));
+
+    const { rerender } = render(
       <BrowserRouter>
         <ListView />
       </BrowserRouter>
     );
 
-    await waitFor(() => {
-      expect(mockFetchItems).toHaveBeenCalledWith('test-list-id');
+    act(() => {
+      capturedHandler?.({
+        schemaVersion: 2,
+        eventId: 'event-1',
+        listId: 'test-list-id',
+        channel: 'items',
+        revision: 100,
+        type: 'ITEM_ADDED',
+        actor: { id: 'other-user-id', username: 'maria' },
+        payload: {
+          id: 'item-1',
+          name: 'Item 1',
+          checked: false,
+          quantity: null,
+          dueDate: null,
+          url: null,
+          position: 0,
+          createdBy: {
+            id: 'other-user-id',
+            username: 'maria',
+            name: 'Maria',
+            avatarUrl: null,
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        timestamp: new Date().toISOString(),
+      });
     });
+
+    mockFetchItems.mockClear();
+    wsStatus = 'CONNECTED';
+
+    await act(async () => {
+      rerender(
+        <BrowserRouter>
+          <ListView />
+        </BrowserRouter>
+      );
+      await Promise.resolve();
+    });
+
+    expect(listsApi.getListState).toHaveBeenCalledWith('test-list-id');
+    expect(mockFetchItems).not.toHaveBeenCalled();
   });
 
   it('deve renderizar ConnectionStatusIndicator com status correto', () => {

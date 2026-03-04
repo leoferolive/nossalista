@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useRef, useCallback } from 'react';
 import { Client, StompSubscription } from '@stomp/stompjs';
-import { createStompClient } from '../api/websocket';
+import { createStompClient, getListTopic, WebSocketChannel } from '../api/websocket';
 
 export type WebSocketStatus = 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'RECONNECTING';
 
@@ -16,8 +16,8 @@ interface WebSocketState {
 interface WebSocketActions {
   connect: (notifications?: ReconnectNotifications) => void;
   disconnect: () => void;
-  subscribe: (listId: string, callback: (message: unknown) => void) => void;
-  unsubscribe: (listId: string) => void;
+  subscribe: (listId: string, channel: WebSocketChannel, callback: (message: unknown) => void) => void;
+  unsubscribe: (listId: string, channel: WebSocketChannel) => void;
   send: (destination: string, body: unknown) => void;
 }
 
@@ -58,23 +58,47 @@ const initialState: WebSocketState = {
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
 interface PendingSubscription {
+  key: string;
   listId: string;
+  channel: WebSocketChannel;
   callback: (message: unknown) => void;
+}
+
+function getSubscriptionKey(listId: string, channel: WebSocketChannel): string {
+  return `${channel}:${listId}`;
+}
+
+function isAuthenticationStompError(frame: { headers?: Record<string, string | undefined> }): boolean {
+  const message = frame.headers?.message?.toLowerCase() ?? '';
+  return message.includes('nao autenticado')
+    || message.includes('não autenticado')
+    || message.includes('acesso negado')
+    || message.includes('token jwt');
 }
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(webSocketReducer, initialState);
   const clientRef = useRef<Client | null>(null);
   const subscriptionsRef = useRef<Map<string, StompSubscription>>(new Map());
-  const pendingSubscriptionsRef = useRef<PendingSubscription[]>([]);
+  const pendingSubscriptionsRef = useRef<Map<string, PendingSubscription>>(new Map());
   const reconnectAttemptRef = useRef<number>(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isVoluntaryDisconnectRef = useRef<boolean>(false);
   const reconnectingToastShownRef = useRef<boolean>(false);
   const reconnectNotificationsRef = useRef<ReconnectNotifications>({});
 
-  const doSubscribe = useCallback((client: Client, listId: string, callback: (message: unknown) => void) => {
-    const destination = `/topic/list/${listId}`;
+  const doSubscribe = useCallback((
+    client: Client,
+    listId: string,
+    channel: WebSocketChannel,
+    callback: (message: unknown) => void,
+  ) => {
+    const key = getSubscriptionKey(listId, channel);
+    if (subscriptionsRef.current.has(key)) {
+      return;
+    }
+
+    const destination = getListTopic(listId, channel);
     const subscription = client.subscribe(destination, (stompMessage) => {
       try {
         const parsed = JSON.parse(stompMessage.body);
@@ -83,7 +107,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         callback(stompMessage.body);
       }
     });
-    subscriptionsRef.current.set(listId, subscription);
+    subscriptionsRef.current.set(key, subscription);
   }, []);
 
   const doReconnect = useCallback(() => {
@@ -118,10 +142,10 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
       // Processar subscrições enfileiradas antes da conexão ser estabelecida.
       // Re-subscrição após reconexão é tratada pelo useEffect em ListView (via mudança de wsStatus).
-      pendingSubscriptionsRef.current.forEach(({ listId, callback }) => {
-        doSubscribe(client, listId, callback);
+      pendingSubscriptionsRef.current.forEach(({ listId, channel, callback }) => {
+        doSubscribe(client, listId, channel, callback);
       });
-      pendingSubscriptionsRef.current = [];
+      pendingSubscriptionsRef.current.clear();
     };
 
     // Handler compartilhado para onDisconnect e onStompError — evita double-increment
@@ -132,6 +156,10 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'DISCONNECTED' });
         return;
       }
+
+      // The broker-side subscriptions are gone after a disconnect, so the
+      // local registry must be cleared to allow a clean re-subscribe.
+      subscriptionsRef.current.clear();
 
       // Já há um timer agendado (ex: onStompError disparou antes de onDisconnect).
       // Evita double-increment do backoff counter e double-scheduling.
@@ -158,6 +186,23 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
     client.onStompError = (frame) => {
       console.error('[WebSocket] STOMP error:', frame);
+
+      if (isAuthenticationStompError(frame)) {
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        }
+
+        reconnectAttemptRef.current = 0;
+        reconnectingToastShownRef.current = false;
+        pendingSubscriptionsRef.current.clear();
+        clientRef.current = null;
+        isVoluntaryDisconnectRef.current = true;
+        client.deactivate();
+        dispatch({ type: 'DISCONNECTED' });
+        return;
+      }
+
       handleConnectionLost();
     };
 
@@ -194,7 +239,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
       subscriptionsRef.current.forEach((sub) => sub.unsubscribe());
       subscriptionsRef.current.clear();
-      pendingSubscriptionsRef.current = [];
+      pendingSubscriptionsRef.current.clear();
 
       reconnectAttemptRef.current = 0;
       reconnectingToastShownRef.current = false;
@@ -205,31 +250,35 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const subscribe = useCallback((listId: string, callback: (message: unknown) => void) => {
+  const subscribe = useCallback((listId: string, channel: WebSocketChannel, callback: (message: unknown) => void) => {
     const client = clientRef.current;
+    const key = getSubscriptionKey(listId, channel);
+
+    if (subscriptionsRef.current.has(key) || pendingSubscriptionsRef.current.has(key)) {
+      return;
+    }
 
     if (!client?.connected) {
       if (client) {
         // Conexão em andamento — enfileirar para quando conectar
-        pendingSubscriptionsRef.current.push({ listId, callback });
+        pendingSubscriptionsRef.current.set(key, { key, listId, channel, callback });
         return;
       }
       console.warn('[WebSocket] Tentativa de subscribe sem conexão ativa');
       return;
     }
-    doSubscribe(client, listId, callback);
+    doSubscribe(client, listId, channel, callback);
   }, [doSubscribe]);
 
-  const unsubscribe = useCallback((listId: string) => {
-    const subscription = subscriptionsRef.current.get(listId);
+  const unsubscribe = useCallback((listId: string, channel: WebSocketChannel) => {
+    const key = getSubscriptionKey(listId, channel);
+    const subscription = subscriptionsRef.current.get(key);
     if (subscription) {
       subscription.unsubscribe();
-      subscriptionsRef.current.delete(listId);
+      subscriptionsRef.current.delete(key);
     }
     // Remover também de pendentes caso a conexão ainda não tenha sido estabelecida
-    pendingSubscriptionsRef.current = pendingSubscriptionsRef.current.filter(
-      (p) => p.listId !== listId,
-    );
+    pendingSubscriptionsRef.current.delete(key);
   }, []);
 
   const send = useCallback((destination: string, body: unknown) => {

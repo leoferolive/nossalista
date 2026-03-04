@@ -221,4 +221,29 @@ describe('WebSocketContext', () => {
     // Apenas um novo cliente deve ter sido criado (não dois)
     expect(createdClients).toHaveLength(2);
   });
+
+  it('erro STOMP de autenticacao nao deve entrar em loop de reconexao', () => {
+    render(
+      <WebSocketProvider>
+        <TestConsumer />
+      </WebSocketProvider>
+    );
+
+    act(() => {
+      latestContext?.connect({});
+    });
+
+    act(() => {
+      createdClients[0].onStompError?.({
+        headers: {
+          message: 'Usuário não autenticado para subscribe em: /topic/list/abc',
+        },
+      });
+      vi.runOnlyPendingTimers();
+    });
+
+    expect(screen.getByText('DISCONNECTED')).toBeInTheDocument();
+    expect(createdClients[0].deactivate).toHaveBeenCalledTimes(1);
+    expect(createdClients).toHaveLength(1);
+  });
 });

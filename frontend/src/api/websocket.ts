@@ -3,6 +3,12 @@ import SockJS from 'sockjs-client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
+export type WebSocketChannel = 'items' | 'presence';
+
+export function getListTopic(listId: string, channel: WebSocketChannel): string {
+  return `/topic/list/${listId}/${channel}`;
+}
+
 /**
  * Cria e configura um cliente STOMP com SockJS para conexão WebSocket.
  * Usa a API v7 do @stomp/stompjs com new Client({...}).
