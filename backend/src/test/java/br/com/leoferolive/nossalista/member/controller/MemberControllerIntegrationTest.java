@@ -5,6 +5,7 @@ import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
@@ -48,6 +49,9 @@ class MemberControllerIntegrationTest {
 
     @Autowired
     private ListMemberRepository listMemberRepository;
+
+    @Autowired
+    private JwtService jwtService;
 
     private MockMvc mockMvc;
     private User owner;
@@ -98,6 +102,20 @@ class MemberControllerIntegrationTest {
     void shouldReturn201WhenOwnerInvitesExistingUser() throws Exception {
         authenticateUser(owner);
         mockMvc.perform(post("/api/lists/{id}/invite", list.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"pedro\"}"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.invited_username").value("pedro"))
+            .andExpect(jsonPath("$.message").value("pedro adicionado!"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 201 com header Authorization Bearer JWT válido")
+    void shouldReturn201WithValidJwtHeader() throws Exception {
+        String jwt = jwtService.generateToken(owner);
+
+        mockMvc.perform(post("/api/lists/{id}/invite", list.getId())
+                .header("Authorization", "Bearer " + jwt)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"pedro\"}"))
             .andExpect(status().isCreated())

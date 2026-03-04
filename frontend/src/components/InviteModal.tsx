@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { InviteLinkResponse, InviteByUsernameResponse, UserSearchResult } from '../types/List';
 import { useToast } from './Toast';
 
@@ -38,6 +38,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
   const [inviting, setInviting] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const searchRequestRef = useRef(0);
 
   // Handler para gerar link
   const handleGenerateLink = useCallback(async () => {
@@ -98,6 +99,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
 
   // Fecha modal e reseta estado
   const handleClose = useCallback(() => {
+    searchRequestRef.current += 1;
     setInviteData(null);
     setError(null);
     setCopied(false);
@@ -114,31 +116,49 @@ export const InviteModal: React.FC<InviteModalProps> = ({
     }
 
     if (searchQuery.trim().length < 2) {
+      searchRequestRef.current += 1;
+      setSearching(false);
       setSearchResults([]);
       setSearchError(null);
       return;
     }
 
+    if (selectedUser && searchQuery === selectedUser.username) {
+      return;
+    }
+
     const timeoutId = window.setTimeout(async () => {
+      const requestId = ++searchRequestRef.current;
       setSearching(true);
       setSearchError(null);
 
       try {
         const results = await onSearchUsers(searchQuery.trim());
+
+        if (requestId !== searchRequestRef.current) {
+          return;
+        }
+
         setSearchResults(results);
       } catch (err) {
+        if (requestId !== searchRequestRef.current) {
+          return;
+        }
+
         const message = err instanceof Error ? err.message : 'Erro ao buscar usuários';
         setSearchError(message);
         setSearchResults([]);
       } finally {
-        setSearching(false);
+        if (requestId === searchRequestRef.current) {
+          setSearching(false);
+        }
       }
     }, 350);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [isOpen, onSearchUsers, searchQuery]);
+  }, [isOpen, onSearchUsers, searchQuery, selectedUser]);
 
   const handleSelectUser = useCallback((user: UserSearchResult) => {
     setSelectedUser(user);

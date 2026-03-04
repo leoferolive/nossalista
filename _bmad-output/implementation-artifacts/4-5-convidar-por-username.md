@@ -1,6 +1,6 @@
 # Story 4.5: convidar-por-username
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -199,6 +199,9 @@ openai/gpt-5.3-codex
 - Testes adicionados: `MemberServiceTest`, `MemberControllerIntegrationTest`, `InviteModal.test.tsx`.
 - Validações executadas: `./mvnw test`, `npm test -- --run`, `npm run build`.
 - Pendência de ambiente: `npm run lint` falha por dependência ausente `typescript-eslint` no `eslint.config.js`.
+- Correção pós code-review: fluxo de convite agora atualiza contador/lista de membros imediatamente após sucesso no `ListView`.
+- Correção pós code-review: autocomplete de username no `InviteModal` protegido contra race condition de respostas fora de ordem.
+- Cobertura adicional pós code-review: teste frontend garantindo atualização do contador de membros após convite e teste backend validando fluxo com header `Authorization: Bearer <jwt>`.
 
 ### File List
 
@@ -217,9 +220,21 @@ openai/gpt-5.3-codex
 - `frontend/src/components/InviteModal.test.tsx`
 - `frontend/src/api/listsApi.ts`
 - `frontend/src/pages/ListView.tsx`
+- `frontend/src/pages/ListView.test.tsx`
 - `frontend/src/types/List.ts`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+## Senior Developer Review (AI)
+
+- 2026-03-03: revisão adversarial executada.
+- Resultado: issues HIGH e MEDIUM corrigidos (estado final: aprovado).
+- Correções aplicadas:
+  - atualização imediata de membros após convite por username;
+  - proteção de race condition na busca/autocomplete;
+  - cobertura de teste frontend para atualização de contador de membros;
+  - cobertura de teste backend para autenticação via JWT Bearer no endpoint de convite.
 
 ## Change Log
 
 - 2026-02-23: Implementado convite por username no backend e frontend, com testes unitários/integração/componentes e atualização de status da story para review.
+- 2026-03-03: Correções de code-review aplicadas (sync de membros pós convite, proteção de autocomplete contra race, reforço de testes frontend/backend) e status atualizado para done.

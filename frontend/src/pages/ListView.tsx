@@ -432,6 +432,15 @@ export const ListView: React.FC = () => {
     if (!id) {
       return;
     }
+
+    try {
+      const updatedMembers = await listsApi.getListMembers(id);
+      setMembers(updatedMembers);
+      setMemberCount(updatedMembers.length);
+    } catch (err) {
+      console.error('[Invite refresh members]', err);
+    }
+
     await fetchListById(id);
   }, [fetchListById, id]);
 

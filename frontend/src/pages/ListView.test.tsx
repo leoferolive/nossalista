@@ -381,6 +381,61 @@ describe('ListView - Delete Functionality', () => {
       });
     });
   });
+
+  it('deve atualizar contador de membros após convite por username com sucesso', async () => {
+    (listsApi.getListMembers as any)
+      .mockResolvedValueOnce([
+        {
+          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+          role: 'OWNER',
+          joined_at: new Date().toISOString(),
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+          role: 'OWNER',
+          joined_at: new Date().toISOString(),
+        },
+        {
+          user: { id: 'invited-id', username: 'leo', name: 'Leo Oliveira', avatar_url: null },
+          role: 'MEMBER',
+          joined_at: new Date().toISOString(),
+        },
+      ]);
+
+    (listsApi.searchUsers as any).mockResolvedValue([
+      { username: 'leo', name: 'Leo Oliveira', avatarUrl: null },
+    ]);
+    (listsApi.inviteByUsername as any).mockResolvedValue({
+      invited_username: 'leo',
+      message: 'leo adicionado!',
+    });
+
+    render(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Abrir membros')).toHaveTextContent('1');
+    });
+
+    fireEvent.click(screen.getByLabelText('Convidar para lista'));
+    fireEvent.change(screen.getByPlaceholderText('Buscar usuário'), {
+      target: { value: 'leo' },
+    });
+
+    expect(await screen.findByRole('button', { name: /leo/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /leo/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Convidar' }));
+
+    await waitFor(() => {
+      expect(listsApi.inviteByUsername).toHaveBeenCalledWith('test-list-id', 'leo');
+      expect(screen.getByLabelText('Abrir membros')).toHaveTextContent('2');
+    });
+  });
 });
 
 describe('ListView - WebSocket Integration', () => {
