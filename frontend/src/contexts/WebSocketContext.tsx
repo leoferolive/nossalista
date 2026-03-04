@@ -2,14 +2,19 @@ import React, { createContext, useContext, useReducer, useRef, useCallback } fro
 import { Client, StompSubscription } from '@stomp/stompjs';
 import { createStompClient } from '../api/websocket';
 
-export type WebSocketStatus = 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED';
+export type WebSocketStatus = 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'RECONNECTING';
+
+interface ReconnectNotifications {
+  onReconnecting?: () => void;
+  onReconnected?: () => void;
+}
 
 interface WebSocketState {
   status: WebSocketStatus;
 }
 
 interface WebSocketActions {
-  connect: () => void;
+  connect: (notifications?: ReconnectNotifications) => void;
   disconnect: () => void;
   subscribe: (listId: string, callback: (message: unknown) => void) => void;
   unsubscribe: (listId: string) => void;
@@ -21,7 +26,15 @@ interface WebSocketContextType extends WebSocketState, WebSocketActions {}
 type WebSocketAction =
   | { type: 'CONNECTING' }
   | { type: 'CONNECTED' }
-  | { type: 'DISCONNECTED' };
+  | { type: 'DISCONNECTED' }
+  | { type: 'RECONNECTING' };
+
+export function getBackoffDelay(attempt: number): number {
+  if (attempt === 0) return 0;
+  if (attempt === 1) return 2000;
+  if (attempt === 2) return 5000;
+  return 10000;
+}
 
 function webSocketReducer(state: WebSocketState, action: WebSocketAction): WebSocketState {
   switch (action.type) {
@@ -31,6 +44,8 @@ function webSocketReducer(state: WebSocketState, action: WebSocketAction): WebSo
       return { ...state, status: 'CONNECTED' };
     case 'DISCONNECTED':
       return { ...state, status: 'DISCONNECTED' };
+    case 'RECONNECTING':
+      return { ...state, status: 'RECONNECTING' };
     default:
       return state;
   }
@@ -52,6 +67,11 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const clientRef = useRef<Client | null>(null);
   const subscriptionsRef = useRef<Map<string, StompSubscription>>(new Map());
   const pendingSubscriptionsRef = useRef<PendingSubscription[]>([]);
+  const reconnectAttemptRef = useRef<number>(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isVoluntaryDisconnectRef = useRef<boolean>(false);
+  const reconnectingToastShownRef = useRef<boolean>(false);
+  const reconnectNotificationsRef = useRef<ReconnectNotifications>({});
 
   const doSubscribe = useCallback((client: Client, listId: string, callback: (message: unknown) => void) => {
     const destination = `/topic/list/${listId}`;
@@ -66,7 +86,86 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     subscriptionsRef.current.set(listId, subscription);
   }, []);
 
-  const connect = useCallback(() => {
+  const doReconnect = useCallback(() => {
+    if (isVoluntaryDisconnectRef.current) {
+      dispatch({ type: 'DISCONNECTED' });
+      return;
+    }
+
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      dispatch({ type: 'DISCONNECTED' });
+      return;
+    }
+
+    const client = createStompClient(token);
+
+    client.onConnect = () => {
+      const isReconnect = reconnectAttemptRef.current > 0;
+
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+
+      reconnectAttemptRef.current = 0;
+      reconnectingToastShownRef.current = false;
+      dispatch({ type: 'CONNECTED' });
+
+      if (isReconnect) {
+        reconnectNotificationsRef.current.onReconnected?.();
+      }
+
+      // Processar subscrições enfileiradas antes da conexão ser estabelecida.
+      // Re-subscrição após reconexão é tratada pelo useEffect em ListView (via mudança de wsStatus).
+      pendingSubscriptionsRef.current.forEach(({ listId, callback }) => {
+        doSubscribe(client, listId, callback);
+      });
+      pendingSubscriptionsRef.current = [];
+    };
+
+    // Handler compartilhado para onDisconnect e onStompError — evita double-increment
+    // do reconnectAttemptRef quando ambos disparam na mesma falha de conexão.
+    const handleConnectionLost = () => {
+      if (isVoluntaryDisconnectRef.current) {
+        isVoluntaryDisconnectRef.current = false;
+        dispatch({ type: 'DISCONNECTED' });
+        return;
+      }
+
+      // Já há um timer agendado (ex: onStompError disparou antes de onDisconnect).
+      // Evita double-increment do backoff counter e double-scheduling.
+      if (reconnectTimerRef.current !== null) {
+        return;
+      }
+
+      dispatch({ type: 'RECONNECTING' });
+      if (!reconnectingToastShownRef.current) {
+        reconnectNotificationsRef.current.onReconnecting?.();
+        reconnectingToastShownRef.current = true;
+      }
+
+      const delay = getBackoffDelay(reconnectAttemptRef.current);
+      reconnectAttemptRef.current += 1;
+
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        doReconnect();
+      }, delay);
+    };
+
+    client.onDisconnect = handleConnectionLost;
+
+    client.onStompError = (frame) => {
+      console.error('[WebSocket] STOMP error:', frame);
+      handleConnectionLost();
+    };
+
+    clientRef.current = client;
+    client.activate();
+  }, [doSubscribe]);
+
+  const connect = useCallback((notifications?: ReconnectNotifications) => {
     if (clientRef.current?.connected) {
       return;
     }
@@ -77,37 +176,29 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    reconnectNotificationsRef.current = notifications ?? {};
+    isVoluntaryDisconnectRef.current = false;
+
     dispatch({ type: 'CONNECTING' });
-
-    const client = createStompClient(token);
-
-    client.onConnect = () => {
-      dispatch({ type: 'CONNECTED' });
-      // Processar subscriptions pendentes enfileiradas antes da conexão ser estabelecida
-      pendingSubscriptionsRef.current.forEach(({ listId, callback }) => {
-        doSubscribe(client, listId, callback);
-      });
-      pendingSubscriptionsRef.current = [];
-    };
-
-    client.onDisconnect = () => {
-      dispatch({ type: 'DISCONNECTED' });
-    };
-
-    client.onStompError = (frame) => {
-      console.error('[WebSocket] STOMP error:', frame);
-      dispatch({ type: 'DISCONNECTED' });
-    };
-
-    clientRef.current = client;
-    client.activate();
-  }, [doSubscribe]);
+    doReconnect();
+  }, [doReconnect]);
 
   const disconnect = useCallback(() => {
     if (clientRef.current) {
+      isVoluntaryDisconnectRef.current = true;
+
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+
       subscriptionsRef.current.forEach((sub) => sub.unsubscribe());
       subscriptionsRef.current.clear();
       pendingSubscriptionsRef.current = [];
+
+      reconnectAttemptRef.current = 0;
+      reconnectingToastShownRef.current = false;
+
       clientRef.current.deactivate();
       clientRef.current = null;
       dispatch({ type: 'DISCONNECTED' });
@@ -116,6 +207,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
   const subscribe = useCallback((listId: string, callback: (message: unknown) => void) => {
     const client = clientRef.current;
+
     if (!client?.connected) {
       if (client) {
         // Conexão em andamento — enfileirar para quando conectar

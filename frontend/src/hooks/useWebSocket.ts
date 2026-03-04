@@ -1,8 +1,13 @@
 import { useWebSocketContext, WebSocketStatus } from '../contexts/WebSocketContext';
 
+interface ReconnectNotifications {
+  onReconnecting?: () => void;
+  onReconnected?: () => void;
+}
+
 interface UseWebSocketReturn {
   status: WebSocketStatus;
-  connect: () => void;
+  connect: (notifications?: ReconnectNotifications) => void;
   disconnect: () => void;
   subscribe: (listId: string, callback: (message: unknown) => void) => void;
   unsubscribe: (listId: string) => void;

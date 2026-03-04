@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
 import { useItems } from '../hooks/useItems';
@@ -15,6 +15,7 @@ import { InviteModal } from '../components/InviteModal';
 import { MembersModal } from '../components/MembersModal';
 import { ActivityTimeline } from '../components/ActivityTimeline';
 import { OnlineMembersBar } from '../components/OnlineMembersBar';
+import { ConnectionStatusIndicator } from '../components/ConnectionStatusIndicator';
 import { listsApi } from '../api/listsApi';
 import { useToast, Toast } from '../components/Toast';
 import { ApiError } from '../types/ApiError';
@@ -22,6 +23,7 @@ import { ListItem } from '../types/Item';
 import { ListMemberResponse } from '../types/List';
 import { ListWebSocketMessage } from '../types/WebSocketMessage';
 import { OnlineMember } from '../types/OnlineMember';
+import { WebSocketStatus } from '../contexts/WebSocketContext';
 
 /**
  * Página de visualização de detalhes de uma lista
@@ -115,6 +117,7 @@ export const ListView: React.FC = () => {
   const [wsCheckedItemIds, setWsCheckedItemIds] = useState<Set<string>>(new Set());
   const [wsCheckedHighlightItemIds, setWsCheckedHighlightItemIds] = useState<Set<string>>(new Set());
   const [onlineMembers, setOnlineMembers] = useState<Map<string, OnlineMember>>(new Map());
+  const prevWsStatusRef = useRef<WebSocketStatus>(wsStatus);
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -214,10 +217,13 @@ export const ListView: React.FC = () => {
   // Conexão WebSocket: conectar ao montar (apenas se autenticado), desconectar ao desmontar
   useEffect(() => {
     if (isAuthenticated) {
-      connect();
+      connect({
+        onReconnecting: () => showToast('Sem conexão. Reconectando...', 'info'),
+        onReconnected: () => showToast('Conectado novamente!', 'success'),
+      });
     }
     return () => disconnect();
-  }, [connect, disconnect, isAuthenticated]);
+  }, [connect, disconnect, isAuthenticated, showToast]);
 
   // Subscrição WebSocket: subscrever quando CONNECTED, desinscrever ao desmontar/trocar lista
   useEffect(() => {
@@ -258,6 +264,15 @@ export const ListView: React.FC = () => {
 
     return () => clearInterval(heartbeatInterval);
   }, [wsStatus, id, send]);
+
+  useEffect(() => {
+    const prevStatus = prevWsStatusRef.current;
+    prevWsStatusRef.current = wsStatus;
+
+    if (prevStatus === 'RECONNECTING' && wsStatus === 'CONNECTED' && id) {
+      fetchItems(id);
+    }
+  }, [wsStatus, id, fetchItems]);
 
   // Carregar dados da lista e itens ao montar o componente
   useEffect(() => {
@@ -432,8 +447,6 @@ export const ListView: React.FC = () => {
 
       // Apenas após sucesso real, mostrar toast de sucesso
       showToast('Sincronizado', 'success');
-      setIsEditItemModalOpen(false);
-      setEditingItem(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao atualizar item';
       showToast(message, 'error');
@@ -794,6 +807,8 @@ export const ListView: React.FC = () => {
             </p>
           )}
         </div>
+
+        <ConnectionStatusIndicator status={wsStatus} />
 
         {onlineMembers.size > 0 && (
           <OnlineMembersBar

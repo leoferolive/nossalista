@@ -18,7 +18,7 @@ export function createStompClient(token: string): Client {
     },
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
-    reconnectDelay: 5000,
+    reconnectDelay: 0,
     debug: (str: string) => {
       if (import.meta.env.DEV) {
         console.log('[STOMP]', str);

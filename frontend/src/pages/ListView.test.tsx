@@ -973,3 +973,121 @@ describe('ListView - WebSocket Integration', () => {
     vi.useRealTimers();
   });
 });
+
+describe('ListView - Reconnection UX', () => {
+  const mockConnect = vi.fn();
+  const mockDisconnect = vi.fn();
+  const mockSubscribe = vi.fn();
+  const mockUnsubscribe = vi.fn();
+  const mockSend = vi.fn();
+  const mockFetchItems = vi.fn();
+
+  const mockList: ListResponse = {
+    id: 'test-list-id',
+    name: 'Lista Reconexao',
+    type: { id: 1, name: 'Compras', slug: 'compras' },
+    owner: { id: 'owner-id', username: 'testuser', name: 'Test User', avatarUrl: null },
+    inviteCode: 'RC123',
+    isOwner: true,
+    itemsCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (listsApi.getListMembers as any).mockImplementation(() => new Promise(() => {}));
+
+    (useLists as any).mockReturnValue({
+      currentList: mockList,
+      loadingList: false,
+      errorList: null,
+      updatingList: false,
+      deletingList: false,
+      fetchListById: vi.fn(),
+      updateListName: vi.fn(),
+      deleteList: vi.fn(),
+      clearListError: vi.fn(),
+    });
+
+    (useItems as any).mockReturnValue({
+      items: [],
+      setItems: vi.fn(),
+      loadingItems: false,
+      errorItems: null,
+      addingItem: false,
+      togglingItemId: null,
+      deletingItemId: null,
+      fetchItems: mockFetchItems,
+      addItem: vi.fn(),
+      toggleItem: vi.fn(),
+      updateItem: vi.fn(),
+      deleteItem: vi.fn(),
+      clearItemsError: vi.fn(),
+    });
+
+    (useToast as any).mockReturnValue({
+      toasts: [],
+      showToast: vi.fn(),
+      removeToast: vi.fn(),
+    });
+
+    (useAuth as any).mockReturnValue({
+      user: { id: 'owner-id', username: 'testuser', email: 'test@test.com', displayName: 'Test User' },
+      isAuthenticated: true,
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+  });
+
+  it('deve recarregar itens na transicao RECONNECTING -> CONNECTED', async () => {
+    let wsStatus: 'RECONNECTING' | 'CONNECTED' = 'RECONNECTING';
+
+    (useWebSocket as any).mockImplementation(() => ({
+      status: wsStatus,
+      connect: mockConnect,
+      disconnect: mockDisconnect,
+      subscribe: mockSubscribe,
+      unsubscribe: mockUnsubscribe,
+      send: mockSend,
+    }));
+
+    const { rerender } = render(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+
+    mockFetchItems.mockClear();
+    wsStatus = 'CONNECTED';
+
+    rerender(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockFetchItems).toHaveBeenCalledWith('test-list-id');
+    });
+  });
+
+  it('deve renderizar ConnectionStatusIndicator com status correto', () => {
+    (useWebSocket as any).mockReturnValue({
+      status: 'RECONNECTING',
+      connect: mockConnect,
+      disconnect: mockDisconnect,
+      subscribe: mockSubscribe,
+      unsubscribe: mockUnsubscribe,
+      send: mockSend,
+    });
+
+    render(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText('Reconectando...')).toBeInTheDocument();
+  });
+});
