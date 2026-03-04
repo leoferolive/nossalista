@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.member.service;
 
+import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.domain.ListTypeEntity;
 import br.com.leoferolive.nossalista.list.dto.JoinListResponse;
@@ -49,6 +50,9 @@ class ListJoinServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ActivityLogService activityLogService;
 
     @InjectMocks
     private ListJoinService listJoinService;
@@ -300,6 +304,7 @@ class ListJoinServiceTest {
         assertThat(response.list()).isNotNull();
         // Verificar que o membro foi de fato persistido
         verify(listMemberRepository).save(any(ListMember.class));
+        verify(activityLogService).logMemberJoinedViaLink(testList, testUser);
     }
 
     @Test

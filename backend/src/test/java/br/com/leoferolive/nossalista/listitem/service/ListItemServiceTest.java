@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.listitem.service;
 
+import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.ValidationException;
 import br.com.leoferolive.nossalista.list.domain.List;
@@ -14,6 +15,7 @@ import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
 import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,8 +23,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
@@ -39,6 +42,7 @@ import static org.mockito.Mockito.*;
  * Testes unitários para ListItemService
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ListItemServiceTest {
 
     @Mock
@@ -56,8 +60,11 @@ class ListItemServiceTest {
     @Mock
     private ListMemberRepository listMemberRepository;
 
-    @InjectMocks
+    @Mock
+    private ActivityLogService activityLogService;
+
     private ListItemService listItemService;
+    private WebSocketEventPublisher eventPublisher;
 
     private User testUser;
     private User otherUser;
@@ -66,6 +73,16 @@ class ListItemServiceTest {
 
     @BeforeEach
     void setUp() {
+        eventPublisher = new WebSocketEventPublisher(simpMessagingTemplate);
+        listItemService = new ListItemService(
+            listItemRepository,
+            listRepository,
+            listItemMapper,
+            eventPublisher,
+            listMemberRepository,
+            activityLogService
+        );
+
         testUser = new User();
         testUser.setId(UUID.randomUUID());
         testUser.setUsername("testuser");
@@ -83,6 +100,15 @@ class ListItemServiceTest {
         testList.setTypeId(1); // Shopping
         testList.setOwner(testUser);
         testList.setInviteCode("TEST12345678");
+        testList.setUpdatedAt(LocalDateTime.now());
+
+        lenient().when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
+            List list = invocation.getArgument(0);
+            if (list.getUpdatedAt() == null) {
+                list.setUpdatedAt(LocalDateTime.now());
+            }
+            return list;
+        });
     }
 
     @Nested
@@ -1297,12 +1323,15 @@ class ListItemServiceTest {
 
             // Assert: verificar que convertAndSend foi chamado com destino correto e mensagem ITEM_ADDED
             ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
-            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
+            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId + "/items"), payloadCaptor.capture());
             WebSocketMessage captured = (WebSocketMessage) payloadCaptor.getValue();
             assertEquals("ITEM_ADDED", captured.getType());
             assertNotNull(captured.getPayload());
-            assertEquals(testUser.getId(), captured.getUserId());
-            assertEquals(testUser.getUsername(), captured.getUsername());
+            assertNotNull(captured.getActor());
+            assertEquals(testUser.getId(), captured.getActor().id());
+            assertEquals(testUser.getUsername(), captured.getActor().username());
+            assertEquals(listId, captured.getListId());
+            assertEquals("items", captured.getChannel());
             assertNotNull(captured.getTimestamp());
         }
 
@@ -1322,12 +1351,13 @@ class ListItemServiceTest {
 
             // Assert
             ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
-            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
+            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId + "/items"), payloadCaptor.capture());
             WebSocketMessage captured = (WebSocketMessage) payloadCaptor.getValue();
             assertEquals("ITEM_UPDATED", captured.getType());
             assertNotNull(captured.getPayload());
-            assertEquals(testUser.getId(), captured.getUserId());
-            assertEquals(testUser.getUsername(), captured.getUsername());
+            assertNotNull(captured.getActor());
+            assertEquals(testUser.getId(), captured.getActor().id());
+            assertEquals(testUser.getUsername(), captured.getActor().username());
             assertNotNull(captured.getTimestamp());
         }
 
@@ -1345,17 +1375,18 @@ class ListItemServiceTest {
 
             // Assert
             ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
-            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
+            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId + "/items"), payloadCaptor.capture());
             WebSocketMessage captured = (WebSocketMessage) payloadCaptor.getValue();
             assertEquals("ITEM_CHECKED", captured.getType());
             assertNotNull(captured.getPayload());
-            assertEquals(testUser.getId(), captured.getUserId());
-            assertEquals(testUser.getUsername(), captured.getUsername());
+            assertNotNull(captured.getActor());
+            assertEquals(testUser.getId(), captured.getActor().id());
+            assertEquals(testUser.getUsername(), captured.getActor().username());
             assertNotNull(captured.getTimestamp());
         }
 
         @Test
-        @DisplayName("deleteItem deve publicar ITEM_REMOVED com DTO capturado antes da deleção")
+        @DisplayName("deleteItem deve publicar ITEM_REMOVED e LIST_LAYOUT_UPDATED")
         void deleteItem_shouldBroadcastItemRemoved() {
             // Arrange
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
@@ -1371,13 +1402,20 @@ class ListItemServiceTest {
             verify(listItemMapper).toListItemResponseDTO(testItem); // chamado antes de deletar
             verify(listItemRepository).delete(testItem);
             ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
-            verify(simpMessagingTemplate).convertAndSend(eq("/topic/list/" + listId), payloadCaptor.capture());
-            WebSocketMessage captured = (WebSocketMessage) payloadCaptor.getValue();
-            assertEquals("ITEM_REMOVED", captured.getType());
-            assertEquals(testResponseDTO, captured.getPayload());
-            assertEquals(testUser.getId(), captured.getUserId());
-            assertEquals(testUser.getUsername(), captured.getUsername());
-            assertNotNull(captured.getTimestamp());
+            verify(simpMessagingTemplate, times(2)).convertAndSend(eq("/topic/list/" + listId + "/items"), payloadCaptor.capture());
+            java.util.List<Object> capturedValues = payloadCaptor.getAllValues();
+
+            WebSocketMessage removedMessage = (WebSocketMessage) capturedValues.get(0);
+            assertEquals("ITEM_REMOVED", removedMessage.getType());
+            assertEquals(testResponseDTO, removedMessage.getPayload());
+            assertNotNull(removedMessage.getActor());
+            assertEquals(testUser.getId(), removedMessage.getActor().id());
+            assertEquals(testUser.getUsername(), removedMessage.getActor().username());
+            assertNotNull(removedMessage.getTimestamp());
+
+            WebSocketMessage layoutMessage = (WebSocketMessage) capturedValues.get(1);
+            assertEquals("LIST_LAYOUT_UPDATED", layoutMessage.getType());
+            assertNotNull(layoutMessage.getPayload());
         }
     }
 }

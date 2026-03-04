@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
 import { useItems } from '../hooks/useItems';
@@ -21,9 +21,24 @@ import { useToast, Toast } from '../components/Toast';
 import { ApiError } from '../types/ApiError';
 import { ListItem } from '../types/Item';
 import { ListMemberResponse } from '../types/List';
-import { ListWebSocketMessage } from '../types/WebSocketMessage';
+import { parseListWebSocketMessage } from '../types/WebSocketMessage';
 import { OnlineMember } from '../types/OnlineMember';
-import { WebSocketStatus } from '../contexts/WebSocketContext';
+import { useListRealtimeSync } from '../hooks/useListRealtimeSync';
+
+const ACTIVITY_TIMELINE_ENABLED = true;
+
+function sortItemsByPosition(items: ListItem[]): ListItem[] {
+  return [...items].sort((a, b) => a.position - b.position);
+}
+
+function sortOnlineMembers(members: OnlineMember[], currentUserId?: string): OnlineMember[] {
+  return [...members].sort((a, b) => {
+    if (a.userId === currentUserId) return -1;
+    if (b.userId === currentUserId) return 1;
+
+    return (a.name || a.username).localeCompare((b.name || b.username), 'pt-BR', { sensitivity: 'base' });
+  });
+}
 
 /**
  * Página de visualização de detalhes de uma lista
@@ -84,7 +99,7 @@ export const ListView: React.FC = () => {
     loading: loadingActivities,
     hasMore: hasMoreActivities,
     loadMore: loadMoreActivities,
-  } = useActivities(id!, isActivityTimelineOpen);
+  } = useActivities(id!, ACTIVITY_TIMELINE_ENABLED && isActivityTimelineOpen);
 
   // Estado do modal de edição de nome da lista
   const [isEditListModalOpen, setIsEditListModalOpen] = useState(false);
@@ -117,22 +132,51 @@ export const ListView: React.FC = () => {
   const [wsCheckedItemIds, setWsCheckedItemIds] = useState<Set<string>>(new Set());
   const [wsCheckedHighlightItemIds, setWsCheckedHighlightItemIds] = useState<Set<string>>(new Set());
   const [onlineMembers, setOnlineMembers] = useState<Map<string, OnlineMember>>(new Map());
-  const prevWsStatusRef = useRef<WebSocketStatus>(wsStatus);
+  const [hasPresenceSnapshot, setHasPresenceSnapshot] = useState(false);
+
+  const { handleIncomingItemsRevision, resetTrackedRevision } = useListRealtimeSync({
+    listId: id,
+    wsStatus,
+    fetchItems,
+    getListState: listsApi.getListState,
+  });
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
 
   // Handler de mensagens WebSocket — processa eventos de itens em tempo real
   const handleWebSocketMessage = useCallback((raw: unknown) => {
-    const message = raw as ListWebSocketMessage;
-    const isOwnAction = message.userId === currentUser?.id;
+    const message = parseListWebSocketMessage(raw);
+    if (!message) {
+      console.warn('[WebSocket] Ignorando mensagem invalida', raw);
+      return;
+    }
+
+    const actorId = message.actor?.id;
+    const actorUsername = message.actor?.username ?? 'Alguem';
+    const isOwnAction = actorId === currentUser?.id;
+
+    if (message.channel === 'items') {
+      const revisionStatus = handleIncomingItemsRevision(message.revision);
+      if (revisionStatus === 'missing') {
+        if (id) {
+          console.warn('[WebSocket] Evento de itens sem revision, forçando resync', message);
+          fetchItems(id);
+        }
+        return;
+      }
+      if (revisionStatus === 'stale') {
+        console.warn('[WebSocket] Evento de itens stale ignorado', message);
+        return;
+      }
+    }
 
     switch (message.type) {
       case 'ITEM_ADDED':
         if (!isOwnAction) {
           setItems((prev) => {
             if (prev.some((i) => i.id === message.payload.id)) return prev;
-            return [...prev, message.payload];
+            return sortItemsByPosition([...prev, message.payload]);
           });
           setWsAddedItemIds((prev) => new Set([...prev, message.payload.id]));
           setTimeout(() => {
@@ -142,21 +186,21 @@ export const ListView: React.FC = () => {
               return next;
             });
           }, 300);
-          showToast(`${message.username} adicionou ${message.payload.name}`, 'info');
+          showToast(`${actorUsername} adicionou ${message.payload.name}`, 'info');
         }
         break;
       case 'ITEM_UPDATED':
         if (!isOwnAction) {
           setItems((prev) =>
-            prev.map((i) => (i.id === message.payload.id ? message.payload : i))
+            sortItemsByPosition(prev.map((i) => (i.id === message.payload.id ? message.payload : i)))
           );
-          showToast(`${message.username} editou ${message.payload.name}`, 'info');
+          showToast(`${actorUsername} editou ${message.payload.name}`, 'info');
         }
         break;
       case 'ITEM_REMOVED':
         if (!isOwnAction) {
           setItems((prev) => prev.filter((i) => i.id !== message.payload.id));
-          showToast(`${message.username} removeu ${message.payload.name}`, 'info');
+          showToast(`${actorUsername} removeu ${message.payload.name}`, 'info');
         }
         break;
       case 'ITEM_CHECKED':
@@ -185,9 +229,34 @@ export const ListView: React.FC = () => {
             )
           );
           const action = message.payload.checked ? 'marcou' : 'desmarcou';
-          showToast(`${message.username} ${action} ${message.payload.name}`, 'info');
+          showToast(`${actorUsername} ${action} ${message.payload.name}`, 'info');
         }
         break;
+      case 'LIST_LAYOUT_UPDATED': {
+        const positionsMap = new Map(message.payload.positions.map((entry) => [entry.itemId, entry.position]));
+        setItems((prev) =>
+          sortItemsByPosition(prev.map((item) => {
+            const nextPosition = positionsMap.get(item.id);
+            return nextPosition === undefined ? item : { ...item, position: nextPosition };
+          }))
+        );
+        break;
+      }
+      case 'PRESENCE_SNAPSHOT': {
+        setHasPresenceSnapshot(true);
+        setOnlineMembers(new Map(
+          message.payload.members.map((member) => [
+            member.userId,
+            {
+              userId: member.userId,
+              username: member.username,
+              name: member.name,
+              avatarUrl: member.avatarUrl,
+            },
+          ])
+        ));
+        break;
+      }
       case 'MEMBER_ONLINE': {
         const payload = message.payload;
         setOnlineMembers((prev) => {
@@ -212,7 +281,7 @@ export const ListView: React.FC = () => {
         break;
       }
     }
-  }, [currentUser?.id, setItems, showToast]);
+  }, [currentUser?.id, fetchItems, handleIncomingItemsRevision, id, setItems, showToast]);
 
   // Conexão WebSocket: conectar ao montar (apenas se autenticado), desconectar ao desmontar
   useEffect(() => {
@@ -228,30 +297,23 @@ export const ListView: React.FC = () => {
   // Subscrição WebSocket: subscrever quando CONNECTED, desinscrever ao desmontar/trocar lista
   useEffect(() => {
     if (wsStatus === 'CONNECTED' && id) {
-      subscribe(id, handleWebSocketMessage);
-
-      if (currentUser) {
-        setOnlineMembers((prev) => {
-          const next = new Map(prev);
-          next.set(currentUser.id, {
-            userId: currentUser.id,
-            username: currentUser.username,
-            name: currentUser.displayName ?? currentUser.username,
-            avatarUrl: currentUser.avatarUrl ?? null,
-          });
-          return next;
-        });
-      }
+      subscribe(id, 'items', handleWebSocketMessage);
+      subscribe(id, 'presence', handleWebSocketMessage);
 
       return () => {
-        unsubscribe(id);
+        unsubscribe(id, 'items');
+        unsubscribe(id, 'presence');
+        resetTrackedRevision();
+        setHasPresenceSnapshot(false);
         setOnlineMembers(new Map());
       };
     }
 
+    resetTrackedRevision();
+    setHasPresenceSnapshot(false);
     setOnlineMembers(new Map());
     return undefined;
-  }, [wsStatus, id, subscribe, unsubscribe, handleWebSocketMessage, currentUser]);
+  }, [wsStatus, id, subscribe, unsubscribe, handleWebSocketMessage, resetTrackedRevision]);
 
   useEffect(() => {
     if (wsStatus !== 'CONNECTED' || !id) {
@@ -264,15 +326,6 @@ export const ListView: React.FC = () => {
 
     return () => clearInterval(heartbeatInterval);
   }, [wsStatus, id, send]);
-
-  useEffect(() => {
-    const prevStatus = prevWsStatusRef.current;
-    prevWsStatusRef.current = wsStatus;
-
-    if (prevStatus === 'RECONNECTING' && wsStatus === 'CONNECTED' && id) {
-      fetchItems(id);
-    }
-  }, [wsStatus, id, fetchItems]);
 
   // Carregar dados da lista e itens ao montar o componente
   useEffect(() => {
@@ -663,6 +716,7 @@ export const ListView: React.FC = () => {
   }
 
   const memberCountLabel = memberCount === null ? '--' : String(memberCount);
+  const sortedOnlineMembers = sortOnlineMembers(Array.from(onlineMembers.values()), currentUser?.id);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -700,14 +754,16 @@ export const ListView: React.FC = () => {
             <span className="text-sm text-gray-600">{memberCountLabel}</span>
           </button>
           {/* Menu de ações - apenas para dono da lista */}
-          <button
-            onClick={() => setIsActivityTimelineOpen(true)}
-            className="p-3 min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center relative"
-            aria-label="Ver atividades da lista"
-            title="Histórico de atividades"
-          >
-            <span className="text-xl">📜</span>
-          </button>
+          {ACTIVITY_TIMELINE_ENABLED && (
+            <button
+              onClick={() => setIsActivityTimelineOpen(true)}
+              className="p-3 min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center relative"
+              aria-label="Ver atividades da lista"
+              title="Histórico de atividades"
+            >
+              <span className="text-xl">📜</span>
+            </button>
+          )}
           {currentList.isOwner && (
             <div className="flex items-center gap-1">
               {/* Botão convidar */}
@@ -819,9 +875,9 @@ export const ListView: React.FC = () => {
 
         <ConnectionStatusIndicator status={wsStatus} />
 
-        {onlineMembers.size > 0 && (
+        {hasPresenceSnapshot && onlineMembers.size > 0 && (
           <OnlineMembersBar
-            members={Array.from(onlineMembers.values())}
+            members={sortedOnlineMembers}
             currentUserId={currentUser?.id ?? ''}
           />
         )}
@@ -1019,14 +1075,16 @@ export const ListView: React.FC = () => {
       )}
 
       {/* Timeline de atividades */}
-      <ActivityTimeline
-        isOpen={isActivityTimelineOpen}
-        onClose={() => setIsActivityTimelineOpen(false)}
-        activities={activities}
-        loading={loadingActivities}
-        hasMore={hasMoreActivities}
-        onLoadMore={loadMoreActivities}
-      />
+      {ACTIVITY_TIMELINE_ENABLED && (
+        <ActivityTimeline
+          isOpen={isActivityTimelineOpen}
+          onClose={() => setIsActivityTimelineOpen(false)}
+          activities={activities}
+          loading={loadingActivities}
+          hasMore={hasMoreActivities}
+          onLoadMore={loadMoreActivities}
+        />
+      )}
 
       {/* Toasts */}
       {toasts.map((toast) => (

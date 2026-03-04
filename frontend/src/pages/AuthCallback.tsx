@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import client from '../api/client';
 import { listsApi } from '../api/listsApi';
 import { ApiError } from '../types/ApiError';
+import { clearStoredSession, persistAuthToken } from '../auth/session';
 
 interface CurrentUserResponse {
   id: string;
@@ -36,7 +37,7 @@ export function AuthCallback() {
     const finishAuth = async () => {
       try {
         // Necessário para que o interceptor envie Authorization ao carregar o perfil.
-        localStorage.setItem('authToken', token);
+        persistAuthToken(token);
 
         const { data } = await client.get<CurrentUserResponse>('/api/users/me');
         login(token, {
@@ -84,7 +85,7 @@ export function AuthCallback() {
         // Se não há pending invite, redirecionar para home normalmente
         navigate('/', { replace: true });
       } catch {
-        localStorage.removeItem('authToken');
+        clearStoredSession();
         sessionStorage.removeItem('pendingInviteCode');
         setError('Não foi possível concluir o login com Google.');
       }

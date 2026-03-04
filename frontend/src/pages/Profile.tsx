@@ -4,6 +4,7 @@ import { UserProfile } from '../components/UserProfile';
 import { useToast } from '../components/Toast';
 import { usersApi } from '../api/usersApi';
 import { ApiError } from '../types/ApiError';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Página de Perfil do Usuário
@@ -13,6 +14,7 @@ import { ApiError } from '../types/ApiError';
 export const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { toasts, showToast, removeToast } = useToast();
+  const { logout } = useAuth();
 
   const [userData, setUserData] = useState({
     username: '',
@@ -77,15 +79,14 @@ export const Profile: React.FC = () => {
   const handleLogout = useCallback(async () => {
     try {
       await usersApi.logout();
-      // Limpar tokens e redirecionar para login
-      localStorage.removeItem('token');
+      logout();
       showToast('Até logo!', 'info');
-      navigate('/login');
+      navigate('/login', { replace: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer logout';
       showToast(message, 'error');
     }
-  }, [navigate, showToast]);
+  }, [logout, navigate, showToast]);
 
   // Loading state
   if (loading) {

@@ -1,16 +1,27 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import client from '../api/client';
+import {
+  clearStoredSession,
+  getStoredAuthToken,
+  getStoredUser,
+  persistAuthSession,
+  StoredUser,
+} from '../auth/session';
 
-interface User {
+interface CurrentUserResponse {
   id: string;
   username: string;
   email: string;
-  displayName: string;
-  avatarUrl?: string;
+  name: string | null;
+  avatarUrl?: string | null;
 }
+
+type User = StoredUser;
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isBootstrapping: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
 }
@@ -18,27 +29,61 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const [user, setUser] = useState<User | null>(() => getStoredUser());
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
-  const isAuthenticated = !!user;
+  useEffect(() => {
+    const bootstrapSession = async () => {
+      const token = getStoredAuthToken();
+      const savedUser = getStoredUser();
+
+      if (!token) {
+        if (savedUser) {
+          clearStoredSession();
+          setUser(null);
+        }
+        setIsBootstrapping(false);
+        return;
+      }
+
+      try {
+        const { data } = await client.get<CurrentUserResponse>('/api/users/me');
+        const normalizedUser: User = {
+          id: data.id,
+          username: data.username,
+          email: data.email,
+          displayName: data.name,
+          avatarUrl: data.avatarUrl ?? null,
+        };
+        persistAuthSession(token, normalizedUser);
+        setUser(normalizedUser);
+      } catch {
+        clearStoredSession();
+        setUser(null);
+      } finally {
+        setIsBootstrapping(false);
+      }
+    };
+
+    void bootstrapSession();
+  }, []);
+
+  const isAuthenticated = !!user && !!getStoredAuthToken();
 
   const login = useCallback((token: string, userData: User) => {
-    localStorage.setItem('authToken', token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    persistAuthSession(token, userData);
     setUser(userData);
+    setIsBootstrapping(false);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+    clearStoredSession();
     setUser(null);
+    setIsBootstrapping(false);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isBootstrapping, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

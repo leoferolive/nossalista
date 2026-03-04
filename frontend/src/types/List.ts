@@ -42,6 +42,13 @@ export interface ListResponse {
   updatedAt: string;
 }
 
+export interface ListStateResponse {
+  listId: string;
+  revision: number;
+  updatedAt: string;
+  itemsCount: number;
+}
+
 /**
  * Request para criar uma nova lista
  */

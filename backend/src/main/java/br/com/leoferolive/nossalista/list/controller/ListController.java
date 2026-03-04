@@ -1,9 +1,12 @@
 package br.com.leoferolive.nossalista.list.controller;
 
+import br.com.leoferolive.nossalista.activity.dto.ActivityPageResponse;
+import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.dto.ListMapper;
 import br.com.leoferolive.nossalista.list.dto.ListResponse;
+import br.com.leoferolive.nossalista.list.dto.ListStateResponse;
 import br.com.leoferolive.nossalista.list.dto.InviteLinkResponse;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.service.ListService;
@@ -46,13 +49,15 @@ public class ListController {
 
     private final ListService listService;
     private final ListMapper listMapper;
+    private final ActivityLogService activityLogService;
 
     @Value("${frontend.url}")
     private String frontendBaseUrl;
 
-    public ListController(ListService listService, ListMapper listMapper) {
+    public ListController(ListService listService, ListMapper listMapper, ActivityLogService activityLogService) {
         this.listService = listService;
         this.listMapper = listMapper;
+        this.activityLogService = activityLogService;
     }
 
     /**
@@ -166,6 +171,74 @@ public class ListController {
         List list = listService.getListById(id, authenticatedUser.getId());
         // Passa currentUserId explicitamente para calcular isOwner corretamente
         return listMapper.toListResponse(list, authenticatedUser.getId());
+    }
+
+    @GetMapping("/{id}/state")
+    @Operation(
+        summary = "Obter estado leve da lista",
+        description = "Retorna revision, updatedAt e contagem de itens para sincronização leve da lista."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Estado leve retornado com sucesso",
+            content = @Content(schema = @Schema(implementation = ListStateResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Usuário não tem permissão para acessar esta lista",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista não encontrada",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public ListStateResponse getListState(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User authenticatedUser) {
+        return listService.getListState(id, authenticatedUser.getId());
+    }
+
+    @GetMapping("/{id}/activity")
+    @Operation(
+        summary = "Listar atividades da lista",
+        description = "Retorna o histórico paginado de atividades da lista para owner ou membros."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Atividades retornadas com sucesso",
+            content = @Content(schema = @Schema(implementation = ActivityPageResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado (JWT ausente ou inválido)",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Usuário não tem permissão para acessar esta lista",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Lista não encontrada",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+        )
+    })
+    public ActivityPageResponse getActivity(
+            @PathVariable UUID id,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "50") int size,
+            @AuthenticationPrincipal User authenticatedUser) {
+        return activityLogService.getActivities(id, authenticatedUser.getId(), page, size);
     }
 
     /**

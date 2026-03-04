@@ -3,10 +3,12 @@ package br.com.leoferolive.nossalista.list.service;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
+import br.com.leoferolive.nossalista.list.dto.ListStateResponse;
 import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
+import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
@@ -45,6 +47,9 @@ class ListServiceTest {
 
     @Mock
     private ListMemberRepository listMemberRepository;
+
+    @Mock
+    private ListItemRepository listItemRepository;
 
     @InjectMocks
     private ListService listService;
@@ -259,6 +264,54 @@ class ListServiceTest {
 
             assertEquals("Você não tem permissão para acessar esta lista", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
+        }
+    }
+
+    @Nested
+    @DisplayName("getListState - Estado leve da Lista")
+    class GetListStateTests {
+
+        private List testList;
+        private UUID listId;
+
+        @BeforeEach
+        void setUpList() {
+            listId = UUID.randomUUID();
+            testList = new List();
+            testList.setId(listId);
+            testList.setName("Lista State");
+            testList.setTypeId(1);
+            testList.setOwner(testUser);
+            testList.setUpdatedAt(LocalDateTime.of(2026, 3, 4, 12, 0));
+        }
+
+        @Test
+        @DisplayName("Deve retornar state quando usuário é owner")
+        void shouldReturnListStateWhenUserIsOwner() {
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.countByListId(listId)).thenReturn(3L);
+
+            ListStateResponse response = listService.getListState(listId, testUser.getId());
+
+            assertEquals(listId, response.listId());
+            assertEquals(3L, response.itemsCount());
+            assertEquals(testList.getUpdatedAt(), response.updatedAt());
+            assertEquals(ListService.toRevision(testList.getUpdatedAt()), response.revision());
+        }
+
+        @Test
+        @DisplayName("Deve lançar ForbiddenException quando usuário não participa da lista")
+        void shouldThrowForbiddenExceptionWhenUserIsNotParticipant() {
+            UUID otherUserId = UUID.randomUUID();
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listMemberRepository.existsByListIdAndUserId(listId, otherUserId)).thenReturn(false);
+
+            ForbiddenException exception = assertThrows(
+                ForbiddenException.class,
+                () -> listService.getListState(listId, otherUserId)
+            );
+
+            assertEquals("Você não tem permissão para acessar esta lista", exception.getMessage());
         }
     }
 

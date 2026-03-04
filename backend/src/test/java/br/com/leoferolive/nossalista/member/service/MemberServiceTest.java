@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.member.service;
 
+import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
@@ -45,6 +46,9 @@ class MemberServiceTest {
     @Mock
     private ListMemberRepository listMemberRepository;
 
+    @Mock
+    private ActivityLogService activityLogService;
+
     @InjectMocks
     private MemberService memberService;
 
@@ -85,6 +89,7 @@ class MemberServiceTest {
         assertThat(response.invited_username()).isEqualTo("pedro");
         assertThat(response.message()).isEqualTo("pedro adicionado!");
         verify(listMemberRepository).save(any(ListMember.class));
+        verify(activityLogService).logMemberInvitedByUsername(testList, targetUser, owner);
     }
 
     @Test
@@ -183,6 +188,7 @@ class MemberServiceTest {
         memberService.leaveList(testList.getId(), memberUser.getId());
 
         verify(listMemberRepository).delete(requesterMembership);
+        verify(activityLogService).logMemberLeft(testList, memberUser);
     }
 
     @Test
@@ -217,6 +223,7 @@ class MemberServiceTest {
         memberService.removeMember(testList.getId(), owner.getId(), memberUser.getId());
 
         verify(listMemberRepository).delete(targetMembership);
+        verify(activityLogService).logMemberRemoved(testList, memberUser, owner);
     }
 
     @Test

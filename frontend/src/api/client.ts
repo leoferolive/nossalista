@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { clearStoredSession, getStoredAuthToken } from '../auth/session';
 
 /**
  * Instância configurada do Axios para comunicação com a API
@@ -16,7 +17,7 @@ const client: AxiosInstance = axios.create({
  */
 client.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('authToken');
+    const token = getStoredAuthToken();
 
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -38,8 +39,7 @@ client.interceptors.response.use(
   (error) => {
     // Se 401 Unauthorized, limpar token e redirecionar para login
     if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      clearStoredSession();
 
       // Redirecionar para login (evita redirecionamento se já estiver na página de login)
       if (window.location.pathname !== '/login') {

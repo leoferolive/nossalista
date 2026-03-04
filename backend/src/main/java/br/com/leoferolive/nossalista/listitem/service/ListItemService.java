@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.listitem.service;
 
+import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.ValidationException;
 import br.com.leoferolive.nossalista.list.domain.List;
@@ -15,14 +16,15 @@ import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
-import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
+import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
+import br.com.leoferolive.nossalista.websocket.dto.ListLayoutUpdatedPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,19 +39,22 @@ public class ListItemService {
     private final ListItemRepository listItemRepository;
     private final ListRepository listRepository;
     private final ListItemMapper listItemMapper;
-    private final SimpMessagingTemplate simpMessagingTemplate;
+    private final WebSocketEventPublisher eventPublisher;
     private final ListMemberRepository listMemberRepository;
+    private final ActivityLogService activityLogService;
 
     public ListItemService(ListItemRepository listItemRepository,
                            ListRepository listRepository,
                            ListItemMapper listItemMapper,
-                           SimpMessagingTemplate simpMessagingTemplate,
-                           ListMemberRepository listMemberRepository) {
+                           WebSocketEventPublisher eventPublisher,
+                           ListMemberRepository listMemberRepository,
+                           ActivityLogService activityLogService) {
         this.listItemRepository = listItemRepository;
         this.listRepository = listRepository;
         this.listItemMapper = listItemMapper;
-        this.simpMessagingTemplate = simpMessagingTemplate;
+        this.eventPublisher = eventPublisher;
         this.listMemberRepository = listMemberRepository;
+        this.activityLogService = activityLogService;
     }
 
     /**
@@ -109,10 +114,12 @@ public class ListItemService {
         // 8. Log de auditoria
         log.info("Item added: itemId={}, itemName='{}', listId={}, createdBy={}, position={}",
                 saved.getId(), saved.getName(), listId, creator.getId(), nextPosition);
+        activityLogService.logItemAdded(list, creator, saved);
 
         // 9. Broadcast WebSocket
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
-        broadcastItemEvent("ITEM_ADDED", result, creator, listId);
+        Long revision = touchListRevision(list);
+        broadcastItemEvent("ITEM_ADDED", result, creator, listId, revision);
 
         // 10. Retornar DTO
         return result;
@@ -264,10 +271,16 @@ public class ListItemService {
         // 7. Log
         log.info("Item toggled: itemId={}, checked={}, listId={}, user={}",
                 itemId, saved.isChecked(), listId, user.getId());
+        if (saved.isChecked()) {
+            activityLogService.logItemChecked(list, user, saved);
+        } else {
+            activityLogService.logItemUnchecked(list, user, saved);
+        }
 
         // 8. Broadcast WebSocket e retornar DTO
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
-        broadcastItemEvent("ITEM_CHECKED", result, user, listId);
+        Long revision = touchListRevision(list);
+        broadcastItemEvent("ITEM_CHECKED", result, user, listId, revision);
         return result;
     }
 
@@ -359,10 +372,12 @@ public class ListItemService {
         String fieldsChanged = String.join(", ", changed);
         log.info("Item updated: itemId={}, listId={}, user={}, fieldsChanged={}",
                 itemId, listId, user.getId(), fieldsChanged);
+        activityLogService.logItemUpdated(list, user, saved, changed);
 
         // 9. Broadcast WebSocket e retornar DTO
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
-        broadcastItemEvent("ITEM_UPDATED", result, user, listId);
+        Long revision = touchListRevision(list);
+        broadcastItemEvent("ITEM_UPDATED", result, user, listId, revision);
         return result;
     }
 
@@ -398,8 +413,7 @@ public class ListItemService {
         }
 
         // 5. Registrar activity log ANTES de deletar (para auditoria)
-        // Nota: Será implementado em Epic 6, mas já preparar para isso
-        // activityService.log(list, user, "ITEM_DELETED", item);
+        activityLogService.logItemRemoved(list, user, item);
 
         // 6. Capturar DTO ANTES de deletar (para broadcast ITEM_REMOVED)
         ListItemResponseDTO itemDTO = listItemMapper.toListItemResponseDTO(item);
@@ -409,34 +423,43 @@ public class ListItemService {
         listItemRepository.delete(item);
 
         // 8. Reordenar positions dos itens restantes
-        reorderPositions(listId, deletedPosition);
+        java.util.List<ListItem> reorderedItems = reorderPositions(listId, deletedPosition);
+        Long revision = touchListRevision(list);
 
         // 9. Log
         log.info("Item deleted: itemId={}, listId={}, user={}", itemId, listId, user.getId());
 
         // 10. Broadcast WebSocket
-        broadcastItemEvent("ITEM_REMOVED", itemDTO, user, listId);
+        broadcastItemEvent("ITEM_REMOVED", itemDTO, user, listId, revision);
+        broadcastLayoutUpdatedEvent(listId, reorderedItems, user, revision);
     }
 
     /**
      * Publica mensagem broadcast no tópico WebSocket da lista
      */
-    private void broadcastItemEvent(String type, ListItemResponseDTO dto, User actor, UUID listId) {
-        WebSocketMessage message = WebSocketMessage.builder()
-                .type(type)
-                .payload(dto)
-                .userId(actor.getId())
-                .username(actor.getUsername())
-                .timestamp(Instant.now())
-                .build();
-        simpMessagingTemplate.convertAndSend("/topic/list/" + listId, message);
+    private void broadcastItemEvent(String type, ListItemResponseDTO dto, User actor, UUID listId, Long revision) {
+        eventPublisher.publishItemsEvent(listId, type, dto, actor, revision);
+    }
+
+    private void broadcastLayoutUpdatedEvent(UUID listId, java.util.List<ListItem> reorderedItems, User actor, Long revision) {
+        java.util.List<ListLayoutUpdatedPayload.ItemPositionPayload> positions = reorderedItems.stream()
+            .map(item -> new ListLayoutUpdatedPayload.ItemPositionPayload(item.getId().toString(), item.getPosition()))
+            .collect(Collectors.toList());
+
+        eventPublisher.publishItemsEvent(listId, "LIST_LAYOUT_UPDATED", new ListLayoutUpdatedPayload(positions), actor, revision);
+    }
+
+    private Long touchListRevision(List list) {
+        list.setUpdatedAt(LocalDateTime.now());
+        List savedList = listRepository.save(list);
+        return savedList.getUpdatedAt().toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
     /**
      * Reordena positions após deletar item
      * Items com position > deletedPosition têm position decrementada em 1
      */
-    private void reorderPositions(UUID listId, Integer deletedPosition) {
+    private java.util.List<ListItem> reorderPositions(UUID listId, Integer deletedPosition) {
         // Buscar todos os itens com position > deletedPosition
         java.util.List<ListItem> itemsToReorder = listItemRepository
                 .findByListIdAndPositionGreaterThanOrderByPositionAsc(listId, deletedPosition);
@@ -447,7 +470,7 @@ public class ListItemService {
         }
 
         // Salvar todos (batch update)
-        listItemRepository.saveAll(itemsToReorder);
+        return listItemRepository.saveAll(itemsToReorder);
     }
 
     /**

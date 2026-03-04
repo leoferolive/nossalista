@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './contexts/AuthContext.tsx'
+import { AuthProvider } from './contexts/AuthContext.tsx'
 import { WebSocketProvider } from './contexts/WebSocketContext.tsx'
 import Login from './pages/Login.tsx'
 import { AuthCallback } from './pages/AuthCallback.tsx'
@@ -9,6 +9,7 @@ import { Home } from './pages/Home.tsx'
 import { ListView } from './pages/ListView.tsx'
 import { JoinListPage } from './pages/JoinListPage.tsx'
 import { Profile } from './pages/Profile.tsx'
+import { ProtectedRoute } from './components/ProtectedRoute.tsx'
 import './index.css'
 
 // sockjs-client still references the Node-style global object in browser builds.
@@ -18,15 +19,6 @@ const browserGlobal = globalThis as typeof globalThis & {
 
 if (typeof browserGlobal.global === 'undefined') {
   browserGlobal.global = globalThis
-}
-
-/**
- * Componente de rota protegida
- * Redireciona para login se usuário não estiver autenticado
- */
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth()
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 /**

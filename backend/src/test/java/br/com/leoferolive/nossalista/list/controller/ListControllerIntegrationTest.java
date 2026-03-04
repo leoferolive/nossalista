@@ -4,8 +4,12 @@ import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
+import br.com.leoferolive.nossalista.listitem.dto.CreateItemRequestDTO;
+import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
+import br.com.leoferolive.nossalista.listitem.service.ListItemService;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import br.com.leoferolive.nossalista.list.service.ListService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -61,6 +65,9 @@ class ListControllerIntegrationTest {
 
     @Autowired
     private ListRepository listRepository;
+
+    @Autowired
+    private ListItemService listItemService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -1146,6 +1153,109 @@ class ListControllerIntegrationTest {
                     .get("invite_code").asText();
 
             assertEquals(firstCode, secondCode, "Deve reutilizar o mesmo código quando ainda válido");
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/lists/{id}/state - Estado leve")
+    class GetListStateTests {
+
+        @Test
+        @DisplayName("Deve retornar revision e itemsCount para owner")
+        void shouldReturnListStateForOwner() throws Exception {
+            authenticateUser(testUser);
+            List list = listService.createList(new CreateListRequest("Lista State", 1), testUser);
+            entityManager.flush();
+            entityManager.clear();
+
+            jdbcTemplate.update(
+                "INSERT INTO list_items (id, list_id, name, checked, quantity, due_date, url, position, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                UUID.randomUUID(),
+                list.getId(),
+                "Arroz",
+                false,
+                1,
+                null,
+                null,
+                0,
+                testUser.getId(),
+                LocalDateTime.now(),
+                LocalDateTime.now()
+            );
+
+            long expectedRevision = listRepository.findById(list.getId()).orElseThrow()
+                .getUpdatedAt()
+                .toInstant(ZoneOffset.UTC)
+                .toEpochMilli();
+
+            mockMvc.perform(get("/api/lists/{id}/state", list.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.listId").value(list.getId().toString()))
+                .andExpect(jsonPath("$.itemsCount").value(1))
+                .andExpect(jsonPath("$.revision").value(expectedRevision))
+                .andExpect(jsonPath("$.updatedAt").exists());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/lists/{id}/activity - Timeline de Atividades")
+    class GetListActivityTests {
+
+        @Test
+        @DisplayName("Deve retornar atividades paginadas para usuario autenticado")
+        void shouldReturnPaginatedActivitiesForAuthenticatedUser() throws Exception {
+            List list = listService.createList(new CreateListRequest("Lista com atividades", 1), testUser);
+            listItemService.addItem(list.getId(), new CreateItemRequestDTO("Leite", 1, null, null, null), testUser);
+
+            UpdateItemRequest updateItemRequest = new UpdateItemRequest();
+            updateItemRequest.setName("Leite Integral");
+            listItemService.updateItem(list.getId(),
+                    listItemService.getItemsByListId(list.getId(), testUser).getFirst().id(),
+                    updateItemRequest,
+                    testUser);
+
+            authenticateUser(testUser);
+
+            mockMvc.perform(get("/api/lists/{id}/activity", list.getId())
+                            .param("page", "0")
+                            .param("size", "10"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content[0].action").value("ITEM_UPDATED"))
+                    .andExpect(jsonPath("$.content[0].targetType").value("ITEM"))
+                    .andExpect(jsonPath("$.content[0].targetName").value("Leite Integral"))
+                    .andExpect(jsonPath("$.content[0].details.changedFields[0]").value("name"))
+                    .andExpect(jsonPath("$.content[1].action").value("ITEM_ADDED"))
+                    .andExpect(jsonPath("$.totalElements").value(2))
+                    .andExpect(jsonPath("$.number").value(0))
+                    .andExpect(jsonPath("$.size").value(10));
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 quando nao autenticado")
+        void shouldReturn401WhenNotAuthenticated() throws Exception {
+            List list = listService.createList(new CreateListRequest("Lista protegida", 1), testUser);
+
+            mockMvc.perform(get("/api/lists/{id}/activity", list.getId()))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 403 quando usuario nao pertence a lista")
+        void shouldReturn403WhenUserIsNotMember() throws Exception {
+            List list = listService.createList(new CreateListRequest("Lista privada", 1), testUser);
+            User outsider = userService.createUser(
+                    "outsider",
+                    "outsider@example.com",
+                    "hashedPassword",
+                    "Outsider",
+                    AuthProvider.EMAIL
+            );
+
+            authenticateUser(outsider);
+
+            mockMvc.perform(get("/api/lists/{id}/activity", list.getId()))
+                    .andExpect(status().isForbidden());
         }
     }
 }

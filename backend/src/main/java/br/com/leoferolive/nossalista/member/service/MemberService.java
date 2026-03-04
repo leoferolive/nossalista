@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.member.service;
 
+import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
@@ -26,15 +27,18 @@ public class MemberService {
     private final ListRepository listRepository;
     private final UserRepository userRepository;
     private final ListMemberRepository listMemberRepository;
+    private final ActivityLogService activityLogService;
 
     public MemberService(
         ListRepository listRepository,
         UserRepository userRepository,
-        ListMemberRepository listMemberRepository
+        ListMemberRepository listMemberRepository,
+        ActivityLogService activityLogService
     ) {
         this.listRepository = listRepository;
         this.userRepository = userRepository;
         this.listMemberRepository = listMemberRepository;
+        this.activityLogService = activityLogService;
     }
 
     @Transactional
@@ -68,6 +72,8 @@ public class MemberService {
         } catch (DataIntegrityViolationException ex) {
             throw new MemberInvitationConflictException("Usuário já é membro");
         }
+
+        activityLogService.logMemberInvitedByUsername(list, userToInvite, list.getOwner());
 
         return new InviteByUsernameResponse(
             userToInvite.getUsername(),
@@ -113,9 +119,8 @@ public class MemberService {
         ListMember targetMembership = listMemberRepository.findByListIdAndUserId(listId, targetUserId)
             .orElseThrow(() -> new MemberNotFoundException("Usuário não é membro desta lista"));
 
+        activityLogService.logMemberRemoved(list, targetMembership.getUser(), list.getOwner());
         listMemberRepository.delete(targetMembership);
-
-        // TODO: Activity log hook (Epic 6) — notify member removed event
     }
 
     @Transactional
@@ -126,6 +131,7 @@ public class MemberService {
             throw new ForbiddenException("O dono nao pode sair. Transfira ou exclua a lista.");
         }
 
+        activityLogService.logMemberLeft(membership.getList(), membership.getUser());
         listMemberRepository.delete(membership);
     }
 

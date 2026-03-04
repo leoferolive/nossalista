@@ -3,6 +3,7 @@ import { AxiosError } from 'axios';
 import {
   CreateListRequest,
   ListResponse,
+  ListStateResponse,
   InviteLinkResponse,
   JoinListResponse,
   ListJoinedResponse,
@@ -63,6 +64,34 @@ export const listsApi = {
         } else {
           throw new Error(
             problemDetail?.detail || 'Erro ao carregar lista. Tente novamente.'
+          );
+        }
+      }
+
+      throw new Error('Erro de conexão. Verifique sua internet.');
+    }
+  },
+
+  async getListState(id: string): Promise<ListStateResponse> {
+    try {
+      const response = await client.get<ListStateResponse>(`/api/lists/${id}/state`);
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const problemDetail = axiosError.response.data;
+
+        if (status === 404) {
+          throw new Error('Lista não encontrada');
+        } else if (status === 403) {
+          throw new Error('Você não tem permissão para acessar esta lista');
+        } else if (status === 401) {
+          throw new Error('Sessão expirada. Faça login novamente.');
+        } else {
+          throw new Error(
+            problemDetail?.detail || 'Erro ao carregar estado da lista. Tente novamente.'
           );
         }
       }

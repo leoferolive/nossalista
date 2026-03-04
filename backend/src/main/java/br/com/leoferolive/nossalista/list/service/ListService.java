@@ -3,11 +3,13 @@ package br.com.leoferolive.nossalista.list.service;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
+import br.com.leoferolive.nossalista.list.dto.ListStateResponse;
 import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
+import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 /**
@@ -36,13 +39,16 @@ public class ListService {
     private final ListRepository listRepository;
     private final ListTypeRepository listTypeRepository;
     private final ListMemberRepository listMemberRepository;
+    private final ListItemRepository listItemRepository;
 
     public ListService(ListRepository listRepository,
                        ListTypeRepository listTypeRepository,
-                       ListMemberRepository listMemberRepository) {
+                       ListMemberRepository listMemberRepository,
+                       ListItemRepository listItemRepository) {
         this.listRepository = listRepository;
         this.listTypeRepository = listTypeRepository;
         this.listMemberRepository = listMemberRepository;
+        this.listItemRepository = listItemRepository;
     }
 
     /**
@@ -155,6 +161,26 @@ public class ListService {
         }
 
         return list;
+    }
+
+    @Transactional(readOnly = true)
+    public ListStateResponse getListState(UUID listId, UUID currentUserId) {
+        List list = listRepository.findById(listId)
+            .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
+
+        boolean isOwner = list.getOwner() != null && list.getOwner().getId().equals(currentUserId);
+        boolean isMember = listMemberRepository.existsByListIdAndUserId(listId, currentUserId);
+
+        if (!isOwner && !isMember) {
+            throw new ForbiddenException("Você não tem permissão para acessar esta lista");
+        }
+
+        return new ListStateResponse(
+            list.getId(),
+            toRevision(list.getUpdatedAt()),
+            list.getUpdatedAt(),
+            listItemRepository.countByListId(listId)
+        );
     }
 
     /**
@@ -274,5 +300,9 @@ public class ListService {
         }
 
         return list;
+    }
+
+    public static Long toRevision(LocalDateTime updatedAt) {
+        return updatedAt.toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 }

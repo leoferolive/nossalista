@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.member.service;
 
+import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.JoinListResponse;
 import br.com.leoferolive.nossalista.list.dto.ListResponse;
@@ -33,15 +34,18 @@ public class ListJoinService {
     private final ListItemRepository listItemRepository;
     private final ListMemberRepository listMemberRepository;
     private final UserRepository userRepository;
+    private final ActivityLogService activityLogService;
 
     public ListJoinService(ListRepository listRepository,
                            ListItemRepository listItemRepository,
                            ListMemberRepository listMemberRepository,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           ActivityLogService activityLogService) {
         this.listRepository = listRepository;
         this.listItemRepository = listItemRepository;
         this.listMemberRepository = listMemberRepository;
         this.userRepository = userRepository;
+        this.activityLogService = activityLogService;
     }
 
     /**
@@ -173,6 +177,7 @@ public class ListJoinService {
             newMember.setUser(user);
             newMember.setRole(MemberRole.MEMBER);
             listMemberRepository.save(newMember);
+            activityLogService.logMemberJoinedViaLink(list, user);
 
             return buildListJoinedResponse(list, MemberRole.MEMBER,
                 "Bem-vindo à lista " + list.getName() + "!", true);
