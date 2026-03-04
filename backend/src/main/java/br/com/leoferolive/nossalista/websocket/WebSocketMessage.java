@@ -1,5 +1,7 @@
 package br.com.leoferolive.nossalista.websocket;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
@@ -8,6 +10,7 @@ import java.util.UUID;
  * DTO para mensagens broadcast via WebSocket STOMP
  * Formato Event-Type Envelope (AC1)
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class WebSocketMessage {
 
     private String type;

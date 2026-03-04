@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ListItem } from '../types/Item';
 import { useToast } from './Toast';
 
@@ -32,11 +32,20 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   });
   const [url, setUrl] = useState(item.url || '');
   const [isSaving, setIsSaving] = useState(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { showToast } = useToast();
+
+  const clearDebounceTimer = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  }, []);
 
   // Preencher campos com valores atuais ao abrir
   useEffect(() => {
     if (isOpen && item) {
+      clearDebounceTimer();
       setName(item.name);
       setQuantity(item.quantity ?? 1);
       if (item.dueDate) {
@@ -52,7 +61,13 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       }
       setUrl(item.url || '');
     }
-  }, [isOpen, item]);
+  }, [isOpen, item, clearDebounceTimer]);
+
+  useEffect(() => {
+    return () => {
+      clearDebounceTimer();
+    };
+  }, [clearDebounceTimer]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -60,27 +75,36 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       return;
     }
 
-    setIsSaving(true);
-    try {
-      const request: { name: string; quantity?: number; dueDate?: string; url?: string } = { name: name.trim() };
+    const request: { name: string; quantity?: number; dueDate?: string; url?: string } = { name: name.trim() };
 
-      if (listType === 'SHOPPING') {
-        request.quantity = quantity;
-      } else if (listType === 'TASK') {
-        if (dueDate) request.dueDate = new Date(dueDate).toISOString();
-      } else if (listType === 'WISHLIST') {
-        request.url = url.trim();
-      }
-
-      await onSave(item.id, request);
-      showToast('Item atualizado', 'success');
-      onClose();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao atualizar';
-      showToast(message, 'error');
-    } finally {
-      setIsSaving(false);
+    if (listType === 'SHOPPING') {
+      request.quantity = quantity;
+    } else if (listType === 'TASK') {
+      if (dueDate) request.dueDate = new Date(dueDate).toISOString();
+    } else if (listType === 'WISHLIST') {
+      request.url = url.trim();
     }
+
+    clearDebounceTimer();
+    debounceTimerRef.current = setTimeout(async () => {
+      setIsSaving(true);
+      try {
+        await onSave(item.id, request);
+        onClose();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao atualizar';
+        showToast(message, 'error');
+      } finally {
+        setIsSaving(false);
+        debounceTimerRef.current = null;
+      }
+    }, 500);
+  };
+
+  const handleClose = () => {
+    clearDebounceTimer();
+    setIsSaving(false);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -149,7 +173,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
         {/* Botões */}
         <div className="flex gap-2 justify-end mt-6">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isSaving}
             className="px-4 py-2 rounded-lg border hover:bg-gray-50"
           >

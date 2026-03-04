@@ -9,7 +9,7 @@ import { ItemOptionsMenu } from './ItemOptionsMenu';
  * AC: Suporta long-press (1 segundo) para abrir menu de opções
  * AC: Animação fade-out (200ms) antes de remover
  */
-export const ListItemComponent: React.FC<ListItemProps> = ({
+export const ListItemComponent: React.FC<ListItemProps> = React.memo(({
   item,
   onToggle,
   onEdit,
@@ -202,4 +202,6 @@ export const ListItemComponent: React.FC<ListItemProps> = ({
     />
     </>
   );
-};
+});
+
+ListItemComponent.displayName = 'ListItemComponent';

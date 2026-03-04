@@ -130,4 +130,19 @@ class WebSocketMessageTest {
         assertEquals("testuser", message.getUsername());
         assertEquals(now, message.getTimestamp());
     }
+
+    @Test
+    @DisplayName("Não deve serializar campos nulos")
+    void shouldNotSerializeNullFields() throws Exception {
+        WebSocketMessage message = WebSocketMessage.builder()
+                .type("MEMBER_ONLINE")
+                .payload(Map.of("event", "presence"))
+                .timestamp(Instant.parse("2026-03-01T22:00:00Z"))
+                .build();
+
+        String json = objectMapper.writeValueAsString(message);
+
+        assertFalse(json.contains("\"userId\""), "userId nulo não deve aparecer no payload");
+        assertFalse(json.contains("\"username\""), "username nulo não deve aparecer no payload");
+    }
 }

@@ -148,4 +148,10 @@ public class PresenceService {
 
         return expired;
     }
+
+    public int getTotalActiveSessions() {
+        return sessionsByList.values().stream()
+            .mapToInt(Map::size)
+            .sum();
+    }
 }

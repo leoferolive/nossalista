@@ -84,8 +84,8 @@ development_status:
   5-2-formato-de-mensagem-e-broadcast-de-itens: done
   5-3-sincronizacao-de-checkbox-item-check: done
   5-4-indicadores-online-e-membros: done
-  5-5-reconexao-automatica: backlog
-  5-6-performance-e-otimizacoes: backlog
+  5-5-reconexao-automatica: done
+  5-6-performance-e-otimizacoes: review
   epic-5-retrospective: optional
 
   epic-6: backlog

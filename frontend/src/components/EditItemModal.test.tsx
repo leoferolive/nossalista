@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { EditItemModal } from './EditItemModal';
 import { ListItem } from '../types/Item';
 
@@ -119,7 +119,6 @@ describe('EditItemModal', () => {
         quantity: 5,
       });
     });
-    expect(mockShowToast).toHaveBeenCalledWith('Item atualizado', 'success');
     expect(mockOnClose).toHaveBeenCalled();
   });
 
@@ -145,14 +144,54 @@ describe('EditItemModal', () => {
   });
 
   it('deve desabilitar botões enquanto está salvando', async () => {
+    vi.useFakeTimers();
+
     // Mock onSave para demorar
     mockOnSave.mockImplementationOnce(() => new Promise(resolve => setTimeout(resolve, 100)));
 
     renderModal();
     fireEvent.click(screen.getByText('Salvar'));
 
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
     expect(screen.getByText('Salvando...')).toBeInTheDocument();
     expect(screen.getByText('Salvando...')).toBeDisabled();
     expect(screen.getByText('Cancelar')).toBeDisabled();
+
+    vi.useRealTimers();
+  });
+
+  it('deve aplicar debounce de 500ms e enviar apenas a última edição', async () => {
+    vi.useFakeTimers();
+
+    renderModal({ listType: 'SHOPPING' });
+
+    const nameInput = screen.getByLabelText('Nome');
+    const saveButton = screen.getByText('Salvar');
+
+    fireEvent.change(nameInput, { target: { value: 'Item 1' } });
+    fireEvent.click(saveButton);
+
+    fireEvent.change(nameInput, { target: { value: 'Item 2' } });
+    fireEvent.click(saveButton);
+
+    fireEvent.change(nameInput, { target: { value: 'Item Final' } });
+    fireEvent.click(saveButton);
+
+    expect(mockOnSave).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockOnSave).toHaveBeenCalledTimes(1);
+    expect(mockOnSave).toHaveBeenCalledWith('item-1', {
+      name: 'Item Final',
+      quantity: 2,
+    });
+
+    vi.useRealTimers();
   });
 });

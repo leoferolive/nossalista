@@ -113,6 +113,22 @@ class PresenceServiceTest {
         assertThat(service.getOnlineUsers(listId)).isEmpty();
     }
 
+    @Test
+    @DisplayName("getTotalActiveSessions soma sessões ativas entre listas")
+    void getTotalActiveSessionsSumsAllSessionsAcrossLists() {
+        PresenceService service = new PresenceService();
+        UUID listA = UUID.randomUUID();
+        UUID listB = UUID.randomUUID();
+        User userA = createUser("maria");
+        User userB = createUser("joao");
+
+        service.registerSession(listA, "session-a1", userA);
+        service.registerSession(listA, "session-a2", userA);
+        service.registerSession(listB, "session-b1", userB);
+
+        assertThat(service.getTotalActiveSessions()).isEqualTo(3);
+    }
+
     private User createUser(String username) {
         User user = new User();
         user.setId(UUID.randomUUID());
