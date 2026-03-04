@@ -41,7 +41,13 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
     ) throws Exception {
         String token = extractToken(request);
 
-        if (token == null || !jwtService.validateToken(token)) {
+        // SockJS/STOMP clients often send auth only in the CONNECT frame,
+        // so the HTTP handshake must remain permissive when no token is present.
+        if (token == null || token.isBlank()) {
+            return true;
+        }
+
+        if (!jwtService.validateToken(token)) {
             return false;
         }
 

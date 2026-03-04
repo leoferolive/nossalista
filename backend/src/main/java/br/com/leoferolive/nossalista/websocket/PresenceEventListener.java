@@ -1,10 +1,10 @@
 package br.com.leoferolive.nossalista.websocket;
 
 import br.com.leoferolive.nossalista.user.domain.User;
-import br.com.leoferolive.nossalista.websocket.dto.MemberOfflinePayload;
+import br.com.leoferolive.nossalista.websocket.dto.PresenceSnapshotPayload;
 import br.com.leoferolive.nossalista.websocket.dto.MemberOnlinePayload;
+import br.com.leoferolive.nossalista.websocket.dto.MemberOfflinePayload;
 import org.springframework.context.event.EventListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
@@ -13,28 +13,31 @@ import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 
 import java.security.Principal;
-import java.time.Instant;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 public class PresenceEventListener {
 
-    private static final String LIST_TOPIC_PREFIX = "/topic/list/";
-
     private final PresenceService presenceService;
-    private final SimpMessagingTemplate simpMessagingTemplate;
+    private final WebSocketEventPublisher eventPublisher;
 
     public PresenceEventListener(PresenceService presenceService,
-                                 SimpMessagingTemplate simpMessagingTemplate) {
+                                 WebSocketEventPublisher eventPublisher) {
         this.presenceService = presenceService;
-        this.simpMessagingTemplate = simpMessagingTemplate;
+        this.eventPublisher = eventPublisher;
     }
 
     @EventListener
     public void handleSubscribe(SessionSubscribeEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         String destination = accessor.getDestination();
+        if (!isPresenceDestination(destination)) {
+            return;
+        }
         UUID listId = parseListId(destination);
         if (listId == null) {
             return;
@@ -52,6 +55,7 @@ public class PresenceEventListener {
 
         presenceService.registerSession(listId, sessionId, user);
         presenceService.registerSubscription(accessor.getSubscriptionId(), listId, sessionId);
+        broadcastPresenceSnapshot(listId);
         broadcastOnline(listId, user);
     }
 
@@ -91,15 +95,7 @@ public class PresenceEventListener {
             user.getAvatarUrl()
         );
 
-        WebSocketMessage message = WebSocketMessage.builder()
-            .type("MEMBER_ONLINE")
-            .payload(payload)
-            .userId(user.getId())
-            .username(user.getUsername())
-            .timestamp(Instant.now())
-            .build();
-
-        simpMessagingTemplate.convertAndSend(LIST_TOPIC_PREFIX + listId, message);
+        eventPublisher.publishPresenceEvent(listId, "MEMBER_ONLINE", payload, user);
     }
 
     private void broadcastOffline(UUID listId, User user) {
@@ -108,15 +104,22 @@ public class PresenceEventListener {
             user.getUsername()
         );
 
-        WebSocketMessage message = WebSocketMessage.builder()
-            .type("MEMBER_OFFLINE")
-            .payload(payload)
-            .userId(user.getId())
-            .username(user.getUsername())
-            .timestamp(Instant.now())
-            .build();
+        eventPublisher.publishPresenceEvent(listId, "MEMBER_OFFLINE", payload, user);
+    }
 
-        simpMessagingTemplate.convertAndSend(LIST_TOPIC_PREFIX + listId, message);
+    private void broadcastPresenceSnapshot(UUID listId) {
+        Collection<User> onlineUsers = presenceService.getOnlineUsers(listId);
+        List<MemberOnlinePayload> members = onlineUsers.stream()
+            .sorted(Comparator.comparing(User::getUsername, Comparator.nullsLast(String::compareToIgnoreCase)))
+            .map(user -> new MemberOnlinePayload(
+                user.getId().toString(),
+                user.getUsername(),
+                user.getName(),
+                user.getAvatarUrl()
+            ))
+            .collect(Collectors.toList());
+
+        eventPublisher.publishPresenceEvent(listId, "PRESENCE_SNAPSHOT", new PresenceSnapshotPayload(members));
     }
 
     private User extractUser(StompHeaderAccessor accessor) {
@@ -131,15 +134,28 @@ public class PresenceEventListener {
     }
 
     private UUID parseListId(String destination) {
-        if (destination == null || !destination.startsWith(LIST_TOPIC_PREFIX)) {
+        if (destination == null || !destination.startsWith(WebSocketDestinations.LIST_TOPIC_PREFIX)) {
             return null;
         }
 
-        String rawListId = destination.substring(LIST_TOPIC_PREFIX.length());
+        String rawListId = destination.substring(WebSocketDestinations.LIST_TOPIC_PREFIX.length());
+        int suffixIndex = rawListId.indexOf('/');
+        if (suffixIndex >= 0) {
+            rawListId = rawListId.substring(0, suffixIndex);
+        }
         try {
             return UUID.fromString(rawListId);
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private boolean isPresenceDestination(String destination) {
+        return destination != null
+            && destination.startsWith(WebSocketDestinations.LIST_TOPIC_PREFIX)
+            && (
+                destination.endsWith(WebSocketDestinations.PRESENCE_SUFFIX)
+                    || !destination.substring(WebSocketDestinations.LIST_TOPIC_PREFIX.length()).contains("/")
+            );
     }
 }

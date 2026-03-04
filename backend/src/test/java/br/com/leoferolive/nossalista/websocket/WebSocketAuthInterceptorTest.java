@@ -105,15 +105,16 @@ class WebSocketAuthInterceptorTest {
     }
 
     @Test
-    @DisplayName("Sem token deve rejeitar conexão retornando false")
-    void shouldRejectWithoutToken() throws Exception {
+    @DisplayName("Sem token no handshake deve permitir conexão para autenticação posterior via CONNECT")
+    void shouldAllowHandshakeWithoutToken() throws Exception {
         when(request.getURI()).thenReturn(URI.create("/ws"));
         when(request.getHeaders()).thenReturn(HttpHeaders.EMPTY);
 
         Map<String, Object> attributes = new HashMap<>();
         boolean result = interceptor.beforeHandshake(request, response, wsHandler, attributes);
 
-        assertThat(result).isFalse();
+        assertThat(result).isTrue();
+        assertThat(attributes).doesNotContainKey("user");
     }
 
     @Test

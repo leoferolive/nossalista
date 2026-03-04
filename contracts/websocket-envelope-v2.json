@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "channels": ["items", "presence", "system"],
+  "requiredEnvelopeFields": [
+    "schemaVersion",
+    "eventId",
+    "listId",
+    "channel",
+    "type",
+    "payload",
+    "timestamp"
+  ],
+  "actorRequiredEventTypes": [
+    "ITEM_ADDED",
+    "ITEM_UPDATED",
+    "ITEM_REMOVED",
+    "ITEM_CHECKED",
+    "LIST_LAYOUT_UPDATED",
+    "MEMBER_ONLINE",
+    "MEMBER_OFFLINE"
+  ],
+  "revisionRequiredChannels": ["items"]
+}

@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.websocket;
 
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.websocket.dto.PresenceSnapshotPayload;
 import br.com.leoferolive.nossalista.websocket.dto.MemberOfflinePayload;
 import br.com.leoferolive.nossalista.websocket.dto.MemberOnlinePayload;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,7 +12,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
@@ -39,46 +39,51 @@ class PresenceEventListenerTest {
     private PresenceService presenceService;
 
     @Mock
-    private SimpMessagingTemplate messagingTemplate;
+    private WebSocketEventPublisher eventPublisher;
 
     private PresenceEventListener listener;
 
     @BeforeEach
     void setUp() {
-        listener = new PresenceEventListener(presenceService, messagingTemplate);
+        listener = new PresenceEventListener(presenceService, eventPublisher);
     }
 
     @Test
-    @DisplayName("SUBSCRIBE em /topic/list/{id} registra sessão e envia MEMBER_ONLINE")
+    @DisplayName("SUBSCRIBE em /topic/list/{id}/presence registra sessão e envia snapshot + MEMBER_ONLINE")
     void subscribeListTopicShouldRegisterAndBroadcastOnline() {
         UUID listId = UUID.randomUUID();
         User user = createUser("maria");
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user, null, List.of());
         SessionSubscribeEvent event = mock(SessionSubscribeEvent.class);
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
-        accessor.setDestination("/topic/list/" + listId);
+        accessor.setDestination("/topic/list/" + listId + "/presence");
         accessor.setSessionId("session-1");
         accessor.setSubscriptionId("sub-1");
         accessor.setUser(auth);
         accessor.setLeaveMutable(true);
         Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
         when(event.getMessage()).thenReturn(message);
+        when(presenceService.getOnlineUsers(listId)).thenReturn(List.of(user));
 
         listener.handleSubscribe(event);
 
         verify(presenceService).registerSession(listId, "session-1", user);
         verify(presenceService).registerSubscription("sub-1", listId, "session-1");
+        verify(presenceService).getOnlineUsers(listId);
 
-        ArgumentCaptor<WebSocketMessage> messageCaptor = ArgumentCaptor.forClass(WebSocketMessage.class);
-        verify(messagingTemplate).convertAndSend(eq("/topic/list/" + listId), messageCaptor.capture());
+        ArgumentCaptor<String> typeCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+        ArgumentCaptor<User> actorCaptor = ArgumentCaptor.forClass(User.class);
+        verify(eventPublisher).publishPresenceEvent(eq(listId), typeCaptor.capture(), payloadCaptor.capture(), actorCaptor.capture());
 
-        WebSocketMessage envelope = messageCaptor.getValue();
-        assertThat(envelope.getType()).isEqualTo("MEMBER_ONLINE");
-        assertThat(envelope.getPayload()).isInstanceOf(MemberOnlinePayload.class);
-        MemberOnlinePayload payload = (MemberOnlinePayload) envelope.getPayload();
+        assertThat(typeCaptor.getValue()).isEqualTo("MEMBER_ONLINE");
+        assertThat(payloadCaptor.getValue()).isInstanceOf(MemberOnlinePayload.class);
+        MemberOnlinePayload payload = (MemberOnlinePayload) payloadCaptor.getValue();
         assertThat(payload.userId()).isEqualTo(user.getId().toString());
         assertThat(payload.username()).isEqualTo("maria");
-        assertThat(envelope.getTimestamp()).isNotNull();
+        assertThat(actorCaptor.getValue()).isEqualTo(user);
+
+        verify(eventPublisher).publishPresenceEvent(eq(listId), eq("PRESENCE_SNAPSHOT"), any(PresenceSnapshotPayload.class));
     }
 
     @Test
@@ -94,13 +99,9 @@ class PresenceEventListenerTest {
         listener.handleDisconnect(event);
 
         verify(presenceService).removeSessionAllLists("session-1");
-        ArgumentCaptor<WebSocketMessage> messageCaptor = ArgumentCaptor.forClass(WebSocketMessage.class);
-        verify(messagingTemplate).convertAndSend(eq("/topic/list/" + listId), messageCaptor.capture());
-
-        WebSocketMessage envelope = messageCaptor.getValue();
-        assertThat(envelope.getType()).isEqualTo("MEMBER_OFFLINE");
-        assertThat(envelope.getPayload()).isInstanceOf(MemberOfflinePayload.class);
-        MemberOfflinePayload payload = (MemberOfflinePayload) envelope.getPayload();
+        ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishPresenceEvent(eq(listId), eq("MEMBER_OFFLINE"), payloadCaptor.capture(), eq(user));
+        MemberOfflinePayload payload = (MemberOfflinePayload) payloadCaptor.getValue();
         assertThat(payload.userId()).isEqualTo(user.getId().toString());
     }
 
@@ -119,7 +120,8 @@ class PresenceEventListenerTest {
         listener.handleSubscribe(event);
 
         verify(presenceService, never()).registerSession(any(), any(), any());
-        verify(messagingTemplate, never()).convertAndSend(any(String.class), any(WebSocketMessage.class));
+        verify(eventPublisher, never()).publishPresenceEvent(any(), any(String.class), any(), any());
+        verify(eventPublisher, never()).publishPresenceEvent(any(), any(String.class), any());
     }
 
     @Test
@@ -141,7 +143,7 @@ class PresenceEventListenerTest {
         listener.handleUnsubscribe(event);
 
         verify(presenceService).removeBySubscription("sub-1", "session-1");
-        verify(messagingTemplate).convertAndSend(eq("/topic/list/" + listId), any(WebSocketMessage.class));
+        verify(eventPublisher).publishPresenceEvent(eq(listId), eq("MEMBER_OFFLINE"), any(MemberOfflinePayload.class), eq(user));
     }
 
     private User createUser(String username) {

@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.websocket;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -7,6 +8,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -29,28 +32,33 @@ class WebSocketMessageTest {
     }
 
     @Test
-    @DisplayName("Deve serializar campos obrigatórios: type, payload, userId, username, timestamp")
+    @DisplayName("Deve serializar campos obrigatórios definidos no contrato compartilhado")
     void shouldSerializeAllRequiredFields() throws Exception {
         UUID userId = UUID.randomUUID();
+        UUID listId = UUID.randomUUID();
         Instant now = Instant.now();
         Map<String, String> payload = Map.of("id", "abc", "name", "Item Teste");
 
         WebSocketMessage message = WebSocketMessage.builder()
+                .eventId("event-1")
+                .listId(listId)
+                .channel("items")
+                .revision(1741040400000L)
                 .type("ITEM_ADDED")
                 .payload(payload)
-                .userId(userId)
-                .username("testuser")
+                .actor(new WebSocketActor(userId, "testuser"))
                 .timestamp(now)
                 .build();
 
         String json = objectMapper.writeValueAsString(message);
         Map<?, ?> parsed = objectMapper.readValue(json, Map.class);
+        JsonNode contract = objectMapper.readTree(Files.readString(Path.of("..", "contracts", "websocket-envelope-v2.json")));
 
-        assertTrue(parsed.containsKey("type"), "Campo 'type' deve estar presente");
-        assertTrue(parsed.containsKey("payload"), "Campo 'payload' deve estar presente");
-        assertTrue(parsed.containsKey("userId"), "Campo 'userId' deve estar presente");
-        assertTrue(parsed.containsKey("username"), "Campo 'username' deve estar presente");
-        assertTrue(parsed.containsKey("timestamp"), "Campo 'timestamp' deve estar presente");
+        for (JsonNode field : contract.get("requiredEnvelopeFields")) {
+            assertTrue(parsed.containsKey(field.asText()), "Campo obrigatório ausente: " + field.asText());
+        }
+        assertTrue(parsed.containsKey("actor"), "Campo 'actor' deve estar presente");
+        assertEquals(2, parsed.get("schemaVersion"));
     }
 
     @Test
@@ -59,10 +67,13 @@ class WebSocketMessageTest {
         Instant now = Instant.parse("2026-03-01T22:00:00Z");
 
         WebSocketMessage message = WebSocketMessage.builder()
+                .eventId("event-2")
+                .listId(UUID.randomUUID())
+                .channel("items")
+                .revision(1741040400000L)
                 .type("ITEM_ADDED")
                 .payload(Map.of("name", "Item"))
-                .userId(UUID.randomUUID())
-                .username("user")
+                .actor(new WebSocketActor(UUID.randomUUID(), "user"))
                 .timestamp(now)
                 .build();
 
@@ -78,10 +89,13 @@ class WebSocketMessageTest {
     @DisplayName("Deve serializar type como string exata passada no builder")
     void shouldSerializeTypeCorrectly() throws Exception {
         WebSocketMessage message = WebSocketMessage.builder()
+                .eventId("event-3")
+                .listId(UUID.randomUUID())
+                .channel("items")
+                .revision(1741040400001L)
                 .type("ITEM_REMOVED")
                 .payload(Map.of())
-                .userId(UUID.randomUUID())
-                .username("user")
+                .actor(new WebSocketActor(UUID.randomUUID(), "user"))
                 .timestamp(Instant.now())
                 .build();
 
@@ -97,11 +111,19 @@ class WebSocketMessageTest {
         Map<String, String> payload = Map.of("id", "abc");
 
         WebSocketMessage m1 = WebSocketMessage.builder()
-                .type("ITEM_ADDED").payload(payload).userId(userId)
-                .username("user").timestamp(now).build();
+                .eventId("event-4")
+                .listId(UUID.randomUUID())
+                .channel("items")
+                .revision(1741040400002L)
+                .type("ITEM_ADDED").payload(payload)
+                .actor(new WebSocketActor(userId, "user")).timestamp(now).build();
         WebSocketMessage m2 = WebSocketMessage.builder()
-                .type("ITEM_ADDED").payload(payload).userId(userId)
-                .username("user").timestamp(now).build();
+                .eventId("event-4")
+                .listId(m1.getListId())
+                .channel("items")
+                .revision(1741040400002L)
+                .type("ITEM_ADDED").payload(payload)
+                .actor(new WebSocketActor(userId, "user")).timestamp(now).build();
 
         assertEquals(m1, m2);
         assertEquals(m1.hashCode(), m2.hashCode());
@@ -117,17 +139,23 @@ class WebSocketMessageTest {
         String payload = "test-payload";
 
         WebSocketMessage message = WebSocketMessage.builder()
+                .eventId("event-5")
+                .listId(UUID.randomUUID())
+                .channel("items")
+                .revision(1741040400003L)
                 .type("ITEM_CHECKED")
                 .payload(payload)
-                .userId(userId)
-                .username("testuser")
+                .actor(new WebSocketActor(userId, "testuser"))
                 .timestamp(now)
                 .build();
 
         assertEquals("ITEM_CHECKED", message.getType());
         assertEquals(payload, message.getPayload());
-        assertEquals(userId, message.getUserId());
-        assertEquals("testuser", message.getUsername());
+        assertEquals("items", message.getChannel());
+        assertNotNull(message.getRevision());
+        assertNotNull(message.getActor());
+        assertEquals(userId, message.getActor().id());
+        assertEquals("testuser", message.getActor().username());
         assertEquals(now, message.getTimestamp());
     }
 
@@ -135,6 +163,9 @@ class WebSocketMessageTest {
     @DisplayName("Não deve serializar campos nulos")
     void shouldNotSerializeNullFields() throws Exception {
         WebSocketMessage message = WebSocketMessage.builder()
+                .eventId("event-6")
+                .listId(UUID.randomUUID())
+                .channel("presence")
                 .type("MEMBER_ONLINE")
                 .payload(Map.of("event", "presence"))
                 .timestamp(Instant.parse("2026-03-01T22:00:00Z"))
@@ -142,7 +173,6 @@ class WebSocketMessageTest {
 
         String json = objectMapper.writeValueAsString(message);
 
-        assertFalse(json.contains("\"userId\""), "userId nulo não deve aparecer no payload");
-        assertFalse(json.contains("\"username\""), "username nulo não deve aparecer no payload");
+        assertFalse(json.contains("\"actor\""), "actor nulo não deve aparecer no payload");
     }
 }

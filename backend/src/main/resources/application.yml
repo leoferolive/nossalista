@@ -2,10 +2,6 @@ spring:
   application:
     name: nossalista
 
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
-
   jpa:
     open-in-view: false
     hibernate:

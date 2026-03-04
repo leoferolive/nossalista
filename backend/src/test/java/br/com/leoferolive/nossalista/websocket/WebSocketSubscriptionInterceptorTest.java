@@ -1,7 +1,9 @@
 package br.com.leoferolive.nossalista.websocket;
 
+import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +17,9 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
+import java.util.HashMap;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +31,12 @@ import static org.mockito.Mockito.when;
 class WebSocketSubscriptionInterceptorTest {
 
     @Mock
+    private JwtService jwtService;
+
+    @Mock
+    private UserService userService;
+
+    @Mock
     private ListMemberRepository listMemberRepository;
 
     private WebSocketSubscriptionInterceptor interceptor;
@@ -36,14 +46,14 @@ class WebSocketSubscriptionInterceptorTest {
 
     @BeforeEach
     void setUp() {
-        interceptor = new WebSocketSubscriptionInterceptor(listMemberRepository);
+        interceptor = new WebSocketSubscriptionInterceptor(jwtService, userService, listMemberRepository);
     }
 
     @Test
     @DisplayName("Membro da lista deve conseguir se inscrever no tópico")
     void shouldAllowSubscribeForListMember() {
         User user = createUser(VALID_USER_ID);
-        Message<?> message = buildSubscribeMessage("/topic/list/" + VALID_LIST_ID, user);
+        Message<?> message = buildSubscribeMessage("/topic/list/" + VALID_LIST_ID + "/items", user);
 
         when(listMemberRepository.existsByListIdAndUserId(VALID_LIST_ID, VALID_USER_ID))
             .thenReturn(true);
@@ -57,7 +67,7 @@ class WebSocketSubscriptionInterceptorTest {
     @DisplayName("Não-membro da lista deve ter subscribe rejeitado com MessageDeliveryException")
     void shouldRejectSubscribeForNonMember() {
         User user = createUser(VALID_USER_ID);
-        Message<?> message = buildSubscribeMessage("/topic/list/" + VALID_LIST_ID, user);
+        Message<?> message = buildSubscribeMessage("/topic/list/" + VALID_LIST_ID + "/presence", user);
 
         when(listMemberRepository.existsByListIdAndUserId(VALID_LIST_ID, VALID_USER_ID))
             .thenReturn(false);
@@ -70,7 +80,7 @@ class WebSocketSubscriptionInterceptorTest {
     @Test
     @DisplayName("Usuário não autenticado deve ter subscribe rejeitado com MessageDeliveryException")
     void shouldRejectSubscribeForUnauthenticatedUser() {
-        Message<?> message = buildSubscribeMessage("/topic/list/" + VALID_LIST_ID, null);
+        Message<?> message = buildSubscribeMessage("/topic/list/" + VALID_LIST_ID + "/items", null);
 
         assertThatThrownBy(() -> interceptor.preSend(message, null))
             .isInstanceOf(MessageDeliveryException.class)
@@ -81,7 +91,7 @@ class WebSocketSubscriptionInterceptorTest {
     @DisplayName("UUID inválido no destino deve lançar MessageDeliveryException")
     void shouldRejectSubscribeWithInvalidUuidInDestination() {
         User user = createUser(VALID_USER_ID);
-        Message<?> message = buildSubscribeMessage("/topic/list/not-a-valid-uuid", user);
+        Message<?> message = buildSubscribeMessage("/topic/list/not-a-valid-uuid/items", user);
 
         assertThatThrownBy(() -> interceptor.preSend(message, null))
             .isInstanceOf(MessageDeliveryException.class)
@@ -100,9 +110,62 @@ class WebSocketSubscriptionInterceptorTest {
     }
 
     @Test
-    @DisplayName("Mensagem não-SUBSCRIBE deve passar sem verificação")
-    void shouldPassNonSubscribeMessages() {
+    @DisplayName("CONNECT com Authorization válido deve autenticar usuário")
+    void shouldAuthenticateConnectWithAuthorizationHeader() {
+        User user = createUser(VALID_USER_ID);
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("Authorization", "Bearer valid.jwt.token");
+        accessor.setSessionAttributes(new HashMap<>());
+        accessor.setLeaveMutable(true);
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        when(jwtService.validateToken("valid.jwt.token")).thenReturn(true);
+        when(jwtService.extractUserId("valid.jwt.token")).thenReturn(VALID_USER_ID);
+        when(userService.findById(VALID_USER_ID)).thenReturn(Optional.of(user));
+
+        Message<?> result = interceptor.preSend(message, null);
+
+        assertThat(result).isNotNull();
+        StompHeaderAccessor resultAccessor = StompHeaderAccessor.wrap(result);
+        assertThat(resultAccessor.getSessionAttributes())
+            .containsEntry("user", user);
+        assertThat(interceptor.extractUser(resultAccessor)).isEqualTo(user);
+    }
+
+    @Test
+    @DisplayName("SUBSCRIBE deve aceitar usuário autenticado salvo na sessão STOMP")
+    void shouldAllowSubscribeForUserStoredInSessionAttributes() {
+        User user = createUser(VALID_USER_ID);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/list/" + VALID_LIST_ID + "/items");
+        accessor.setSessionAttributes(Collections.singletonMap("user", user));
+        accessor.setLeaveMutable(true);
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        when(listMemberRepository.existsByListIdAndUserId(VALID_LIST_ID, VALID_USER_ID))
+            .thenReturn(true);
+
+        Message<?> result = interceptor.preSend(message, null);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("CONNECT sem token deve ser rejeitado")
+    void shouldRejectConnectWithoutToken() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.setLeaveMutable(true);
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
+            .isInstanceOf(MessageDeliveryException.class)
+            .hasMessageContaining("Token JWT ausente");
+    }
+
+    @Test
+    @DisplayName("Mensagem não-CONNECT e não-SUBSCRIBE deve passar sem verificação")
+    void shouldPassNonConnectNonSubscribeMessages() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
         accessor.setLeaveMutable(true);
         Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 
