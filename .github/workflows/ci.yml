@@ -64,12 +64,19 @@ jobs:
         working-directory: backend
         run: chmod +x mvnw
 
-      - name: Backend test
+      - name: Backend quality gate
         if: matrix.app == 'backend'
         working-directory: backend
-        run: ./mvnw -B test
+        run: ./mvnw -B verify
 
-      - name: Backend build
+      - name: Backend regression tests
         if: matrix.app == 'backend'
         working-directory: backend
-        run: ./mvnw -B -DskipTests package
+        run: ./mvnw -B -Pregression-tests test
+
+      - name: Upload backend JaCoCo report
+        if: matrix.app == 'backend'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jacoco-report
+          path: backend/target/site/jacoco

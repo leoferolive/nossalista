@@ -7,6 +7,7 @@ import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.service.ListService;
 import br.com.leoferolive.nossalista.listitem.domain.ListItem;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
+import br.com.leoferolive.nossalista.support.RegressionTest;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
@@ -46,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
 @Transactional
+@RegressionTest
 class ListItemControllerTest {
 
     @Autowired

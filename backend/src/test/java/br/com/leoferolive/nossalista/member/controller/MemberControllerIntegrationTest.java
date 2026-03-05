@@ -5,6 +5,7 @@ import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.support.RegressionTest;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -35,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
 @Transactional
+@RegressionTest
 @DisplayName("MemberController Integration Tests")
 class MemberControllerIntegrationTest {
 

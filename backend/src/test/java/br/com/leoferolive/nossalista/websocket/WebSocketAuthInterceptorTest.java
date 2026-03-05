@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.websocket;
 
 import br.com.leoferolive.nossalista.auth.service.JwtService;
+import br.com.leoferolive.nossalista.support.RegressionTest;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@RegressionTest
 @DisplayName("WebSocketAuthInterceptor Tests")
 class WebSocketAuthInterceptorTest {
 

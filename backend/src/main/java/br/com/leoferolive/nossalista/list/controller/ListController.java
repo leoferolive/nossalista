@@ -12,7 +12,6 @@ import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.service.ListService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;

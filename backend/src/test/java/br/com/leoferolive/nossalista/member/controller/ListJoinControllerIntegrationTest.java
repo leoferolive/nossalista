@@ -4,6 +4,8 @@ import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.listitem.domain.ListItem;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
+import br.com.leoferolive.nossalista.auth.service.JwtService;
+import br.com.leoferolive.nossalista.support.RegressionTest;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
@@ -27,7 +29,6 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
 /**
  * Testes de integração para ListJoinController
@@ -36,6 +37,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
 @Transactional
+@RegressionTest
 @DisplayName("ListJoinController Integration Tests")
 class ListJoinControllerIntegrationTest {
 
@@ -51,10 +53,17 @@ class ListJoinControllerIntegrationTest {
     @Autowired
     private ListItemRepository listItemRepository;
 
+    @Autowired
+    private JwtService jwtService;
+
     private MockMvc mockMvc;
     private User testOwner;
     private List testList;
     private static final String VALID_INVITE_CODE = "ABC123XYZ789";
+
+    private String bearerToken(User user) {
+        return "Bearer " + jwtService.generateToken(user);
+    }
 
     @BeforeEach
     void setUp() {
@@ -234,7 +243,7 @@ class ListJoinControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .with(user(newUser.getId().toString())))
+                .header("Authorization", bearerToken(newUser)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(testList.getId().toString()))
             .andExpect(jsonPath("$.name").value("Mercado Semanal"))
@@ -258,12 +267,12 @@ class ListJoinControllerIntegrationTest {
 
         // First join - creates member
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .with(user(newUser.getId().toString())))
+                .header("Authorization", bearerToken(newUser)))
             .andExpect(status().isCreated());
 
         // Second join - should return 200 OK
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .with(user(newUser.getId().toString())))
+                .header("Authorization", bearerToken(newUser)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.role").value("MEMBER"))
             .andExpect(jsonPath("$.message").value("Você já é membro desta lista"));
@@ -273,7 +282,7 @@ class ListJoinControllerIntegrationTest {
     @DisplayName("POST join: Deve retornar 200 quando usuário é o dono")
     void shouldReturn200WhenUserIsOwner() throws Exception {
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .with(user(testOwner.getId().toString())))
+                .header("Authorization", bearerToken(testOwner)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.role").value("OWNER"))
             .andExpect(jsonPath("$.message").value("Você é o dono desta lista"));
@@ -298,7 +307,7 @@ class ListJoinControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/lists/join/INVALIDCODE")
-                .with(user(newUser.getId().toString())))
+                .header("Authorization", bearerToken(newUser)))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.title").exists());
     }
@@ -319,7 +328,7 @@ class ListJoinControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .with(user(newUser.getId().toString())))
+                .header("Authorization", bearerToken(newUser)))
             .andExpect(status().isGone())
             .andExpect(jsonPath("$.title").value(containsString("expirado")));
     }
