@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { useToast } from './Toast';
+import React, { useState } from 'react'
+import { useToast } from './Toast'
 
 export interface UserProfileProps {
-  username: string;
-  email: string;
-  name: string | null;
-  avatarUrl: string | null;
-  authProvider: string;
-  isEditing: boolean;
-  onEdit: () => void;
-  onCancelEdit: () => void;
-  onSave: (data: { name: string; avatarUrl: string }) => Promise<void>;
+  username: string
+  email: string
+  name: string | null
+  avatarUrl: string | null
+  authProvider: string
+  isEditing: boolean
+  onEdit: () => void
+  onCancelEdit: () => void
+  onSave: (data: { name: string; avatarUrl: string }) => Promise<void>
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({
@@ -24,33 +24,33 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onCancelEdit,
   onSave,
 }) => {
-  const [editedName, setEditedName] = useState(name || '');
-  const [editedAvatarUrl, setEditedAvatarUrl] = useState(avatarUrl || '');
-  const [isSaving, setIsSaving] = useState(false);
-  const { showToast } = useToast();
+  const [editedName, setEditedName] = useState(name || '')
+  const [editedAvatarUrl, setEditedAvatarUrl] = useState(avatarUrl || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const { showToast } = useToast()
 
   const handleSave = async () => {
     if (!editedName.trim()) {
-      showToast('Nome e obrigatorio', 'error');
-      return;
+      showToast('Nome e obrigatorio', 'error')
+      return
     }
 
-    setIsSaving(true);
+    setIsSaving(true)
     try {
       await onSave({
         name: editedName.trim(),
         avatarUrl: editedAvatarUrl,
-      });
-      onCancelEdit();
+      })
+      onCancelEdit()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao atualizar perfil';
-      showToast(message, 'error');
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar perfil'
+      showToast(message, 'error')
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
-  const providerLabel = authProvider === 'GOOGLE' ? 'Google' : 'Email & Senha';
+  const providerLabel = authProvider === 'GOOGLE' ? 'Google' : 'Email & Senha'
 
   return (
     <section className="nl-card p-6 sm:p-8" aria-label="Dados de perfil">
@@ -84,7 +84,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-2xl font-bold text-slate-900">Seu Perfil</h2>
-          <p className="mt-1 text-sm text-slate-600">Mantenha seus dados atualizados para facilitar convites e colaboracao.</p>
+          <p className="mt-1 text-sm text-slate-600">
+            Mantenha seus dados atualizados para facilitar convites e colaboracao.
+          </p>
 
           {!isEditing ? (
             <button
@@ -119,11 +121,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       {!isEditing && (
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-orange-100 bg-orange-50/70 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-700">Username</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-700">
+              Username
+            </p>
             <p className="mt-1 truncate text-lg font-medium text-slate-900">@{username}</p>
           </div>
           <div className="rounded-2xl border border-orange-100 bg-orange-50/70 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-700">Email</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-700">
+              Email
+            </p>
             <p className="mt-1 truncate text-lg text-slate-900">{email}</p>
           </div>
           <div className="rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
@@ -131,7 +137,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <p className="mt-1 truncate text-lg text-slate-900">{name || 'Nao informado'}</p>
           </div>
           <div className="rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Metodo de Acesso</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
+              Metodo de Acesso
+            </p>
             <p className="mt-1 text-lg text-slate-900">{providerLabel}</p>
           </div>
         </div>
@@ -140,7 +148,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       {isEditing && (
         <div className="mt-8 space-y-4">
           <div>
-            <label htmlFor="profile-name" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="profile-name"
+              className="mb-1.5 block text-sm font-medium text-slate-700"
+            >
               Nome
             </label>
             <input
@@ -182,7 +193,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   width={48}
                   height={48}
                   onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
+                    ;(e.target as HTMLImageElement).style.display = 'none'
                   }}
                 />
                 <button
@@ -202,5 +213,5 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         </div>
       )}
     </section>
-  );
-};
+  )
+}

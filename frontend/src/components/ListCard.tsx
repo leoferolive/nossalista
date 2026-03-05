@@ -1,8 +1,8 @@
-import { Link } from 'react-router-dom';
-import { ListResponse, LIST_TYPES } from '../types/List';
+import { Link } from 'react-router-dom'
+import { ListResponse, LIST_TYPES } from '../types/List'
 
 interface ListCardProps {
-  list: ListResponse;
+  list: ListResponse
 }
 
 /**
@@ -10,8 +10,7 @@ interface ListCardProps {
  * Atende NFR-A4: Touch target mínimo de 44px (usa min-h-[160px])
  */
 export function ListCard({ list }: ListCardProps) {
-  const typeEmoji =
-    LIST_TYPES.find((t) => t.id === list.type.id)?.emoji || '📝';
+  const typeEmoji = LIST_TYPES.find((t) => t.id === list.type.id)?.emoji || '📝'
 
   return (
     <Link
@@ -53,10 +52,9 @@ export function ListCard({ list }: ListCardProps) {
           )}
         </div>
         <div className="font-tabular text-sm text-slate-600">
-          {list.itemsCount}{' '}
-          {list.itemsCount === 1 ? 'item' : 'itens'}
+          {list.itemsCount} {list.itemsCount === 1 ? 'item' : 'itens'}
         </div>
       </div>
     </Link>
-  );
+  )
 }

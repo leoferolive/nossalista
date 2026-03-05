@@ -1,19 +1,19 @@
-import client, { preserveSessionOnUnauthorizedConfig } from './client';
-import { AxiosError } from 'axios';
-import { ProblemDetail } from '../types/ProblemDetail';
-import { ApiError } from '../types/ApiError';
+import client, { preserveSessionOnUnauthorizedConfig } from './client'
+import { AxiosError } from 'axios'
+import { ProblemDetail } from '../types/ProblemDetail'
+import { ApiError } from '../types/ApiError'
 
 export interface UserProfileResponse {
-  username: string;
-  email: string;
-  name: string | null;
-  avatarUrl: string | null;
-  authProvider: string;
+  username: string
+  email: string
+  name: string | null
+  avatarUrl: string | null
+  authProvider: string
 }
 
 export interface UpdateProfileRequest {
-  name: string;
-  avatarUrl?: string;
+  name: string
+  avatarUrl?: string
 }
 
 /**
@@ -29,25 +29,23 @@ export const usersApi = {
       const response = await client.get<UserProfileResponse>(
         '/api/users/me',
         preserveSessionOnUnauthorizedConfig
-      );
-      return response.data;
+      )
+      return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>;
+      const axiosError = error as AxiosError<ProblemDetail>
 
       if (axiosError.response) {
-        const status = axiosError.response.status;
-        const problemDetail = axiosError.response.data;
+        const status = axiosError.response.status
+        const problemDetail = axiosError.response.data
 
         if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.');
+          throw new Error('Sessão expirada. Faça login novamente.')
         }
 
-        throw new Error(
-          problemDetail?.detail || 'Erro ao carregar perfil. Tente novamente.'
-        );
+        throw new Error(problemDetail?.detail || 'Erro ao carregar perfil. Tente novamente.')
       }
 
-      throw new Error('Erro de conexão. Verifique sua internet.');
+      throw new Error('Erro de conexão. Verifique sua internet.')
     }
   },
 
@@ -62,28 +60,30 @@ export const usersApi = {
         '/api/users/me',
         data,
         preserveSessionOnUnauthorizedConfig
-      );
-      return response.data;
+      )
+      return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>;
+      const axiosError = error as AxiosError<ProblemDetail>
 
       if (axiosError.response) {
-        const status = axiosError.response.status;
-        const problemDetail = axiosError.response.data;
+        const status = axiosError.response.status
+        const problemDetail = axiosError.response.data
 
         if (status === 400) {
-          throw new Error(problemDetail?.detail || 'Dados inválidos. Verifique o nome e tente novamente.');
+          throw new Error(
+            problemDetail?.detail || 'Dados inválidos. Verifique o nome e tente novamente.'
+          )
         } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.');
+          throw new Error('Sessão expirada. Faça login novamente.')
         }
 
         throw new ApiError(
           problemDetail?.detail || 'Erro ao atualizar perfil. Tente novamente.',
           status
-        );
+        )
       }
 
-      throw new ApiError('Erro de conexão. Verifique sua internet.', 500);
+      throw new ApiError('Erro de conexão. Verifique sua internet.', 500)
     }
   },
 
@@ -95,6 +95,6 @@ export const usersApi = {
   async logout(): Promise<void> {
     // Em uma implementação completa, isso pode chamar um endpoint de logout no backend
     // Por enquanto, a função principal é limpar o token e redirecionar
-    return Promise.resolve();
+    return Promise.resolve()
   },
-};
+}

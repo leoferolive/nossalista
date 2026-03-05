@@ -1,11 +1,11 @@
-import React from 'react';
+import React from 'react'
 
 interface TypeCardProps {
-  emoji: string;
-  name: string;
-  description: string;
-  isSelected: boolean;
-  onClick: () => void;
+  emoji: string
+  name: string
+  description: string
+  isSelected: boolean
+  onClick: () => void
 }
 
 /**
@@ -42,9 +42,7 @@ export const TypeCard: React.FC<TypeCardProps> = ({
         {emoji}
       </div>
       <div className="font-display text-lg font-semibold text-slate-900">{name}</div>
-      <div className="mt-1 text-center text-sm text-slate-600">
-        {description}
-      </div>
+      <div className="mt-1 text-center text-sm text-slate-600">{description}</div>
     </button>
-  );
-};
+  )
+}

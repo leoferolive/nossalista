@@ -1,15 +1,15 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { InviteLinkResponse, InviteByUsernameResponse, UserSearchResult } from '../types/List';
-import { useToast } from './Toast';
+import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { InviteLinkResponse, InviteByUsernameResponse, UserSearchResult } from '../types/List'
+import { useToast } from './Toast'
 
 interface InviteModalProps {
-  isOpen: boolean;
-  listName: string;
-  onClose: () => void;
-  onGenerateLink: () => Promise<InviteLinkResponse>;
-  onSearchUsers: (query: string) => Promise<UserSearchResult[]>;
-  onInviteByUsername: (username: string) => Promise<InviteByUsernameResponse>;
-  onInviteSuccess?: (username: string) => void;
+  isOpen: boolean
+  listName: string
+  onClose: () => void
+  onGenerateLink: () => Promise<InviteLinkResponse>
+  onSearchUsers: (query: string) => Promise<UserSearchResult[]>
+  onInviteByUsername: (username: string) => Promise<InviteByUsernameResponse>
+  onInviteSuccess?: (username: string) => void
 }
 
 /**
@@ -26,180 +26,180 @@ export const InviteModal: React.FC<InviteModalProps> = ({
   onInviteByUsername,
   onInviteSuccess,
 }) => {
-  const [inviteData, setInviteData] = useState<InviteLinkResponse | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [copying, setCopying] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
-  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [inviting, setInviting] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const { showToast } = useToast();
-  const searchRequestRef = useRef(0);
+  const [inviteData, setInviteData] = useState<InviteLinkResponse | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [copying, setCopying] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null)
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const { showToast } = useToast()
+  const searchRequestRef = useRef(0)
 
   // Handler para gerar link
   const handleGenerateLink = useCallback(async () => {
-    setGenerating(true);
-    setError(null);
+    setGenerating(true)
+    setError(null)
 
     try {
-      const data = await onGenerateLink();
-      setInviteData(data);
+      const data = await onGenerateLink()
+      setInviteData(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao gerar link';
-      setError(message);
+      const message = err instanceof Error ? err.message : 'Erro ao gerar link'
+      setError(message)
     } finally {
-      setGenerating(false);
+      setGenerating(false)
     }
-  }, [onGenerateLink]);
+  }, [onGenerateLink])
 
   // Handler para copiar link
   const handleCopyLink = useCallback(async () => {
-    if (!inviteData) return;
+    if (!inviteData) return
 
-    setCopying(true);
+    setCopying(true)
 
     try {
       // Tenta usar a Clipboard API moderna
       if (navigator.clipboard) {
-        await navigator.clipboard.writeText(inviteData.invite_link);
+        await navigator.clipboard.writeText(inviteData.invite_link)
       } else {
         // Fallback para browsers antigos
-        const textarea = document.createElement('textarea');
-        textarea.value = inviteData.invite_link;
-        textarea.style.position = 'fixed';
-        textarea.style.left = '-999999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
+        const textarea = document.createElement('textarea')
+        textarea.value = inviteData.invite_link
+        textarea.style.position = 'fixed'
+        textarea.style.left = '-999999px'
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
       }
 
       // Mostra estado "Copiado!"
-      setCopied(true);
+      setCopied(true)
 
       // Toast de sucesso AC3: "Link copiado!"
-      showToast('Link copiado!', 'success');
+      showToast('Link copiado!', 'success')
 
       // Volta para "Copiar Link" após 2 segundos
       setTimeout(() => {
-        setCopied(false);
-      }, 2000);
+        setCopied(false)
+      }, 2000)
     } catch {
-      const errorMessage = 'Não foi possível copiar o link';
-      setError(errorMessage);
-      showToast(errorMessage, 'error');
+      const errorMessage = 'Não foi possível copiar o link'
+      setError(errorMessage)
+      showToast(errorMessage, 'error')
     } finally {
-      setCopying(false);
+      setCopying(false)
     }
-  }, [inviteData]);
+  }, [inviteData, showToast])
 
   // Fecha modal e reseta estado
   const handleClose = useCallback(() => {
-    searchRequestRef.current += 1;
-    setInviteData(null);
-    setError(null);
-    setCopied(false);
-    setSearchQuery('');
-    setSelectedUser(null);
-    setSearchResults([]);
-    setSearchError(null);
-    onClose();
-  }, [onClose]);
+    searchRequestRef.current += 1
+    setInviteData(null)
+    setError(null)
+    setCopied(false)
+    setSearchQuery('')
+    setSelectedUser(null)
+    setSearchResults([])
+    setSearchError(null)
+    onClose()
+  }, [onClose])
 
   useEffect(() => {
     if (!isOpen) {
-      return;
+      return
     }
 
     if (searchQuery.trim().length < 2) {
-      searchRequestRef.current += 1;
-      setSearching(false);
-      setSearchResults([]);
-      setSearchError(null);
-      return;
+      searchRequestRef.current += 1
+      setSearching(false)
+      setSearchResults([])
+      setSearchError(null)
+      return
     }
 
     if (selectedUser && searchQuery === selectedUser.username) {
-      return;
+      return
     }
 
     const timeoutId = window.setTimeout(async () => {
-      const requestId = ++searchRequestRef.current;
-      setSearching(true);
-      setSearchError(null);
+      const requestId = ++searchRequestRef.current
+      setSearching(true)
+      setSearchError(null)
 
       try {
-        const results = await onSearchUsers(searchQuery.trim());
+        const results = await onSearchUsers(searchQuery.trim())
 
         if (requestId !== searchRequestRef.current) {
-          return;
+          return
         }
 
-        setSearchResults(results);
+        setSearchResults(results)
       } catch (err) {
         if (requestId !== searchRequestRef.current) {
-          return;
+          return
         }
 
-        const message = err instanceof Error ? err.message : 'Erro ao buscar usuários';
-        setSearchError(message);
-        setSearchResults([]);
+        const message = err instanceof Error ? err.message : 'Erro ao buscar usuários'
+        setSearchError(message)
+        setSearchResults([])
       } finally {
         if (requestId === searchRequestRef.current) {
-          setSearching(false);
+          setSearching(false)
         }
       }
-    }, 350);
+    }, 350)
 
     return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [isOpen, onSearchUsers, searchQuery, selectedUser]);
+      window.clearTimeout(timeoutId)
+    }
+  }, [isOpen, onSearchUsers, searchQuery, selectedUser])
 
   const handleSelectUser = useCallback((user: UserSearchResult) => {
-    setSelectedUser(user);
-    setSearchQuery(user.username);
-    setSearchResults([]);
-    setSearchError(null);
-  }, []);
+    setSelectedUser(user)
+    setSearchQuery(user.username)
+    setSearchResults([])
+    setSearchError(null)
+  }, [])
 
   const handleInviteByUsername = useCallback(async () => {
     if (!selectedUser) {
-      return;
+      return
     }
 
-    setInviting(true);
-    setError(null);
+    setInviting(true)
+    setError(null)
 
     try {
-      await onInviteByUsername(selectedUser.username);
-      showToast(`${selectedUser.username} convidado!`, 'success');
-      onInviteSuccess?.(selectedUser.username);
-      handleClose();
+      await onInviteByUsername(selectedUser.username)
+      showToast(`${selectedUser.username} convidado!`, 'success')
+      onInviteSuccess?.(selectedUser.username)
+      handleClose()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao convidar usuário';
-      setError(message);
-      showToast(message, 'error');
+      const message = err instanceof Error ? err.message : 'Erro ao convidar usuário'
+      setError(message)
+      showToast(message, 'error')
     } finally {
-      setInviting(false);
+      setInviting(false)
     }
-  }, [handleClose, onInviteByUsername, onInviteSuccess, selectedUser, showToast]);
+  }, [handleClose, onInviteByUsername, onInviteSuccess, selectedUser, showToast])
 
   // Fecha ao clicar no backdrop
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (e.target === e.currentTarget) {
-        handleClose();
+        handleClose()
       }
     },
     [handleClose]
-  );
+  )
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <div
@@ -209,13 +209,13 @@ export const InviteModal: React.FC<InviteModalProps> = ({
       aria-modal="true"
       aria-labelledby="invite-modal-title"
     >
-      <div className="nl-card w-full max-w-md animate-scale-in p-6" style={{ overscrollBehavior: 'contain' }}>
+      <div
+        className="nl-card w-full max-w-md animate-scale-in p-6"
+        style={{ overscrollBehavior: 'contain' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2
-            id="invite-modal-title"
-            className="font-display text-xl font-bold text-slate-900"
-          >
+          <h2 id="invite-modal-title" className="font-display text-xl font-bold text-slate-900">
             Convidar
           </h2>
           <button
@@ -251,25 +251,32 @@ export const InviteModal: React.FC<InviteModalProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setSelectedUser(null);
+                setSearchQuery(e.target.value)
+                setSelectedUser(null)
               }}
-                placeholder="Buscar usuário…"
-                className="w-full rounded-xl border border-orange-200 px-4 py-3 text-sm text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
-                autoComplete="off"
-                spellCheck={false}
+              placeholder="Buscar usuário…"
+              className="w-full rounded-xl border border-orange-200 px-4 py-3 text-sm text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              autoComplete="off"
+              spellCheck={false}
             />
 
             {searching && (
-              <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite">Buscando…</p>
+              <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite">
+                Buscando…
+              </p>
             )}
 
             {searchError && (
-              <p className="mt-2 text-xs text-red-600" role="alert">{searchError}</p>
+              <p className="mt-2 text-xs text-red-600" role="alert">
+                {searchError}
+              </p>
             )}
 
             {searchResults.length > 0 && (
-              <div className="absolute z-20 mt-2 max-h-56 w-full overflow-y-auto rounded-xl border border-orange-200 bg-white shadow-tropical" style={{ overscrollBehavior: 'contain' }}>
+              <div
+                className="absolute z-20 mt-2 max-h-56 w-full overflow-y-auto rounded-xl border border-orange-200 bg-white shadow-tropical"
+                style={{ overscrollBehavior: 'contain' }}
+              >
                 {searchResults.map((user) => (
                   <button
                     key={user.username}
@@ -332,12 +339,12 @@ export const InviteModal: React.FC<InviteModalProps> = ({
           {inviteData && (
             <div className="space-y-3">
               {/* Link em área de display */}
-                <div className="rounded-xl border border-orange-200 bg-orange-50/65 px-4 py-3">
-                  <p className="mb-1 text-xs text-slate-500">Link de convite:</p>
-                  <p className="break-all font-mono text-sm text-slate-800">
-                    {inviteData.invite_link}
-                  </p>
-                </div>
+              <div className="rounded-xl border border-orange-200 bg-orange-50/65 px-4 py-3">
+                <p className="mb-1 text-xs text-slate-500">Link de convite:</p>
+                <p className="break-all font-mono text-sm text-slate-800">
+                  {inviteData.invite_link}
+                </p>
+              </div>
 
               {/* Tempo de expiração */}
               <p className="flex items-center gap-1 text-xs text-slate-600">
@@ -493,7 +500,6 @@ export const InviteModal: React.FC<InviteModalProps> = ({
           </p>
         </div>
       </div>
-
     </div>
-  );
-};
+  )
+}

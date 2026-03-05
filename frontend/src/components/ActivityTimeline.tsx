@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { ActivityTimelineProps, ActivityLog } from '../types/ActivityLog';
+import React, { useState, useCallback } from 'react'
+import { ActivityTimelineProps, ActivityLog } from '../types/ActivityLog'
 
 /**
  * Componente de timeline de atividades
@@ -14,77 +14,77 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
   hasMore = false,
   loading = false,
 }) => {
-  const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
+  const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set())
 
   // Formata tempo relativo
   const formatRelativeTime = useCallback((dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSecs = Math.floor(diffMs / 1000);
-    const diffMins = Math.floor(diffSecs / 60);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSecs = Math.floor(diffMs / 1000)
+    const diffMins = Math.floor(diffSecs / 60)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
 
-    if (diffSecs < 10) return 'agora mesmo';
-    if (diffSecs < 60) return `há ${diffSecs}s`;
-    if (diffMins < 60) return `há ${diffMins} min`;
-    if (diffHours < 24) return `há ${diffHours}h`;
-    if (diffDays === 1) return 'ontem';
-    if (diffDays < 7) return ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][date.getDay()];
-    
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  }, []);
+    if (diffSecs < 10) return 'agora mesmo'
+    if (diffSecs < 60) return `há ${diffSecs}s`
+    if (diffMins < 60) return `há ${diffMins} min`
+    if (diffHours < 24) return `há ${diffHours}h`
+    if (diffDays === 1) return 'ontem'
+    if (diffDays < 7) return ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][date.getDay()]
+
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }, [])
 
   // Gera descrição da atividade baseada no tipo
   const getActivityDescription = useCallback((activity: ActivityLog): string => {
-    const { action, targetName, details } = activity;
+    const { action, targetName, details } = activity
 
     switch (action) {
       case 'ITEM_ADDED':
-        return `adicionou "${targetName || 'um item'}"`;
+        return `adicionou "${targetName || 'um item'}"`
       case 'ITEM_CHECKED':
-        return `marcou "${targetName || 'um item'}" como concluído`;
+        return `marcou "${targetName || 'um item'}" como concluído`
       case 'ITEM_UNCHECKED':
-        return `desmarcou "${targetName || 'um item'}"`;
+        return `desmarcou "${targetName || 'um item'}"`
       case 'ITEM_UPDATED':
-        return `editou "${targetName || 'um item'}"`;
+        return `editou "${targetName || 'um item'}"`
       case 'ITEM_REMOVED':
-        return `removeu "${targetName || 'um item'}"`;
+        return `removeu "${targetName || 'um item'}"`
       case 'MEMBER_JOINED':
         if (details?.method === 'LINK') {
-          return `entrou via link de convite`;
+          return `entrou via link de convite`
         }
-        return `foi convidado`;
+        return `foi convidado`
       case 'MEMBER_LEFT':
-        return `saiu da lista`;
+        return `saiu da lista`
       case 'MEMBER_REMOVED':
-        return `foi removido${details?.removedBy ? ` por ${details.removedBy}` : ''}`;
+        return `foi removido${details?.removedBy ? ` por ${details.removedBy}` : ''}`
       default:
-        return 'realizou uma ação';
+        return 'realizou uma ação'
     }
-  }, []);
+  }, [])
 
   // Toggle expandir/descolapsar detalhes
   const toggleExpand = useCallback((activityId: string) => {
     setExpandedActivities((prev) => {
-      const next = new Set(prev);
+      const next = new Set(prev)
       if (next.has(activityId)) {
-        next.delete(activityId);
+        next.delete(activityId)
       } else {
-        next.add(activityId);
+        next.add(activityId)
       }
-      return next;
-    });
-  }, []);
+      return next
+    })
+  }, [])
 
   // Carregar mais atividades (scroll infinito)
   const handleLoadMore = useCallback(() => {
-    if (loading || !hasMore || !onLoadMore) return;
-    onLoadMore();
-  }, [loading, hasMore, onLoadMore]);
+    if (loading || !hasMore || !onLoadMore) return
+    onLoadMore()
+  }, [loading, hasMore, onLoadMore])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-orange-200 bg-white shadow-tropical">
@@ -125,15 +125,13 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
         ) : (
           <div className="space-y-4">
             {activities.map((activity, index) => {
-              const isExpanded = expandedActivities.has(activity.id);
-              const isFirst = index === 0;
+              const isExpanded = expandedActivities.has(activity.id)
+              const isFirst = index === 0
 
               return (
                 <div
                   key={activity.id}
-                  className={`flex gap-3 ${
-                    isFirst ? 'animate-fade-in' : ''
-                  }`}
+                  className={`flex gap-3 ${isFirst ? 'animate-fade-in' : ''}`}
                   data-testid={`activity-${activity.id}`}
                 >
                   {/* Avatar */}
@@ -149,7 +147,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                       <span className="font-medium">{activity.userName || 'Usuário'}</span>{' '}
                       {getActivityDescription(activity)}
                     </p>
-                    
+
                     {/* Tempo relativo */}
                     <p className="mt-1 text-xs text-slate-500">
                       {formatRelativeTime(activity.createdAt)}
@@ -175,7 +173,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                     )}
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
         )}
@@ -200,5 +198,5 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
         )}
       </div>
     </div>
-  );
-};
+  )
+}

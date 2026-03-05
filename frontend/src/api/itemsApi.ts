@@ -1,7 +1,7 @@
-import client, { preserveSessionOnUnauthorizedConfig } from './client';
-import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item';
-import { ProblemDetail } from '../types/ProblemDetail';
-import { AxiosError } from 'axios';
+import client, { preserveSessionOnUnauthorizedConfig } from './client'
+import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item'
+import { ProblemDetail } from '../types/ProblemDetail'
+import { AxiosError } from 'axios'
 
 /**
  * API para gerenciamento de itens de lista
@@ -18,29 +18,27 @@ export const itemsApi = {
       const response = await client.get<ListItem[]>(
         `/api/lists/${listId}/items`,
         preserveSessionOnUnauthorizedConfig
-      );
-      return response.data;
+      )
+      return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>;
+      const axiosError = error as AxiosError<ProblemDetail>
 
       if (axiosError.response) {
-        const status = axiosError.response.status;
-        const problemDetail = axiosError.response.data;
+        const status = axiosError.response.status
+        const problemDetail = axiosError.response.data
 
         if (status === 404) {
-          throw new Error('Lista não encontrada');
+          throw new Error('Lista não encontrada')
         } else if (status === 403) {
-          throw new Error('Você não tem permissão para ver os itens desta lista');
+          throw new Error('Você não tem permissão para ver os itens desta lista')
         } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.');
+          throw new Error('Sessão expirada. Faça login novamente.')
         } else {
-          throw new Error(
-            problemDetail?.detail || 'Erro ao carregar itens. Tente novamente.'
-          );
+          throw new Error(problemDetail?.detail || 'Erro ao carregar itens. Tente novamente.')
         }
       }
 
-      throw new Error('Erro de conexão. Verifique sua internet.');
+      throw new Error('Erro de conexão. Verifique sua internet.')
     }
   },
 
@@ -57,31 +55,29 @@ export const itemsApi = {
         `/api/lists/${listId}/items`,
         request,
         preserveSessionOnUnauthorizedConfig
-      );
-      return response.data;
+      )
+      return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>;
+      const axiosError = error as AxiosError<ProblemDetail>
 
       if (axiosError.response) {
-        const status = axiosError.response.status;
-        const problemDetail = axiosError.response.data;
+        const status = axiosError.response.status
+        const problemDetail = axiosError.response.data
 
         if (status === 400) {
-          throw new Error(problemDetail?.detail || 'Dados inválidos. Verifique os campos.');
+          throw new Error(problemDetail?.detail || 'Dados inválidos. Verifique os campos.')
         } else if (status === 403) {
-          throw new Error('Você não tem permissão para adicionar itens nesta lista');
+          throw new Error('Você não tem permissão para adicionar itens nesta lista')
         } else if (status === 404) {
-          throw new Error('Lista não encontrada');
+          throw new Error('Lista não encontrada')
         } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.');
+          throw new Error('Sessão expirada. Faça login novamente.')
         } else {
-          throw new Error(
-            problemDetail?.detail || 'Erro ao adicionar item. Tente novamente.'
-          );
+          throw new Error(problemDetail?.detail || 'Erro ao adicionar item. Tente novamente.')
         }
       }
 
-      throw new Error('Erro de conexão. Verifique sua internet.');
+      throw new Error('Erro de conexão. Verifique sua internet.')
     }
   },
 
@@ -98,29 +94,27 @@ export const itemsApi = {
         `/api/lists/${listId}/items/${itemId}/check`,
         undefined,
         preserveSessionOnUnauthorizedConfig
-      );
-      return response.data;
+      )
+      return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>;
+      const axiosError = error as AxiosError<ProblemDetail>
 
       if (axiosError.response) {
-        const status = axiosError.response.status;
-        const problemDetail = axiosError.response.data;
+        const status = axiosError.response.status
+        const problemDetail = axiosError.response.data
 
         if (status === 404) {
-          throw new Error('Item não encontrado');
+          throw new Error('Item não encontrado')
         } else if (status === 403) {
-          throw new Error('Você não tem permissão para modificar itens desta lista');
+          throw new Error('Você não tem permissão para modificar itens desta lista')
         } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.');
+          throw new Error('Sessão expirada. Faça login novamente.')
         } else {
-          throw new Error(
-            problemDetail?.detail || 'Erro ao atualizar item. Tente novamente.'
-          );
+          throw new Error(problemDetail?.detail || 'Erro ao atualizar item. Tente novamente.')
         }
       }
 
-      throw new Error('Erro de conexão. Verifique sua internet.');
+      throw new Error('Erro de conexão. Verifique sua internet.')
     }
   },
 
@@ -138,31 +132,29 @@ export const itemsApi = {
         `/api/lists/${listId}/items/${itemId}`,
         request,
         preserveSessionOnUnauthorizedConfig
-      );
-      return response.data;
+      )
+      return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>;
+      const axiosError = error as AxiosError<ProblemDetail>
 
       if (axiosError.response) {
-        const status = axiosError.response.status;
-        const problemDetail = axiosError.response.data;
+        const status = axiosError.response.status
+        const problemDetail = axiosError.response.data
 
         if (status === 400) {
-          throw new Error(problemDetail?.detail || 'Campos inválidos para este tipo de lista');
+          throw new Error(problemDetail?.detail || 'Campos inválidos para este tipo de lista')
         } else if (status === 403) {
-          throw new Error('Você não tem permissão para editar itens desta lista');
+          throw new Error('Você não tem permissão para editar itens desta lista')
         } else if (status === 404) {
-          throw new Error('Item não encontrado');
+          throw new Error('Item não encontrado')
         } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.');
+          throw new Error('Sessão expirada. Faça login novamente.')
         } else {
-          throw new Error(
-            problemDetail?.detail || 'Erro ao atualizar item. Tente novamente.'
-          );
+          throw new Error(problemDetail?.detail || 'Erro ao atualizar item. Tente novamente.')
         }
       }
 
-      throw new Error('Erro de conexão. Verifique sua internet.');
+      throw new Error('Erro de conexão. Verifique sua internet.')
     }
   },
 
@@ -178,28 +170,26 @@ export const itemsApi = {
       await client.delete(
         `/api/lists/${listId}/items/${itemId}`,
         preserveSessionOnUnauthorizedConfig
-      );
+      )
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>;
+      const axiosError = error as AxiosError<ProblemDetail>
 
       if (axiosError.response) {
-        const status = axiosError.response.status;
-        const problemDetail = axiosError.response.data;
+        const status = axiosError.response.status
+        const problemDetail = axiosError.response.data
 
         if (status === 403) {
-          throw new Error('Você não tem permissão para remover itens desta lista');
+          throw new Error('Você não tem permissão para remover itens desta lista')
         } else if (status === 404) {
-          throw new Error('Item não encontrado');
+          throw new Error('Item não encontrado')
         } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.');
+          throw new Error('Sessão expirada. Faça login novamente.')
         } else {
-          throw new Error(
-            problemDetail?.detail || 'Erro ao remover item. Tente novamente.'
-          );
+          throw new Error(problemDetail?.detail || 'Erro ao remover item. Tente novamente.')
         }
       }
 
-      throw new Error('Erro de conexão. Verifique sua internet.');
+      throw new Error('Erro de conexão. Verifique sua internet.')
     }
   },
-};
+}

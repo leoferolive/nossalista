@@ -1,12 +1,12 @@
-import { Client, StompConfig } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+import { Client, StompConfig } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
-export type WebSocketChannel = 'items' | 'presence';
+export type WebSocketChannel = 'items' | 'presence'
 
 export function getListTopic(listId: string, channel: WebSocketChannel): string {
-  return `/topic/list/${listId}/${channel}`;
+  return `/topic/list/${listId}/${channel}`
 }
 
 /**
@@ -27,10 +27,10 @@ export function createStompClient(token: string): Client {
     reconnectDelay: 0,
     debug: (str: string) => {
       if (import.meta.env.DEV) {
-        console.log('[STOMP]', str);
+        console.log('[STOMP]', str)
       }
     },
-  };
+  }
 
-  return new Client(config);
+  return new Client(config)
 }

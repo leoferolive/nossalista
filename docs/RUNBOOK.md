@@ -34,17 +34,32 @@ Backend:
 
 ```bash
 cd backend
-./mvnw -B verify
-./mvnw -B -Pstrict-quality verify
+./mvnw -B -Pstrict-quality -Ddependency-check.skip=true verify
 ./mvnw -B -Pregression-tests test
+./mvnw -B -DskipTests package
+java -jar target/nossalista-0.0.1-SNAPSHOT.jar --spring.profiles.active=ci
 ```
 
 Frontend:
 
 ```bash
 cd frontend
-npm run test -- --run
+npm run lint
+npm run format:check
+npm run stylelint
+npm run typecheck
+npm run test:coverage
 npm run build
+npm run bundle:check
+npm run test:e2e
+```
+
+## Seguranca e compliance (local)
+
+```bash
+cd frontend
+npm audit --audit-level=high --omit=dev
+npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
 ```
 
 ## Operacao em Kubernetes
