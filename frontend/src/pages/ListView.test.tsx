@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, cleanup, within } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { ListView } from './ListView';
 import { useLists } from '../hooks/useLists';
@@ -179,11 +179,11 @@ describe('ListView - Delete Functionality', () => {
     fireEvent.click(deleteButton);
 
     // Confirmar exclusão
-    const confirmButton = screen.getByText('Excluir');
+    const confirmButton = within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' });
     fireEvent.click(confirmButton);
 
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Excluindo...', 'info');
+      expect(mockShowToast).toHaveBeenCalledWith('Excluindo…', 'info');
       expect(mockDeleteList).toHaveBeenCalledWith('test-list-id');
     });
   });
@@ -204,7 +204,7 @@ describe('ListView - Delete Functionality', () => {
     fireEvent.click(deleteButton);
 
     // Confirmar exclusão
-    const confirmButton = screen.getByText('Excluir');
+    const confirmButton = within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' });
     fireEvent.click(confirmButton);
 
     await waitFor(() => {
@@ -231,7 +231,7 @@ describe('ListView - Delete Functionality', () => {
     fireEvent.click(deleteButton);
 
     // Confirmar exclusão
-    const confirmButton = screen.getByText('Excluir');
+    const confirmButton = within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' });
     fireEvent.click(confirmButton);
 
     await waitFor(() => {
@@ -255,7 +255,7 @@ describe('ListView - Delete Functionality', () => {
     fireEvent.click(deleteButton);
 
     // Confirmar exclusão
-    const confirmButton = screen.getByText('Excluir');
+    const confirmButton = within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' });
     fireEvent.click(confirmButton);
 
     await waitFor(() => {
@@ -277,7 +277,7 @@ describe('ListView - Delete Functionality', () => {
     );
 
     const deleteButton = screen.getByLabelText('Excluir lista');
-    expect(deleteButton).toHaveClass('min-w-[44px]', 'min-h-[44px]');
+    expect(deleteButton).toHaveClass('min-h-[48px]');
   });
 
   it('deve abrir modal de membros e mostrar aviso para owner', async () => {
@@ -429,7 +429,7 @@ describe('ListView - Delete Functionality', () => {
     });
 
     fireEvent.click(screen.getByLabelText('Convidar para lista'));
-    fireEvent.change(screen.getByPlaceholderText('Buscar usuário'), {
+    fireEvent.change(screen.getByPlaceholderText(/Buscar usuário/i), {
       target: { value: 'leo' },
     });
 
@@ -1100,7 +1100,7 @@ describe('ListView - Reconnection UX', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (listsApi.getListMembers as any).mockResolvedValue([]);
+    (listsApi.getListMembers as any).mockImplementation(() => new Promise(() => {}));
     (listsApi.getListState as any).mockResolvedValue({
       listId: 'test-list-id',
       revision: 100,
@@ -1169,23 +1169,22 @@ describe('ListView - Reconnection UX', () => {
     );
 
     mockFetchItems.mockClear();
+    (listsApi.getListState as any).mockClear();
     wsStatus = 'CONNECTED';
 
-    await act(async () => {
-      rerender(
-        <BrowserRouter>
-          <ListView />
-        </BrowserRouter>
-      );
-      await Promise.resolve();
-    });
+    rerender(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+    await Promise.resolve();
 
     expect(listsApi.getListState).toHaveBeenCalledWith('test-list-id');
     expect(mockFetchItems).toHaveBeenCalledWith('test-list-id');
   });
 
   it('nao deve recarregar itens na reconexao quando revision do backend nao avancou', async () => {
-    let wsStatus: 'RECONNECTING' | 'CONNECTED' = 'RECONNECTING';
+    let wsStatus: 'RECONNECTING' | 'CONNECTED' = 'CONNECTED';
     let capturedHandler: ((msg: unknown) => void) | null = null;
 
     (listsApi.getListState as any).mockResolvedValue({
@@ -1195,13 +1194,15 @@ describe('ListView - Reconnection UX', () => {
       itemsCount: 1,
     });
 
+    mockSubscribe.mockImplementation((_listId: string, _channel: string, handler: (msg: unknown) => void) => {
+      capturedHandler = handler;
+    });
+
     (useWebSocket as any).mockImplementation(() => ({
       status: wsStatus,
       connect: mockConnect,
       disconnect: mockDisconnect,
-      subscribe: (_listId: string, _channel: string, handler: (msg: unknown) => void) => {
-        capturedHandler = handler;
-      },
+      subscribe: mockSubscribe,
       unsubscribe: mockUnsubscribe,
       send: mockSend,
     }));
@@ -1212,8 +1213,10 @@ describe('ListView - Reconnection UX', () => {
       </BrowserRouter>
     );
 
+    expect(capturedHandler).not.toBeNull();
+
     act(() => {
-      capturedHandler?.({
+      capturedHandler!({
         schemaVersion: 2,
         eventId: 'event-1',
         listId: 'test-list-id',
@@ -1243,16 +1246,23 @@ describe('ListView - Reconnection UX', () => {
     });
 
     mockFetchItems.mockClear();
-    wsStatus = 'CONNECTED';
+    (listsApi.getListState as any).mockClear();
 
-    await act(async () => {
-      rerender(
-        <BrowserRouter>
-          <ListView />
-        </BrowserRouter>
-      );
-      await Promise.resolve();
-    });
+    wsStatus = 'RECONNECTING';
+    rerender(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+    await Promise.resolve();
+
+    wsStatus = 'CONNECTED';
+    rerender(
+      <BrowserRouter>
+        <ListView />
+      </BrowserRouter>
+    );
+    await Promise.resolve();
 
     expect(listsApi.getListState).toHaveBeenCalledWith('test-list-id');
     expect(mockFetchItems).not.toHaveBeenCalled();
@@ -1274,6 +1284,6 @@ describe('ListView - Reconnection UX', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText('Reconectando...')).toBeInTheDocument();
+    expect(screen.getByText('Reconectando…')).toBeInTheDocument();
   });
 });

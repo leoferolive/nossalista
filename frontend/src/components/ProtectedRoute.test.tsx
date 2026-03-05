@@ -35,7 +35,7 @@ describe('ProtectedRoute', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Validando sessão...')).toBeInTheDocument();
+    expect(screen.getByText('Validando Sessão…')).toBeInTheDocument();
   });
 
   it('redireciona para login preservando o redirect quando nao autenticado', () => {

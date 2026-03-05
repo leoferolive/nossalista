@@ -46,26 +46,29 @@ export function DeleteConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 animate-fade-in"
       onClick={onCancel}
       data-testid="delete-confirm-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-item-modal-title"
     >
       <div
-        className="glass-card w-full max-w-md mx-4 p-6 animate-scale-in"
+        className="nl-card mx-4 w-full max-w-md animate-scale-in p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">
+        <h2 id="delete-item-modal-title" className="mb-2 font-display text-xl font-semibold text-slate-900">
           Remover item?
         </h2>
-        <p className="text-gray-600 mb-6">
+        <p className="mb-6 text-slate-600">
           Tem certeza que deseja remover{' '}
-          <strong className="text-gray-800">&apos;{itemName}&apos;</strong>?
+          <strong className="text-slate-800">&apos;{itemName}&apos;</strong>?
         </p>
 
         <div className="flex gap-2 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 transition-colors"
+            className="min-h-[44px] rounded-xl border border-orange-200 px-4 py-2 text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
             data-testid="delete-cancel-button"
           >
             Cancelar
@@ -73,7 +76,7 @@ export function DeleteConfirmModal({
           <button
             ref={confirmButtonRef}
             onClick={onConfirm}
-            className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+            className="min-h-[44px] rounded-xl bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
             data-testid="delete-confirm-button"
           >
             Confirmar

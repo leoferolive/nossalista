@@ -50,14 +50,14 @@ export const MembersModal: React.FC<MembersModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="members-modal-title">
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl w-full max-w-md p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="members-modal-title">
+      <div className="nl-card w-full max-w-md p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 id="members-modal-title" className="text-xl font-bold text-gray-900">Membros</h2>
+          <h2 id="members-modal-title" className="font-display text-xl font-bold text-slate-900">Membros</h2>
           <button
             onClick={onClose}
-            className="p-2 min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded-lg transition-colors"
+            className="min-h-[44px] min-w-[44px] rounded-xl p-2 text-slate-500 transition-colors hover:bg-orange-50 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-orange-300"
             aria-label="Fechar membros"
           >
             ✕
@@ -66,31 +66,33 @@ export const MembersModal: React.FC<MembersModalProps> = ({
 
         {/* Loading state */}
         {loading && (
-          <p className="text-sm text-gray-600">Carregando membros...</p>
+          <p className="text-sm text-slate-600" role="status" aria-live="polite">Carregando membros…</p>
         )}
 
         {/* Error state */}
         {!loading && error && (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
             {error}
           </p>
         )}
 
         {/* Lista de membros */}
         {!loading && !error && (
-          <div className="space-y-3 max-h-72 overflow-y-auto">
+          <div className="max-h-72 space-y-3 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
             {members.map((member) => (
               <div key={member.user.id}>
-                <div className="flex items-center gap-3 p-2 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/40 p-2.5">
                   {/* Avatar */}
                   {member.user.avatar_url ? (
                     <img
                       src={member.user.avatar_url}
                       alt={member.user.username}
-                      className="w-10 h-10 rounded-full object-cover"
+                      className="h-10 w-10 rounded-full object-cover"
+                      width={40}
+                      height={40}
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 text-sm text-orange-700">
                       {member.user.username.slice(0, 2).toUpperCase()}
                     </div>
                   )}
@@ -100,7 +102,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {member.user.username}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="truncate text-xs text-slate-500">
                       {member.user.name}
                     </p>
                   </div>
@@ -109,8 +111,8 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                   <span
                     className={`text-xs px-2 py-1 rounded font-medium ${
                       member.role === 'OWNER'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-700'
+                        ? 'bg-teal-100 text-teal-700'
+                        : 'bg-orange-100 text-orange-700'
                     }`}
                   >
                     {member.role === 'OWNER' ? 'Dono' : 'Membro'}
@@ -121,7 +123,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                     <button
                       onClick={() => onRemoveMember(member.user.id)}
                       disabled={removingMemberId === member.user.id}
-                      className="p-1.5 min-w-[32px] min-h-[32px] text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      className="min-h-[36px] min-w-[36px] rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-50"
                       aria-label={`Remover ${member.user.username}`}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -133,24 +135,24 @@ export const MembersModal: React.FC<MembersModalProps> = ({
 
                 {/* Confirmação inline de remoção */}
                 {removeConfirmMemberId === member.user.id && (
-                  <div className="mt-1 border border-red-200 bg-red-50 rounded-lg p-3">
+                  <div className="mt-1 rounded-xl border border-red-200 bg-red-50 p-3">
                     <p className="text-sm text-red-900 mb-2">
                       Remover {member.user.username}? Ação não pode ser desfeita.
                     </p>
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={onCancelRemove}
-                        className="px-3 py-1.5 min-h-[36px] rounded-lg border border-gray-300 text-gray-700 hover:bg-white text-sm"
+                        className="min-h-[36px] rounded-lg border border-orange-200 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-orange-300"
                         disabled={removingMemberId === member.user.id}
                       >
                         Cancelar
                       </button>
                       <button
                         onClick={onConfirmRemove}
-                        className="px-3 py-1.5 min-h-[36px] rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300 text-sm"
+                        className="min-h-[36px] rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300 disabled:bg-red-300"
                         disabled={removingMemberId === member.user.id}
                       >
-                        {removingMemberId === member.user.id ? 'Removendo...' : 'Confirmar Remoção'}
+                        {removingMemberId === member.user.id ? 'Removendo…' : 'Confirmar Remoção'}
                       </button>
                     </div>
                   </div>
@@ -162,7 +164,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
 
         {/* Mensagem para dono */}
         {!loading && !error && isOwner && (
-          <p className="mt-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm text-teal-700">
             Você é o dono
           </p>
         )}
@@ -171,7 +173,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
         {!loading && !error && !isOwner && (
           <button
             onClick={onLeaveList}
-            className="w-full mt-4 px-4 py-3 min-h-[44px] rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors"
+            className="mt-4 w-full min-h-[44px] rounded-xl bg-red-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
             aria-label="Sair da lista"
           >
             Sair da Lista
@@ -180,24 +182,24 @@ export const MembersModal: React.FC<MembersModalProps> = ({
 
         {/* Confirmação de saída */}
         {isLeaveConfirmOpen && (
-          <div className="mt-4 border border-red-200 bg-red-50 rounded-lg p-4">
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
             <p className="text-sm text-red-900 mb-3">
               Sair da lista? Você perderá acesso.
             </p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={onCancelLeave}
-                className="px-4 py-2 min-h-[44px] rounded-lg border border-gray-300 text-gray-700 hover:bg-white"
+                className="min-h-[44px] rounded-xl border border-orange-200 px-4 py-2 text-slate-700 transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-orange-300"
                 disabled={leaving}
               >
                 Cancelar
               </button>
               <button
                 onClick={onConfirmLeave}
-                className="px-4 py-2 min-h-[44px] rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
+                className="min-h-[44px] rounded-xl bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300 disabled:bg-red-300"
                 disabled={leaving}
               >
-                {leaving ? 'Saindo...' : 'Sair'}
+                {leaving ? 'Saindo…' : 'Sair'}
               </button>
             </div>
           </div>

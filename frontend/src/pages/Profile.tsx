@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserProfile } from '../components/UserProfile';
-import { useToast } from '../components/Toast';
+import { Toast, useToast } from '../components/Toast';
 import { usersApi } from '../api/usersApi';
 import { ApiError } from '../types/ApiError';
 import { useAuth } from '../contexts/AuthContext';
+import { AppHeader } from '../components/AppHeader';
 
 /**
  * Página de Perfil do Usuário
@@ -91,8 +92,8 @@ export const Profile: React.FC = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="nl-page flex items-center justify-center p-8">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500" aria-label="Carregando perfil" />
       </div>
     );
   }
@@ -100,16 +101,13 @@ export const Profile: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md text-center">
-          <svg className="w-16 h-16 text-red-400 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 11-16 8 8 013.087.586.172 4.428.429.429 5.429.429 5.429.429 4.428a1.75 1.75 0 003.183-3.25 1.75 4.428.429 4.429 5.429.429 4.428zM10 18a8 8 0 11-16 8 8 013.087.586.172 4.428.429.429 5.429.429 5.429.429 4.428a1.75 1.75 0 003.183-3.25 1.75 4.428.429 4.429 5.429.429 4.428zM2.5 5.5a.5.5 0 013.636-2.25.607.463 1.25 1.25v.607a.5.5.5 0 01.5.5 1.25v3.643h4.286V5.75a.5.5.5 0 01.5.5 1.25H2.5a.5.5.5 0 01.5.5 1.25v3.643z" clipRule="evenodd" />
-          </svg>
-          <h2 className="text-xl font-bold text-red-900 mb-2">Erro ao Carregar Perfil</h2>
-          <p className="text-red-700 mb-4">{error}</p>
+      <div className="nl-page flex items-center justify-center p-8">
+        <div className="nl-card max-w-md p-8 text-center">
+          <p className="mb-2 text-xl font-bold text-red-900">Erro ao Carregar Perfil</p>
+          <p className="mb-4 text-red-700">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+            className="rounded-xl bg-red-600 px-6 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
           >
             Tentar Novamente
           </button>
@@ -119,32 +117,14 @@ export const Profile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Meu Perfil</h1>
-          <button
-            onClick={() => navigate(-1)}
-            className="p-3 min-w-[44px] min-h-[44px] hover:bg-gray-200 rounded-lg transition-colors"
-            aria-label="Voltar"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-gray-700"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7l-7 7"
-              />
-            </svg>
-          </button>
-        </div>
+    <div className="nl-page">
+      <div className="nl-container max-w-2xl">
+        <AppHeader
+          eyebrow="Conta Viva"
+          title="Meu Perfil"
+          subtitle="Atualize seu nome, avatar e preferencia de acesso sem perder o ritmo das listas."
+          onBack={() => navigate(-1)}
+        />
 
         {/* UserProfile component */}
         <UserProfile
@@ -160,38 +140,25 @@ export const Profile: React.FC = () => {
         />
 
         {/* Botão Logout */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
+        <div className="mt-8 border-t border-orange-200 pt-6">
           <button
             onClick={handleLogout}
             disabled={updating}
-            className="w-full px-4 py-3 min-h-[48px] rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 disabled:bg-red-300 disabled:opacity-50 transition-colors"
+            className="w-full min-h-[48px] rounded-2xl bg-gradient-to-r from-red-600 to-red-500 px-4 py-3 font-semibold text-white transition-colors hover:from-red-700 hover:to-red-600 focus-visible:ring-2 focus-visible:ring-red-300 disabled:bg-red-300 disabled:opacity-50"
             aria-label="Sair da conta"
           >
-            {updating ? 'Saindo...' : 'Sair da Conta'}
+            {updating ? 'Saindo…' : 'Sair da Conta'}
           </button>
         </div>
 
         {/* Toasts */}
         {toasts.map((toast) => (
-          <div
+          <Toast
             key={toast.id}
-            className={`fixed top-4 right-4 z-50 ${
-              toast.type === 'success'
-                ? 'bg-green-500'
-                : toast.type === 'error'
-                  ? 'bg-red-500'
-                  : 'bg-blue-500'
-            } text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-md`}
-          >
-            <span className="text-sm font-medium">{toast.message}</span>
-            <button
-              onClick={() => removeToast(toast.id)}
-              className="ml-2 text-white hover:text-gray-200 focus:outline-none"
-              aria-label="Fechar notificação"
-            >
-              ✕
-            </button>
-          </div>
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+          />
         ))}
       </div>
     </div>

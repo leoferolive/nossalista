@@ -45,7 +45,7 @@ describe('InviteModal - convite por username', () => {
       />
     );
 
-    await user.type(screen.getByPlaceholderText('Buscar usuário'), 'leo');
+    await user.type(screen.getByPlaceholderText(/Buscar usuário/i), 'leo');
 
     await waitFor(() => {
       expect(mockOnSearchUsers).toHaveBeenCalledWith('leo');
@@ -68,7 +68,7 @@ describe('InviteModal - convite por username', () => {
       />
     );
 
-    await user.type(screen.getByPlaceholderText('Buscar usuário'), 'leo');
+    await user.type(screen.getByPlaceholderText(/Buscar usuário/i), 'leo');
 
     await user.click(await screen.findByRole('button', { name: /leo/i }));
     await user.click(screen.getByRole('button', { name: 'Convidar' }));
@@ -95,7 +95,7 @@ describe('InviteModal - convite por username', () => {
       />
     );
 
-    await user.type(screen.getByPlaceholderText('Buscar usuário'), 'leo');
+    await user.type(screen.getByPlaceholderText(/Buscar usuário/i), 'leo');
 
     await user.click(await screen.findByRole('button', { name: /leo/i }));
     await user.click(screen.getByRole('button', { name: 'Convidar' }));

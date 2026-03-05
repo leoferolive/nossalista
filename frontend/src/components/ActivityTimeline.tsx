@@ -87,20 +87,20 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 z-50 flex flex-col">
+    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-orange-200 bg-white shadow-tropical">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
+      <div className="flex items-center justify-between border-b border-orange-200 p-4">
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-slate-900">
           <span>📜</span>
           <span>Atividades</span>
         </h2>
         <button
           onClick={onClose}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="rounded-xl p-2 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
           aria-label="Fechar timeline"
         >
           <svg
-            className="w-6 h-6 text-gray-600"
+            className="h-6 w-6 text-slate-600"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -116,9 +116,9 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
       </div>
 
       {/* Lista de atividades */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4" style={{ overscrollBehavior: 'contain' }}>
         {activities.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="py-8 text-center text-slate-500">
             <p className="text-lg mb-2">Nenhuma atividade ainda</p>
             <p className="text-sm">As ações nesta lista aparecerão aqui.</p>
           </div>
@@ -138,26 +138,26 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                 >
                   {/* Avatar */}
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-sm font-medium text-white">
                       {(activity.userName || activity.userId).charAt(0).toUpperCase()}
                     </div>
                   </div>
 
                   {/* Conteúdo */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-slate-900">
                       <span className="font-medium">{activity.userName || 'Usuário'}</span>{' '}
                       {getActivityDescription(activity)}
                     </p>
                     
                     {/* Tempo relativo */}
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="mt-1 text-xs text-slate-500">
                       {formatRelativeTime(activity.createdAt)}
                     </p>
 
                     {/* Detalhes expandidos (opcional) */}
                     {isExpanded && activity.details && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                      <div className="mt-2 rounded bg-orange-50 p-2 text-xs text-slate-600">
                         <pre className="whitespace-pre-wrap font-mono">
                           {JSON.stringify(activity.details, null, 2)}
                         </pre>
@@ -168,7 +168,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                     {activity.details && (
                       <button
                         onClick={() => toggleExpand(activity.id)}
-                        className="text-xs text-blue-600 hover:text-blue-700 mt-1 focus:outline-none focus:underline"
+                        className="mt-1 text-xs text-teal-700 transition-colors hover:text-teal-900 focus-visible:ring-2 focus-visible:ring-orange-300"
                       >
                         {isExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
                       </button>
@@ -183,7 +183,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
         {/* Loading indicator */}
         {loading && (
           <div className="flex justify-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-orange-500"></div>
           </div>
         )}
 
@@ -192,7 +192,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
           <div className="flex justify-center py-4">
             <button
               onClick={handleLoadMore}
-              className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+              className="rounded-xl bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-100 focus-visible:ring-2 focus-visible:ring-orange-300"
             >
               Carregar mais atividades
             </button>

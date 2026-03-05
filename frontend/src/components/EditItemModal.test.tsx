@@ -156,8 +156,8 @@ describe('EditItemModal', () => {
       await vi.advanceTimersByTimeAsync(500);
     });
 
-    expect(screen.getByText('Salvando...')).toBeInTheDocument();
-    expect(screen.getByText('Salvando...')).toBeDisabled();
+    expect(screen.getByText(/Salvando/i)).toBeInTheDocument();
+    expect(screen.getByText(/Salvando/i)).toBeDisabled();
     expect(screen.getByText('Cancelar')).toBeDisabled();
 
     vi.useRealTimers();

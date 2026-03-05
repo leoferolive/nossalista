@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ListResponse, LIST_TYPES } from '../types/List';
 
 interface ListCardProps {
@@ -10,35 +10,20 @@ interface ListCardProps {
  * Atende NFR-A4: Touch target mínimo de 44px (usa min-h-[160px])
  */
 export function ListCard({ list }: ListCardProps) {
-  const navigate = useNavigate();
   const typeEmoji =
     LIST_TYPES.find((t) => t.id === list.type.id)?.emoji || '📝';
 
-  const handleClick = () => {
-    navigate(`/lists/${list.id}`);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleClick();
-    }
-  };
-
   return (
-    <div
-      onClick={handleClick}
-      onKeyDown={handleKeyPress}
+    <Link
+      to={`/lists/${list.id}`}
       className="
         min-h-[160px]
-        border border-gray-200 rounded-lg p-4
-        hover:shadow-lg hover:border-blue-400
-        transition-all cursor-pointer
-        focus:outline-none focus:ring-2 focus:ring-blue-500
+        rounded-3xl border border-orange-200 bg-white/95 p-5
+        hover:-translate-y-1 hover:border-orange-300 hover:shadow-tropical
+        transition-transform transition-colors
+        focus-visible:ring-2 focus-visible:ring-orange-300
         flex flex-col justify-between
       "
-      tabIndex={0}
-      role="button"
       aria-label={`Abrir lista ${list.name}`}
     >
       {/* Header: Emoji + Nome */}
@@ -46,11 +31,11 @@ export function ListCard({ list }: ListCardProps) {
         <span className="text-3xl" aria-hidden="true">
           {typeEmoji}
         </span>
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+        <div className="min-w-0 flex-1">
+          <h3 className="line-clamp-2 font-display text-lg font-semibold text-slate-900">
             {list.name}
           </h3>
-          <p className="text-sm text-gray-500 mt-1">{list.type.name}</p>
+          <p className="mt-1 text-sm text-slate-500">{list.type.name}</p>
         </div>
       </div>
 
@@ -58,20 +43,20 @@ export function ListCard({ list }: ListCardProps) {
       <div className="flex items-center justify-between mt-4">
         <div>
           {list.isOwner ? (
-            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
+            <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-800">
               Minha
             </span>
           ) : (
-            <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">
+            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
               Compartilhada
             </span>
           )}
         </div>
-        <div className="text-sm text-gray-600">
+        <div className="font-tabular text-sm text-slate-600">
           {list.itemsCount}{' '}
           {list.itemsCount === 1 ? 'item' : 'itens'}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

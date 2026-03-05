@@ -4,6 +4,8 @@ import { CreateListModal } from '../components/CreateListModal';
 import { Toast, useToast } from '../components/Toast';
 import { useLists } from '../hooks/useLists';
 import { ListCard } from '../components/ListCard';
+import { AppHeader } from '../components/AppHeader';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Página Home - Exemplo de integração com CreateListModal
@@ -14,6 +16,7 @@ export const Home: React.FC = () => {
   const { createList, lists, fetchLists, loading, error, clearError } = useLists();
   const { toasts, showToast, removeToast } = useToast();
   const location = useLocation();
+  const { user } = useAuth();
 
   // Carregar listas ao montar o componente
   useEffect(() => {
@@ -64,36 +67,40 @@ export const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Minhas Listas</h1>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-          >
-            + Nova Lista
-          </button>
-        </div>
+    <div className="nl-page">
+      <div className="nl-container">
+        <AppHeader
+          eyebrow="Painel Tropical"
+          title="Minhas Listas"
+          subtitle={`Tudo pronto para ${user?.displayName || user?.username}. Crie, compartilhe e retome suas listas com ritmo rapido.`}
+          actions={(
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300"
+            >
+              <span aria-hidden="true">+</span>
+              Nova Lista
+            </button>
+          )}
+        />
 
         {/* Loading State */}
         {loading && (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="nl-card flex items-center justify-center py-12">
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500" aria-label="Carregando listas" />
           </div>
         )}
 
         {/* Error State */}
         {error && !loading && (
-          <div className="col-span-full text-center py-12">
-            <p className="text-red-500 text-lg mb-4">{error}</p>
+          <div className="nl-card col-span-full py-12 text-center">
+            <p className="mb-4 text-lg text-red-600">{error}</p>
             <button
               onClick={() => {
                 clearError();
                 fetchLists();
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="rounded-xl bg-red-600 px-4 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
             >
               Tentar Novamente
             </button>
@@ -102,17 +109,19 @@ export const Home: React.FC = () => {
 
         {/* Lista de cards */}
         {!loading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {lists.length === 0 ? (
-              <div className="col-span-full text-center py-12">
-                <p className="text-gray-500 text-lg mb-4">
-                  Você ainda não tem listas. Crie sua primeira lista!
+              <div className="nl-card col-span-full px-6 py-16 text-center">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">Comece Agora</p>
+                <p className="mb-5 text-lg text-slate-700">
+                  Voce ainda nao tem listas. Crie a primeira e compartilhe em segundos.
                 </p>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-orange-300"
                 >
-                  + Criar Primeira Lista
+                  <span aria-hidden="true">+</span>
+                  Criar Primeira Lista
                 </button>
               </div>
             ) : (

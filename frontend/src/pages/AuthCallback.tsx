@@ -96,16 +96,16 @@ export function AuthCallback() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md text-center">
-          <h1 className="text-xl font-bold text-gray-800 mb-2">Falha no login</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
+      <div className="nl-page flex items-center justify-center p-4">
+        <div className="nl-card w-full max-w-md p-6 text-center">
+          <h1 className="mb-2 font-display text-xl font-bold text-slate-800">Falha no Login</h1>
+          <p className="mb-4 text-slate-600">{error}</p>
           <button
             type="button"
             onClick={() => navigate('/login', { replace: true })}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+            className="w-full rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2.5 font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300"
           >
-            Voltar para login
+            Voltar Para Login
           </button>
         </div>
       </div>
@@ -113,10 +113,10 @@ export function AuthCallback() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md text-center">
-        <h1 className="text-xl font-bold text-gray-800 mb-2">Concluindo login...</h1>
-        <p className="text-gray-600">Aguarde um instante.</p>
+    <div className="nl-page flex items-center justify-center p-4">
+      <div className="nl-card w-full max-w-md p-6 text-center">
+        <h1 className="mb-2 font-display text-xl font-bold text-slate-800">Concluindo Login…</h1>
+        <p className="text-slate-600">Aguarde um Instante.</p>
       </div>
     </div>
   );

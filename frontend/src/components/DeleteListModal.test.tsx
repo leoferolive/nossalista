@@ -51,7 +51,7 @@ describe('DeleteListModal', () => {
     render(<DeleteListModal {...defaultProps} isDeleting={true} />);
 
     const cancelButton = screen.getByText('Cancelar');
-    const confirmButton = screen.getByText('Excluindo...');
+    const confirmButton = screen.getByText(/Excluindo/i);
 
     expect(cancelButton).toBeDisabled();
     expect(confirmButton).toBeDisabled();
@@ -60,7 +60,7 @@ describe('DeleteListModal', () => {
   it('deve mostrar loading indicator durante isDeleting', () => {
     render(<DeleteListModal {...defaultProps} isDeleting={true} />);
 
-    expect(screen.getByText('Excluindo...')).toBeInTheDocument();
+    expect(screen.getByText(/Excluindo/i)).toBeInTheDocument();
   });
 
   it('deve fechar modal ao pressionar ESC (se não isDeleting)', () => {

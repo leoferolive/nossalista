@@ -127,20 +127,20 @@ export function JoinListPage() {
   // Loading state (initial load or joining)
   if (loading || joining) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b px-4 py-3">
+      <div className="nl-page px-0 py-0">
+        <header className="nl-glass border-b border-orange-200 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
-              <span className="font-semibold text-gray-900">NossaLista</span>
+              <span className="font-display font-semibold text-slate-900">NossaLista</span>
             </div>
           </div>
         </header>
         <main className="max-w-lg mx-auto p-4">
           {joining ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Entrando na lista...</p>
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500" />
+              <p className="text-slate-600">Entrando na lista…</p>
             </div>
           ) : (
             <div className="animate-pulse">
@@ -161,8 +161,8 @@ export function JoinListPage() {
   // Error 404 state
   if (error === 'not_found') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="bg-white border-b px-4 py-3">
+      <div className="nl-page flex flex-col px-0 py-0">
+        <header className="nl-glass border-b border-orange-200 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
@@ -181,7 +181,7 @@ export function JoinListPage() {
             </p>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
             >
               Ir para página inicial
             </Link>
@@ -194,8 +194,8 @@ export function JoinListPage() {
   // Error 410 state
   if (error === 'expired') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="bg-white border-b px-4 py-3">
+      <div className="nl-page flex flex-col px-0 py-0">
+        <header className="nl-glass border-b border-orange-200 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
@@ -214,7 +214,7 @@ export function JoinListPage() {
             </p>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
             >
               Ir para página inicial
             </Link>
@@ -227,8 +227,8 @@ export function JoinListPage() {
   // Generic error state
   if (error === 'generic') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="bg-white border-b px-4 py-3">
+      <div className="nl-page flex flex-col px-0 py-0">
+        <header className="nl-glass border-b border-orange-200 px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
@@ -245,7 +245,7 @@ export function JoinListPage() {
             <p className="text-gray-600 mb-6">{errorMessage}</p>
             <button
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
             >
               Tentar novamente
             </button>
@@ -261,17 +261,17 @@ export function JoinListPage() {
   const expiringSoon = isExpiringSoon();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="nl-page flex flex-col px-0 py-0">
       {/* Header */}
-      <header className="bg-white border-b px-4 py-3">
+      <header className="nl-glass border-b border-orange-200 px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">📋</span>
-            <span className="font-semibold text-gray-900">NossaLista</span>
+            <span className="font-display font-semibold text-slate-900">NossaLista</span>
           </div>
           <button
             onClick={handleEmailLogin}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            className="text-sm font-medium text-teal-700 hover:text-teal-900"
           >
             Entrar
           </button>
@@ -300,8 +300,8 @@ export function JoinListPage() {
         </div>
 
         {/* Aviso modo leitura */}
-        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4" role="alert">
-          <p className="text-blue-800 text-sm">
+        <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50 p-4" role="alert">
+          <p className="text-sm text-teal-800">
             <span className="font-medium">📖 Você está visualizando em modo leitura.</span>
             <br />
             Entre para colaborar com esta lista!
@@ -320,8 +320,8 @@ export function JoinListPage() {
         )}
 
         {/* Lista de itens */}
-        <div className="bg-white rounded-xl border shadow-sm">
-          <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl">
+        <div className="nl-card rounded-xl border shadow-sm">
+          <div className="rounded-t-xl border-b bg-orange-50 px-4 py-3">
             <h2 className="font-medium text-gray-700">
               Itens ({listData.items.length})
             </h2>
@@ -344,7 +344,7 @@ export function JoinListPage() {
                     type="checkbox"
                     checked={item.checked}
                     disabled
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 cursor-not-allowed"
+                    className="h-5 w-5 cursor-not-allowed rounded border-orange-200 text-teal-700"
                     aria-disabled="true"
                   />
                   <span
@@ -367,14 +367,14 @@ export function JoinListPage() {
       </main>
 
       {/* Rodapé fixo com CTAs */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-4">
+      <footer className="fixed bottom-0 left-0 right-0 border-t border-orange-200 bg-white/95 px-4 py-4 backdrop-blur-sm">
         <div className="max-w-lg mx-auto space-y-3">
           <p className="text-center text-sm text-gray-600 mb-3">
             Entre para participar desta lista
           </p>
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-3 font-medium text-white transition-colors hover:from-teal-800 hover:to-teal-700"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -398,7 +398,7 @@ export function JoinListPage() {
           </button>
           <button
             onClick={handleEmailLogin}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-4 py-3 font-medium text-slate-700 transition-colors hover:bg-orange-50"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

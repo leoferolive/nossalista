@@ -19,41 +19,32 @@ export const TypeCard: React.FC<TypeCardProps> = ({
   isSelected,
   onClick,
 }) => {
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClick();
-    }
-  };
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={onClick}
-      onKeyDown={handleKeyDown}
       aria-label={`Selecionar tipo ${name}: ${description}`}
       aria-pressed={isSelected}
       className={`
         min-h-[160px] min-w-[160px]
         flex flex-col items-center justify-center
-        p-4 rounded-lg cursor-pointer
-        transition-all duration-200
+        p-4 rounded-2xl
+        transition-transform transition-colors duration-200
         ${
           isSelected
-            ? 'border-2 border-blue-500 bg-blue-50 shadow-md scale-105'
-            : 'border-2 border-gray-300 bg-white hover:border-gray-400 hover:shadow-sm'
+            ? 'border-2 border-teal-500 bg-teal-50 shadow-md scale-[1.02]'
+            : 'border-2 border-orange-200 bg-white hover:border-orange-300 hover:bg-orange-50/50'
         }
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+        focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2
       `}
     >
       <div className="text-5xl mb-2" aria-hidden="true">
         {emoji}
       </div>
-      <div className="text-lg font-semibold text-gray-900">{name}</div>
-      <div className="text-sm text-gray-600 text-center mt-1">
+      <div className="font-display text-lg font-semibold text-slate-900">{name}</div>
+      <div className="mt-1 text-center text-sm text-slate-600">
         {description}
       </div>
-    </div>
+    </button>
   );
 };

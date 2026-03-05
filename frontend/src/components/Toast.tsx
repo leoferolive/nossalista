@@ -28,9 +28,9 @@ export const Toast: React.FC<ToastProps> = ({
   }, [duration, onClose]);
 
   const bgColor = {
-    success: 'bg-green-500',
-    error: 'bg-red-500',
-    info: 'bg-blue-500',
+    success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+    error: 'border-red-200 bg-red-50 text-red-900',
+    info: 'border-teal-200 bg-teal-50 text-teal-900',
   }[type];
 
   const icon = {
@@ -43,22 +43,22 @@ export const Toast: React.FC<ToastProps> = ({
     <div
       className={`
         fixed top-4 right-4 z-50
-        ${bgColor} text-white
-        px-6 py-3 rounded-lg shadow-lg
+        ${bgColor}
+        px-5 py-3 rounded-2xl shadow-tropical border
         flex items-center gap-3
         animate-slideIn
         max-w-md
       `}
-      role="alert"
+      role="status"
       aria-live="polite"
     >
-      <span className="text-xl font-bold" aria-hidden="true">
+      <span className="text-lg font-bold" aria-hidden="true">
         {icon}
       </span>
       <span className="text-sm font-medium">{message}</span>
       <button
         onClick={onClose}
-        className="ml-2 text-white hover:text-gray-200 focus:outline-none"
+        className="ml-2 rounded-lg p-1 text-current transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-orange-400"
         aria-label="Fechar notificação"
       >
         ✕

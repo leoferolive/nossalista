@@ -9,6 +9,8 @@ import { Home } from './pages/Home.tsx'
 import { ListView } from './pages/ListView.tsx'
 import { JoinListPage } from './pages/JoinListPage.tsx'
 import { Profile } from './pages/Profile.tsx'
+import { Register } from './pages/Register.tsx'
+import { ForgotPassword } from './pages/ForgotPassword.tsx'
 import { ProtectedRoute } from './components/ProtectedRoute.tsx'
 import './index.css'
 
@@ -28,6 +30,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         path="/"

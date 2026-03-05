@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
 import { useItems } from '../hooks/useItems';
 import { useActivities } from '../hooks/useActivities';
@@ -16,6 +16,7 @@ import { MembersModal } from '../components/MembersModal';
 import { ActivityTimeline } from '../components/ActivityTimeline';
 import { OnlineMembersBar } from '../components/OnlineMembersBar';
 import { ConnectionStatusIndicator } from '../components/ConnectionStatusIndicator';
+import { AppHeader } from '../components/AppHeader';
 import { listsApi } from '../api/listsApi';
 import { useToast, Toast } from '../components/Toast';
 import { ApiError } from '../types/ApiError';
@@ -287,7 +288,7 @@ export const ListView: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       connect({
-        onReconnecting: () => showToast('Sem conexão. Reconectando...', 'info'),
+        onReconnecting: () => showToast('Sem conexão. Reconectando…', 'info'),
         onReconnected: () => showToast('Conectado novamente!', 'success'),
       });
     }
@@ -296,6 +297,10 @@ export const ListView: React.FC = () => {
 
   // Subscrição WebSocket: subscrever quando CONNECTED, desinscrever ao desmontar/trocar lista
   useEffect(() => {
+    resetTrackedRevision();
+  }, [id, resetTrackedRevision]);
+
+  useEffect(() => {
     if (wsStatus === 'CONNECTED' && id) {
       subscribe(id, 'items', handleWebSocketMessage);
       subscribe(id, 'presence', handleWebSocketMessage);
@@ -303,17 +308,15 @@ export const ListView: React.FC = () => {
       return () => {
         unsubscribe(id, 'items');
         unsubscribe(id, 'presence');
-        resetTrackedRevision();
         setHasPresenceSnapshot(false);
         setOnlineMembers(new Map());
       };
     }
 
-    resetTrackedRevision();
     setHasPresenceSnapshot(false);
     setOnlineMembers(new Map());
     return undefined;
-  }, [wsStatus, id, subscribe, unsubscribe, handleWebSocketMessage, resetTrackedRevision]);
+  }, [wsStatus, id, subscribe, unsubscribe, handleWebSocketMessage]);
 
   useEffect(() => {
     if (wsStatus !== 'CONNECTED' || !id) {
@@ -352,8 +355,8 @@ export const ListView: React.FC = () => {
   const handleSaveListName = async (newName: string) => {
     if (!id) return;
 
-    // AC3: Toast "Atualizando..." ao clicar Salvar
-    showToast('Atualizando...', 'info');
+    // AC3: Toast "Atualizando…" ao clicar Salvar
+    showToast('Atualizando…', 'info');
 
     try {
       await updateListName(id, newName);
@@ -379,8 +382,8 @@ export const ListView: React.FC = () => {
   const handleConfirmDelete = async () => {
     if (!id) return;
 
-    // AC3: Toast "Excluindo..." ao clicar Excluir
-    showToast('Excluindo...', 'info');
+    // AC3: Toast "Excluindo…" ao clicar Excluir
+    showToast('Excluindo…', 'info');
 
     try {
       await deleteList(id);
@@ -501,8 +504,8 @@ export const ListView: React.FC = () => {
     if (!id) return;
 
     try {
-      // AC7: Toast "Sincronizando..." antes de enviar request
-      showToast('Sincronizando...', 'info');
+      // AC7: Toast "Sincronizando…" antes de enviar request
+      showToast('Sincronizando…', 'info');
 
       // USAR O HOOK - não fazer update direto!
       await updateItem(id, itemId, request);
@@ -609,7 +612,7 @@ export const ListView: React.FC = () => {
 
     if (!id || !newItemName.trim()) return;
 
-    showToast('Adicionando item...', 'info');
+    showToast('Adicionando Item…', 'info');
 
     try {
       await addItem(id, { name: newItemName.trim() });
@@ -629,32 +632,32 @@ export const ListView: React.FC = () => {
   // Loading state
   if (loadingList) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto p-4">
+      <div className="nl-page">
+        <div className="nl-container max-w-4xl">
           {/* Skeleton Header */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse" />
-            <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
+            <div className="h-10 w-10 animate-pulse rounded-xl bg-orange-200" />
+            <div className="h-8 w-64 animate-pulse rounded-xl bg-orange-200" />
           </div>
 
           {/* Skeleton Info Card */}
-          <div className="bg-white rounded-lg p-4 mb-6 shadow-sm">
+          <div className="nl-card mb-6 p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse" />
+              <div className="h-12 w-12 animate-pulse rounded-full bg-orange-200" />
               <div className="flex-1">
-                <div className="h-5 w-32 bg-gray-200 rounded animate-pulse mb-2" />
-                <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+                <div className="mb-2 h-5 w-32 animate-pulse rounded bg-orange-200" />
+                <div className="h-4 w-48 animate-pulse rounded bg-orange-100" />
               </div>
             </div>
           </div>
 
           {/* Skeleton Items Section */}
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4" />
+          <div className="nl-card p-4">
+            <div className="mb-4 h-6 w-32 animate-pulse rounded bg-orange-200" />
             <div className="space-y-3">
-              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
-              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
-              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
+              <div className="h-16 w-full animate-pulse rounded bg-orange-100" />
+              <div className="h-16 w-full animate-pulse rounded bg-orange-100" />
+              <div className="h-16 w-full animate-pulse rounded bg-orange-100" />
             </div>
           </div>
         </div>
@@ -668,18 +671,18 @@ export const ListView: React.FC = () => {
 
   if (errorList && (isNotFound || isForbidden)) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center mt-12">
+      <div className="nl-page">
+        <div className="nl-container max-w-4xl">
+          <div className="nl-card mt-12 border border-red-200 bg-red-50 p-8 text-center">
             <p className="text-red-800 font-semibold mb-4 text-lg">
               {errorList}
             </p>
-            <button
-              onClick={() => navigate('/')}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            <Link
+              to="/"
+              className="inline-flex rounded-xl bg-red-600 px-6 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
             >
               Voltar para Home
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -689,9 +692,9 @@ export const ListView: React.FC = () => {
   // Error state - outros erros (500, network, etc)
   if (errorList) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center mt-12">
+      <div className="nl-page">
+        <div className="nl-container max-w-4xl">
+          <div className="nl-card mt-12 border border-red-200 bg-red-50 p-8 text-center">
             <p className="text-red-800 font-semibold mb-4 text-lg">
               {errorList}
             </p>
@@ -700,7 +703,7 @@ export const ListView: React.FC = () => {
                 clearListError();
                 if (id) fetchListById(id);
               }}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="rounded-xl bg-red-600 px-6 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
             >
               Tentar Novamente
             </button>
@@ -719,134 +722,79 @@ export const ListView: React.FC = () => {
   const sortedOnlineMembers = sortOnlineMembers(Array.from(onlineMembers.values()), currentUser?.id);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-4">
-        {/* Header: Nome da lista + botão voltar + botão editar */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-3 min-w-[44px] min-h-[44px] hover:bg-gray-200 rounded-lg transition-colors flex items-center justify-center"
-            aria-label="Voltar"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-gray-700"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900 flex-1">{currentList.name}</h1>
-          <button
-            onClick={handleOpenMembersModal}
-            className="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
-            aria-label="Abrir membros"
-          >
-            <span aria-hidden="true">👥</span>
-            <span className="font-medium text-sm">Membros</span>
-            <span className="text-sm text-gray-600">{memberCountLabel}</span>
-          </button>
-          {/* Menu de ações - apenas para dono da lista */}
-          {ACTIVITY_TIMELINE_ENABLED && (
-            <button
-              onClick={() => setIsActivityTimelineOpen(true)}
-              className="p-3 min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center relative"
-              aria-label="Ver atividades da lista"
-              title="Histórico de atividades"
-            >
-              <span className="text-xl">📜</span>
-            </button>
+    <div className="nl-page">
+      <div className="nl-container max-w-4xl">
+        <AppHeader
+          eyebrow="Lista Viva"
+          title={currentList.name}
+          subtitle="Compartilhe progresso, acompanhe presenca em tempo real e mantenha tudo sincronizado."
+          onBack={() => navigate(-1)}
+          actions={(
+            <>
+              <button
+                onClick={handleOpenMembersModal}
+                className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+                aria-label="Abrir membros"
+              >
+                <span aria-hidden="true">👥</span>
+                <span>Membros</span>
+                <span className="font-tabular rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-800">{memberCountLabel}</span>
+              </button>
+              {ACTIVITY_TIMELINE_ENABLED && (
+                <button
+                  onClick={() => setIsActivityTimelineOpen(true)}
+                  className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+                  aria-label="Ver atividades da lista"
+                  title="Histórico de atividades"
+                >
+                  <span aria-hidden="true">📜</span>
+                  Historico
+                </button>
+              )}
+              {currentList.isOwner && (
+                <>
+                  <button
+                    onClick={handleOpenInviteModal}
+                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-orange-300"
+                    aria-label="Convidar para lista"
+                    title="Convidar para lista"
+                  >
+                    <span aria-hidden="true">+</span>
+                    Convidar
+                  </button>
+                  <button
+                    onClick={handleOpenEditModal}
+                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+                    aria-label="Editar nome da lista"
+                    title="Editar nome da lista"
+                  >
+                    Editar nome
+                  </button>
+                  <button
+                    onClick={handleOpenDeleteListModal}
+                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300"
+                    aria-label="Excluir lista"
+                    title="Excluir lista"
+                  >
+                    Excluir
+                  </button>
+                </>
+              )}
+            </>
           )}
-          {currentList.isOwner && (
-            <div className="flex items-center gap-1">
-              {/* Botão convidar */}
-              <button
-                onClick={handleOpenInviteModal}
-                className="p-3 min-w-[44px] min-h-[44px] hover:bg-green-100 rounded-lg transition-colors flex items-center justify-center"
-                aria-label="Convidar para lista"
-                title="Convidar para lista"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-green-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                  />
-                </svg>
-              </button>
-              {/* Botão editar */}
-              <button
-                onClick={handleOpenEditModal}
-                className="p-3 min-w-[44px] min-h-[44px] hover:bg-gray-200 rounded-lg transition-colors flex items-center justify-center"
-                aria-label="Editar nome da lista"
-                title="Editar nome da lista"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-gray-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                  />
-                </svg>
-              </button>
-              {/* Botão excluir */}
-              <button
-                onClick={handleOpenDeleteListModal}
-                className="p-3 min-w-[44px] min-h-[44px] hover:bg-red-100 rounded-lg transition-colors flex items-center justify-center"
-                aria-label="Excluir lista"
-                title="Excluir lista"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-red-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
-            </div>
-          )}
-        </div>
+        />
 
         {/* Info da lista: Tipo (emoji + nome), Dono (avatar + username) */}
-        <div className="bg-white rounded-lg p-4 mb-6 shadow-sm">
+        <div className="nl-card mb-6 p-5">
           <div className="flex items-center gap-3 mb-3">
             <span className="text-4xl" aria-hidden="true">
               {typeEmoji}
             </span>
             <div>
-              <p className="font-semibold text-gray-900">
+              <p className="font-semibold text-slate-900">
                 {currentList.type.name}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-slate-600">
                 Criada por{' '}
                 <span className="font-medium">{currentList.owner.username}</span>
               </p>
@@ -856,18 +804,18 @@ export const ListView: React.FC = () => {
           {/* Badge de propriedade */}
           <div className="flex items-center gap-2 mt-2">
             {currentList.isOwner ? (
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
+              <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-medium text-teal-800">
                 Você é o dono
               </span>
             ) : (
-              <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">
+              <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-800">
                 Lista compartilhada
               </span>
             )}
           </div>
 
           {recentInvitedUsers.length > 0 && (
-            <p className="text-xs text-green-700 mt-2">
+            <p className="mt-2 text-xs text-teal-700">
               Convidados nesta sessao: {recentInvitedUsers.map((username) => `@${username}`).join(', ')}
             </p>
           )}
@@ -883,30 +831,30 @@ export const ListView: React.FC = () => {
         )}
 
         {/* Seção "Itens": Título + lista de itens */}
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="nl-card p-5 shadow-sm">
+          <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">
             Itens ({items.length})
           </h2>
 
           {/* Loading state para itens */}
           {loadingItems && (
             <div className="space-y-3">
-              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
-              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
-              <div className="h-16 w-full bg-gray-200 rounded animate-pulse" />
+              <div className="h-16 w-full rounded bg-orange-100 animate-pulse" />
+              <div className="h-16 w-full rounded bg-orange-100 animate-pulse" />
+              <div className="h-16 w-full rounded bg-orange-100 animate-pulse" />
             </div>
           )}
 
           {/* Error state para itens */}
           {errorItems && !loadingItems && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center">
               <p className="text-red-800 mb-2">{errorItems}</p>
               <button
                 onClick={() => {
                   clearItemsError();
                   if (id) fetchItems(id);
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
               >
                 Tentar Novamente
               </button>
@@ -934,7 +882,7 @@ export const ListView: React.FC = () => {
 
           {/* Estado vazio */}
           {!loadingItems && !errorItems && items.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
+            <div className="py-12 text-center text-slate-500">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-16 w-16 mx-auto mb-4 text-gray-300"
@@ -963,15 +911,17 @@ export const ListView: React.FC = () => {
                 type="text"
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
-                placeholder="Adicionar novo item..."
+                placeholder="Adicionar novo item…"
                 disabled={addingItem}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="flex-1 rounded-2xl border border-orange-200 px-4 py-3 focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:bg-slate-100"
                 maxLength={200}
+                name="newItem"
+                autoComplete="off"
               />
               <button
                 type="submit"
                 disabled={addingItem || !newItemName.trim()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 min-w-[44px] min-h-[44px]"
+                className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 font-medium text-white transition-colors hover:from-orange-600 hover:to-amber-600 disabled:cursor-not-allowed disabled:bg-slate-300"
                 title="Adicionar item"
               >
                 <svg
@@ -989,7 +939,7 @@ export const ListView: React.FC = () => {
                   />
                 </svg>
                 <span className="hidden sm:inline">
-                  {addingItem ? 'Adicionando...' : 'Adicionar'}
+                  {addingItem ? 'Adicionando…' : 'Adicionar'}
                 </span>
               </button>
             </div>

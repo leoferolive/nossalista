@@ -110,20 +110,22 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="glass-card w-full max-w-md mx-4 p-6">
-        <h2 className="text-xl font-semibold mb-4">Editar Item</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-item-title">
+      <div className="nl-card w-full max-w-md p-6">
+        <h2 id="edit-item-title" className="mb-4 font-display text-xl font-semibold text-slate-900">Editar Item</h2>
 
         {/* Campo name (obrigatório para todos os tipos) */}
         <div className="mb-4">
-          <label htmlFor="edit-item-name" className="block text-sm font-medium mb-1">Nome</label>
+          <label htmlFor="edit-item-name" className="mb-1 block text-sm font-medium text-slate-700">Nome</label>
           <input
             id="edit-item-name"
             type="text"
+            name="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full p-2 border rounded-lg"
-            placeholder="Nome do item"
+            className="w-full rounded-xl border border-orange-200 px-3 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+            placeholder="Nome do item…"
+            autoComplete="off"
             data-testid="edit-item-name"
           />
         </div>
@@ -131,41 +133,47 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
         {/* Campos específicos por tipo */}
         {listType === 'SHOPPING' && (
           <div className="mb-4">
-            <label htmlFor="edit-item-quantity" className="block text-sm font-medium mb-1">Quantidade</label>
+            <label htmlFor="edit-item-quantity" className="mb-1 block text-sm font-medium text-slate-700">Quantidade</label>
             <input
               id="edit-item-quantity"
               type="number"
+              name="quantity"
               min="1"
               value={quantity}
               onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              className="w-full p-2 border rounded-lg"
+              className="w-full rounded-xl border border-orange-200 px-3 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              inputMode="numeric"
             />
           </div>
         )}
 
         {listType === 'TASK' && (
           <div className="mb-4">
-            <label htmlFor="edit-item-due-date" className="block text-sm font-medium mb-1">Data de Prazo</label>
+            <label htmlFor="edit-item-due-date" className="mb-1 block text-sm font-medium text-slate-700">Data de Prazo</label>
             <input
               id="edit-item-due-date"
               type="datetime-local"
+              name="dueDate"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full p-2 border rounded-lg"
+              className="w-full rounded-xl border border-orange-200 px-3 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
             />
           </div>
         )}
 
         {listType === 'WISHLIST' && (
           <div className="mb-4">
-            <label htmlFor="edit-item-url" className="block text-sm font-medium mb-1">URL/Link</label>
+            <label htmlFor="edit-item-url" className="mb-1 block text-sm font-medium text-slate-700">URL/Link</label>
             <input
               id="edit-item-url"
               type="url"
+              name="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className="w-full p-2 border rounded-lg"
-              placeholder="https://..."
+              className="w-full rounded-xl border border-orange-200 px-3 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              placeholder="https://exemplo.com/produto…"
+              inputMode="url"
+              spellCheck={false}
             />
           </div>
         )}
@@ -175,16 +183,16 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           <button
             onClick={handleClose}
             disabled={isSaving}
-            className="px-4 py-2 rounded-lg border hover:bg-gray-50"
+            className="min-h-[44px] rounded-xl border border-orange-200 px-4 py-2 text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
+            className="min-h-[44px] rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSaving ? 'Salvando...' : 'Salvar'}
+            {isSaving ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
       </div>

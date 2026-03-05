@@ -131,7 +131,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50"
       onClick={onClose}
       onKeyDown={handleKeyDown}
       role="dialog"
@@ -139,13 +139,13 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
       aria-labelledby="modal-title"
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6"
+        className="nl-card mx-4 w-full max-w-md p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <h2
           id="modal-title"
-          className="text-xl font-bold text-gray-900 mb-4"
+          className="mb-4 font-display text-xl font-bold text-slate-900"
         >
           Editar Nome da Lista
         </h2>
@@ -154,33 +154,35 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
         <div className="mb-4">
           <label
             htmlFor="list-name-input"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="mb-2 block text-sm font-medium text-slate-700"
           >
             Nome da lista
           </label>
           <input
             id="list-name-input"
             type="text"
+            name="listName"
             value={editedName}
             onChange={handleNameChange}
             onKeyDown={handleInputKeyDown}
-            placeholder="Nome da lista"
+            placeholder="Nome da lista…"
             disabled={isSaving}
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+            className={`w-full rounded-xl border px-4 py-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-orange-300 ${
               validationError
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300'
-            } ${isSaving ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                ? 'border-red-500'
+                : 'border-orange-200 focus:border-orange-400'
+            } ${isSaving ? 'cursor-not-allowed bg-slate-100' : ''}`}
             aria-invalid={!!validationError}
             aria-describedby={
               validationError ? 'name-error' : 'name-counter'
             }
+            autoComplete="off"
           />
 
           {/* Contador de caracteres */}
           <div className="flex justify-between mt-1">
             {validationError ? (
-              <span id="name-error" className="text-sm text-red-600">
+              <span id="name-error" className="text-sm text-red-600" role="alert">
                 {validationError}
               </span>
             ) : (
@@ -189,7 +191,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             <span
               id="name-counter"
               className={`text-sm ${
-                isMaxLength ? 'text-red-600 font-medium' : 'text-gray-500'
+                isMaxLength ? 'font-medium text-red-600' : 'text-slate-500'
               }`}
             >
               {charCount}/{MAX_NAME_LENGTH}
@@ -202,17 +204,17 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px]"
+            className="min-h-[44px] min-w-[44px] rounded-xl bg-slate-100 px-4 py-2 font-medium text-slate-700 transition-colors hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors min-w-[44px] min-h-[44px] ${
+            className={`min-h-[44px] min-w-[44px] rounded-xl px-4 py-2 font-medium transition-colors ${
               canSave
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-blue-300 text-white cursor-not-allowed'
+                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300'
+                : 'cursor-not-allowed bg-orange-200 text-white'
             }`}
           >
             {isSaving ? (
@@ -237,7 +239,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Salvando...
+                Salvando…
               </span>
             ) : (
               'Salvar'

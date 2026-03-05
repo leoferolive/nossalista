@@ -71,10 +71,9 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(({
     <>
       <div
         id={`list-item-${item.id}`}
-        className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:bg-gray-50 ${
+        className={`flex items-center gap-3 rounded-2xl border border-orange-100 bg-white/80 p-3 transition-colors hover:bg-orange-50/60 ${
           item.checked ? 'opacity-50' : ''
         } ${isDeleting ? 'animate-fade-out' : ''} ${isWsAdded ? 'ws-item-added' : ''} ${isWsCheckedHighlight ? 'ws-item-checked' : ''}`}
-        onClick={handleItemClick}
         {...longPressProps}
         style={{ minHeight: '44px' }} // NFR-A4: Touch target ≥ 44px
         data-testid={`list-item-${item.id}`}
@@ -82,10 +81,10 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(({
       {/* Checkbox customizado com animação "pop" */}
       <button
         onClick={handleCheckboxClick}
-        className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all duration-300 ${
+        className={`h-6 w-6 rounded border-2 transition-colors duration-300 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-orange-300 ${
           item.checked
-            ? 'bg-blue-500 border-blue-500'
-            : 'border-gray-300 hover:border-blue-400'
+            ? 'border-teal-600 bg-teal-600'
+            : 'border-orange-200 hover:border-orange-400'
         } ${isWsChecked ? 'animate-pop' : ''}`}
         aria-label={item.checked ? 'Marcar como não concluído' : 'Marcar como concluído'}
         aria-checked={item.checked}
@@ -108,21 +107,21 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(({
 
       {/* Conteúdo do item */}
       <div className="flex-1 min-w-0">
-        <p
-          className={`font-medium truncate ${
-            item.checked
-              ? 'line-through text-gray-500'
-              : 'text-gray-900'
+        <button
+          type="button"
+          onClick={handleItemClick}
+          className={`w-full truncate text-left font-medium transition-colors hover:text-teal-800 focus-visible:ring-2 focus-visible:ring-orange-300 ${
+            item.checked ? 'text-slate-500 line-through' : 'text-slate-900'
           }`}
         >
           {item.name}
-        </p>
+        </button>
 
         {/* Campos extras */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1 flex-wrap">
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
           {/* Quantity (Compras) */}
           {item.quantity !== null && item.quantity !== undefined && (
-            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">
+            <span className="rounded bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
               {item.quantity}x
             </span>
           )}
@@ -153,7 +152,7 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(({
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline flex items-center gap-1"
+              className="flex items-center gap-1 text-teal-700 underline-offset-2 hover:underline"
               onClick={(e) => e.stopPropagation()}
             >
               <svg
@@ -180,7 +179,9 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(({
         <img
           src={item.createdBy.avatarUrl || '/default-avatar.png'}
           alt={item.createdBy.username}
-          className="w-6 h-6 rounded-full bg-gray-200"
+          className="h-6 w-6 rounded-full bg-orange-100"
+          width={24}
+          height={24}
           onError={(e) => {
             // Fallback para avatar padrão se imagem falhar
             (e.target as HTMLImageElement).src = '/default-avatar.png';

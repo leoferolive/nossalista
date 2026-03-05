@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import client from '../api/client';
+import { AuthLayout } from '../components/AuthLayout';
 
 interface LoginResponse {
   id: string;
@@ -20,10 +21,28 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const redirectPath = searchParams.get('redirect');
+  const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const registered = searchParams.get('registered') === '1';
+
+  const registerHref = useMemo(() => {
+    if (!redirectPath) {
+      return '/register';
+    }
+
+    return `/register?redirect=${encodeURIComponent(redirectPath)}`;
+  }, [redirectPath]);
+
+  const forgotPasswordHref = useMemo(() => {
+    if (!redirectPath) {
+      return '/forgot-password';
+    }
+
+    return `/forgot-password?redirect=${encodeURIComponent(redirectPath)}`;
+  }, [redirectPath]);
 
   // Salvar redirect parameter no sessionStorage se presente
   useEffect(() => {
@@ -82,71 +101,108 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">
-          NossaLista
-        </h1>
-        <p className="text-gray-600 mb-6 text-center">
-          Entre para gerenciar suas listas
-        </p>
+    <AuthLayout
+      badge="Login"
+      title="Entre na Sua Conta"
+      description="Continue suas listas em segundos com login por email ou Google."
+      footer={(
+        <div className="rounded-3xl border border-orange-200 bg-orange-50/70 p-4 text-sm text-slate-700">
+          Nao tem conta ainda?{' '}
+          <Link className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4" to={registerHref}>
+            Criar conta
+          </Link>
+        </div>
+      )}
+    >
+      {registered && (
+        <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status" aria-live="polite">
+          Conta criada com sucesso. Agora e so entrar para continuar.
+        </div>
+      )}
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
+      {error && (
+        <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert" aria-live="polite">
+          {error}
+        </div>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
+            Email
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+            autoComplete="email"
+            inputMode="email"
+            spellCheck={false}
+            required
+          />
+        </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+        <div>
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
               Senha
             </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
+            <Link
+              to={forgotPasswordHref}
+              className="text-sm font-medium text-teal-700 underline decoration-orange-400 underline-offset-4 hover:text-teal-900"
+            >
+              Esqueci minha senha
+            </Link>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Ou continue com:
-          </p>
-          <button
-            className="mt-2 w-full bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onClick={handleGoogleLogin}
-          >
-            Google
-          </button>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+            autoComplete="current-password"
+            required
+          />
         </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-800/20 transition-transform hover:-translate-y-0.5 hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? 'Entrando…' : 'Entrar'}
+        </button>
+      </form>
+
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">ou</span>
+        <div className="h-px flex-1 bg-slate-200" />
       </div>
-    </div>
+
+      <button
+        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-orange-200 bg-white px-5 py-3.5 text-sm font-semibold text-slate-700 transition-colors hover:border-orange-300 hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+        onClick={handleGoogleLogin}
+      >
+        <span
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700"
+          aria-hidden="true"
+        >
+          G
+        </span>
+        Continuar com Google
+      </button>
+
+      <div className="mt-5 text-sm text-slate-600">
+        Quer entrar com email e ainda nao criou conta?{' '}
+        <Link className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4" to={registerHref}>
+          Criar conta
+        </Link>
+      </div>
+    </AuthLayout>
   );
 }

@@ -1,18 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ListCard } from './ListCard';
 import { BrowserRouter } from 'react-router-dom';
 import type { ListResponse } from '../types/List';
-
-// Mock do useNavigate
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
 
 describe('ListCard', () => {
   const mockList: ListResponse = {
@@ -35,10 +25,6 @@ describe('ListCard', () => {
     createdAt: '2026-02-12T10:00:00Z',
     updatedAt: '2026-02-12T10:00:00Z',
   };
-
-  beforeEach(() => {
-    mockNavigate.mockClear();
-  });
 
   it('deve renderizar emoji correto baseado no tipo da lista', () => {
     render(
@@ -102,17 +88,17 @@ describe('ListCard', () => {
     expect(screen.getByText('1 item')).toBeInTheDocument();
   });
 
-  it('deve navegar para /lists/{id} quando clicado', () => {
+  it('deve apontar para /lists/{id}', () => {
     render(
       <BrowserRouter>
         <ListCard list={mockList} />
       </BrowserRouter>
     );
 
-    const card = screen.getByRole('button', { name: /abrir lista/i });
+    const card = screen.getByRole('link', { name: /abrir lista/i });
     fireEvent.click(card);
 
-    expect(mockNavigate).toHaveBeenCalledWith(`/lists/${mockList.id}`);
+    expect(card).toHaveAttribute('href', `/lists/${mockList.id}`);
   });
 
   it('deve ter atributos de acessibilidade corretos', () => {
@@ -122,8 +108,7 @@ describe('ListCard', () => {
       </BrowserRouter>
     );
 
-    const card = screen.getByRole('button', { name: /abrir lista minha lista de teste/i });
-    expect(card).toHaveAttribute('tabIndex', '0');
+    const card = screen.getByRole('link', { name: /abrir lista minha lista de teste/i });
     expect(card).toHaveClass('min-h-[160px]'); // NFR-A4: Touch target
   });
 

@@ -62,7 +62,7 @@ describe('MembersModal', () => {
 
   it('deve mostrar indicador de carregamento', () => {
     render(<MembersModal {...defaultProps} loading={true} />);
-    expect(screen.getByText('Carregando membros...')).toBeInTheDocument();
+    expect(screen.getByText(/Carregando membros/i)).toBeInTheDocument();
   });
 
   it('deve mostrar mensagem de erro', () => {
@@ -102,7 +102,7 @@ describe('MembersModal', () => {
 
   it('deve desabilitar os botões de confirmação enquanto está saindo', () => {
     render(<MembersModal {...defaultProps} isLeaveConfirmOpen={true} leaving={true} />);
-    expect(screen.getByText('Saindo...')).toBeDisabled();
+    expect(screen.getByText(/Saindo/i)).toBeDisabled();
     expect(screen.getByText('Cancelar')).toBeDisabled();
   });
 

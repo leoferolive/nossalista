@@ -8,11 +8,11 @@ describe('ConnectionStatusIndicator', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('RECONNECTING deve mostrar Reconectando... com animate-pulse', () => {
+  it('RECONNECTING deve mostrar Reconectando… com animate-pulse', () => {
     render(<ConnectionStatusIndicator status="RECONNECTING" />);
 
-    expect(screen.getByText('Reconectando...')).toBeInTheDocument();
-    expect(screen.getByText('Reconectando...').previousSibling).toHaveClass('animate-pulse');
+    expect(screen.getByText('Reconectando…')).toBeInTheDocument();
+    expect(screen.getByText('Reconectando…').previousSibling).toHaveClass('animate-pulse');
   });
 
   it('DISCONNECTED deve mostrar Offline', () => {
@@ -21,9 +21,9 @@ describe('ConnectionStatusIndicator', () => {
     expect(screen.getByText('Offline')).toBeInTheDocument();
   });
 
-  it('CONNECTING deve mostrar Conectando...', () => {
+  it('CONNECTING deve mostrar Conectando…', () => {
     render(<ConnectionStatusIndicator status="CONNECTING" />);
 
-    expect(screen.getByText('Conectando...')).toBeInTheDocument();
+    expect(screen.getByText('Conectando…')).toBeInTheDocument();
   });
 });

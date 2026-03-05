@@ -3,9 +3,27 @@
 @tailwind utilities;
 
 :root {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Outfit', 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  color: #111827;
+  background-color: #fff7ed;
+
+  --nl-bg: #fff7ed;
+  --nl-bg-soft: #ffedd5;
+  --nl-surface: #fffdf8;
+  --nl-surface-strong: #ffffff;
+  --nl-border: #fed7aa;
+  --nl-border-strong: #fdba74;
+  --nl-text: #111827;
+  --nl-text-muted: #475569;
+  --nl-primary: #0f766e;
+  --nl-primary-strong: #115e59;
+  --nl-accent: #f97316;
+  --nl-accent-strong: #ea580c;
+  --nl-danger: #dc2626;
+  --nl-success: #15803d;
+  --nl-focus: #fb923c;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -17,11 +35,69 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f9fafb;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0) 40%),
+    radial-gradient(circle at 88% 16%, rgba(20, 184, 166, 0.22) 0%, rgba(20, 184, 166, 0) 42%),
+    linear-gradient(165deg, #fff7ed 0%, #fffbeb 46%, #fef3c7 100%);
+  color: var(--nl-text);
 }
 
 #root {
   min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Sora', 'Outfit', sans-serif;
+  text-wrap: balance;
+}
+
+a,
+button,
+[role='button'],
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--nl-focus);
+  outline-offset: 2px;
+}
+
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.nl-page {
+  min-height: 100vh;
+  padding: 1.5rem 1rem;
+}
+
+.nl-container {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.nl-card {
+  background: color-mix(in srgb, var(--nl-surface-strong) 92%, #ffffff 8%);
+  border: 1px solid color-mix(in srgb, var(--nl-border) 74%, #ffffff 26%);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 18px 40px rgba(234, 88, 12, 0.11),
+    0 2px 4px rgba(15, 23, 42, 0.05);
+}
+
+.nl-glass {
+  background: color-mix(in srgb, #ffffff 74%, #ffedd5 26%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--nl-border) 70%, #ffffff 30%);
 }
 
 /* Animação para Toast (300ms conforme AC4) */
@@ -133,4 +209,15 @@ body {
 
 .ws-item-checked {
   animation: wsCheckedPulse 300ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
