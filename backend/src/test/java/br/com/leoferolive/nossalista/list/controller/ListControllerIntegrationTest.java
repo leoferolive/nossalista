@@ -493,6 +493,24 @@ class ListControllerIntegrationTest {
         }
 
         @Test
+        @DisplayName("Deve retornar itemsCount correto quando lista possui itens")
+        void shouldReturnCorrectItemsCountWhenListHasItems() throws Exception {
+            authenticateUser(testUser);
+            List createdList = listService.createList(new CreateListRequest("Lista com itens", 1), testUser);
+            listItemService.addItem(
+                    createdList.getId(),
+                    new CreateItemRequestDTO("Arroz", 1, null, null, null),
+                    testUser
+            );
+
+            mockMvc.perform(get("/api/lists"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].id").value(createdList.getId().toString()))
+                    .andExpect(jsonPath("$[0].itemsCount").value(1));
+        }
+
+        @Test
         @DisplayName("Deve retornar 401 quando não autenticado")
         void shouldReturn401WhenNotAuthenticated() throws Exception {
             // Arrange - não autentica usuário

@@ -2,6 +2,7 @@ package br.com.leoferolive.nossalista.list.dto;
 
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.domain.ListTypeEntity;
+import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,12 @@ import java.util.UUID;
  */
 @Component
 public class ListMapper {
+
+    private final ListItemRepository listItemRepository;
+
+    public ListMapper(ListItemRepository listItemRepository) {
+        this.listItemRepository = listItemRepository;
+    }
 
     /**
      * Converte entidade List em DTO ListResponse
@@ -87,6 +94,7 @@ public class ListMapper {
 
         // Calcular isOwner comparando owner.id com currentUserId
         boolean isOwner = owner.getId().equals(currentUserId);
+        int itemsCount = listItemRepository.countByListId(list.getId()).intValue();
 
         return new ListResponse(
             list.getId(),
@@ -95,7 +103,7 @@ public class ListMapper {
             ownerResponse,
             list.getInviteCode(),
             isOwner,
-            0, // TODO: itemsCount - placeholder, implementar na Story 3.x quando ListItem for criado
+            itemsCount,
             list.getCreatedAt(),
             list.getUpdatedAt()
         );

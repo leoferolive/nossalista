@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLists } from '../hooks/useLists';
 import { useItems } from '../hooks/useItems';
@@ -134,6 +134,7 @@ export const ListView: React.FC = () => {
   const [wsCheckedHighlightItemIds, setWsCheckedHighlightItemIds] = useState<Set<string>>(new Set());
   const [onlineMembers, setOnlineMembers] = useState<Map<string, OnlineMember>>(new Map());
   const [hasPresenceSnapshot, setHasPresenceSnapshot] = useState(false);
+  const membersRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { handleIncomingItemsRevision, resetTrackedRevision } = useListRealtimeSync({
     listId: id,
@@ -141,6 +142,30 @@ export const ListView: React.FC = () => {
     fetchItems,
     getListState: listsApi.getListState,
   });
+
+  const refreshMembersCountFromServer = useCallback(async () => {
+    if (!id) {
+      return;
+    }
+
+    try {
+      const updatedMembers = await listsApi.getListMembers(id);
+      setMembers(updatedMembers);
+      setMemberCount(updatedMembers.length);
+    } catch (err) {
+      console.error('[Realtime members refresh]', err);
+    }
+  }, [id]);
+
+  const scheduleMembersCountRefresh = useCallback(() => {
+    if (membersRefreshTimerRef.current) {
+      clearTimeout(membersRefreshTimerRef.current);
+    }
+
+    membersRefreshTimerRef.current = setTimeout(() => {
+      void refreshMembersCountFromServer();
+    }, 400);
+  }, [refreshMembersCountFromServer]);
 
   // Estado do formulário de adicionar item
   const [newItemName, setNewItemName] = useState('');
@@ -256,6 +281,7 @@ export const ListView: React.FC = () => {
             },
           ])
         ));
+        scheduleMembersCountRefresh();
         break;
       }
       case 'MEMBER_ONLINE': {
@@ -270,6 +296,7 @@ export const ListView: React.FC = () => {
           });
           return next;
         });
+        scheduleMembersCountRefresh();
         break;
       }
       case 'MEMBER_OFFLINE': {
@@ -282,7 +309,15 @@ export const ListView: React.FC = () => {
         break;
       }
     }
-  }, [currentUser?.id, fetchItems, handleIncomingItemsRevision, id, setItems, showToast]);
+  }, [currentUser?.id, fetchItems, handleIncomingItemsRevision, id, scheduleMembersCountRefresh, setItems, showToast]);
+
+  useEffect(() => {
+    return () => {
+      if (membersRefreshTimerRef.current) {
+        clearTimeout(membersRefreshTimerRef.current);
+      }
+    };
+  }, []);
 
   // Conexão WebSocket: conectar ao montar (apenas se autenticado), desconectar ao desmontar
   useEffect(() => {
