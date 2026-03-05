@@ -67,7 +67,7 @@ jobs:
       - name: Backend quality gate
         if: matrix.app == 'backend'
         working-directory: backend
-        run: ./mvnw -B verify
+        run: ./mvnw -B -Pstrict-quality verify
 
       - name: Backend regression tests
         if: matrix.app == 'backend'

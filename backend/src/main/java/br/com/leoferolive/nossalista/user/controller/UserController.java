@@ -126,7 +126,9 @@ public class UserController {
     @GetMapping("/search")
     @Operation(
         summary = "Buscar usuários por username",
-        description = "Busca case-insensitive e parcial por username. Retorna apenas informações públicas (username, name, avatar) sem email. Query mínima: 2 caracteres."
+        description = "Busca case-insensitive e parcial por username. " +
+            "Retorna apenas informações públicas (username, name, avatar) sem email. " +
+            "Query mínima: 2 caracteres."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Busca realizada com sucesso (pode retornar array vazio se não encontrar resultados)",

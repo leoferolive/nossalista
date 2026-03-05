@@ -23,6 +23,8 @@
         <jjwt.version>0.12.3</jjwt.version>
         <jacoco.version>0.8.14</jacoco.version>
         <maven.checkstyle.version>3.6.0</maven.checkstyle.version>
+        <checkstyle.config.file>checkstyle/checkstyle.xml</checkstyle.config.file>
+        <checkstyle.failsOnError>true</checkstyle.failsOnError>
         <testGroups/>
     </properties>
 
@@ -144,11 +146,11 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>${maven.checkstyle.version}</version>
                 <configuration>
-                    <configLocation>checkstyle/checkstyle.xml</configLocation>
+                    <configLocation>${checkstyle.config.file}</configLocation>
                     <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
                     <includeTestSourceDirectory>false</includeTestSourceDirectory>
                     <consoleOutput>true</consoleOutput>
-                    <failsOnError>true</failsOnError>
+                    <failsOnError>${checkstyle.failsOnError}</failsOnError>
                 </configuration>
                 <executions>
                     <execution>
@@ -223,6 +225,12 @@
             <id>regression-tests</id>
             <properties>
                 <testGroups>regression</testGroups>
+            </properties>
+        </profile>
+        <profile>
+            <id>strict-quality</id>
+            <properties>
+                <checkstyle.config.file>checkstyle/checkstyle-strict.xml</checkstyle.config.file>
             </properties>
         </profile>
     </profiles>

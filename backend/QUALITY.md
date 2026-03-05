@@ -22,10 +22,23 @@ Este documento define os gates obrigatorios de qualidade do backend.
 ./mvnw -B -Pregression-tests test
 ```
 
+- Executar quality gate com regras estritas (rodada progressiva):
+
+```bash
+./mvnw -B -Pstrict-quality verify
+```
+
 ## Checkstyle
 
 - Configuracao: `backend/checkstyle/checkstyle.xml`
+- Configuracao estrita progressiva: `backend/checkstyle/checkstyle-strict.xml`
 - Supressoes: `backend/checkstyle/suppressions.xml`
+
+### Adocao progressiva
+
+- **Fase 1 (ativa no CI)**: regra base de higiene (imports e tabs).
+- **Fase 2 (manual/PR de hardening)**: executar `-Pstrict-quality` para elevar padrao.
+- **Fase 3 (quando backlog zerar)**: promover regras estritas para gate padrao do `verify`.
 
 ## Cobertura
 

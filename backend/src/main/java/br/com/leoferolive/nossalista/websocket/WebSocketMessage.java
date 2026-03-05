@@ -37,8 +37,12 @@ public class WebSocketMessage {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof WebSocketMessage)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof WebSocketMessage)) {
+            return false;
+        }
         WebSocketMessage that = (WebSocketMessage) o;
         return Objects.equals(schemaVersion, that.schemaVersion)
             && Objects.equals(eventId, that.eventId)

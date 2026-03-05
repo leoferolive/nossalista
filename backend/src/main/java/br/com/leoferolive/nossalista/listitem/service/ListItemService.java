@@ -365,10 +365,18 @@ public class ListItemService {
 
         // 8. Log com campos alterados
         java.util.List<String> changed = new java.util.ArrayList<>();
-        if (request.getName() != null)     changed.add("name");
-        if (request.getQuantity() != null) changed.add("quantity");
-        if (request.getDueDate() != null)  changed.add("dueDate");
-        if (request.getUrl() != null)      changed.add("url");
+        if (request.getName() != null) {
+            changed.add("name");
+        }
+        if (request.getQuantity() != null) {
+            changed.add("quantity");
+        }
+        if (request.getDueDate() != null) {
+            changed.add("dueDate");
+        }
+        if (request.getUrl() != null) {
+            changed.add("url");
+        }
         String fieldsChanged = String.join(", ", changed);
         log.info("Item updated: itemId={}, listId={}, user={}, fieldsChanged={}",
                 itemId, listId, user.getId(), fieldsChanged);

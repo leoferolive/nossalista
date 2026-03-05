@@ -59,7 +59,9 @@ public class PresenceService {
         PresenceEntry[] removedHolder = {null};
 
         sessionsByList.compute(listId, (key, sessions) -> {
-            if (sessions == null) return null;
+            if (sessions == null) {
+                return null;
+            }
             removedHolder[0] = sessions.remove(sessionId);
             return sessions.isEmpty() ? null : sessions;
         });
