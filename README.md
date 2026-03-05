@@ -1,224 +1,121 @@
 # NossaLista
 
-> Aplicativo web de listas compartilhadas em tempo real
+Aplicativo web de listas compartilhadas em tempo real.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/leoferolive/nossalista/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/leoferolive/nossalista/actions/workflows/ci.yml)
 
-## 📋 Sobre o Projeto
+## Sobre o projeto
 
-NossaLista é um aplicativo web colaborativo que permite criar e compartilhar listas em tempo real. Ideal para listas de compras compartilhadas em família, tarefas domésticas, wishlists ou qualquer tipo de lista que precise ser gerenciada por múltiplas pessoas simultaneamente.
+NossaLista permite criar, compartilhar e editar listas colaborativas com sincronizacao em tempo real.
 
-### Status do Projeto
+Status atual:
+- MVP em desenvolvimento ativo
+- Backend e frontend implementados no monorepo
+- CI ativo para frontend e backend
+- Workflow de deploy remoto temporariamente desativado em `.github/workflows/deploy.yml`
 
-⚠️ **Em Desenvolvimento** - O projeto está atualmente em fase de planejamento MVP.
+## Stack
 
-## 🚀 Funcionalidades Principais
+| Camada | Tecnologia |
+| --- | --- |
+| Frontend | React 19 + TypeScript + Vite |
+| Backend | Java 25 + Spring Boot 4 |
+| Real-time | Spring WebSocket (STOMP + SockJS) |
+| Auth | Google OAuth2 + email/senha + JWT |
+| BD Producao | PostgreSQL |
+| BD Dev | PostgreSQL |
+| BD Testes | H2 (MODE=PostgreSQL) |
+| Migrations | Flyway |
+| Infra | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
 
-### MVP Planejado
+## Estrutura
 
-- **Autenticação Flexível**
-  - Login com Google OAuth2 (método principal)
-  - Email/senha como alternativa
-
-- **Tipos de Lista**
-  - Lista de Compras (com quantidade e unidade)
-  - Lista de Tarefas (com prioridade e prazo)
-  - Wishlist (com links e preço estimado)
-  - Lista Genérica (personalizável)
-
-- **Compartilhamento**
-  - Convite por username
-  - Convite por link único
-  - Controle de permissões (owner, editor, viewer)
-
-- **Sincronização Real-time**
-  - Atualizações instantâneas via WebSocket
-  - Indicadores de usuários ativos
-  - Notificações de alterações
-
-- **Activity Log**
-  - Timeline completa de ações na lista
-  - Rastreabilidade de alterações
-
-## 🛠️ Stack Tecnológico
-
-| Camada       | Tecnologia                           |
-|-------------|--------------------------------------|
-| Frontend    | React 19 + TypeScript + Vite        |
-| Backend     | Java 25 + Spring Boot 4              |
-| Real-time   | Spring WebSocket (STOMP + SockJS)    |
-| Autenticação| JWT + OAuth2 (Google)                |
-| BD Produção | PostgreSQL                           |
-| BD Dev      | PostgreSQL (Docker Compose)          |
-| BD Testes   | H2 (MODE=PostgreSQL)                 |
-| Migrations  | Flyway                               |
-| Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
-
-## 📁 Estrutura do Projeto (Monorepo)
-
-```
+```text
 nossalista/
-├── backend/                 # Backend Spring Boot 4
-│   └── src/main/java/br/com/leoferolive/nossalista/
-│       ├── config/          # Security, WebSocket, CORS
-│       ├── auth/            # AuthController, AuthService, JWT
-│       ├── user/            # User entity e CRUD
-│       ├── list/            # Lista, ListType, CRUD
-│       ├── item/            # ListItem entity
-│       ├── member/          # ListMember, convites
-│       ├── activity/        # ActivityLog
-│       └── websocket/       # STOMP controllers
-├── frontend/                # Frontend React 19
-│   └── src/
-│       ├── api/             # Axios client, endpoints
-│       ├── hooks/           # useAuth, useLists, useWebSocket
-│       ├── pages/           # Login, Home, ListView
-│       ├── components/      # Componentes reutilizáveis
-│       ├── contexts/        # AuthContext
-│       └── types/           # TypeScript types
-├── deploy/                  # Scripts e configs de deploy
-├── k8s/                     # Manifests Kubernetes
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── ingress.yaml
-│   └── namespace.yaml
-├── docs/                    # Documentação do projeto
-│   └── NossaLista — Documento de Escopo MVP.txt
-└── .github/workflows/       # CI/CD
+|- backend/
+|- frontend/
+|- docs/
+|- contracts/
+|- k8s/
+|- docker-compose.yml
+|- CLAUDE.md
+|- AGENTS.md -> CLAUDE.md
 ```
 
-## 🏃 Como Executar
+## Como executar
 
-### Pré-requisitos
+### Pre-requisitos
 
-- Java 25 (LTS)
-- Maven 3.9+
-- Node.js 18+ e npm
-- Docker (opcional, para containerização)
-- Kubernetes K3s (para deploy em produção)
-- kubectl (para gerenciar cluster)
+- Java 25
+- Node.js 22+
+- Docker e Docker Compose
 
-### Backend (Spring Boot 4)
+### 1) Banco local (PostgreSQL)
 
 ```bash
-# 1. Subir PostgreSQL para desenvolvimento
 docker compose up -d
+```
 
-# 2. Executar com Maven (perfil dev usa PostgreSQL local)
+### 2) Backend
+
+```bash
 cd backend
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-O backend estará disponível em `http://localhost:8080`
+Backend em `http://localhost:8080`.
 
-Endpoints úteis:
-- Health check: `http://localhost:8080/api/health`
-- API docs: `http://localhost:8080/api` (quando disponível)
-
-### Frontend (React 19 + Vite)
+### 3) Frontend
 
 ```bash
 cd frontend
-
-# Instalar dependências
 npm install
-
-# Executar em modo dev
 npm run dev
 ```
 
-O frontend estará disponível em `http://localhost:5173`
+Frontend em `http://localhost:5173`.
 
-### Docker Compose (PostgreSQL dev)
+## Qualidade e testes
+
+### Frontend
 
 ```bash
-# Subir PostgreSQL para desenvolvimento
-docker compose up -d
-
-# Ver logs do banco
-docker compose logs -f postgres
-
-# Parar e manter dados
-docker compose down
-
-# Parar e apagar dados (reset completo)
-docker compose down -v
+cd frontend
+npm run test -- --run
+npm run build
 ```
 
-## 🚢 Deploy
-
-### Kubernetes (Produção)
-
-O projeto está configurado para deploy em cluster Kubernetes usando K3s:
+### Backend
 
 ```bash
-# Aplicar manifests
+cd backend
+./mvnw -B verify
+./mvnw -B -Pstrict-quality verify
+./mvnw -B -Pregression-tests test
+```
+
+Detalhes de quality gate do backend em `backend/QUALITY.md`.
+
+## Deploy
+
+- Manifests Kubernetes em `k8s/`
+- Deploy manual:
+
+```bash
 kubectl apply -f k8s/
-
-# Ver status dos pods
 kubectl get pods -n nossalista
-
-# Ver logs
 kubectl logs -f deployment/nossalista -n nossalista
-
-# Restart do deployment
-kubectl rollout restart deployment/nossalista -n nossalista
 ```
 
-### CI/CD
+- Observacao: o workflow `.github/workflows/deploy.yml` esta comentado (desativado temporariamente).
 
-O pipeline em `.github/workflows/deploy.yml` automatiza:
-1. Build da imagem Docker
-2. Push para GitHub Container Registry
-3. Deploy no cluster K3s via kubectl
+## Documentacao canonica
 
-### Infraestrutura
+- `README.md`
+- `CLAUDE.md` e `AGENTS.md`
+- `docs/**`
+- `backend/QUALITY.md`
+- `frontend/README.md`
 
-- **Hardware**: Raspberry Pi 4
-- **Cluster**: K3s (Kubernetes leve)
-- **Tunnel**: Cloudflare Tunnel para exposição externa
-- **Domínio**: nossalista.leoferolive.com.br
-
-## 📖 Documentação
-
-Para informações detalhadas sobre:
-- Arquitetura do sistema
-- Modelo de dados (ERD)
-- Especificação de APIs REST
-- Protocolos WebSocket
-- Roadmap de implementação
-
-Consulte `docs/NossaLista — Documento de Escopo MVP.txt`
-
-## 🗺️ Roadmap de Implementação
-
-1. **Fundação Backend** - Setup, modelo de dados, Spring Security, CRUD básico
-2. **Compartilhamento** - Convites, membros, activity log
-3. **Real-time** - WebSocket config, broadcast de alterações
-4. **Frontend** - React app, auth flow, telas principais
-5. **Infra & Deploy** - Docker, K3s, CI/CD, Cloudflare Tunnel
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Por favor:
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
-
-## 👤 Autor
-
-**Leonardo Oliveira**
-
-- GitHub: [@leoferolive](https://github.com/leoferolive)
-
----
-
-⭐ Se este projeto foi útil para você, considere dar uma estrela!
+Indice rapido de docs em `docs/README.md`.

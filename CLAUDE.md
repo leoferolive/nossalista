@@ -8,7 +8,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Sobre o Projeto
 
-NossaLista é um aplicativo web de listas compartilhadas em tempo real. O projeto está atualmente em fase de planejamento MVP e ainda não possui código implementado.
+NossaLista e um aplicativo web de listas compartilhadas em tempo real. O projeto esta em desenvolvimento ativo de MVP, com backend e frontend ja implementados no monorepo.
+
+## Governanca de Documentacao (Mandatorio)
+
+Ao final de **toda task**, e obrigatorio revisar e atualizar a documentacao canonica impactada pela mudanca.
+
+Escopo de "toda documentacao" neste repositorio:
+- `README.md`
+- `CLAUDE.md` (e `AGENTS.md`, que deve espelhar este arquivo via symlink)
+- `docs/**`
+- `backend/QUALITY.md`
+- `frontend/README.md`
+
+Regras obrigatorias:
+- Nenhuma task e considerada concluida sem atualizar a documentacao impactada.
+- Se a implementacao mudar contrato, fluxo, comando, arquitetura, ambiente ou operacao, a documentacao correspondente deve ser atualizada na mesma task.
+- Em caso de duvida, atualizar ao inves de adiar.
+- Nao usar `_bmad-output/**` como fonte canonica operacional do projeto.
 
 ## Stack Técnico Planejada
 

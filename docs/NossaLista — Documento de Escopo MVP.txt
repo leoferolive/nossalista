@@ -18,7 +18,7 @@ NossaLista é um aplicativo web de listas compartilhadas onde usuários podem cr
 | Real-time   | Spring WebSocket (STOMP + SockJS)             |
 | Auth        | Google OAuth2 + email/senha (fallback)        |
 | BD Produção | PostgreSQL                                    |
-| BD Local    | H2 (testes/dev)                               |
+| BD Local    | PostgreSQL (dev) + H2 (testes)                |
 | Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel      |
 | CI/CD       | GitHub Actions → deploy no Pi                 |
 | Domínio     | nossalista.leoferolive.com.br                 |
@@ -264,7 +264,7 @@ Mensagem de evento (broadcast):
 
 ### Backend
 ```
-nossalista-api/
+backend/
 ├── src/main/java/br/com/leoferolive/nossalista/
 │   ├── NossaListaApplication.java
 │   ├── config/
@@ -307,14 +307,14 @@ nossalista-api/
 │       └── WebSocketAuthInterceptor.java
 ├── src/main/resources/
 │   ├── application.yml
-│   ├── application-dev.yml (H2)
+│   ├── application-dev.yml (PostgreSQL dev)
 │   └── application-prod.yml (PostgreSQL)
 └── pom.xml
 ```
 
 ### Frontend
 ```
-nossalista-web/
+frontend/
 ├── src/
 │   ├── main.tsx
 │   ├── App.tsx
