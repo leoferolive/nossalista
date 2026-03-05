@@ -99,3 +99,4 @@ frontend/.env.local
 # Logs
 logs/
 *.log
+.worktrees/
