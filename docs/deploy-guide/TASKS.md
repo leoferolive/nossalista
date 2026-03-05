@@ -1,0 +1,183 @@
+# TASKS — Lista Mestre de Execução
+
+Lista consolidada de todas as tarefas para configurar os dois ambientes de deploy da NossaLista.
+Marcar `[x]` ao concluir cada item.
+
+---
+
+## Fase 0 — Preparação
+
+- [ ] Verificar acesso kubectl ao cluster (`kubectl get nodes`)
+- [ ] Verificar Tailscale no servidor k3s (`tailscale status`)
+- [ ] **Investigar exposição do Traefik para rede local** — ver [10-dns.md](10-dns.md) seção 1
+  - `kubectl get service traefik -n traefik-system`
+  - `kubectl describe daemonset traefik -n traefik-system`
+  - Documentar resultado: ClusterIP / NodePort / LoadBalancer / hostNetwork
+- [ ] Verificar configuração do cloudflared — ver [11-cloudflare-tunnel.md](11-cloudflare-tunnel.md) seção 2
+  - `kubectl get configmap -n cloudflared`
+  - Identificar se usa Dashboard ou ConfigMap
+
+---
+
+## Fase 1 — self-workflows (Repositório Externo)
+
+- [ ] Adicionar input `image_tag` ao `self-workflows/.github/workflows/deploy.yml` — ver [08-github-actions.md](08-github-actions.md) seção 1
+- [ ] Usar `inputs.image_tag` no step de build da imagem
+- [ ] Fazer commit e push no repositório `leoferolive/self-workflows`
+- [ ] Verificar que o workflow reutilizável está disponível: `gh workflow list --repo leoferolive/self-workflows`
+
+---
+
+## Fase 2 — Backend
+
+- [ ] Verificar se `SpaController.java` existe — ver [03-backend.md](03-backend.md) seção 1
+  - `find backend/src -name "SpaController.java"`
+  - Se não existir: criar `backend/src/main/java/br/com/leoferolive/nossalista/config/SpaController.java`
+- [ ] Atualizar `application-dev.yml` para usar env vars em vez de IP hardcoded — ver [03-backend.md](03-backend.md) seção 2
+  - `grep -n "192.168" backend/src/main/resources/application-dev.yml` deve retornar vazio
+- [ ] Verificar `application-prod.yml` (sem valores hardcoded) — ver [03-backend.md](03-backend.md) seção 3
+- [ ] Verificar `CorsConfig` aceita `http://nossalista.home` e `https://nossalista.leoferolive.com.br` — ver [03-backend.md](03-backend.md) seção 4
+
+---
+
+## Fase 3 — Frontend
+
+- [ ] Verificar que frontend não tem URLs hardcoded de backend — ver [04-frontend.md](04-frontend.md) seção 2
+  - `grep -r "localhost:8080\|192.168" frontend/src/` deve retornar vazio
+- [ ] Verificar que WebSocket usa path relativo — ver [04-frontend.md](04-frontend.md) seção 4
+- [ ] Verificar que `npm run build` gera `dist/` corretamente
+  - `cd frontend && npm run build && ls dist/`
+
+---
+
+## Fase 4 — Dockerfile
+
+- [ ] Substituir `Dockerfile` raiz pelo multi-stage com Node 22 + Maven 25 + JRE — ver [02-dockerfile.md](02-dockerfile.md) seção 2
+- [ ] Testar build local: `docker build -t nossalista:local .`
+- [ ] Testar container local com variáveis de ambiente — ver [02-dockerfile.md](02-dockerfile.md) seção 4
+  - `curl http://localhost:8080/actuator/health` → `{"status":"UP"}`
+  - `curl http://localhost:8080/` → HTML do React SPA
+
+---
+
+## Fase 5 — Manifests Kubernetes
+
+- [ ] Criar `k8s/dev/namespace.yaml` — ver [05-kubernetes.md](05-kubernetes.md) seção 2
+- [ ] Criar `k8s/dev/deployment.yaml` — ver [05-kubernetes.md](05-kubernetes.md) seção 3
+- [ ] Criar `k8s/dev/service.yaml` — ver [05-kubernetes.md](05-kubernetes.md) seção 4
+- [ ] Criar `k8s/dev/ingress.yaml` (host: `nossalista.home`) — ver [05-kubernetes.md](05-kubernetes.md) seção 5
+- [ ] Criar `k8s/prod/namespace.yaml` — ver [05-kubernetes.md](05-kubernetes.md) seção 6
+- [ ] Criar `k8s/prod/deployment.yaml` — ver [05-kubernetes.md](05-kubernetes.md) seção 7
+- [ ] Criar `k8s/prod/service.yaml` — ver [05-kubernetes.md](05-kubernetes.md) seção 8
+- [ ] Criar `k8s/prod/ingress.yaml` (host: `nossalista.leoferolive.com.br`) — ver [05-kubernetes.md](05-kubernetes.md) seção 9
+- [ ] Remover ou arquivar `k8s/*.yaml` raiz (substituídos por dev/ e prod/)
+
+---
+
+## Fase 6 — GitHub Actions
+
+- [ ] Criar `.github/workflows/deploy-dev.yml` — ver [08-github-actions.md](08-github-actions.md) seção 2
+- [ ] Criar `.github/workflows/deploy-prod.yml` — ver [08-github-actions.md](08-github-actions.md) seção 3
+- [ ] Remover `.github/workflows/deploy.yml` (legado) — ver [08-github-actions.md](08-github-actions.md) seção 4
+
+---
+
+## Fase 7 — GitHub Secrets
+
+- [ ] Gerar `TAILSCALE_AUTHKEY` (Reusable + Ephemeral) no Tailscale Admin — ver [09-github-secrets.md](09-github-secrets.md) seção 2
+- [ ] Configurar `TAILSCALE_AUTHKEY` no GitHub → Settings → Secrets
+- [ ] Gerar `KUBECONFIG` com IP Tailscale do K3s — ver [09-github-secrets.md](09-github-secrets.md) seção 3
+  - `sed 's/127.0.0.1/<tailscale-ip>/' /etc/rancher/k3s/k3s.yaml | base64 -w 0`
+- [ ] Configurar `KUBECONFIG` no GitHub → Settings → Secrets
+- [ ] Verificar: `gh secret list --repo leoferolive/nossalista`
+
+---
+
+## Fase 8 — PostgreSQL
+
+- [ ] Acessar o pod: `kubectl exec -it deployment/postgres -n database -- psql -U root -d root`
+- [ ] Criar database e usuário dev — ver [07-banco-de-dados.md](07-banco-de-dados.md) seção 2
+  - `CREATE USER nossalista_dev WITH PASSWORD '<senha>';`
+  - `CREATE DATABASE nossalista_dev OWNER nossalista_dev;`
+  - `GRANT ALL ON SCHEMA public TO nossalista_dev;`
+- [ ] Criar database e usuário prod — ver [07-banco-de-dados.md](07-banco-de-dados.md) seção 2
+  - `CREATE USER nossalista WITH PASSWORD '<senha>';`
+  - `CREATE DATABASE nossalista OWNER nossalista;`
+  - `GRANT ALL ON SCHEMA public TO nossalista;`
+- [ ] Testar conexão: `psql -h 192.168.3.63 -p 30001 -U nossalista_dev -d nossalista_dev`
+
+---
+
+## Fase 9 — K8s Namespaces e Secrets
+
+- [ ] `kubectl apply -f k8s/dev/namespace.yaml`
+- [ ] `kubectl apply -f k8s/prod/namespace.yaml`
+- [ ] Copiar `ghcr-secret` para `nossalista-dev` — ver [06-secrets.md](06-secrets.md) seção 1
+- [ ] Copiar `ghcr-secret` para `nossalista` — ver [06-secrets.md](06-secrets.md) seção 1
+- [ ] Gerar JWT secrets: `openssl rand -base64 48`
+- [ ] Criar `nossalista-secrets` em `nossalista-dev` — ver [06-secrets.md](06-secrets.md) seção 2.1
+- [ ] Criar `nossalista-secrets` em `nossalista` — ver [06-secrets.md](06-secrets.md) seção 2.2
+- [ ] Verificar: `kubectl get secrets -n nossalista-dev && kubectl get secrets -n nossalista`
+
+---
+
+## Fase 10 — DNS e Acesso
+
+- [ ] Verificar/expor Traefik na porta 80 para rede local — ver [10-dns.md](10-dns.md) seção 3
+- [ ] Configurar DNS `nossalista.home → 192.168.3.63` — ver [10-dns.md](10-dns.md) seção 2
+- [ ] Testar resolução: `nslookup nossalista.home` → `192.168.3.63`
+- [ ] Adicionar hostname `nossalista.leoferolive.com.br` ao Cloudflare Tunnel — ver [11-cloudflare-tunnel.md](11-cloudflare-tunnel.md) seção 3 ou 4
+
+---
+
+## Fase 11 — Google OAuth
+
+- [ ] Acessar Google Cloud Console → projeto NossaLista → Credentials
+- [ ] Adicionar redirect URIs — ver [12-google-oauth.md](12-google-oauth.md) seção 1.1
+  - `http://nossalista.home/api/auth/google/callback`
+  - `https://nossalista.leoferolive.com.br/api/auth/google/callback`
+- [ ] Adicionar authorized JavaScript origins — ver [12-google-oauth.md](12-google-oauth.md) seção 1.2
+  - `http://nossalista.home`
+  - `https://nossalista.leoferolive.com.br`
+
+---
+
+## Fase 12 — Deploy e Validação
+
+### 12.1 Deploy Dev
+- [ ] Aplicar manifests: `kubectl apply -f k8s/dev/`
+- [ ] Aguardar pod: `kubectl get pods -n nossalista-dev -w`
+- [ ] Verificar logs: `kubectl logs -f deployment/nossalista-dev -n nossalista-dev`
+- [ ] Testar health: `curl http://nossalista.home/actuator/health` → `{"status":"UP"}`
+- [ ] Testar SPA: `curl http://nossalista.home/` → HTML do React
+- [ ] Testar rota React Router: `curl http://nossalista.home/listas` → mesmo HTML (não 404)
+- [ ] Fazer push para `main` e verificar deploy automático via GitHub Actions
+  - `gh run watch --workflow=deploy-dev.yml`
+
+### 12.2 Deploy Prod
+- [ ] Aplicar manifests: `kubectl apply -f k8s/prod/`
+- [ ] Verificar pod: `kubectl get pods -n nossalista -w`
+- [ ] Testar prod via workflow_dispatch manual:
+  - GitHub → Actions → "Deploy Prod" → Run workflow → confirm: `deploy`
+- [ ] Testar: `curl https://nossalista.leoferolive.com.br/actuator/health`
+- [ ] Testar login com Google OAuth em ambos os ambientes
+
+### 12.3 Verificação Final
+
+```bash
+# Dev
+curl http://nossalista.home/actuator/health
+curl http://nossalista.home/actuator/health/readiness
+
+# Prod
+curl https://nossalista.leoferolive.com.br/actuator/health
+
+# K8s status
+kubectl get pods -n nossalista-dev
+kubectl get pods -n nossalista
+kubectl get ingress -A
+
+# GitHub Actions
+gh run list --workflow=deploy-dev.yml --limit 3
+gh run list --workflow=deploy-prod.yml --limit 3
+```
