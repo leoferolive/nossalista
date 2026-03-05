@@ -85,7 +85,10 @@ public class ListService {
         ownerMember.setRole(MemberRole.OWNER);
         listMemberRepository.save(ownerMember);
 
-        return savedList;
+        // Recarrega owner e type via JOIN FETCH para evitar LazyInitializationException
+        // ao mapear a resposta fora do contexto transacional.
+        return listRepository.findByIdWithDetails(savedList.getId())
+            .orElse(savedList);
     }
 
     /**

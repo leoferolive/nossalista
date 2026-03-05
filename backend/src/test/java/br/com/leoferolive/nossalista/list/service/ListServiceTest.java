@@ -74,6 +74,16 @@ class ListServiceTest {
             List list = invocation.getArgument(0);
             return list;
         });
+        when(listRepository.findByIdWithDetails(any(UUID.class))).thenAnswer(invocation -> {
+            UUID listId = invocation.getArgument(0);
+            List hydratedList = new List();
+            hydratedList.setId(listId);
+            hydratedList.setName("Mercado Semanal");
+            hydratedList.setTypeId(1);
+            hydratedList.setOwner(testUser);
+            hydratedList.setInviteCode(findInviteCodeById(listId));
+            return Optional.of(hydratedList);
+        });
         when(listMemberRepository.save(any(ListMember.class))).thenAnswer(invocation -> {
             ListMember member = invocation.getArgument(0);
             return member;
@@ -101,6 +111,7 @@ class ListServiceTest {
 
         verify(listTypeRepository).existsById(1);
         verify(listRepository).save(any(List.class));
+        verify(listRepository).findByIdWithDetails(result.getId());
     }
 
     @Test
@@ -134,6 +145,16 @@ class ListServiceTest {
             List list = invocation.getArgument(0);
             return list;
         });
+        when(listRepository.findByIdWithDetails(any(UUID.class))).thenAnswer(invocation -> {
+            UUID listId = invocation.getArgument(0);
+            List hydratedList = new List();
+            hydratedList.setId(listId);
+            hydratedList.setOwner(testUser);
+            hydratedList.setTypeId(1);
+            hydratedList.setName("Lista 1");
+            hydratedList.setInviteCode(findInviteCodeById(listId));
+            return Optional.of(hydratedList);
+        });
         when(listMemberRepository.save(any(ListMember.class))).thenAnswer(invocation -> {
             ListMember member = invocation.getArgument(0);
             return member;
@@ -159,6 +180,16 @@ class ListServiceTest {
         when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
             List list = invocation.getArgument(0);
             return list;
+        });
+        when(listRepository.findByIdWithDetails(any(UUID.class))).thenAnswer(invocation -> {
+            UUID listId = invocation.getArgument(0);
+            List hydratedList = new List();
+            hydratedList.setId(listId);
+            hydratedList.setName("Lista com Colisão");
+            hydratedList.setTypeId(1);
+            hydratedList.setOwner(testUser);
+            hydratedList.setInviteCode(findInviteCodeById(listId));
+            return Optional.of(hydratedList);
         });
         when(listMemberRepository.save(any(ListMember.class))).thenAnswer(invocation -> {
             ListMember member = invocation.getArgument(0);
@@ -265,6 +296,17 @@ class ListServiceTest {
             assertEquals("Você não tem permissão para acessar esta lista", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
         }
+    }
+
+    private String findInviteCodeById(UUID listId) {
+        ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+        verify(listRepository, atLeastOnce()).save(captor.capture());
+
+        return captor.getAllValues().stream()
+            .filter(list -> listId.equals(list.getId()))
+            .findFirst()
+            .map(List::getInviteCode)
+            .orElse("ABCDEFGHIJKL");
     }
 
     @Nested

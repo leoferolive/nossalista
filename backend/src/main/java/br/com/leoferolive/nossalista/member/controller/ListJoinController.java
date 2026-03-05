@@ -3,6 +3,8 @@ package br.com.leoferolive.nossalista.member.controller;
 import br.com.leoferolive.nossalista.list.dto.JoinListResponse;
 import br.com.leoferolive.nossalista.member.dto.ListJoinedResponse;
 import br.com.leoferolive.nossalista.member.service.ListJoinService;
+import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,7 +18,6 @@ import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -84,7 +85,7 @@ public class ListJoinController {
      * Cria um registro de membro na lista se o usuário ainda não for membro.
      *
      * @param inviteCode  código de convite da lista
-     * @param userDetails usuário autenticado (via JWT)
+     * @param authenticatedUser usuário autenticado (via JWT)
      * @return dados da lista com mensagem de boas-vindas
      */
     @PostMapping("/join/{inviteCode}")
@@ -127,9 +128,13 @@ public class ListJoinController {
         String inviteCode,
         @Parameter(hidden = true)
         @AuthenticationPrincipal
-        UserDetails userDetails
+        User authenticatedUser
     ) {
-        java.util.UUID userId = java.util.UUID.fromString(userDetails.getUsername());
+        if (authenticatedUser == null) {
+            throw new NotAuthenticatedException("Usuário não autenticado");
+        }
+
+        java.util.UUID userId = authenticatedUser.getId();
         ListJoinedResponse response = listJoinService.joinList(userId, inviteCode);
 
         // 201 Created se novo membro foi criado; 200 OK se já era membro/dono
