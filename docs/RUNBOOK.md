@@ -62,6 +62,8 @@ npm audit --audit-level=high --omit=dev
 npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
 ```
 
+- O gitleaks usa `.gitleaks.toml` para ignorar apenas artefatos internos gerados em `_bmad/` e `_bmad-output/`.
+
 ## Operacao em Kubernetes
 
 ```bash

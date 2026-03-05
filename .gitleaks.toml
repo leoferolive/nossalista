@@ -1,0 +1,6 @@
+[allowlist]
+description = "Ignore generated/internal BMAD artifacts with synthetic tokens"
+paths = [
+  '''^_bmad/''',
+  '''^_bmad-output/''',
+]
