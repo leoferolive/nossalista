@@ -1,4 +1,4 @@
-import client from './client';
+import client, { preserveSessionOnUnauthorizedConfig } from './client';
 import { AxiosError } from 'axios';
 import { ProblemDetail } from '../types/ProblemDetail';
 import { ApiError } from '../types/ApiError';
@@ -26,7 +26,10 @@ export const usersApi = {
    */
   async getProfile(): Promise<UserProfileResponse> {
     try {
-      const response = await client.get<UserProfileResponse>('/api/users/me');
+      const response = await client.get<UserProfileResponse>(
+        '/api/users/me',
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -55,7 +58,11 @@ export const usersApi = {
    */
   async updateProfile(data: UpdateProfileRequest): Promise<UserProfileResponse> {
     try {
-      const response = await client.patch<UserProfileResponse>('/api/users/me', data);
+      const response = await client.patch<UserProfileResponse>(
+        '/api/users/me',
+        data,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;

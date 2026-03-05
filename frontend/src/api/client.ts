@@ -1,5 +1,9 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { clearStoredSession, getStoredAuthToken } from '../auth/session';
+
+export const preserveSessionOnUnauthorizedConfig: AxiosRequestConfig = {
+  preserveSessionOnUnauthorized: true,
+};
 
 /**
  * Instância configurada do Axios para comunicação com a API
@@ -38,7 +42,7 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     // Se 401 Unauthorized, limpar token e redirecionar para login
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.preserveSessionOnUnauthorized) {
       clearStoredSession();
 
       // Redirecionar para login (evita redirecionamento se já estiver na página de login)

@@ -1,4 +1,4 @@
-import client from './client';
+import client, { preserveSessionOnUnauthorizedConfig } from './client';
 import { AxiosError } from 'axios';
 import {
   CreateListRequest,
@@ -25,7 +25,11 @@ export const listsApi = {
    * @returns Promise com a lista criada
    */
   async createList(request: CreateListRequest): Promise<ListResponse> {
-    const response = await client.post<ListResponse>('/api/lists', request);
+    const response = await client.post<ListResponse>(
+      '/api/lists',
+      request,
+      preserveSessionOnUnauthorizedConfig
+    );
     return response.data;
   },
 
@@ -34,7 +38,10 @@ export const listsApi = {
    * @returns Promise com array de listas
    */
   async getAllLists(): Promise<ListResponse[]> {
-    const response = await client.get<ListResponse[]>('/api/lists');
+    const response = await client.get<ListResponse[]>(
+      '/api/lists',
+      preserveSessionOnUnauthorizedConfig
+    );
     return response.data;
   },
 
@@ -46,7 +53,10 @@ export const listsApi = {
    */
   async getListById(id: string): Promise<ListResponse> {
     try {
-      const response = await client.get<ListResponse>(`/api/lists/${id}`);
+      const response = await client.get<ListResponse>(
+        `/api/lists/${id}`,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -74,7 +84,10 @@ export const listsApi = {
 
   async getListState(id: string): Promise<ListStateResponse> {
     try {
-      const response = await client.get<ListStateResponse>(`/api/lists/${id}/state`);
+      const response = await client.get<ListStateResponse>(
+        `/api/lists/${id}/state`,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -109,7 +122,11 @@ export const listsApi = {
    */
   async updateListName(id: string, name: string): Promise<ListResponse> {
     try {
-      const response = await client.patch<ListResponse>(`/api/lists/${id}`, { name });
+      const response = await client.patch<ListResponse>(
+        `/api/lists/${id}`,
+        { name },
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -145,7 +162,7 @@ export const listsApi = {
    */
   async deleteList(id: string): Promise<void> {
     try {
-      await client.delete(`/api/lists/${id}`);
+      await client.delete(`/api/lists/${id}`, preserveSessionOnUnauthorizedConfig);
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
 
@@ -180,7 +197,11 @@ export const listsApi = {
    */
   async generateInviteLink(id: string): Promise<InviteLinkResponse> {
     try {
-      const response = await client.post<InviteLinkResponse>(`/api/lists/${id}/invite-link`);
+      const response = await client.post<InviteLinkResponse>(
+        `/api/lists/${id}/invite-link`,
+        undefined,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -251,7 +272,11 @@ export const listsApi = {
    */
   async joinList(inviteCode: string): Promise<ListJoinedResponse> {
     try {
-      const response = await client.post<ListJoinedResponse>(`/api/lists/join/${inviteCode}`);
+      const response = await client.post<ListJoinedResponse>(
+        `/api/lists/join/${inviteCode}`,
+        undefined,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -281,6 +306,7 @@ export const listsApi = {
   async searchUsers(query: string): Promise<UserSearchResult[]> {
     try {
       const response = await client.get<UserSearchResult[]>('/api/users/search', {
+        ...preserveSessionOnUnauthorizedConfig,
         params: { q: query },
       });
       return response.data;
@@ -306,9 +332,11 @@ export const listsApi = {
 
   async inviteByUsername(listId: string, username: string): Promise<InviteByUsernameResponse> {
     try {
-      const response = await client.post<InviteByUsernameResponse>(`/api/lists/${listId}/invite`, {
-        username,
-      });
+      const response = await client.post<InviteByUsernameResponse>(
+        `/api/lists/${listId}/invite`,
+        { username },
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -336,7 +364,10 @@ export const listsApi = {
 
   async getListMembers(listId: string): Promise<ListMemberResponse[]> {
     try {
-      const response = await client.get<ListMemberResponse[]>(`/api/lists/${listId}/members`);
+      const response = await client.get<ListMemberResponse[]>(
+        `/api/lists/${listId}/members`,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -362,7 +393,10 @@ export const listsApi = {
 
   async deleteListMember(listId: string, userId: string): Promise<void> {
     try {
-      await client.delete(`/api/lists/${listId}/members/${userId}`);
+      await client.delete(
+        `/api/lists/${listId}/members/${userId}`,
+        preserveSessionOnUnauthorizedConfig
+      );
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
 
@@ -387,7 +421,11 @@ export const listsApi = {
 
   async leaveList(listId: string): Promise<void> {
     try {
-      await client.post(`/api/lists/${listId}/leave`);
+      await client.post(
+        `/api/lists/${listId}/leave`,
+        undefined,
+        preserveSessionOnUnauthorizedConfig
+      );
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
 
@@ -413,6 +451,7 @@ export const listsApi = {
   async getActivities(listId: string, page = 0, size = 50): Promise<ActivityResponse> {
     try {
       const response = await client.get<ActivityResponse>(`/api/lists/${listId}/activity`, {
+        ...preserveSessionOnUnauthorizedConfig,
         params: { page, size },
       });
       return response.data;

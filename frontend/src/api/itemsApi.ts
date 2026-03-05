@@ -1,4 +1,4 @@
-import client from './client';
+import client, { preserveSessionOnUnauthorizedConfig } from './client';
 import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item';
 import { ProblemDetail } from '../types/ProblemDetail';
 import { AxiosError } from 'axios';
@@ -15,7 +15,10 @@ export const itemsApi = {
    */
   async getItemsByListId(listId: string): Promise<ListItem[]> {
     try {
-      const response = await client.get<ListItem[]>(`/api/lists/${listId}/items`);
+      const response = await client.get<ListItem[]>(
+        `/api/lists/${listId}/items`,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -50,7 +53,11 @@ export const itemsApi = {
    */
   async addItem(listId: string, request: CreateItemRequest): Promise<ListItem> {
     try {
-      const response = await client.post<ListItem>(`/api/lists/${listId}/items`, request);
+      const response = await client.post<ListItem>(
+        `/api/lists/${listId}/items`,
+        request,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -87,7 +94,11 @@ export const itemsApi = {
    */
   async toggleItemCheck(listId: string, itemId: string): Promise<ListItem> {
     try {
-      const response = await client.patch<ListItem>(`/api/lists/${listId}/items/${itemId}/check`);
+      const response = await client.patch<ListItem>(
+        `/api/lists/${listId}/items/${itemId}/check`,
+        undefined,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -123,7 +134,11 @@ export const itemsApi = {
    */
   async updateItem(listId: string, itemId: string, request: UpdateItemRequest): Promise<ListItem> {
     try {
-      const response = await client.patch<ListItem>(`/api/lists/${listId}/items/${itemId}`, request);
+      const response = await client.patch<ListItem>(
+        `/api/lists/${listId}/items/${itemId}`,
+        request,
+        preserveSessionOnUnauthorizedConfig
+      );
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
@@ -160,7 +175,10 @@ export const itemsApi = {
    */
   async deleteItem(listId: string, itemId: string): Promise<void> {
     try {
-      await client.delete(`/api/lists/${listId}/items/${itemId}`);
+      await client.delete(
+        `/api/lists/${listId}/items/${itemId}`,
+        preserveSessionOnUnauthorizedConfig
+      );
     } catch (error) {
       const axiosError = error as AxiosError<ProblemDetail>;
 
