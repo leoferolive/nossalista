@@ -88,29 +88,29 @@ Marcar `[x]` ao concluir cada item.
 - [x] Configurar `TAILSCALE_AUTHKEY` no GitHub → Settings → Secrets
 - [x] Gerar `KUBECONFIG` com IP Tailscale do K3s — ver [09-github-secrets.md](09-github-secrets.md) seção 3
   - `sed 's/127.0.0.1/<tailscale-ip>/' /etc/rancher/k3s/k3s.yaml | base64 -w 0`
-- [ ] Configurar `KUBECONFIG` no GitHub → Settings → Secrets
-- [ ] Verificar: `gh secret list --repo leoferolive/nossalista`
+- [x] Configurar `KUBECONFIG` no GitHub → Settings → Secrets
+- [x] Verificar: `gh secret list --repo leoferolive/nossalista`
 
 ---
 
 ## Fase 8 — PostgreSQL
 
-- [ ] Acessar o pod: `kubectl exec -it deployment/postgres -n database -- psql -U root -d root`
-- [ ] Criar database e usuário dev — ver [07-banco-de-dados.md](07-banco-de-dados.md) seção 2
+- [x] Acessar o pod: `kubectl exec -it deployment/postgres -n database -- psql -U root -d root`
+- [x] Criar database e usuário dev — ver [07-banco-de-dados.md](07-banco-de-dados.md) seção 2
   - `CREATE USER nossalista_dev WITH PASSWORD '<senha>';`
   - `CREATE DATABASE nossalista_dev OWNER nossalista_dev;`
   - `GRANT ALL ON SCHEMA public TO nossalista_dev;`
-- [ ] Criar database e usuário prod — ver [07-banco-de-dados.md](07-banco-de-dados.md) seção 2
+- [x] Criar database e usuário prod — ver [07-banco-de-dados.md](07-banco-de-dados.md) seção 2
   - `CREATE USER nossalista WITH PASSWORD '<senha>';`
   - `CREATE DATABASE nossalista OWNER nossalista;`
   - `GRANT ALL ON SCHEMA public TO nossalista;`
-- [ ] Testar conexão: `psql -h 192.168.3.63 -p 30001 -U nossalista_dev -d nossalista_dev`
+- [x] Testar conexão: `psql -h 192.168.3.63 -p 30001 -U nossalista_dev -d nossalista_dev`
 
 ---
 
 ## Fase 9 — K8s Namespaces e Secrets
 
-- [ ] `kubectl apply -f k8s/dev/namespace.yaml`
+- [x] `kubectl apply -f k8s/dev/namespace.yaml`
 - [ ] `kubectl apply -f k8s/prod/namespace.yaml`
 - [ ] Copiar `ghcr-secret` para `nossalista-dev` — ver [06-secrets.md](06-secrets.md) seção 1
 - [ ] Copiar `ghcr-secret` para `nossalista` — ver [06-secrets.md](06-secrets.md) seção 1
