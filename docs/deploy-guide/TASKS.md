@@ -117,7 +117,7 @@ Marcar `[x]` ao concluir cada item.
 - [x] Gerar JWT secrets: `openssl rand -base64 48`
 - [x] Criar `nossalista-secrets` em `nossalista-dev` — ver [06-secrets.md](06-secrets.md) seção 2.1
 - [x] Criar `nossalista-secrets` em `nossalista` — ver [06-secrets.md](06-secrets.md) seção 2.2
-- [ ] Verificar: `kubectl get secrets -n nossalista-dev && kubectl get secrets -n nossalista`
+- [x] Verificar: `kubectl get secrets -n nossalista-dev && kubectl get secrets -n nossalista`
 
 ---
 
