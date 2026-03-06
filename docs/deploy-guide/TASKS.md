@@ -115,7 +115,7 @@ Marcar `[x]` ao concluir cada item.
 - [x] Copiar `ghcr-secret` para `nossalista-dev` — ver [06-secrets.md](06-secrets.md) seção 1
 - [x] Copiar `ghcr-secret` para `nossalista` — ver [06-secrets.md](06-secrets.md) seção 1
 - [x] Gerar JWT secrets: `openssl rand -base64 48`
-- [ ] Criar `nossalista-secrets` em `nossalista-dev` — ver [06-secrets.md](06-secrets.md) seção 2.1
+- [x] Criar `nossalista-secrets` em `nossalista-dev` — ver [06-secrets.md](06-secrets.md) seção 2.1
 - [ ] Criar `nossalista-secrets` em `nossalista` — ver [06-secrets.md](06-secrets.md) seção 2.2
 - [ ] Verificar: `kubectl get secrets -n nossalista-dev && kubectl get secrets -n nossalista`
 
