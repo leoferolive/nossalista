@@ -125,7 +125,7 @@ Marcar `[x]` ao concluir cada item.
 
 - [x] Verificar/expor Traefik na porta 80 para rede local — ver [10-dns.md](10-dns.md) seção 3
 - [x] Configurar DNS `nossalista.home → 192.168.3.63` — ver [10-dns.md](10-dns.md) seção 2
-- [ ] Testar resolução: `nslookup nossalista.home` → `192.168.3.63`
+- [x] Testar resolução: `nslookup nossalista.home` → `192.168.3.63`
 - [ ] Adicionar hostname `nossalista.leoferolive.com.br` ao Cloudflare Tunnel — ver [11-cloudflare-tunnel.md](11-cloudflare-tunnel.md) seção 3 ou 4
 
 ---
