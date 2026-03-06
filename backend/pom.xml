@@ -223,6 +223,7 @@
                 <artifactId>dependency-check-maven</artifactId>
                 <version>${dependency.check.version}</version>
                 <configuration>
+                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <failBuildOnCVSS>7</failBuildOnCVSS>
                     <formats>
                         <format>HTML</format>
