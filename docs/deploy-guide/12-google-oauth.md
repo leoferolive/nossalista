@@ -12,20 +12,20 @@
 Adicionar as URIs para ambos os ambientes:
 
 ```
-http://nossalista.home/api/auth/google/callback
+http://localhost:5173/api/auth/google/callback
+http://localhost:8080/api/auth/google/callback
 https://nossalista.leoferolive.com.br/api/auth/google/callback
 ```
-
-> Manter URIs existentes (ex: `http://localhost:8080/api/auth/google/callback` para dev local).
 
 ### 1.2 Authorized JavaScript origins
 
 ```
-http://nossalista.home
-https://nossalista.leoferolive.com.br
 http://localhost:5173
 http://localhost:8080
+https://nossalista.leoferolive.com.br
 ```
+
+> Observação: o Google não aceita `.home` como origem OAuth. Para ambiente local, usar `localhost`.
 
 5. **Save**
 
@@ -70,13 +70,15 @@ grep -r "google\|oauth2\|client-id" backend/src/main/resources/
 Com o frontend embutido, o fluxo é:
 
 ```
-1. Usuário clica "Login com Google" em nossalista.home
+1. Usuário clica "Login com Google" em localhost (dev) ou no domínio de produção
 2. Frontend redireciona para: GET /api/auth/google
 3. Spring Security redireciona para accounts.google.com
 4. Google autentica e redireciona para:
-   http://nossalista.home/api/auth/google/callback?code=...
+   http://localhost:8080/api/auth/google/callback?code=... (dev)
+   ou
+   https://nossalista.leoferolive.com.br/api/auth/google/callback?code=... (prod)
 5. Spring Boot troca o code por token
-6. Backend redireciona para: http://nossalista.home/ (com JWT no cookie ou URL)
+6. Backend redireciona para FRONTEND_URL do ambiente
 ```
 
 ---
@@ -85,12 +87,12 @@ Com o frontend embutido, o fluxo é:
 
 ```bash
 # 1. Verificar que o endpoint de início do OAuth responde
-curl -I http://nossalista.home/api/auth/google
+curl -I http://localhost:8080/api/auth/google
 # Esperado: 302 Found → Location: accounts.google.com/...
 
 # 2. Verificar que o callback está registrado corretamente
 # (Acessar no browser — precisa de sessão Google)
-# http://nossalista.home/api/auth/google
+# http://localhost:8080/api/auth/google
 
 # 3. Se retornar "redirect_uri_mismatch", verificar:
 # - URI exata cadastrada no Google Cloud Console
