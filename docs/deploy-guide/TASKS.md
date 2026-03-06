@@ -137,7 +137,7 @@ Marcar `[x]` ao concluir cada item.
   - `http://localhost:5173/api/auth/google/callback`
   - `http://localhost:8080/api/auth/google/callback`
   - `https://nossalista.leoferolive.com.br/api/auth/google/callback`
-- [ ] Adicionar authorized JavaScript origins — ver [12-google-oauth.md](12-google-oauth.md) seção 1.2
+- [x] Adicionar authorized JavaScript origins — ver [12-google-oauth.md](12-google-oauth.md) seção 1.2
   - `http://localhost:5173`
   - `http://localhost:8080`
   - `https://nossalista.leoferolive.com.br`
