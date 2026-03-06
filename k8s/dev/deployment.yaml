@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nossalista-dev
+  namespace: nossalista-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nossalista-dev
+  template:
+    metadata:
+      labels:
+        app: nossalista-dev
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: nossalista-dev
+          image: ghcr.io/leoferolive/nossalista:dev
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: nossalista-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3

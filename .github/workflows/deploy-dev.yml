@@ -1,0 +1,17 @@
+name: Deploy Dev (nossalista.home)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
+    with:
+      app_name: nossalista-dev
+      app_namespace: nossalista-dev
+      app_type: backend
+      dockerfile_path: ./Dockerfile
+      k8s_path: ./k8s/dev
+      image_tag: dev
+    secrets: inherit
