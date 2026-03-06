@@ -148,7 +148,7 @@ Marcar `[x]` ao concluir cada item.
 
 ### 12.1 Deploy Dev
 - [x] Aplicar manifests: `kubectl apply -f k8s/dev/`
-- [ ] Aguardar pod: `kubectl get pods -n nossalista-dev -w`
+- [x] Aguardar pod: `kubectl get pods -n nossalista-dev -w`
 - [ ] Verificar logs: `kubectl logs -f deployment/nossalista-dev -n nossalista-dev`
 - [ ] Testar health: `curl http://nossalista.home/actuator/health` → `{"status":"UP"}`
 - [ ] Testar SPA: `curl http://nossalista.home/` → HTML do React
