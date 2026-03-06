@@ -111,7 +111,7 @@ Marcar `[x]` ao concluir cada item.
 ## Fase 9 — K8s Namespaces e Secrets
 
 - [x] `kubectl apply -f k8s/dev/namespace.yaml`
-- [ ] `kubectl apply -f k8s/prod/namespace.yaml`
+- [x] `kubectl apply -f k8s/prod/namespace.yaml`
 - [ ] Copiar `ghcr-secret` para `nossalista-dev` — ver [06-secrets.md](06-secrets.md) seção 1
 - [ ] Copiar `ghcr-secret` para `nossalista` — ver [06-secrets.md](06-secrets.md) seção 1
 - [ ] Gerar JWT secrets: `openssl rand -base64 48`
