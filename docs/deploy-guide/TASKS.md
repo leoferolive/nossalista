@@ -132,7 +132,7 @@ Marcar `[x]` ao concluir cada item.
 
 ## Fase 11 — Google OAuth
 
-- [ ] Acessar Google Cloud Console → projeto NossaLista → Credentials
+- [x] Acessar Google Cloud Console → projeto NossaLista → Credentials
 - [ ] Adicionar redirect URIs — ver [12-google-oauth.md](12-google-oauth.md) seção 1.1
   - `http://nossalista.home/api/auth/google/callback`
   - `https://nossalista.leoferolive.com.br/api/auth/google/callback`
