@@ -1,16 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import client from '../api/client';
-import { AuthLayout } from '../components/AuthLayout';
+import { useState, useEffect, useMemo } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import client from '../api/client'
+import { AuthLayout } from '../components/AuthLayout'
 
 interface LoginResponse {
-  id: string;
-  username: string;
-  email: string;
-  name: string;
-  avatarUrl?: string;
-  token: string;
+  id: string
+  username: string
+  email: string
+  name: string
+  avatarUrl?: string
+  token: string
 }
 
 /**
@@ -18,50 +18,50 @@ interface LoginResponse {
  * Permite autenticação com email/senha ou Google OAuth2
  */
 export default function Login() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { login } = useAuth();
-  const redirectPath = searchParams.get('redirect');
-  const [email, setEmail] = useState(searchParams.get('email') ?? '');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const registered = searchParams.get('registered') === '1';
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { login } = useAuth()
+  const redirectPath = searchParams.get('redirect')
+  const [email, setEmail] = useState(searchParams.get('email') ?? '')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const registered = searchParams.get('registered') === '1'
 
   const registerHref = useMemo(() => {
     if (!redirectPath) {
-      return '/register';
+      return '/register'
     }
 
-    return `/register?redirect=${encodeURIComponent(redirectPath)}`;
-  }, [redirectPath]);
+    return `/register?redirect=${encodeURIComponent(redirectPath)}`
+  }, [redirectPath])
 
   const forgotPasswordHref = useMemo(() => {
     if (!redirectPath) {
-      return '/forgot-password';
+      return '/forgot-password'
     }
 
-    return `/forgot-password?redirect=${encodeURIComponent(redirectPath)}`;
-  }, [redirectPath]);
+    return `/forgot-password?redirect=${encodeURIComponent(redirectPath)}`
+  }, [redirectPath])
 
   // Salvar redirect parameter no sessionStorage se presente
   useEffect(() => {
-    const redirectPath = searchParams.get('redirect');
+    const redirectPath = searchParams.get('redirect')
     if (redirectPath) {
-      sessionStorage.setItem('postLoginRedirect', redirectPath);
+      sessionStorage.setItem('postLoginRedirect', redirectPath)
     }
-  }, [searchParams]);
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    e.preventDefault()
+    setError('')
+    setLoading(true)
 
     try {
       const { data } = await client.post<LoginResponse>('/api/auth/login', {
         email,
         password,
-      });
+      })
 
       login(data.token, {
         id: data.id,
@@ -69,59 +69,70 @@ export default function Login() {
         email: data.email,
         displayName: data.name,
         avatarUrl: data.avatarUrl,
-      });
+      })
 
       // Verificar se há redirect pendente
-      const redirectPath = sessionStorage.getItem('postLoginRedirect');
+      const redirectPath = sessionStorage.getItem('postLoginRedirect')
       if (redirectPath) {
-        sessionStorage.removeItem('postLoginRedirect');
-        navigate(redirectPath);
+        sessionStorage.removeItem('postLoginRedirect')
+        navigate(redirectPath)
       } else {
-        navigate('/');
+        navigate('/')
       }
     } catch {
-      setError('Email ou senha inválidos');
+      setError('Email ou senha inválidos')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleGoogleLogin = () => {
     // Salvar invite code no sessionStorage se o redirect apontar para uma página de join
-    const redirectPath = searchParams.get('redirect');
+    const redirectPath = searchParams.get('redirect')
     if (redirectPath?.startsWith('/join/')) {
-      const inviteCode = redirectPath.slice('/join/'.length);
+      const inviteCode = redirectPath.slice('/join/'.length)
       if (inviteCode) {
-        sessionStorage.setItem('pendingInviteCode', inviteCode);
+        sessionStorage.setItem('pendingInviteCode', inviteCode)
       }
     }
 
-    const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '');
-    window.location.href = `${baseUrl}/api/auth/google`;
-  };
+    const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
+    window.location.href = `${baseUrl}/api/auth/google`
+  }
 
   return (
     <AuthLayout
       badge="Login"
       title="Entre na Sua Conta"
       description="Continue suas listas em segundos com login por email ou Google."
-      footer={(
+      footer={
         <div className="rounded-3xl border border-orange-200 bg-orange-50/70 p-4 text-sm text-slate-700">
           Nao tem conta ainda?{' '}
-          <Link className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4" to={registerHref}>
+          <Link
+            className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4"
+            to={registerHref}
+          >
             Criar conta
           </Link>
         </div>
-      )}
+      }
     >
       {registered && (
-        <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status" aria-live="polite">
+        <div
+          className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+          role="status"
+          aria-live="polite"
+        >
           Conta criada com sucesso. Agora e so entrar para continuar.
         </div>
       )}
 
       {error && (
-        <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert" aria-live="polite">
+        <div
+          className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          role="alert"
+          aria-live="polite"
+        >
           {error}
         </div>
       )}
@@ -199,10 +210,13 @@ export default function Login() {
 
       <div className="mt-5 text-sm text-slate-600">
         Quer entrar com email e ainda nao criou conta?{' '}
-        <Link className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4" to={registerHref}>
+        <Link
+          className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4"
+          to={registerHref}
+        >
           Criar conta
         </Link>
       </div>
     </AuthLayout>
-  );
+  )
 }

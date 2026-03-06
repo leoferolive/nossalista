@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react'
 
 interface DeleteConfirmModalProps {
-  isOpen: boolean;
-  itemName: string;
-  onConfirm: () => void;
-  onCancel: () => void;
+  isOpen: boolean
+  itemName: string
+  onConfirm: () => void
+  onCancel: () => void
 }
 
 /**
@@ -17,32 +17,32 @@ export function DeleteConfirmModal({
   onConfirm,
   onCancel,
 }: DeleteConfirmModalProps) {
-  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null)
 
   // Focar no botão de confirmar quando abrir
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
-        confirmButtonRef.current?.focus();
-      }, 100);
+        confirmButtonRef.current?.focus()
+      }, 100)
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   // Fechar ao pressionar Escape
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onCancel();
+        onCancel()
       }
-    };
+    }
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onCancel]);
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onCancel])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <div
@@ -57,7 +57,10 @@ export function DeleteConfirmModal({
         className="nl-card mx-4 w-full max-w-md animate-scale-in p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="delete-item-modal-title" className="mb-2 font-display text-xl font-semibold text-slate-900">
+        <h2
+          id="delete-item-modal-title"
+          className="mb-2 font-display text-xl font-semibold text-slate-900"
+        >
           Remover item?
         </h2>
         <p className="mb-6 text-slate-600">
@@ -84,5 +87,5 @@ export function DeleteConfirmModal({
         </div>
       </div>
     </div>
-  );
+  )
 }

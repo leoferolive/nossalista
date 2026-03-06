@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { parseListWebSocketMessage } from './WebSocketMessage';
+import { describe, expect, it } from 'vitest'
+import { parseListWebSocketMessage } from './WebSocketMessage'
 
 describe('parseListWebSocketMessage', () => {
   it('aceita envelope v2 valido de item', () => {
@@ -32,11 +32,11 @@ describe('parseListWebSocketMessage', () => {
         updatedAt: new Date().toISOString(),
       },
       timestamp: new Date().toISOString(),
-    });
+    })
 
-    expect(parsed).not.toBeNull();
-    expect(parsed?.type).toBe('ITEM_ADDED');
-  });
+    expect(parsed).not.toBeNull()
+    expect(parsed?.type).toBe('ITEM_ADDED')
+  })
 
   it('rejeita mensagem legada sem schemaVersion/channel/listId', () => {
     const parsed = parseListWebSocketMessage({
@@ -45,10 +45,10 @@ describe('parseListWebSocketMessage', () => {
       userId: 'user-1',
       username: 'leo',
       timestamp: new Date().toISOString(),
-    });
+    })
 
-    expect(parsed).toBeNull();
-  });
+    expect(parsed).toBeNull()
+  })
 
   it('rejeita mensagem de item sem actor', () => {
     const parsed = parseListWebSocketMessage({
@@ -76,10 +76,10 @@ describe('parseListWebSocketMessage', () => {
         updatedAt: new Date().toISOString(),
       },
       timestamp: new Date().toISOString(),
-    });
+    })
 
-    expect(parsed).toBeNull();
-  });
+    expect(parsed).toBeNull()
+  })
 
   it('rejeita mensagem de itens sem revision', () => {
     const parsed = parseListWebSocketMessage({
@@ -110,8 +110,8 @@ describe('parseListWebSocketMessage', () => {
         updatedAt: new Date().toISOString(),
       },
       timestamp: new Date().toISOString(),
-    });
+    })
 
-    expect(parsed).toBeNull();
-  });
-});
+    expect(parsed).toBeNull()
+  })
+})

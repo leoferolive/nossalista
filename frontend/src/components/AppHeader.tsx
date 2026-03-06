@@ -1,25 +1,25 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 interface AppHeaderProps {
-  title: string;
-  subtitle?: string;
-  eyebrow?: string;
-  actions?: React.ReactNode;
-  onBack?: () => void;
-  backLabel?: string;
+  title: string
+  subtitle?: string
+  eyebrow?: string
+  actions?: React.ReactNode
+  onBack?: () => void
+  backLabel?: string
 }
 
 function getInitials(name?: string | null, username?: string) {
-  const source = name?.trim() || username || 'NL';
-  const parts = source.split(/\s+/).filter(Boolean);
+  const source = name?.trim() || username || 'NL'
+  const parts = source.split(/\s+/).filter(Boolean)
 
   if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase()
   }
 
-  return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+  return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase()
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -30,52 +30,52 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onBack,
   backLabel = 'Voltar',
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, logout } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user, logout } = useAuth()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
-  const displayName = user?.displayName || user?.username || 'Conta';
+  const displayName = user?.displayName || user?.username || 'Conta'
   const initials = useMemo(
     () => getInitials(user?.displayName, user?.username),
     [user?.displayName, user?.username]
-  );
+  )
 
   useEffect(() => {
-    setIsMenuOpen(false);
-  }, [location.pathname, location.search]);
+    setIsMenuOpen(false)
+  }, [location.pathname, location.search])
 
   useEffect(() => {
     if (!isMenuOpen) {
-      return;
+      return
     }
 
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
+        setIsMenuOpen(false)
       }
-    };
+    }
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsMenuOpen(false);
+        setIsMenuOpen(false)
       }
-    };
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isMenuOpen]);
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isMenuOpen])
 
   const handleLogout = () => {
-    logout();
-    navigate('/login', { replace: true });
-  };
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <header className="nl-card mb-6 overflow-visible p-4 sm:p-6">
@@ -122,9 +122,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     {title}
                   </h1>
                   {subtitle && (
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-                      {subtitle}
-                    </p>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">{subtitle}</p>
                   )}
                 </div>
               </div>
@@ -133,7 +131,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
           <div className="flex items-start justify-between gap-4 sm:justify-end">
             <div className="hidden rounded-2xl border border-orange-200 bg-orange-50/70 px-4 py-3 text-right text-xs text-orange-900 sm:block">
-              <p className="font-semibold uppercase tracking-[0.15em] text-orange-700">Sessao Ativa</p>
+              <p className="font-semibold uppercase tracking-[0.15em] text-orange-700">
+                Sessao Ativa
+              </p>
               <p className="mt-1 text-sm font-medium text-slate-800">{displayName}</p>
             </div>
 
@@ -170,7 +170,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
 
@@ -220,5 +225,5 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         {actions && <div className="mt-5 flex flex-wrap gap-3">{actions}</div>}
       </div>
     </header>
-  );
-};
+  )
+}

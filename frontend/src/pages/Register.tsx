@@ -1,20 +1,20 @@
-import React, { useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { AuthLayout } from '../components/AuthLayout';
-import { authApi } from '../api/authApi';
+import React, { useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { AuthLayout } from '../components/AuthLayout'
+import { authApi } from '../api/authApi'
 
 function buildLink(path: string, redirectPath: string | null) {
   if (!redirectPath) {
-    return path;
+    return path
   }
 
-  return `${path}?redirect=${encodeURIComponent(redirectPath)}`;
+  return `${path}?redirect=${encodeURIComponent(redirectPath)}`
 }
 
 export const Register: React.FC = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const redirectPath = searchParams.get('redirect');
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectPath = searchParams.get('redirect')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -22,46 +22,46 @@ export const Register: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const loginHref = useMemo(() => buildLink('/login', redirectPath), [redirectPath]);
+  const loginHref = useMemo(() => buildLink('/login', redirectPath), [redirectPath])
   const forgotPasswordHref = useMemo(
     () => buildLink('/forgot-password', redirectPath),
     [redirectPath]
-  );
+  )
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: field === 'username' ? value.toLowerCase() : value,
-    }));
-  };
+    }))
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError('');
+    event.preventDefault()
+    setError('')
 
-    const normalizedUsername = formData.username.trim().toLowerCase();
-    const normalizedEmail = formData.email.trim().toLowerCase();
+    const normalizedUsername = formData.username.trim().toLowerCase()
+    const normalizedEmail = formData.email.trim().toLowerCase()
 
     if (!/^[a-z0-9_-]{3,50}$/.test(normalizedUsername)) {
-      setError('Use um username com 3 a 50 caracteres em minusculas, numeros, hifen ou underscore.');
-      return;
+      setError('Use um username com 3 a 50 caracteres em minusculas, numeros, hifen ou underscore.')
+      return
     }
 
     if (formData.password.length < 6) {
-      setError('A senha precisa ter pelo menos 6 caracteres.');
-      return;
+      setError('A senha precisa ter pelo menos 6 caracteres.')
+      return
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('As senhas nao conferem.');
-      return;
+      setError('As senhas nao conferem.')
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
 
     try {
       await authApi.register({
@@ -69,41 +69,49 @@ export const Register: React.FC = () => {
         username: normalizedUsername,
         email: normalizedEmail,
         password: formData.password,
-      });
+      })
 
-      const nextSearchParams = new URLSearchParams();
-      nextSearchParams.set('registered', '1');
-      nextSearchParams.set('email', normalizedEmail);
+      const nextSearchParams = new URLSearchParams()
+      nextSearchParams.set('registered', '1')
+      nextSearchParams.set('email', normalizedEmail)
 
       if (redirectPath) {
-        nextSearchParams.set('redirect', redirectPath);
+        nextSearchParams.set('redirect', redirectPath)
       }
 
-      navigate(`/login?${nextSearchParams.toString()}`, { replace: true });
+      navigate(`/login?${nextSearchParams.toString()}`, { replace: true })
     } catch (submitError) {
-      const message = submitError instanceof Error ? submitError.message : 'Nao foi possivel criar sua conta.';
-      setError(message);
+      const message =
+        submitError instanceof Error ? submitError.message : 'Nao foi possivel criar sua conta.'
+      setError(message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <AuthLayout
       badge="Cadastro"
       title="Crie Sua Conta"
       description="Configure seu acesso e entre no fluxo colaborativo do NossaLista sem perder tempo."
-      footer={(
+      footer={
         <div className="rounded-3xl border border-orange-200 bg-orange-50/70 p-4 text-sm text-slate-700">
           Ja tem conta?{' '}
-          <Link className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4" to={loginHref}>
+          <Link
+            className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4"
+            to={loginHref}
+          >
             Voltar para login
           </Link>
         </div>
-      )}
+      }
     >
       {error && (
-        <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert" aria-live="polite">
+        <div
+          className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          role="alert"
+          aria-live="polite"
+        >
           {error}
         </div>
       )}
@@ -182,7 +190,10 @@ export const Register: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="confirm-password"
+              className="mb-1.5 block text-sm font-medium text-slate-700"
+            >
               Confirmar senha
             </label>
             <input
@@ -209,10 +220,13 @@ export const Register: React.FC = () => {
 
       <div className="mt-5 text-sm text-slate-600">
         Esqueceu a senha antes mesmo de entrar?{' '}
-        <Link className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4" to={forgotPasswordHref}>
+        <Link
+          className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4"
+          to={forgotPasswordHref}
+        >
           Ver opcoes de acesso
         </Link>
       </div>
     </AuthLayout>
-  );
-};
+  )
+}

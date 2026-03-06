@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react'
 
 interface DeleteListModalProps {
-  isOpen: boolean;
-  listName: string;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-  isDeleting?: boolean;
+  isOpen: boolean
+  listName: string
+  onClose: () => void
+  onConfirm: () => Promise<void>
+  isDeleting?: boolean
 }
 
 /**
@@ -22,51 +22,51 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
   isDeleting = false,
 }) => {
   // Refs para botões (focus trap e auto-focus)
-  const cancelButtonRef = useRef<HTMLButtonElement>(null);
-  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null)
+  const confirmButtonRef = useRef<HTMLButtonElement>(null)
 
   // Auto-focus no botão Cancelar quando modal abre (safe default)
   useEffect(() => {
     if (isOpen && cancelButtonRef.current) {
-      cancelButtonRef.current.focus();
+      cancelButtonRef.current.focus()
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   // Handler para tecla ESC (não fecha durante deleção)
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Escape' && !isDeleting) {
-        onClose();
+        onClose()
       }
 
       // Focus trap: TAB navega entre Cancelar e Excluir
       if (e.key === 'Tab' && !isDeleting) {
-        e.preventDefault();
+        e.preventDefault()
         if (document.activeElement === cancelButtonRef.current) {
-          confirmButtonRef.current?.focus();
+          confirmButtonRef.current?.focus()
         } else {
-          cancelButtonRef.current?.focus();
+          cancelButtonRef.current?.focus()
         }
       }
     },
     [onClose, isDeleting]
-  );
+  )
 
   // Handler para confirmar exclusão
   const handleConfirm = async () => {
     try {
-      await onConfirm();
+      await onConfirm()
       // onClose é chamado pelo componente pai após redirecionamento
-    } catch (err) {
+    } catch {
       // Erros são tratados pelo componente pai (ListView)
       // Modal permanece aberto para retry em erros 500
       // Modal fecha em erros 403/404 (redirecionamento)
     }
-  };
+  }
 
   // Se não está aberto, não renderiza nada
   if (!isOpen) {
-    return null;
+    return null
   }
 
   return (
@@ -78,10 +78,7 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
       aria-modal="true"
       aria-labelledby="delete-modal-title"
     >
-      <div
-        className="nl-card mx-4 w-full max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="nl-card mx-4 w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
         {/* Header com ícone de alerta */}
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
@@ -101,10 +98,7 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
               />
             </svg>
           </div>
-          <h2
-            id="delete-modal-title"
-            className="font-display text-xl font-bold text-slate-900"
-          >
+          <h2 id="delete-modal-title" className="font-display text-xl font-bold text-slate-900">
             Excluir Lista?
           </h2>
         </div>
@@ -116,7 +110,8 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
             <span className="font-semibold text-slate-900">&ldquo;{listName}&rdquo;</span>?
           </p>
           <p className="text-red-600 text-sm font-medium">
-            Esta ação não pode ser desfeita. Todos os itens e membros serão removidos permanentemente.
+            Esta ação não pode ser desfeita. Todos os itens e membros serão removidos
+            permanentemente.
           </p>
         </div>
 
@@ -158,7 +153,7 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                 Excluindo…
+                Excluindo…
               </>
             ) : (
               'Excluir'
@@ -167,5 +162,5 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

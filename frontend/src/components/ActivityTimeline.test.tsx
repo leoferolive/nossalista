@@ -1,19 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { ActivityTimeline } from './ActivityTimeline';
-import { ActivityLog } from '../types/ActivityLog';
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { ActivityTimeline } from './ActivityTimeline'
+import { ActivityLog } from '../types/ActivityLog'
 
 // Mock do hook useToast
-const mockShowToast = vi.fn();
+const mockShowToast = vi.fn()
 vi.mock('./Toast', async () => {
-  const actual = await vi.importActual<typeof import('./Toast')>('./Toast');
+  const actual = await vi.importActual<typeof import('./Toast')>('./Toast')
   return {
     ...actual,
     useToast: () => ({
       showToast: mockShowToast,
     }),
-  };
-});
+  }
+})
 
 describe('ActivityTimeline', () => {
   const mockActivities: ActivityLog[] = [
@@ -52,15 +52,15 @@ describe('ActivityTimeline', () => {
       targetName: 'Usuário',
       details: { method: 'LINK' },
       createdAt: new Date(Date.now() - 86400000).toISOString(), // Ontem
-    }
-  ];
+    },
+  ]
 
-  const mockOnClose = vi.fn();
-  const mockOnLoadMore = vi.fn();
+  const mockOnClose = vi.fn()
+  const mockOnLoadMore = vi.fn()
 
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    vi.clearAllMocks()
+  })
 
   const renderTimeline = (props = {}) => {
     return render(
@@ -73,66 +73,66 @@ describe('ActivityTimeline', () => {
         loading={false}
         {...props}
       />
-    );
-  };
+    )
+  }
 
   it('não deve renderizar quando isOpen é false', () => {
-    renderTimeline({ isOpen: false });
-    expect(screen.queryByText('Atividades')).not.toBeInTheDocument();
-  });
+    renderTimeline({ isOpen: false })
+    expect(screen.queryByText('Atividades')).not.toBeInTheDocument()
+  })
 
   it('deve renderizar a lista de atividades corretamente', () => {
-    renderTimeline();
-    expect(screen.getByText('Atividades')).toBeInTheDocument();
-    expect(screen.getAllByText('Ana Silva').length).toBeGreaterThan(0);
-    expect(screen.getByText('Bruno Costa')).toBeInTheDocument();
-    expect(screen.getByText(/adicionou "Café"/i)).toBeInTheDocument();
-    expect(screen.getByText(/marcou "Leite" como concluído/i)).toBeInTheDocument();
-    expect(screen.getByText(/entrou via link de convite/i)).toBeInTheDocument();
-  });
+    renderTimeline()
+    expect(screen.getByText('Atividades')).toBeInTheDocument()
+    expect(screen.getAllByText('Ana Silva').length).toBeGreaterThan(0)
+    expect(screen.getByText('Bruno Costa')).toBeInTheDocument()
+    expect(screen.getByText(/adicionou "Café"/i)).toBeInTheDocument()
+    expect(screen.getByText(/marcou "Leite" como concluído/i)).toBeInTheDocument()
+    expect(screen.getByText(/entrou via link de convite/i)).toBeInTheDocument()
+  })
 
   it('deve mostrar mensagem de lista vazia', () => {
-    renderTimeline({ activities: [] });
-    expect(screen.getByText('Nenhuma atividade ainda')).toBeInTheDocument();
-  });
+    renderTimeline({ activities: [] })
+    expect(screen.getByText('Nenhuma atividade ainda')).toBeInTheDocument()
+  })
 
   it('deve formatar o tempo relativo', () => {
-    renderTimeline();
-    expect(screen.getByText('agora mesmo')).toBeInTheDocument();
-    expect(screen.getByText('há 1h')).toBeInTheDocument();
-    expect(screen.getByText('ontem')).toBeInTheDocument();
-  });
+    renderTimeline()
+    expect(screen.getByText('agora mesmo')).toBeInTheDocument()
+    expect(screen.getByText('há 1h')).toBeInTheDocument()
+    expect(screen.getByText('ontem')).toBeInTheDocument()
+  })
 
   it('deve alternar a exibição de detalhes quando disponível', () => {
-    renderTimeline();
-    const expandButton = screen.getByText('Ver detalhes');
-    fireEvent.click(expandButton);
-    
-    expect(screen.getByText(/\"method\": \"LINK\"/i)).toBeInTheDocument();
-    expect(screen.getByText('Ocultar detalhes')).toBeInTheDocument();
-    
-    fireEvent.click(screen.getByText('Ocultar detalhes'));
-    expect(screen.queryByText(/\"method\": \"LINK\"/i)).not.toBeInTheDocument();
-  });
+    renderTimeline()
+    const expandButton = screen.getByText('Ver detalhes')
+    fireEvent.click(expandButton)
+
+    expect(screen.getByText(/"method": "LINK"/i)).toBeInTheDocument()
+    expect(screen.getByText('Ocultar detalhes')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Ocultar detalhes'))
+    expect(screen.queryByText(/"method": "LINK"/i)).not.toBeInTheDocument()
+  })
 
   it('deve chamar onLoadMore ao clicar no botão de carregar mais', () => {
-    renderTimeline({ hasMore: true });
-    const loadMoreButton = screen.getByText('Carregar mais atividades');
-    fireEvent.click(loadMoreButton);
-    expect(mockOnLoadMore).toHaveBeenCalled();
-  });
+    renderTimeline({ hasMore: true })
+    const loadMoreButton = screen.getByText('Carregar mais atividades')
+    fireEvent.click(loadMoreButton)
+    expect(mockOnLoadMore).toHaveBeenCalled()
+  })
 
   it('deve mostrar o indicador de carregamento e ocultar botão quando loading é true', () => {
-    renderTimeline({ loading: true });
-    expect(screen.queryByText('Carregar mais atividades')).not.toBeInTheDocument();
+    renderTimeline({ loading: true })
+    expect(screen.queryByText('Carregar mais atividades')).not.toBeInTheDocument()
     // Verifica presença do spinner pelo classe animate-spin
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
-  });
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument()
+  })
 
   it('deve chamar onClose ao clicar no botão fechar', () => {
-    renderTimeline();
-    const closeButton = screen.getByLabelText('Fechar timeline');
-    fireEvent.click(closeButton);
-    expect(mockOnClose).toHaveBeenCalled();
-  });
-});
+    renderTimeline()
+    const closeButton = screen.getByLabelText('Fechar timeline')
+    fireEvent.click(closeButton)
+    expect(mockOnClose).toHaveBeenCalled()
+  })
+})

@@ -1,11 +1,11 @@
-import 'axios';
+import 'axios'
 
 declare module 'axios' {
   interface AxiosRequestConfig {
-    preserveSessionOnUnauthorized?: boolean;
+    preserveSessionOnUnauthorized?: boolean
   }
 
   interface InternalAxiosRequestConfig {
-    preserveSessionOnUnauthorized?: boolean;
+    preserveSessionOnUnauthorized?: boolean
   }
 }

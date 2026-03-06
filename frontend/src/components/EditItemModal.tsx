@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ListItem } from '../types/Item';
-import { useToast } from './Toast';
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { ListItem } from '../types/Item'
+import { useToast } from './Toast'
 
 interface EditItemModalProps {
-  item: ListItem;
-  listType: string;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (itemId: string, request: { name: string; quantity?: number; dueDate?: string; url?: string }) => Promise<void>;
+  item: ListItem
+  listType: string
+  isOpen: boolean
+  onClose: () => void
+  onSave: (
+    itemId: string,
+    request: { name: string; quantity?: number; dueDate?: string; url?: string }
+  ) => Promise<void>
 }
 
 export const EditItemModal: React.FC<EditItemModalProps> = ({
@@ -17,106 +20,117 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const [name, setName] = useState(item.name);
-  const [quantity, setQuantity] = useState(item.quantity ?? 1);
+  const [name, setName] = useState(item.name)
+  const [quantity, setQuantity] = useState(item.quantity ?? 1)
   const [dueDate, setDueDate] = useState<string>(() => {
-    if (!item.dueDate) return '';
+    if (!item.dueDate) return ''
     // Converter para formato YYYY-MM-DDTHH:MM para datetime-local
-    const date = new Date(item.dueDate);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  });
-  const [url, setUrl] = useState(item.url || '');
-  const [isSaving, setIsSaving] = useState(false);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { showToast } = useToast();
+    const date = new Date(item.dueDate)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  })
+  const [url, setUrl] = useState(item.url || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { showToast } = useToast()
 
   const clearDebounceTimer = useCallback(() => {
     if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
     }
-  }, []);
+  }, [])
 
   // Preencher campos com valores atuais ao abrir
   useEffect(() => {
     if (isOpen && item) {
-      clearDebounceTimer();
-      setName(item.name);
-      setQuantity(item.quantity ?? 1);
+      clearDebounceTimer()
+      setName(item.name)
+      setQuantity(item.quantity ?? 1)
       if (item.dueDate) {
-        const date = new Date(item.dueDate);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        setDueDate(`${year}-${month}-${day}T${hours}:${minutes}`);
+        const date = new Date(item.dueDate)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        setDueDate(`${year}-${month}-${day}T${hours}:${minutes}`)
       } else {
-        setDueDate('');
+        setDueDate('')
       }
-      setUrl(item.url || '');
+      setUrl(item.url || '')
     }
-  }, [isOpen, item, clearDebounceTimer]);
+  }, [isOpen, item, clearDebounceTimer])
 
   useEffect(() => {
     return () => {
-      clearDebounceTimer();
-    };
-  }, [clearDebounceTimer]);
+      clearDebounceTimer()
+    }
+  }, [clearDebounceTimer])
 
   const handleSave = async () => {
     if (!name.trim()) {
-      showToast('Nome do item é obrigatório', 'error');
-      return;
+      showToast('Nome do item é obrigatório', 'error')
+      return
     }
 
-    const request: { name: string; quantity?: number; dueDate?: string; url?: string } = { name: name.trim() };
+    const request: { name: string; quantity?: number; dueDate?: string; url?: string } = {
+      name: name.trim(),
+    }
 
     if (listType === 'SHOPPING') {
-      request.quantity = quantity;
+      request.quantity = quantity
     } else if (listType === 'TASK') {
-      if (dueDate) request.dueDate = new Date(dueDate).toISOString();
+      if (dueDate) request.dueDate = new Date(dueDate).toISOString()
     } else if (listType === 'WISHLIST') {
-      request.url = url.trim();
+      request.url = url.trim()
     }
 
-    clearDebounceTimer();
+    clearDebounceTimer()
     debounceTimerRef.current = setTimeout(async () => {
-      setIsSaving(true);
+      setIsSaving(true)
       try {
-        await onSave(item.id, request);
-        onClose();
+        await onSave(item.id, request)
+        onClose()
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erro ao atualizar';
-        showToast(message, 'error');
+        const message = err instanceof Error ? err.message : 'Erro ao atualizar'
+        showToast(message, 'error')
       } finally {
-        setIsSaving(false);
-        debounceTimerRef.current = null;
+        setIsSaving(false)
+        debounceTimerRef.current = null
       }
-    }, 500);
-  };
+    }, 500)
+  }
 
   const handleClose = () => {
-    clearDebounceTimer();
-    setIsSaving(false);
-    onClose();
-  };
+    clearDebounceTimer()
+    setIsSaving(false)
+    onClose()
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-item-title">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-item-title"
+    >
       <div className="nl-card w-full max-w-md p-6">
-        <h2 id="edit-item-title" className="mb-4 font-display text-xl font-semibold text-slate-900">Editar Item</h2>
+        <h2 id="edit-item-title" className="mb-4 font-display text-xl font-semibold text-slate-900">
+          Editar Item
+        </h2>
 
         {/* Campo name (obrigatório para todos os tipos) */}
         <div className="mb-4">
-          <label htmlFor="edit-item-name" className="mb-1 block text-sm font-medium text-slate-700">Nome</label>
+          <label htmlFor="edit-item-name" className="mb-1 block text-sm font-medium text-slate-700">
+            Nome
+          </label>
           <input
             id="edit-item-name"
             type="text"
@@ -133,7 +147,12 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
         {/* Campos específicos por tipo */}
         {listType === 'SHOPPING' && (
           <div className="mb-4">
-            <label htmlFor="edit-item-quantity" className="mb-1 block text-sm font-medium text-slate-700">Quantidade</label>
+            <label
+              htmlFor="edit-item-quantity"
+              className="mb-1 block text-sm font-medium text-slate-700"
+            >
+              Quantidade
+            </label>
             <input
               id="edit-item-quantity"
               type="number"
@@ -149,7 +168,12 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
         {listType === 'TASK' && (
           <div className="mb-4">
-            <label htmlFor="edit-item-due-date" className="mb-1 block text-sm font-medium text-slate-700">Data de Prazo</label>
+            <label
+              htmlFor="edit-item-due-date"
+              className="mb-1 block text-sm font-medium text-slate-700"
+            >
+              Data de Prazo
+            </label>
             <input
               id="edit-item-due-date"
               type="datetime-local"
@@ -163,7 +187,12 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
         {listType === 'WISHLIST' && (
           <div className="mb-4">
-            <label htmlFor="edit-item-url" className="mb-1 block text-sm font-medium text-slate-700">URL/Link</label>
+            <label
+              htmlFor="edit-item-url"
+              className="mb-1 block text-sm font-medium text-slate-700"
+            >
+              URL/Link
+            </label>
             <input
               id="edit-item-url"
               type="url"
@@ -197,5 +226,5 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

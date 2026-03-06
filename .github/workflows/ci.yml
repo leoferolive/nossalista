@@ -14,22 +14,201 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: ${{ matrix.app }}
+  frontend-quality:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        app:
-          - frontend
-          - backend
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        if: matrix.app == 'frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Frontend format check
+        working-directory: frontend
+        run: npm run format:check
+
+      - name: Frontend stylelint
+        working-directory: frontend
+        run: npm run stylelint
+
+      - name: Frontend typecheck
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Frontend tests with coverage
+        working-directory: frontend
+        run: npm run test:coverage
+
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Frontend bundle size check
+        working-directory: frontend
+        run: npm run bundle:check
+
+      - name: Frontend runtime smoke
+        working-directory: frontend
+        run: |
+          npm run preview:smoke > /tmp/frontend-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:4173 > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4173 > /dev/null
+          kill "$PREVIEW_PID"
+
+      - name: Frontend coverage no-decrease
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          git worktree add /tmp/nossalista-base "origin/${{ github.base_ref }}"
+          cd /tmp/nossalista-base/frontend
+          npm ci
+          npm run test:coverage
+          python3 /home/runner/work/nossalista/nossalista/scripts/coverage/compare_frontend_coverage.py \
+            /home/runner/work/nossalista/nossalista/frontend/coverage/coverage-summary.json \
+            /tmp/nossalista-base/frontend/coverage/coverage-summary.json
+
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Frontend e2e smoke
+        working-directory: frontend
+        run: npm run test:e2e
+
+  backend-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Ensure Maven wrapper is executable
+        working-directory: backend
+        run: chmod +x mvnw
+
+      - name: Backend quality gate
+        working-directory: backend
+        run: ./mvnw -B -Pstrict-quality verify -Ddependency-check.skip=true
+
+      - name: Backend regression tests
+        working-directory: backend
+        run: ./mvnw -B -Pregression-tests test
+
+      - name: Backend coverage no-decrease
+        if: github.event_name == 'pull_request'
+        run: |
+          pip install defusedxml
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          git worktree add /tmp/nossalista-base "origin/${{ github.base_ref }}"
+          cd /tmp/nossalista-base/backend
+          chmod +x mvnw
+          ./mvnw -B test jacoco:report
+          python3 /home/runner/work/nossalista/nossalista/scripts/coverage/compare_backend_coverage.py \
+            /home/runner/work/nossalista/nossalista/backend/target/site/jacoco/jacoco.xml \
+            /tmp/nossalista-base/backend/target/site/jacoco/jacoco.xml
+
+      - name: Upload backend JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jacoco-report
+          path: |
+            backend/target/site/jacoco
+            backend/target/dependency-check-report.html
+            backend/target/dependency-check-report.json
+
+  backend-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Package backend for smoke run
+        working-directory: backend
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -DskipTests package
+
+      - name: Backend runtime smoke
+        working-directory: backend
+        run: |
+          java -jar target/*.jar --spring.profiles.active=ci > /tmp/backend-smoke.log 2>&1 &
+          APP_PID=$!
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null
+          kill "$APP_PID"
+
+  security-and-compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -37,46 +216,39 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Setup Java
-        if: matrix.app == 'backend'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
 
+      - name: EditorConfig check
+        uses: editorconfig-checker/action-editorconfig-checker@v2
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+
+      - name: Semgrep
+        run: |
+          pip install semgrep
+          semgrep scan --config p/security-audit --error .
+
       - name: Frontend install
-        if: matrix.app == 'frontend'
         working-directory: frontend
         run: npm ci
 
-      - name: Frontend test
-        if: matrix.app == 'frontend'
+      - name: Frontend audit
         working-directory: frontend
-        run: npm run test -- --run
+        run: npm audit --audit-level=high --omit=dev
 
-      - name: Frontend build
-        if: matrix.app == 'frontend'
+      - name: Frontend license policy
         working-directory: frontend
-        run: npm run build
+        run: npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
 
-      - name: Ensure Maven wrapper is executable
-        if: matrix.app == 'backend'
+      - name: Backend dependency check
         working-directory: backend
-        run: chmod +x mvnw
-
-      - name: Backend quality gate
-        if: matrix.app == 'backend'
-        working-directory: backend
-        run: ./mvnw -B -Pstrict-quality verify
-
-      - name: Backend regression tests
-        if: matrix.app == 'backend'
-        working-directory: backend
-        run: ./mvnw -B -Pregression-tests test
-
-      - name: Upload backend JaCoCo report
-        if: matrix.app == 'backend'
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jacoco-report
-          path: backend/target/site/jacoco
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          chmod +x mvnw
+          ./mvnw -B org.owasp:dependency-check-maven:check

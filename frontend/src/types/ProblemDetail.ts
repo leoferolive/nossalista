@@ -6,30 +6,30 @@ export interface ProblemDetail {
   /**
    * URI que identifica o tipo do problema
    */
-  type: string;
+  type: string
 
   /**
    * Título curto e legível do problema
    */
-  title: string;
+  title: string
 
   /**
    * Código de status HTTP
    */
-  status: number;
+  status: number
 
   /**
    * Explicação detalhada específica para esta ocorrência
    */
-  detail?: string;
+  detail?: string
 
   /**
    * URI que identifica a instância específica do problema
    */
-  instance?: string;
+  instance?: string
 
   /**
    * Propriedades adicionais específicas do erro
    */
-  [key: string]: unknown;
+  [key: string]: unknown
 }

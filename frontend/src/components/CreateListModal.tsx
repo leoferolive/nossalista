@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { TypeCard } from './TypeCard';
-import { LIST_TYPES } from '../types/List';
-import { CreateListRequest } from '../types/List';
+import React, { useState, useEffect, useRef } from 'react'
+import { TypeCard } from './TypeCard'
+import { LIST_TYPES } from '../types/List'
+import { CreateListRequest } from '../types/List'
 
 interface CreateListModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: (listId: string) => void;
-  onSubmit: (request: CreateListRequest) => Promise<{ id: string }>;
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: (listId: string) => void
+  onSubmit: (request: CreateListRequest) => Promise<{ id: string }>
 }
 
 /**
@@ -21,87 +21,89 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
   onSuccess,
   onSubmit,
 }) => {
-  const [name, setName] = useState('');
-  const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState('')
+  const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Auto-focus no input quando modal abre
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+      inputRef.current.focus()
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   // Reset form quando modal fecha
   useEffect(() => {
     if (!isOpen) {
-      setName('');
-      setSelectedTypeId(null);
-      setError(null);
+      setName('')
+      setSelectedTypeId(null)
+      setError(null)
     }
-  }, [isOpen]);
+  }, [isOpen])
 
-  const isNameValid = name.trim().length >= 3;
-  const isTypeSelected = selectedTypeId !== null;
-  const isFormValid = isNameValid && isTypeSelected;
+  const isNameValid = name.trim().length >= 3
+  const isTypeSelected = selectedTypeId !== null
+  const isFormValid = isNameValid && isTypeSelected
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) {
-      e.preventDefault();
+      e.preventDefault()
     }
 
     if (!isFormValid || loading) {
-      return;
+      return
     }
 
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
 
     try {
       const result = await onSubmit({
         name: name.trim(),
         typeId: selectedTypeId!,
-      });
+      })
 
       // Chama onSuccess com ID real da lista criada
-      onSuccess(result.id);
+      onSuccess(result.id)
     } catch (err) {
-      const axiosError = err as { response?: { data?: { detail?: string; errors?: Record<string, string> } } };
-      const fieldErrors = axiosError.response?.data?.errors;
-      const detail = axiosError.response?.data?.detail;
+      const axiosError = err as {
+        response?: { data?: { detail?: string; errors?: Record<string, string> } }
+      }
+      const fieldErrors = axiosError.response?.data?.errors
+      const detail = axiosError.response?.data?.detail
 
-      let errorMessage = 'Erro ao criar lista';
+      let errorMessage = 'Erro ao criar lista'
       if (fieldErrors) {
         // Exibe primeiro erro de campo específico (RFC 7807)
-        const firstError = Object.values(fieldErrors)[0];
-        errorMessage = firstError || detail || 'Erro ao criar lista';
+        const firstError = Object.values(fieldErrors)[0]
+        errorMessage = firstError || detail || 'Erro ao criar lista'
       } else if (detail) {
-        errorMessage = detail;
+        errorMessage = detail
       } else if (err instanceof Error) {
-        errorMessage = err.message;
+        errorMessage = err.message
       }
-      setError(errorMessage);
+      setError(errorMessage)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Enter no campo de nome submete o form (se válido)
     if (e.key === 'Enter' && isFormValid) {
-      e.preventDefault();
-      handleSubmit();
+      e.preventDefault()
+      handleSubmit()
     }
     // Escape fecha o modal
     if (e.key === 'Escape') {
-      onClose();
+      onClose()
     }
-  };
+  }
 
   if (!isOpen) {
-    return null;
+    return null
   }
 
   return (
@@ -110,20 +112,20 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
       onClick={(e) => {
         // Fecha ao clicar no overlay (fora do modal)
         if (e.target === e.currentTarget) {
-          onClose();
+          onClose()
         }
       }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="nl-card animate-scale-in max-h-[90vh] w-full max-w-2xl overflow-y-auto p-6" style={{ overscrollBehavior: 'contain' }}>
+      <div
+        className="nl-card animate-scale-in max-h-[90vh] w-full max-w-2xl overflow-y-auto p-6"
+        style={{ overscrollBehavior: 'contain' }}
+      >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2
-            id="modal-title"
-            className="font-display text-2xl font-bold text-slate-900"
-          >
+          <h2 id="modal-title" className="font-display text-2xl font-bold text-slate-900">
             Criar Nova Lista
           </h2>
           <button
@@ -131,12 +133,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
             className="rounded-lg p-1 text-slate-400 transition-colors hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-orange-300"
             aria-label="Fechar modal"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -151,10 +148,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
         <form onSubmit={handleSubmit}>
           {/* Nome da lista */}
           <div className="mb-6">
-            <label
-              htmlFor="list-name"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="list-name" className="mb-2 block text-sm font-medium text-slate-700">
               Nome da lista
             </label>
             <input
@@ -172,11 +166,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
               aria-invalid={name.length > 0 && !isNameValid}
             />
             {name.length > 0 && !isNameValid && (
-              <p
-                id="name-error"
-                className="mt-1 text-sm text-red-600"
-                role="alert"
-              >
+              <p id="name-error" className="mt-1 text-sm text-red-600" role="alert">
                 O nome deve ter no mínimo 3 caracteres
               </p>
             )}
@@ -184,9 +174,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
 
           {/* Tipo da lista */}
           <div className="mb-6">
-            <label className="mb-3 block text-sm font-medium text-slate-700">
-              Tipo da lista
-            </label>
+            <label className="mb-3 block text-sm font-medium text-slate-700">Tipo da lista</label>
             <div
               className="grid grid-cols-2 gap-4 sm:grid-cols-4"
               role="radiogroup"
@@ -245,5 +233,5 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
         </form>
       </div>
     </div>
-  );
-};
+  )
+}

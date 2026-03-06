@@ -12,88 +12,88 @@ export enum ListTypeEnum {
  * Informações sobre um tipo de lista
  */
 export interface ListType {
-  id: number;
-  name: string;
-  slug: string;
+  id: number
+  name: string
+  slug: string
 }
 
 /**
  * Informações sobre o dono de uma lista
  */
 export interface ListOwner {
-  id: string;
-  username: string;
-  name: string;
-  avatarUrl: string | null;
+  id: string
+  username: string
+  name: string
+  avatarUrl: string | null
 }
 
 /**
  * Resposta da API ao obter/criar uma lista
  */
 export interface ListResponse {
-  id: string;
-  name: string;
-  type: ListType;
-  owner: ListOwner;
-  inviteCode: string;
-  isOwner: boolean;
-  itemsCount: number;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  name: string
+  type: ListType
+  owner: ListOwner
+  inviteCode: string
+  isOwner: boolean
+  itemsCount: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ListStateResponse {
-  listId: string;
-  revision: number;
-  updatedAt: string;
-  itemsCount: number;
+  listId: string
+  revision: number
+  updatedAt: string
+  itemsCount: number
 }
 
 /**
  * Request para criar uma nova lista
  */
 export interface CreateListRequest {
-  name: string;
-  typeId: number;
+  name: string
+  typeId: number
 }
 
 /**
  * Resposta da API ao gerar link de convite
  */
 export interface InviteLinkResponse {
-  invite_code: string;
-  invite_link: string;
-  expires_at: string;
+  invite_code: string
+  invite_link: string
+  expires_at: string
 }
 
 /**
  * Item de lista no modo read-only (via convite)
  */
 export interface JoinListItem {
-  id: string;
-  name: string;
-  checked: boolean;
-  quantity: number | null;
-  due_date: string | null;
-  url: string | null;
-  position: number;
+  id: string
+  name: string
+  checked: boolean
+  quantity: number | null
+  due_date: string | null
+  url: string | null
+  position: number
 }
 
 /**
  * Resposta da API ao visualizar lista via convite (modo read-only)
  */
 export interface JoinListResponse {
-  id: string;
-  name: string;
-  type_slug: string;
-  type_name: string;
-  owner_username: string;
-  owner_name: string;
-  owner_avatar_url: string | null;
-  items: JoinListItem[];
-  invite_code: string;
-  expires_at: string;
-  mode: 'READ_ONLY';
+  id: string
+  name: string
+  type_slug: string
+  type_name: string
+  owner_username: string
+  owner_name: string
+  owner_avatar_url: string | null
+  items: JoinListItem[]
+  invite_code: string
+  expires_at: string
+  mode: 'READ_ONLY'
 }
 
 /**
@@ -101,38 +101,38 @@ export interface JoinListResponse {
  * Retorna 201 para novo membro, 200 para membro existente
  */
 export interface ListJoinedResponse {
-  id: string;
-  name: string;
-  type_slug: string;
-  type_name: string;
-  role: 'OWNER' | 'MEMBER';
-  message: string;
-  created: boolean;
-  list: ListResponse;
+  id: string
+  name: string
+  type_slug: string
+  type_name: string
+  role: 'OWNER' | 'MEMBER'
+  message: string
+  created: boolean
+  list: ListResponse
 }
 
 export interface UserSearchResult {
-  username: string;
-  name: string;
-  avatarUrl: string | null;
+  username: string
+  name: string
+  avatarUrl: string | null
 }
 
 export interface InviteByUsernameResponse {
-  invited_username: string;
-  message: string;
+  invited_username: string
+  message: string
 }
 
 export interface ListMemberUser {
-  id: string;
-  username: string;
-  name: string;
-  avatar_url: string | null;
+  id: string
+  username: string
+  name: string
+  avatar_url: string | null
 }
 
 export interface ListMemberResponse {
-  user: ListMemberUser;
-  role: 'OWNER' | 'MEMBER';
-  joined_at: string;
+  user: ListMemberUser
+  role: 'OWNER' | 'MEMBER'
+  joined_at: string
 }
 
 /**
@@ -167,4 +167,4 @@ export const LIST_TYPES = [
     emoji: '📝',
     description: 'Lista genérica',
   },
-] as const;
+] as const

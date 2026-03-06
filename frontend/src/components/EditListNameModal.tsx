@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'
 
 interface EditListNameModalProps {
-  isOpen: boolean;
-  listName: string;
-  onClose: () => void;
-  onSave: (newName: string) => Promise<void>;
-  isSaving?: boolean;
+  isOpen: boolean
+  listName: string
+  onClose: () => void
+  onSave: (newName: string) => Promise<void>
+  isSaving?: boolean
 }
 
-const MIN_NAME_LENGTH = 3;
-const MAX_NAME_LENGTH = 100;
+const MIN_NAME_LENGTH = 3
+const MAX_NAME_LENGTH = 100
 
 /**
  * Modal para edição do nome da lista
@@ -23,111 +23,111 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
   onSave,
   isSaving = false,
 }) => {
-  const [editedName, setEditedName] = useState(listName);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [editedName, setEditedName] = useState(listName)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   // Reset state quando o modal abre
   useEffect(() => {
     if (isOpen) {
-      setEditedName(listName);
-      setValidationError(null);
+      setEditedName(listName)
+      setValidationError(null)
     }
-  }, [isOpen, listName]);
+  }, [isOpen, listName])
 
   // Focus e selecionar texto quando abre
   useEffect(() => {
     if (isOpen) {
-      const input = document.getElementById('list-name-input') as HTMLInputElement;
+      const input = document.getElementById('list-name-input') as HTMLInputElement
       if (input) {
-        input.focus();
-        input.select();
+        input.focus()
+        input.select()
       }
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   // Handler para tecla ESC
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onClose()
       }
     },
     [onClose]
-  );
+  )
 
   // Validar nome
   const validateName = (name: string): string | null => {
-    const trimmed = name.trim();
+    const trimmed = name.trim()
     if (trimmed.length === 0) {
-      return 'Nome é obrigatório';
+      return 'Nome é obrigatório'
     }
     if (trimmed.length < MIN_NAME_LENGTH) {
-      return `Nome deve ter pelo menos ${MIN_NAME_LENGTH} caracteres`;
+      return `Nome deve ter pelo menos ${MIN_NAME_LENGTH} caracteres`
     }
     if (trimmed.length > MAX_NAME_LENGTH) {
-      return `Nome deve ter no máximo ${MAX_NAME_LENGTH} caracteres`;
+      return `Nome deve ter no máximo ${MAX_NAME_LENGTH} caracteres`
     }
-    return null;
-  };
+    return null
+  }
 
   // Handler para mudança no input
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    const value = e.target.value
     // Limitar a 100 caracteres no input
     if (value.length <= MAX_NAME_LENGTH) {
-      setEditedName(value);
-      setValidationError(validateName(value));
+      setEditedName(value)
+      setValidationError(validateName(value))
     }
-  };
+  }
 
   // Handler para salvar
   const handleSave = async () => {
-    const trimmedName = editedName.trim();
-    const error = validateName(trimmedName);
+    const trimmedName = editedName.trim()
+    const error = validateName(trimmedName)
 
     if (error) {
-      setValidationError(error);
-      return;
+      setValidationError(error)
+      return
     }
 
     // Não salvar se o nome não mudou
     if (trimmedName === listName.trim()) {
-      onClose();
-      return;
+      onClose()
+      return
     }
 
     try {
-      await onSave(trimmedName);
-      onClose();
+      await onSave(trimmedName)
+      onClose()
     } catch (err) {
       // AC4: Modal deve fechar em erro 403 (permissão negada)
-      const errorMessage = err instanceof Error ? err.message : '';
+      const errorMessage = err instanceof Error ? err.message : ''
       if (errorMessage.includes('permissão')) {
-        onClose();
+        onClose()
       }
       // Outros erros: modal fica aberto para retry
     }
-  };
+  }
 
   // Handler para tecla Enter no input
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSave();
+      e.preventDefault()
+      handleSave()
     }
-  };
+  }
 
   // Se não está aberto, não renderiza nada
   if (!isOpen) {
-    return null;
+    return null
   }
 
-  const trimmedName = editedName.trim();
-  const isNameValid = !validateName(trimmedName);
-  const isNameChanged = trimmedName !== listName.trim();
-  const canSave = isNameValid && isNameChanged && !isSaving;
-  const charCount = editedName.length;
-  const isMaxLength = charCount >= MAX_NAME_LENGTH;
+  const trimmedName = editedName.trim()
+  const isNameValid = !validateName(trimmedName)
+  const isNameChanged = trimmedName !== listName.trim()
+  const canSave = isNameValid && isNameChanged && !isSaving
+  const charCount = editedName.length
+  const isMaxLength = charCount >= MAX_NAME_LENGTH
 
   return (
     <div
@@ -138,15 +138,9 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div
-        className="nl-card mx-4 w-full max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="nl-card mx-4 w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <h2
-          id="modal-title"
-          className="mb-4 font-display text-xl font-bold text-slate-900"
-        >
+        <h2 id="modal-title" className="mb-4 font-display text-xl font-bold text-slate-900">
           Editar Nome da Lista
         </h2>
 
@@ -168,14 +162,10 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             placeholder="Nome da lista…"
             disabled={isSaving}
             className={`w-full rounded-xl border px-4 py-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-orange-300 ${
-              validationError
-                ? 'border-red-500'
-                : 'border-orange-200 focus:border-orange-400'
+              validationError ? 'border-red-500' : 'border-orange-200 focus:border-orange-400'
             } ${isSaving ? 'cursor-not-allowed bg-slate-100' : ''}`}
             aria-invalid={!!validationError}
-            aria-describedby={
-              validationError ? 'name-error' : 'name-counter'
-            }
+            aria-describedby={validationError ? 'name-error' : 'name-counter'}
             autoComplete="off"
           />
 
@@ -190,9 +180,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             )}
             <span
               id="name-counter"
-              className={`text-sm ${
-                isMaxLength ? 'font-medium text-red-600' : 'text-slate-500'
-              }`}
+              className={`text-sm ${isMaxLength ? 'font-medium text-red-600' : 'text-slate-500'}`}
             >
               {charCount}/{MAX_NAME_LENGTH}
             </span>
@@ -248,5 +236,5 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

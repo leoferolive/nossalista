@@ -1,128 +1,129 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { listsApi } from '../api/listsApi';
-import { JoinListResponse, JoinListItem, LIST_TYPES } from '../types/List';
-import { ApiError } from '../types/ApiError';
-import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { listsApi } from '../api/listsApi'
+import { JoinListResponse, JoinListItem, LIST_TYPES } from '../types/List'
+import { ApiError } from '../types/ApiError'
+import { useAuth } from '../contexts/AuthContext'
 
 /**
  * Tipo de erro possível na página de join
  */
-type JoinErrorType = 'not_found' | 'expired' | 'generic' | null;
+type JoinErrorType = 'not_found' | 'expired' | 'generic' | null
 
 /**
  * Página de visualização de lista via convite (modo read-only)
  * Endpoint público - não requer autenticação
  */
 export function JoinListPage() {
-  const { inviteCode } = useParams<{ inviteCode: string }>();
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<JoinErrorType>(null);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [listData, setListData] = useState<JoinListResponse | null>(null);
-  const [joining, setJoining] = useState(false);
+  const { inviteCode } = useParams<{ inviteCode: string }>()
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<JoinErrorType>(null)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [listData, setListData] = useState<JoinListResponse | null>(null)
+  const [joining, setJoining] = useState(false)
 
   // Se o usuário já está autenticado e a lista carregou, entrar automaticamente
   useEffect(() => {
     if (isAuthenticated && inviteCode && listData && !loading && !error && !joining) {
-      setJoining(true);
-      listsApi.joinList(inviteCode)
+      setJoining(true)
+      listsApi
+        .joinList(inviteCode)
         .then((response) => {
           navigate(`/lists/${response.id}`, {
             replace: true,
             state: { toastMessage: response.message, toastType: 'success' },
-          });
+          })
         })
         .catch((err) => {
           if (err instanceof ApiError && err.status === 410) {
-            setError('expired');
+            setError('expired')
           } else if (err instanceof ApiError && err.status === 404) {
-            setError('not_found');
+            setError('not_found')
           } else {
-            setError('generic');
-            setErrorMessage(err instanceof Error ? err.message : 'Erro ao entrar na lista');
+            setError('generic')
+            setErrorMessage(err instanceof Error ? err.message : 'Erro ao entrar na lista')
           }
-          setJoining(false);
-        });
+          setJoining(false)
+        })
     }
-  }, [isAuthenticated, inviteCode, listData, loading, error, joining, navigate]);
+  }, [isAuthenticated, inviteCode, listData, loading, error, joining, navigate])
 
   useEffect(() => {
     async function loadList() {
       if (!inviteCode) {
-        setError('not_found');
-        setLoading(false);
-        return;
+        setError('not_found')
+        setLoading(false)
+        return
       }
 
       try {
-        const data = await listsApi.getListByInviteCode(inviteCode);
-        setListData(data);
-        setError(null);
+        const data = await listsApi.getListByInviteCode(inviteCode)
+        setListData(data)
+        setError(null)
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erro desconhecido';
-        setErrorMessage(message);
+        const message = err instanceof Error ? err.message : 'Erro desconhecido'
+        setErrorMessage(message)
 
         if (err instanceof ApiError && err.status === 410) {
-          setError('expired');
+          setError('expired')
         } else if (err instanceof ApiError && err.status === 404) {
-          setError('not_found');
+          setError('not_found')
         } else {
-          setError('generic');
+          setError('generic')
         }
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    loadList();
-  }, [inviteCode]);
+    loadList()
+  }, [inviteCode])
 
   /**
    * Calcula se o link expira em breve (< 5 minutos)
    */
   const isExpiringSoon = (): boolean => {
-    if (!listData?.expires_at) return false;
-    const now = new Date();
-    const expiresAt = new Date(listData.expires_at);
-    const minutesRemaining = Math.floor((expiresAt.getTime() - now.getTime()) / 60000);
-    return minutesRemaining >= 0 && minutesRemaining < 5;
-  };
+    if (!listData?.expires_at) return false
+    const now = new Date()
+    const expiresAt = new Date(listData.expires_at)
+    const minutesRemaining = Math.floor((expiresAt.getTime() - now.getTime()) / 60000)
+    return minutesRemaining >= 0 && minutesRemaining < 5
+  }
 
   /**
    * Obtém o emoji do tipo de lista
    */
   const getTypeEmoji = (slug: string): string => {
-    const type = LIST_TYPES.find(t => t.slug === slug);
-    return type?.emoji || '📋';
-  };
+    const type = LIST_TYPES.find((t) => t.slug === slug)
+    return type?.emoji || '📋'
+  }
 
   /**
    * Salva o inviteCode no sessionStorage para uso após login
    */
   const saveInviteCodeForRedirect = () => {
     if (inviteCode) {
-      sessionStorage.setItem('pendingInviteCode', inviteCode);
+      sessionStorage.setItem('pendingInviteCode', inviteCode)
     }
-  };
+  }
 
   /**
    * Handler para entrar com Google
    */
   const handleGoogleLogin = () => {
-    saveInviteCodeForRedirect();
-    window.location.href = '/api/auth/google';
-  };
+    saveInviteCodeForRedirect()
+    window.location.href = '/api/auth/google'
+  }
 
   /**
    * Handler para entrar com Email
    */
   const handleEmailLogin = () => {
-    saveInviteCodeForRedirect();
-    navigate(`/login?redirect=${encodeURIComponent(`/join/${inviteCode}`)}`);
-  };
+    saveInviteCodeForRedirect()
+    navigate(`/login?redirect=${encodeURIComponent(`/join/${inviteCode}`)}`)
+  }
 
   // Loading state (initial load or joining)
   if (loading || joining) {
@@ -147,7 +148,7 @@ export function JoinListPage() {
               <div className="h-8 bg-gray-200 rounded mb-4 w-2/3" />
               <div className="h-4 bg-gray-200 rounded mb-6 w-1/2" />
               <div className="space-y-3">
-                {[1, 2, 3].map(i => (
+                {[1, 2, 3].map((i) => (
                   <div key={i} className="h-14 bg-gray-100 rounded-lg" />
                 ))}
               </div>
@@ -155,7 +156,7 @@ export function JoinListPage() {
           )}
         </main>
       </div>
-    );
+    )
   }
 
   // Error 404 state
@@ -173,12 +174,8 @@ export function JoinListPage() {
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">🔗</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Convite não encontrado
-            </h1>
-            <p className="text-gray-600 mb-6">
-              Este link pode ter sido desativado ou não existe.
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Convite não encontrado</h1>
+            <p className="text-gray-600 mb-6">Este link pode ter sido desativado ou não existe.</p>
             <Link
               to="/"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
@@ -188,7 +185,7 @@ export function JoinListPage() {
           </div>
         </main>
       </div>
-    );
+    )
   }
 
   // Error 410 state
@@ -206,9 +203,7 @@ export function JoinListPage() {
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">⏰</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Link de convite expirado
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Link de convite expirado</h1>
             <p className="text-gray-600 mb-6">
               Este link de convite expirou. Peça um novo link ao dono da lista.
             </p>
@@ -221,7 +216,7 @@ export function JoinListPage() {
           </div>
         </main>
       </div>
-    );
+    )
   }
 
   // Generic error state
@@ -239,9 +234,7 @@ export function JoinListPage() {
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">⚠️</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Erro ao carregar lista
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Erro ao carregar lista</h1>
             <p className="text-gray-600 mb-6">{errorMessage}</p>
             <button
               onClick={() => window.location.reload()}
@@ -252,13 +245,13 @@ export function JoinListPage() {
           </div>
         </main>
       </div>
-    );
+    )
   }
 
   // Read-only view
-  if (!listData) return null;
+  if (!listData) return null
 
-  const expiringSoon = isExpiringSoon();
+  const expiringSoon = isExpiringSoon()
 
   return (
     <div className="nl-page flex flex-col px-0 py-0">
@@ -322,9 +315,7 @@ export function JoinListPage() {
         {/* Lista de itens */}
         <div className="nl-card rounded-xl border shadow-sm">
           <div className="rounded-t-xl border-b bg-orange-50 px-4 py-3">
-            <h2 className="font-medium text-gray-700">
-              Itens ({listData.items.length})
-            </h2>
+            <h2 className="font-medium text-gray-700">Itens ({listData.items.length})</h2>
           </div>
 
           {listData.items.length === 0 ? (
@@ -354,11 +345,7 @@ export function JoinListPage() {
                   >
                     {item.name}
                   </span>
-                  {item.quantity && (
-                    <span className="text-sm text-gray-500">
-                      ×{item.quantity}
-                    </span>
-                  )}
+                  {item.quantity && <span className="text-sm text-gray-500">×{item.quantity}</span>}
                 </li>
               ))}
             </ul>
@@ -413,5 +400,5 @@ export function JoinListPage() {
         </div>
       </footer>
     </div>
-  );
+  )
 }

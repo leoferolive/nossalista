@@ -1,70 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { CreateListModal } from '../components/CreateListModal';
-import { Toast, useToast } from '../components/Toast';
-import { useLists } from '../hooks/useLists';
-import { ListCard } from '../components/ListCard';
-import { AppHeader } from '../components/AppHeader';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
+import { CreateListModal } from '../components/CreateListModal'
+import { Toast, useToast } from '../components/Toast'
+import { useLists } from '../hooks/useLists'
+import { ListCard } from '../components/ListCard'
+import { AppHeader } from '../components/AppHeader'
+import { useAuth } from '../contexts/AuthContext'
 
 /**
  * Página Home - Exemplo de integração com CreateListModal
  * AC4: Toast, modal fecha, redirecionamento (ou refetch)
  */
 export const Home: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { createList, lists, fetchLists, loading, error, clearError } = useLists();
-  const { toasts, showToast, removeToast } = useToast();
-  const location = useLocation();
-  const { user } = useAuth();
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const { createList, lists, fetchLists, loading, error, clearError } = useLists()
+  const { toasts, showToast, removeToast } = useToast()
+  const location = useLocation()
+  const { user } = useAuth()
 
   // Carregar listas ao montar o componente
   useEffect(() => {
-    fetchLists();
-  }, [fetchLists]);
+    fetchLists()
+  }, [fetchLists])
 
   // Exibir toast passado via navigation state (ex: erro após falha de join via convite)
   useEffect(() => {
-    const state = location.state as { toastMessage?: string; toastType?: 'success' | 'error' | 'info' } | null;
+    const state = location.state as {
+      toastMessage?: string
+      toastType?: 'success' | 'error' | 'info'
+    } | null
     if (state?.toastMessage) {
-      showToast(state.toastMessage, state.toastType ?? 'info');
-      window.history.replaceState({}, '');
+      showToast(state.toastMessage, state.toastType ?? 'info')
+      window.history.replaceState({}, '')
     }
-  }, [location.state, showToast]);
+  }, [location.state, showToast])
 
   useEffect(() => {
-    const state = location.state as { refreshLists?: boolean } | null;
+    const state = location.state as { refreshLists?: boolean } | null
     if (state?.refreshLists) {
-      fetchLists();
+      fetchLists()
     }
-  }, [location.state, fetchLists]);
+  }, [location.state, fetchLists])
 
-  const handleCreateList = async (request: {
-    name: string;
-    typeId: number;
-  }) => {
-    const newList = await createList(request);
-    return { id: newList.id };
-  };
+  const handleCreateList = async (request: { name: string; typeId: number }) => {
+    const newList = await createList(request)
+    return { id: newList.id }
+  }
 
   const handleSuccess = async (listId: string) => {
-    void listId;
+    void listId
     // AC4: Modal fecha primeiro (evita race condition com refetch)
-    setIsModalOpen(false);
+    setIsModalOpen(false)
 
     // AC4: Toast "Lista criada" (success, 300ms animation)
-    showToast('Lista criada!', 'success');
+    showToast('Lista criada!', 'success')
 
     // AC4: Refetch listas após modal fechar
     try {
-      await fetchLists();
+      await fetchLists()
     } catch {
-      showToast('Lista criada, mas houve erro ao atualizar a lista.', 'error');
+      showToast('Lista criada, mas houve erro ao atualizar a lista.', 'error')
     }
 
     // Opcional: navegar para lista criada
     // navigate(`/lists/${listId}`);
-  };
+  }
 
   return (
     <div className="nl-page">
@@ -73,7 +73,7 @@ export const Home: React.FC = () => {
           eyebrow="Painel Tropical"
           title="Minhas Listas"
           subtitle={`Tudo pronto para ${user?.displayName || user?.username}. Crie, compartilhe e retome suas listas com ritmo rapido.`}
-          actions={(
+          actions={
             <button
               onClick={() => setIsModalOpen(true)}
               className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300"
@@ -81,13 +81,16 @@ export const Home: React.FC = () => {
               <span aria-hidden="true">+</span>
               Nova Lista
             </button>
-          )}
+          }
         />
 
         {/* Loading State */}
         {loading && (
           <div className="nl-card flex items-center justify-center py-12">
-            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500" aria-label="Carregando listas" />
+            <div
+              className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500"
+              aria-label="Carregando listas"
+            />
           </div>
         )}
 
@@ -97,8 +100,8 @@ export const Home: React.FC = () => {
             <p className="mb-4 text-lg text-red-600">{error}</p>
             <button
               onClick={() => {
-                clearError();
-                fetchLists();
+                clearError()
+                fetchLists()
               }}
               className="rounded-xl bg-red-600 px-4 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
             >
@@ -112,7 +115,9 @@ export const Home: React.FC = () => {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {lists.length === 0 ? (
               <div className="nl-card col-span-full px-6 py-16 text-center">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">Comece Agora</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">
+                  Comece Agora
+                </p>
                 <p className="mb-5 text-lg text-slate-700">
                   Voce ainda nao tem listas. Crie a primeira e compartilhe em segundos.
                 </p>
@@ -150,5 +155,5 @@ export const Home: React.FC = () => {
         ))}
       </div>
     </div>
-  );
-};
+  )
+}

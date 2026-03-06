@@ -24,3 +24,13 @@
 
 - **Decisao:** gate com Checkstyle + JaCoCo >= 70% linhas + suite de regressao.
 - **Motivo:** manter baseline tecnico minimo durante evolucao do MVP.
+
+## D-006 CI bloqueante no PR
+
+- **Decisao:** tornar todos os gates de qualidade, seguranca, cobertura e build bloqueantes em PR.
+- **Motivo:** impedir regressao funcional/arquitetural e reduzir risco de deploy com falhas conhecidas.
+
+## D-007 Cobertura minima atualizada
+
+- **Decisao:** frontend com threshold global >= 80% (lines/branches/functions/statements) e backend com >= 80% line + >= 75% branch.
+- **Motivo:** elevar padrao tecnico com controle de regressao por no-decrease entre branch base e branch do PR.

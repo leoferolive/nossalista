@@ -1,8 +1,8 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react'
 
 interface UseLongPressOptions {
-  onLongPress: () => void;
-  delay?: number; // milliseconds (default: 1000ms = 1 segundo)
+  onLongPress: () => void
+  delay?: number // milliseconds (default: 1000ms = 1 segundo)
 }
 
 /**
@@ -18,35 +18,35 @@ interface UseLongPressOptions {
  * <div {...longPressProps}>Item</div>
  */
 export function useLongPress({ onLongPress, delay = 1000 }: UseLongPressOptions) {
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isLongPressTriggered = useRef(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isLongPressTriggered = useRef(false)
 
   const start = useCallback(() => {
-    isLongPressTriggered.current = false;
+    isLongPressTriggered.current = false
     timeoutRef.current = setTimeout(() => {
-      isLongPressTriggered.current = true;
-      onLongPress();
-    }, delay);
-  }, [onLongPress, delay]);
+      isLongPressTriggered.current = true
+      onLongPress()
+    }, delay)
+  }, [onLongPress, delay])
 
   const clear = useCallback(() => {
     if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
-  }, []);
+  }, [])
 
   const stop = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
-      clear();
+      clear()
       // Se foi long press, previne o evento de click
       if (isLongPressTriggered.current) {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault()
+        e.stopPropagation()
       }
     },
     [clear]
-  );
+  )
 
   return {
     onMouseDown: start,
@@ -56,7 +56,7 @@ export function useLongPress({ onLongPress, delay = 1000 }: UseLongPressOptions)
     onTouchEnd: stop,
     onContextMenu: (e: React.MouseEvent) => {
       // Prevenir menu de contexto padrão no long press
-      e.preventDefault();
+      e.preventDefault()
     },
-  };
+  }
 }

@@ -82,20 +82,34 @@ Frontend em `http://localhost:5173`.
 
 ```bash
 cd frontend
-npm run test -- --run
+npm run lint
+npm run format:check
+npm run stylelint
+npm run typecheck
+npm run test:coverage
 npm run build
+npm run bundle:check
+npm run test:e2e
 ```
 
 ### Backend
 
 ```bash
 cd backend
-./mvnw -B verify
 ./mvnw -B -Pstrict-quality verify
 ./mvnw -B -Pregression-tests test
+./mvnw -B -DskipTests package
+java -jar target/nossalista-0.0.1-SNAPSHOT.jar --spring.profiles.active=ci
 ```
 
 Detalhes de quality gate do backend em `backend/QUALITY.md`.
+
+## Gates de PR (bloqueantes)
+
+- Frontend: ESLint, Prettier, Stylelint, TypeScript (`tsc --noEmit`), Vitest com coverage >= 80%, build, bundle budget e smoke E2E com Playwright.
+- Backend: `verify` com Checkstyle, PMD, SpotBugs, ArchUnit, JaCoCo (>= 80% linhas e >= 75% branches), build e suite de regressao.
+- Seguranca e compliance: EditorConfig check, gitleaks, semgrep, npm audit (high+), licencas e OWASP Dependency-Check.
+- Smoke backend: subida do jar com profile `ci` e validacao de `/actuator/health`.
 
 ## Deploy
 

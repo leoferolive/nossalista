@@ -1,34 +1,37 @@
-import React from 'react';
-import { OnlineMember } from '../types/OnlineMember';
+import React from 'react'
+import { OnlineMember } from '../types/OnlineMember'
 
 interface OnlineMembersBarProps {
-  members: OnlineMember[];
-  currentUserId: string;
+  members: OnlineMember[]
+  currentUserId: string
 }
 
 function getInitials(name: string, username: string): string {
-  const source = name?.trim() || username.trim();
-  const parts = source.split(/\s+/).filter(Boolean);
+  const source = name?.trim() || username.trim()
+  const parts = source.split(/\s+/).filter(Boolean)
   if (parts.length === 0) {
-    return '??';
+    return '??'
   }
   if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase()
   }
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
 }
 
 export const OnlineMembersBar: React.FC<OnlineMembersBarProps> = ({ members, currentUserId }) => {
   if (members.length === 0) {
-    return null;
+    return null
   }
 
-  const visibleMembers = members.slice(0, 5);
-  const overflowCount = Math.max(0, members.length - 5);
-  const onlyCurrentUserOnline = members.length === 1 && members[0].userId === currentUserId;
+  const visibleMembers = members.slice(0, 5)
+  const overflowCount = Math.max(0, members.length - 5)
+  const onlyCurrentUserOnline = members.length === 1 && members[0].userId === currentUserId
 
   return (
-    <section className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 mb-4" aria-label="Membros online">
+    <section
+      className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 mb-4"
+      aria-label="Membros online"
+    >
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-emerald-800">
           {onlyCurrentUserOnline ? 'Apenas você online agora' : `Online agora: ${members.length}`}
@@ -65,5 +68,5 @@ export const OnlineMembersBar: React.FC<OnlineMembersBarProps> = ({ members, cur
         </div>
       </div>
     </section>
-  );
-};
+  )
+}

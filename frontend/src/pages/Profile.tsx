@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { UserProfile } from '../components/UserProfile';
-import { Toast, useToast } from '../components/Toast';
-import { usersApi } from '../api/usersApi';
-import { ApiError } from '../types/ApiError';
-import { useAuth } from '../contexts/AuthContext';
-import { AppHeader } from '../components/AppHeader';
+import React, { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { UserProfile } from '../components/UserProfile'
+import { Toast, useToast } from '../components/Toast'
+import { usersApi } from '../api/usersApi'
+import { ApiError } from '../types/ApiError'
+import { useAuth } from '../contexts/AuthContext'
+import { AppHeader } from '../components/AppHeader'
 
 /**
  * Página de Perfil do Usuário
@@ -13,9 +13,9 @@ import { AppHeader } from '../components/AppHeader';
  * FR5: Usuário pode atualizar informações do próprio perfil
  */
 export const Profile: React.FC = () => {
-  const navigate = useNavigate();
-  const { toasts, showToast, removeToast } = useToast();
-  const { logout } = useAuth();
+  const navigate = useNavigate()
+  const { toasts, showToast, removeToast } = useToast()
+  const { logout } = useAuth()
 
   const [userData, setUserData] = useState({
     username: '',
@@ -23,79 +23,85 @@ export const Profile: React.FC = () => {
     name: null as string | null,
     avatarUrl: null as string | null,
     authProvider: '' as string,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [updating, setUpdating] = useState(false);
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [updating, setUpdating] = useState(false)
 
   // Carregar dados do perfil ao montar
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        const profile = await usersApi.getProfile();
+        setLoading(true)
+        setError(null)
+        const profile = await usersApi.getProfile()
         setUserData({
           username: profile.username,
           email: profile.email,
           name: profile.name,
           avatarUrl: profile.avatarUrl,
           authProvider: profile.authProvider,
-        });
+        })
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erro ao carregar perfil';
-        setError(message);
-        showToast(message, 'error');
+        const message = err instanceof Error ? err.message : 'Erro ao carregar perfil'
+        setError(message)
+        showToast(message, 'error')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-
-    loadProfile();
-  }, []);
-
-  const handleUpdateProfile = useCallback(async (data: { name: string; avatarUrl: string }) => {
-    setUpdating(true);
-    try {
-      await usersApi.updateProfile(data);
-      // Atualizar estado local
-      setUserData((prev) => ({
-        ...prev,
-        name: data.name,
-        avatarUrl: data.avatarUrl || prev.avatarUrl,
-      }));
-      showToast('Perfil atualizado com sucesso!', 'success');
-      setIsEditing(false);
-    } catch (err) {
-      const apiError = err as ApiError;
-      const message = apiError?.message || 'Erro ao atualizar perfil. Tente novamente.';
-      showToast(message, 'error');
-      // Permanecer em modo de edição em caso de erro
-    } finally {
-      setUpdating(false);
     }
-  }, []);
+
+    loadProfile()
+  }, [showToast])
+
+  const handleUpdateProfile = useCallback(
+    async (data: { name: string; avatarUrl: string }) => {
+      setUpdating(true)
+      try {
+        await usersApi.updateProfile(data)
+        // Atualizar estado local
+        setUserData((prev) => ({
+          ...prev,
+          name: data.name,
+          avatarUrl: data.avatarUrl || prev.avatarUrl,
+        }))
+        showToast('Perfil atualizado com sucesso!', 'success')
+        setIsEditing(false)
+      } catch (err) {
+        const apiError = err as ApiError
+        const message = apiError?.message || 'Erro ao atualizar perfil. Tente novamente.'
+        showToast(message, 'error')
+        // Permanecer em modo de edição em caso de erro
+      } finally {
+        setUpdating(false)
+      }
+    },
+    [showToast]
+  )
 
   const handleLogout = useCallback(async () => {
     try {
-      await usersApi.logout();
-      logout();
-      showToast('Até logo!', 'info');
-      navigate('/login', { replace: true });
+      await usersApi.logout()
+      logout()
+      showToast('Até logo!', 'info')
+      navigate('/login', { replace: true })
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao fazer logout';
-      showToast(message, 'error');
+      const message = err instanceof Error ? err.message : 'Erro ao fazer logout'
+      showToast(message, 'error')
     }
-  }, [logout, navigate, showToast]);
+  }, [logout, navigate, showToast])
 
   // Loading state
   if (loading) {
     return (
       <div className="nl-page flex items-center justify-center p-8">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500" aria-label="Carregando perfil" />
+        <div
+          className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500"
+          aria-label="Carregando perfil"
+        />
       </div>
-    );
+    )
   }
 
   // Error state
@@ -113,7 +119,7 @@ export const Profile: React.FC = () => {
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -162,5 +168,5 @@ export const Profile: React.FC = () => {
         ))}
       </div>
     </div>
-  );
-};
+  )
+}
