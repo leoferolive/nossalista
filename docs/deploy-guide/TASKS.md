@@ -133,11 +133,13 @@ Marcar `[x]` ao concluir cada item.
 ## Fase 11 — Google OAuth
 
 - [x] Acessar Google Cloud Console → projeto NossaLista → Credentials
-- [ ] Adicionar redirect URIs — ver [12-google-oauth.md](12-google-oauth.md) seção 1.1
-  - `http://nossalista.home/api/auth/google/callback`
+- [x] Adicionar redirect URIs — ver [12-google-oauth.md](12-google-oauth.md) seção 1.1
+  - `http://localhost:5173/api/auth/google/callback`
+  - `http://localhost:8080/api/auth/google/callback`
   - `https://nossalista.leoferolive.com.br/api/auth/google/callback`
 - [ ] Adicionar authorized JavaScript origins — ver [12-google-oauth.md](12-google-oauth.md) seção 1.2
-  - `http://nossalista.home`
+  - `http://localhost:5173`
+  - `http://localhost:8080`
   - `https://nossalista.leoferolive.com.br`
 
 ---
