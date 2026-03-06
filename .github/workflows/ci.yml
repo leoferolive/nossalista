@@ -149,6 +149,7 @@ jobs:
       - name: Backend coverage no-decrease
         if: github.event_name == 'pull_request'
         run: |
+          pip install defusedxml
           git fetch origin "${{ github.base_ref }}" --depth=1
           git worktree add /tmp/nossalista-base "origin/${{ github.base_ref }}"
           cd /tmp/nossalista-base/backend

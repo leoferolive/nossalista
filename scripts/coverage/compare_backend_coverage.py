@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-import xml.etree.ElementTree as element_tree
+import defusedxml.ElementTree as element_tree
 
 
 METRICS = ("LINE", "BRANCH")
