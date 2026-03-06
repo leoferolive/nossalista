@@ -1,8 +1,6 @@
 import { Client, StompConfig } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
-
 export type WebSocketChannel = 'items' | 'presence'
 
 export function getListTopic(listId: string, channel: WebSocketChannel): string {
@@ -18,7 +16,7 @@ export function getListTopic(listId: string, channel: WebSocketChannel): string 
  */
 export function createStompClient(token: string): Client {
   const config: StompConfig = {
-    webSocketFactory: () => new SockJS(`${API_URL}/ws`),
+    webSocketFactory: () => new SockJS('/ws'),
     connectHeaders: {
       Authorization: `Bearer ${token}`,
     },

@@ -96,8 +96,7 @@ export default function Login() {
       }
     }
 
-    const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
-    window.location.href = `${baseUrl}/api/auth/google`
+    window.location.href = `${window.location.origin}/api/auth/google`
   }
 
   return (
