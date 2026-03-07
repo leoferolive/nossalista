@@ -153,13 +153,13 @@ Marcar `[x]` ao concluir cada item.
 - [x] Testar health: `curl http://nossalista.home/actuator/health` → `{"status":"UP"}`
 - [x] Testar SPA: `curl http://nossalista.home/` → HTML do React
 - [x] Testar rota React Router: `curl http://nossalista.home/listas` → mesmo HTML (não 404)
-- [ ] Fazer push para `main` e verificar deploy automático via GitHub Actions
+- [x] Fazer push para `main` e verificar deploy automático via GitHub Actions
   - `gh run watch --workflow=deploy-dev.yml`
 
 ### 12.2 Deploy Prod
 - [x] Aplicar manifests: `kubectl apply -f k8s/prod/`
 - [x] Verificar pod: `kubectl get pods -n nossalista -w`
-- [ ] Testar prod via workflow_dispatch manual:
+- [x] Testar prod via workflow_dispatch manual:
   - GitHub → Actions → "Deploy Prod" → Run workflow → confirm: `deploy`
 - [x] Testar: `curl https://nossalista.leoferolive.com.br/actuator/health`
 - [ ] Testar login com Google OAuth em ambos os ambientes
