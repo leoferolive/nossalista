@@ -9,7 +9,7 @@ export const preserveSessionOnUnauthorizedConfig: AxiosRequestConfig = {
  * Instância configurada do Axios para comunicação com a API
  */
 const client: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: '/',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
