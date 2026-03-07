@@ -13,7 +13,8 @@ Status atual:
 - MVP em desenvolvimento ativo
 - Backend e frontend implementados no monorepo
 - CI ativo para frontend e backend
-- Workflow de deploy remoto temporariamente desativado em `.github/workflows/deploy.yml`
+- Deploy dev automático para branches `release/*`
+- Release automática em `main` com tag SemVer patch e deploy prod com aprovação de environment
 
 ## Stack
 
@@ -114,15 +115,18 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
 ## Deploy
 
 - Manifests Kubernetes em `k8s/`
-- Deploy manual:
+- Ambientes:
+  - Dev: deploy automático após CI bem-sucedido em push para `release/*` (`deploy-dev.yml`, imagem `:dev`)
+  - Prod: release automática após CI bem-sucedido em push para `main` (`release-prod.yml`, tag `vX.Y.Z`), com aprovação obrigatória no environment `production`
+
+- Operação manual (fallback):
 
 ```bash
-kubectl apply -f k8s/
+kubectl apply -f k8s/dev/
+kubectl apply -f k8s/prod/
+kubectl get pods -n nossalista-dev
 kubectl get pods -n nossalista
-kubectl logs -f deployment/nossalista -n nossalista
 ```
-
-- Observacao: o workflow `.github/workflows/deploy.yml` esta comentado (desativado temporariamente).
 
 ## Documentacao canonica
 
