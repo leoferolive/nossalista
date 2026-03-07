@@ -53,7 +53,8 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: ${FRONTEND_URL}/api/auth/google/callback
+            # Prod: fixo em HTTPS para evitar callback http:// atrás de proxy/tunnel
+            redirect-uri: https://nossalista.leoferolive.com.br/api/auth/google/callback
             scope: email, profile
 ```
 
@@ -106,7 +107,7 @@ curl -I http://localhost:8080/api/auth/google
 
 | Erro | Causa | Solução |
 |------|-------|---------|
-| `redirect_uri_mismatch` | URI não cadastrada no Google | Adicionar ao Google Cloud Console |
+| `redirect_uri_mismatch` | URI não cadastrada no Google ou callback saiu como `http://` | Adicionar ao Google Cloud Console e fixar `redirect-uri` HTTPS em `application-prod.yml` |
 | `invalid_client` | Client ID/Secret errado | Verificar secret K8s |
 | `access_blocked` | App não verificada (modo teste) | Adicionar usuários de teste no Google Console |
 | Loop de redirect | Redirect pós-auth apontando para rota protegida | Verificar `FRONTEND_URL` no secret |

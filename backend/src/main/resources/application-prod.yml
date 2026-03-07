@@ -27,6 +27,13 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            redirect-uri: https://nossalista.leoferolive.com.br/api/auth/google/callback
+
 logging:
   level:
     br.com.leoferolive.nossalista: INFO

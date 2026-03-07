@@ -97,6 +97,13 @@ spring:
     url: ${DATABASE_URL}
     username: ${DATABASE_USER}
     password: ${DATABASE_PASSWORD}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            # Evita callback http:// quando há proxy/tunnel na frente
+            redirect-uri: https://nossalista.leoferolive.com.br/api/auth/google/callback
 
 jwt:
   secret: ${JWT_SECRET}
