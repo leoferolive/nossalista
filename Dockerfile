@@ -1,5 +1,5 @@
-# Stage 1: Build do Frontend
-FROM node:22-alpine AS frontend-builder
+# Stage 1: Build do Frontend (roda nativo no runner, sem emulação QEMU)
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend-builder
 WORKDIR /workspace
 COPY frontend/package*.json frontend/
 RUN npm ci --prefix frontend
@@ -7,8 +7,8 @@ COPY frontend/ frontend/
 COPY contracts/ contracts/
 RUN npm run build --prefix frontend
 
-# Stage 2: Build do Backend + Frontend embutido
-FROM maven:3.9-eclipse-temurin-25 AS backend-builder
+# Stage 2: Build do Backend + Frontend embutido (roda nativo no runner, sem emulação QEMU)
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-25 AS backend-builder
 WORKDIR /app
 COPY backend/pom.xml .
 RUN mvn dependency:go-offline -B
