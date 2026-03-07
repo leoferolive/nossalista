@@ -67,13 +67,39 @@ npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
 ## Operacao em Kubernetes
 
 ```bash
-kubectl apply -f k8s/
+kubectl apply -f k8s/dev/
+kubectl apply -f k8s/prod/
+kubectl get pods -n nossalista-dev
 kubectl get pods -n nossalista
+kubectl logs -f deployment/nossalista-dev -n nossalista-dev
 kubectl logs -f deployment/nossalista -n nossalista
+kubectl rollout restart deployment/nossalista-dev -n nossalista-dev
 kubectl rollout restart deployment/nossalista -n nossalista
 ```
 
-## Observacoes atuais
+## Release e Deploy (GitHub Actions)
 
-- O workflow `.github/workflows/deploy.yml` esta temporariamente desativado.
-- O deploy automatizado deve ser reativado apenas apos correcao do pipeline externo.
+- Dev:
+  - push em `release/*` roda `CI`
+  - `deploy-dev.yml` publica `:dev` no namespace `nossalista-dev`
+- Prod:
+  - push em `main` roda `CI`
+  - `release-prod.yml` cria tag patch `vX.Y.Z` e GitHub Release
+  - job de deploy exige aprovação no environment `production`
+
+## Rollback de Produção por Tag
+
+1. Identificar a tag estável anterior:
+
+```bash
+gh release list --limit 20
+```
+
+2. Reexecutar deploy de produção apontando `image_tag` para a tag alvo (via workflow `release-prod.yml` ajustado para o commit/tag, ou via procedimento operacional de emergência no cluster).
+
+3. Verificar rollout:
+
+```bash
+kubectl rollout status deployment/nossalista -n nossalista
+kubectl get pods -n nossalista
+```

@@ -1,0 +1,98 @@
+name: Release + Deploy Prod (nossalista.leoferolive.com.br)
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+
+concurrency:
+  group: release-prod-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      release_sha: ${{ steps.version.outputs.release_sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Resolve next release tag
+        id: version
+        run: |
+          set -euo pipefail
+
+          RELEASE_SHA="${{ github.event.workflow_run.head_sha }}"
+          EXISTING_TAG="$(git tag --points-at "$RELEASE_SHA" --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)"
+
+          if [ -n "$EXISTING_TAG" ]; then
+            RELEASE_TAG="$EXISTING_TAG"
+          else
+            LAST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)"
+            if [ -z "$LAST_TAG" ]; then
+              LAST_TAG="v0.0.0"
+            fi
+
+            VERSION="${LAST_TAG#v}"
+            MAJOR="${VERSION%%.*}"
+            REST="${VERSION#*.}"
+            MINOR="${REST%%.*}"
+            PATCH="${REST##*.}"
+            NEXT_PATCH=$((PATCH + 1))
+
+            RELEASE_TAG="v${MAJOR}.${MINOR}.${NEXT_PATCH}"
+            git tag -a "$RELEASE_TAG" "$RELEASE_SHA" -m "Release $RELEASE_TAG"
+            git push origin "$RELEASE_TAG"
+          fi
+
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "release_sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure GitHub Release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+          RELEASE_SHA: ${{ steps.version.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            echo "GitHub Release ${RELEASE_TAG} já existe."
+          else
+            gh release create "$RELEASE_TAG" \
+              --target "$RELEASE_SHA" \
+              --title "$RELEASE_TAG" \
+              --generate-notes
+          fi
+
+  production-approval:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Await manual approval
+        run: |
+          echo "Aguardando aprovação do environment production para deploy da tag ${{ needs.prepare-release.outputs.release_tag }}."
+
+  deploy:
+    needs: [prepare-release, production-approval]
+    permissions:
+      contents: read
+      packages: write
+    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
+    with:
+      app_name: nossalista
+      app_namespace: nossalista
+      app_type: backend
+      dockerfile_path: ./Dockerfile
+      k8s_path: ./k8s/prod
+      image_tag: ${{ needs.prepare-release.outputs.release_tag }}
+    secrets: inherit

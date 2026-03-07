@@ -31,8 +31,8 @@ Docker multi-stage build:
 |-------------------------|------------------------------------------|-----------------------------------------------|
 | Domínio                 | `nossalista.home`                        | `nossalista.leoferolive.com.br`               |
 | Namespace K8s           | `nossalista-dev`                         | `nossalista`                                  |
-| Image tag               | `ghcr.io/leoferolive/nossalista:dev`     | `ghcr.io/leoferolive/nossalista:latest`       |
-| Trigger deploy          | Push na `main`                           | `workflow_dispatch` manual                    |
+| Image tag               | `ghcr.io/leoferolive/nossalista:dev`     | `ghcr.io/leoferolive/nossalista:vX.Y.Z`       |
+| Trigger deploy          | Push em `release/*`                      | Push na `main` + approval no environment `production` |
 | Spring profile          | `dev`                                    | `prod`                                        |
 | Banco de dados          | `nossalista_dev` (postgres.database)     | `nossalista` (postgres.database)              |
 | Acesso                  | Rede local (Traefik direto)              | Internet (Cloudflare Tunnel)                  |
@@ -43,7 +43,7 @@ Docker multi-stage build:
 
 ```
 Dev:
-  git push main
+  git push release/*
     → GitHub Actions (deploy-dev.yml)
     → Docker build ARM64 (multi-stage)
     → push ghcr.io/leoferolive/nossalista:dev
@@ -51,10 +51,12 @@ Dev:
     → Pod reiniciado com nova imagem
 
 Prod:
-  workflow_dispatch (manual, confirmar "deploy")
-    → GitHub Actions (deploy-prod.yml)
+  git push main
+    → GitHub Actions (release-prod.yml)
+    → cria tag patch vX.Y.Z + GitHub Release
+    → aguarda approval no environment production
     → Docker build ARM64 (multi-stage)
-    → push ghcr.io/leoferolive/nossalista:latest
+    → push ghcr.io/leoferolive/nossalista:vX.Y.Z
     → kubectl apply k8s/prod/
     → Pod reiniciado com nova imagem
 ```
