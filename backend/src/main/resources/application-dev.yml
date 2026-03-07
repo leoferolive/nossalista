@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:postgresql://192.168.3.63:30001/nossalista_dev
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/nossalista_dev}
     driver-class-name: org.postgresql.Driver
-    username: nossalista_dev
-    password: nossalistadev
+    username: ${DATABASE_USER:nossalista_dev}
+    password: ${DATABASE_PASSWORD:nossalistadev}
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -20,7 +20,7 @@ spring:
     baseline-on-migrate: true
 
 jwt:
-  secret: dev-secret-key-minimum-32-characters-for-hmac-sha256-algorithm
+  secret: ${JWT_SECRET:dev-secret-change-in-production-min-32-chars}
   expiration: 604800000  # 7 dias em milissegundos
 
 logging:

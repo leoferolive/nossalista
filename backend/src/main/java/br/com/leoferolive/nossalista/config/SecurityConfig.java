@@ -57,8 +57,8 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         // Endpoints da API requerem autenticação
                         .requestMatchers("/api/**").authenticated()
-                        // Negar tudo que não se enquadra nas regras acima
-                        .anyRequest().denyAll()
+                        // Rotas do SPA embutido (/, /listas, /perfil, assets, etc)
+                        .anyRequest().permitAll()
                 )
 
                 // Session Management - Stateless (sem sessões server-side)
@@ -96,7 +96,9 @@ public class SecurityConfig {
         // Origens permitidas
         configuration.setAllowedOrigins(Arrays.asList(
                 "https://nossalista.leoferolive.com.br",  // Produção
-                "http://localhost:5173"                    // Desenvolvimento (Vite)
+                "http://nossalista.home",                  // Dev K8s
+                "http://localhost:5173",                   // Desenvolvimento (Vite)
+                "http://localhost:8080"                    // Desenvolvimento (container)
         ));
 
         // Métodos HTTP permitidos
