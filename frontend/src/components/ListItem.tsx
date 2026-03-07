@@ -164,14 +164,15 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
           {/* Criador (avatar + username) */}
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <img
-              src={item.createdBy.avatarUrl || '/default-avatar.png'}
+              src={item.createdBy.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=fed7aa&color=c2410c`}
               alt={item.createdBy.username}
               className="h-6 w-6 rounded-full bg-orange-100"
               width={24}
               height={24}
               onError={(e) => {
-                // Fallback para avatar padrão se imagem falhar
-                ;(e.target as HTMLImageElement).src = '/default-avatar.png'
+                const target = e.target as HTMLImageElement
+                target.onerror = null
+                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=fed7aa&color=c2410c`
               }}
             />
             <span className="hidden sm:inline truncate max-w-[100px]">
