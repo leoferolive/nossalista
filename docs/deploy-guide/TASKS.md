@@ -157,11 +157,11 @@ Marcar `[x]` ao concluir cada item.
   - `gh run watch --workflow=deploy-dev.yml`
 
 ### 12.2 Deploy Prod
-- [ ] Aplicar manifests: `kubectl apply -f k8s/prod/`
-- [ ] Verificar pod: `kubectl get pods -n nossalista -w`
+- [x] Aplicar manifests: `kubectl apply -f k8s/prod/`
+- [x] Verificar pod: `kubectl get pods -n nossalista -w`
 - [ ] Testar prod via workflow_dispatch manual:
   - GitHub → Actions → "Deploy Prod" → Run workflow → confirm: `deploy`
-- [ ] Testar: `curl https://nossalista.leoferolive.com.br/actuator/health`
+- [x] Testar: `curl https://nossalista.leoferolive.com.br/actuator/health`
 - [ ] Testar login com Google OAuth em ambos os ambientes
 
 ### 12.3 Verificação Final

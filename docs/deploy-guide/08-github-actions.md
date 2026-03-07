@@ -43,11 +43,17 @@ image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}
 name: Deploy Dev (nossalista.home)
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
     branches: [main]
+    types: [completed]
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      packages: write
     uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
     with:
       app_name: nossalista-dev
@@ -86,6 +92,9 @@ jobs:
 
   deploy:
     needs: check-confirm
+    permissions:
+      contents: read
+      packages: write
     uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
     with:
       app_name: nossalista

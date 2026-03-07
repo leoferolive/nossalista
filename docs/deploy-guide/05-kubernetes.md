@@ -67,11 +67,18 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 18
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8080
-            initialDelaySeconds: 90
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -79,7 +86,6 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: 8080
-            initialDelaySeconds: 60
             periodSeconds: 5
             timeoutSeconds: 5
             failureThreshold: 3
@@ -173,6 +179,9 @@ spec:
           envFrom:
             - secretRef:
                 name: nossalista-secrets
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
           resources:
             requests:
               memory: "512Mi"
@@ -180,11 +189,18 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 18
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8080
-            initialDelaySeconds: 90
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -192,7 +208,6 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: 8080
-            initialDelaySeconds: 60
             periodSeconds: 5
             timeoutSeconds: 5
             failureThreshold: 3
