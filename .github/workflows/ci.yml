@@ -250,6 +250,13 @@ jobs:
         working-directory: frontend
         run: npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
 
+      - name: Cache NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: nvd-${{ runner.os }}-
+
       - name: Backend dependency check
         working-directory: backend
         env:
