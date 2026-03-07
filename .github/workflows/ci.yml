@@ -228,7 +228,10 @@ jobs:
         uses: editorconfig-checker/action-editorconfig-checker@v2
 
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        run: |
+          VERSION=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d v)
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks detect --source . --redact
 
       - name: Semgrep
         run: |
