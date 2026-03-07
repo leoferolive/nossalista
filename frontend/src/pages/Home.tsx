@@ -70,13 +70,13 @@ export const Home: React.FC = () => {
     <div className="nl-page">
       <div className="nl-container">
         <AppHeader
-          eyebrow="Painel Tropical"
+          eyebrow="NossaLista"
           title="Minhas Listas"
           subtitle={`Tudo pronto para ${user?.displayName || user?.username}. Crie, compartilhe e retome suas listas com ritmo rapido.`}
           actions={
             <button
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-5 py-3 font-sans text-sm font-semibold text-nl-text shadow-earthen transition-transform hover:-translate-y-0.5 hover:shadow-earthen-strong focus-visible:ring-2 focus-visible:ring-nl-accent/40"
             >
               <span aria-hidden="true">+</span>
               Nova Lista
@@ -88,7 +88,7 @@ export const Home: React.FC = () => {
         {loading && (
           <div className="nl-card flex items-center justify-center py-12">
             <div
-              className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500"
+              className="h-12 w-12 animate-spin rounded-full border-b-2 border-nl-accent"
               aria-label="Carregando listas"
             />
           </div>
@@ -97,13 +97,13 @@ export const Home: React.FC = () => {
         {/* Error State */}
         {error && !loading && (
           <div className="nl-card col-span-full py-12 text-center">
-            <p className="mb-4 text-lg text-red-600">{error}</p>
+            <p className="mb-4 font-sans text-lg text-nl-danger">{error}</p>
             <button
               onClick={() => {
                 clearError()
                 fetchLists()
               }}
-              className="rounded-xl bg-red-600 px-4 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
+              className="rounded-xl bg-nl-danger px-4 py-2 font-sans font-medium text-nl-text transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
             >
               Tentar Novamente
             </button>
@@ -115,15 +115,15 @@ export const Home: React.FC = () => {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {lists.length === 0 ? (
               <div className="nl-card col-span-full px-6 py-16 text-center">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">
+                <p className="mb-2 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-nl-accent">
                   Comece Agora
                 </p>
-                <p className="mb-5 text-lg text-slate-700">
+                <p className="mb-5 font-sans text-lg text-nl-muted">
                   Voce ainda nao tem listas. Crie a primeira e compartilhe em segundos.
                 </p>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-orange-300"
+                  className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-nl-primary to-nl-primary-strong px-5 py-3 font-sans text-sm font-semibold text-nl-text transition-transform hover:-translate-y-0.5 hover:shadow-earthen focus-visible:ring-2 focus-visible:ring-nl-primary/40"
                 >
                   <span aria-hidden="true">+</span>
                   Criar Primeira Lista

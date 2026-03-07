@@ -86,7 +86,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <button
                 type="button"
                 onClick={onBack}
-                className="mt-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-orange-200 bg-white/90 text-slate-600 transition-colors hover:bg-orange-50 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-orange-400"
+                className="mt-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-nl-border bg-nl-surface-strong text-nl-muted transition-colors hover:border-nl-border-strong hover:text-nl-text focus-visible:ring-2 focus-visible:ring-nl-accent/40"
                 aria-label={backLabel}
               >
                 <svg
@@ -107,22 +107,22 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             )}
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">
+              <p className="font-sans text-xs font-semibold uppercase tracking-[0.25em] text-nl-muted">
                 {eyebrow}
               </p>
               <div className="mt-2 flex items-center gap-3">
                 <div
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-sm font-semibold text-white shadow-md"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-nl-accent to-nl-accent-strong text-sm font-bold text-nl-text shadow-earthen"
                   aria-hidden="true"
                 >
                   NL
                 </div>
                 <div>
-                  <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                  <h1 className="font-display text-2xl font-bold tracking-tight text-nl-text sm:text-3xl">
                     {title}
                   </h1>
                   {subtitle && (
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">{subtitle}</p>
+                    <p className="mt-1 max-w-2xl font-sans text-sm leading-6 text-nl-muted">{subtitle}</p>
                   )}
                 </div>
               </div>
@@ -130,23 +130,23 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
 
           <div className="flex items-start justify-between gap-4 sm:justify-end">
-            <div className="hidden rounded-2xl border border-orange-200 bg-orange-50/70 px-4 py-3 text-right text-xs text-orange-900 sm:block">
-              <p className="font-semibold uppercase tracking-[0.15em] text-orange-700">
+            <div className="hidden rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-right text-xs sm:block">
+              <p className="font-sans font-semibold uppercase tracking-[0.15em] text-nl-muted">
                 Sessao Ativa
               </p>
-              <p className="mt-1 text-sm font-medium text-slate-800">{displayName}</p>
+              <p className="mt-1 font-sans text-sm font-medium text-nl-text">{displayName}</p>
             </div>
 
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
                 onClick={() => setIsMenuOpen((prev) => !prev)}
-                className="inline-flex min-h-[52px] items-center gap-3 rounded-2xl border border-orange-200 bg-white px-3 py-2 text-left text-slate-900 shadow-sm transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-400"
+                className="inline-flex min-h-[52px] items-center gap-3 rounded-2xl border border-nl-border bg-nl-surface-strong px-3 py-2 text-left text-nl-text shadow-earthen transition-colors hover:border-nl-border-strong focus-visible:ring-2 focus-visible:ring-nl-accent/40"
                 aria-expanded={isMenuOpen}
                 aria-haspopup="menu"
                 aria-label="Abrir menu da conta"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-sm font-semibold text-teal-800">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-nl-surface font-sans text-sm font-semibold text-nl-accent">
                   {user?.avatarUrl ? (
                     <img
                       src={user.avatarUrl}
@@ -160,12 +160,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="max-w-[9rem] truncate text-sm font-semibold">{displayName}</p>
-                  <p className="max-w-[9rem] truncate text-xs text-slate-500">@{user?.username}</p>
+                  <p className="max-w-[9rem] truncate font-sans text-sm font-semibold text-nl-text">{displayName}</p>
+                  <p className="max-w-[9rem] truncate font-sans text-xs text-nl-muted">@{user?.username}</p>
                 </div>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className={`h-4 w-4 text-slate-500 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`}
+                  className={`h-4 w-4 text-nl-muted transition-transform ${isMenuOpen ? 'rotate-180' : ''}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -181,18 +181,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
               {isMenuOpen && (
                 <div
-                  className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-2xl border border-orange-200 bg-white p-2 shadow-tropical"
+                  className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-2xl border border-nl-border bg-nl-surface p-2 shadow-earthen-strong"
                   role="menu"
                 >
-                  <div className="rounded-xl bg-orange-50/80 px-4 py-3">
-                    <p className="text-sm font-semibold text-slate-900">{displayName}</p>
-                    <p className="text-xs text-slate-500">{user?.email}</p>
+                  <div className="rounded-xl bg-nl-surface-strong px-4 py-3">
+                    <p className="font-sans text-sm font-semibold text-nl-text">{displayName}</p>
+                    <p className="font-sans text-xs text-nl-muted">{user?.email}</p>
                   </div>
 
                   <div className="mt-2 space-y-1">
                     <Link
                       to="/"
-                      className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-orange-50 hover:text-slate-900"
+                      className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
                       role="menuitem"
                     >
                       Home
@@ -200,7 +200,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     </Link>
                     <Link
                       to="/profile"
-                      className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-orange-50 hover:text-slate-900"
+                      className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
                       role="menuitem"
                     >
                       Meu perfil
@@ -209,7 +209,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+                      className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-danger transition-colors hover:bg-nl-danger/10"
                       role="menuitem"
                     >
                       Sair

@@ -72,7 +72,7 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
       <>
         <div
           id={`list-item-${item.id}`}
-          className={`flex items-center gap-3 rounded-2xl border border-orange-100 bg-white/80 p-3 transition-colors hover:bg-orange-50/60 ${
+          className={`flex items-center gap-3 rounded-2xl border border-nl-border bg-nl-surface p-3 transition-colors hover:bg-nl-surface-strong ${
             item.checked ? 'opacity-50' : ''
           } ${isDeleting ? 'animate-fade-out' : ''} ${isWsAdded ? 'ws-item-added' : ''} ${isWsCheckedHighlight ? 'ws-item-checked' : ''}`}
           {...longPressProps}
@@ -82,10 +82,10 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
           {/* Checkbox customizado com animação "pop" */}
           <button
             onClick={handleCheckboxClick}
-            className={`h-6 w-6 rounded border-2 transition-colors duration-300 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-orange-300 ${
+            className={`h-6 w-6 rounded border-2 transition-colors duration-300 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-nl-accent/40 ${
               item.checked
-                ? 'border-teal-600 bg-teal-600'
-                : 'border-orange-200 hover:border-orange-400'
+                ? 'border-nl-primary bg-nl-primary'
+                : 'border-nl-border hover:border-nl-border-strong'
             } ${isWsChecked ? 'animate-pop' : ''}`}
             aria-label={item.checked ? 'Marcar como não concluído' : 'Marcar como concluído'}
             aria-checked={item.checked}
@@ -107,18 +107,18 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
             <button
               type="button"
               onClick={handleItemClick}
-              className={`w-full truncate text-left font-medium transition-colors hover:text-teal-800 focus-visible:ring-2 focus-visible:ring-orange-300 ${
-                item.checked ? 'text-slate-500 line-through' : 'text-slate-900'
+              className={`w-full truncate text-left font-sans font-medium transition-colors hover:text-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/40 ${
+                item.checked ? 'text-nl-muted line-through decoration-nl-muted/60' : 'text-nl-text'
               }`}
             >
               {item.name}
             </button>
 
             {/* Campos extras */}
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+            <div className="mt-1 flex flex-wrap items-center gap-2 font-sans text-sm text-nl-muted">
               {/* Quantity (Compras) */}
               {item.quantity !== null && item.quantity !== undefined && (
-                <span className="rounded bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+                <span className="rounded border border-nl-accent/20 bg-nl-accent/10 px-2 py-0.5 text-xs font-medium text-nl-accent">
                   {item.quantity}x
                 </span>
               )}
@@ -144,7 +144,7 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-teal-700 underline-offset-2 hover:underline"
+                  className="flex items-center gap-1 text-nl-primary underline-offset-2 hover:underline"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,17 +162,17 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
           </div>
 
           {/* Criador (avatar + username) */}
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 font-sans text-sm text-nl-muted">
             <img
-              src={item.createdBy.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=fed7aa&color=c2410c`}
+              src={item.createdBy.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=382b1f&color=d4845a`}
               alt={item.createdBy.username}
-              className="h-6 w-6 rounded-full bg-orange-100"
+              className="h-6 w-6 rounded-full bg-nl-surface-strong"
               width={24}
               height={24}
               onError={(e) => {
                 const target = e.target as HTMLImageElement
                 target.onerror = null
-                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=fed7aa&color=c2410c`
+                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=382b1f&color=d4845a`
               }}
             />
             <span className="hidden sm:inline truncate max-w-[100px]">
