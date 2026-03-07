@@ -122,7 +122,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     {title}
                   </h1>
                   {subtitle && (
-                    <p className="mt-1 max-w-2xl font-sans text-sm leading-6 text-nl-muted">{subtitle}</p>
+                    <p className="mt-1 max-w-2xl font-sans text-sm leading-6 text-nl-muted">
+                      {subtitle}
+                    </p>
                   )}
                 </div>
               </div>
@@ -160,8 +162,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="max-w-[9rem] truncate font-sans text-sm font-semibold text-nl-text">{displayName}</p>
-                  <p className="max-w-[9rem] truncate font-sans text-xs text-nl-muted">@{user?.username}</p>
+                  <p className="max-w-[9rem] truncate font-sans text-sm font-semibold text-nl-text">
+                    {displayName}
+                  </p>
+                  <p className="max-w-[9rem] truncate font-sans text-xs text-nl-muted">
+                    @{user?.username}
+                  </p>
                 </div>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

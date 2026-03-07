@@ -138,7 +138,10 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="mb-1.5 block font-sans text-sm font-medium text-nl-text">
+          <label
+            htmlFor="email"
+            className="mb-1.5 block font-sans text-sm font-medium text-nl-text"
+          >
             Email
           </label>
           <input
@@ -190,7 +193,9 @@ export default function Login() {
 
       <div className="my-6 flex items-center gap-3">
         <div className="h-px flex-1 bg-nl-border" />
-        <span className="font-sans text-xs font-semibold uppercase tracking-[0.24em] text-nl-muted">ou</span>
+        <span className="font-sans text-xs font-semibold uppercase tracking-[0.24em] text-nl-muted">
+          ou
+        </span>
         <div className="h-px flex-1 bg-nl-border" />
       </div>
 
