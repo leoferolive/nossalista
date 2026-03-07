@@ -5,6 +5,7 @@ COPY frontend/package*.json frontend/
 RUN npm ci --prefix frontend
 COPY frontend/ frontend/
 COPY contracts/ contracts/
+ARG GIT_SHA=unknown
 RUN npm run build --prefix frontend
 
 # Stage 2: Build do Backend + Frontend embutido (roda nativo no runner, sem emulação QEMU)
