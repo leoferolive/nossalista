@@ -140,6 +140,7 @@ export const ListView: React.FC = () => {
   const [onlineMembers, setOnlineMembers] = useState<Map<string, OnlineMember>>(new Map())
   const [hasPresenceSnapshot, setHasPresenceSnapshot] = useState(false)
   const membersRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wsAnimationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const { handleIncomingItemsRevision, resetTrackedRevision } = useListRealtimeSync({
     listId: id,
@@ -211,13 +212,15 @@ export const ListView: React.FC = () => {
               return sortItemsByPosition([...prev, message.payload])
             })
             setWsAddedItemIds((prev) => new Set([...prev, message.payload.id]))
-            setTimeout(() => {
-              setWsAddedItemIds((prev) => {
-                const next = new Set(prev)
-                next.delete(message.payload.id)
-                return next
-              })
-            }, 300)
+            wsAnimationTimersRef.current.push(
+              setTimeout(() => {
+                setWsAddedItemIds((prev) => {
+                  const next = new Set(prev)
+                  next.delete(message.payload.id)
+                  return next
+                })
+              }, 300)
+            )
             showToast(`${actorUsername} adicionou ${message.payload.name}`, 'info')
           }
           break
@@ -239,23 +242,27 @@ export const ListView: React.FC = () => {
           break
         case 'ITEM_CHECKED':
           setWsCheckedItemIds((prev) => new Set([...prev, message.payload.id]))
-          setTimeout(() => {
-            setWsCheckedItemIds((prev) => {
-              const next = new Set(prev)
-              next.delete(message.payload.id)
-              return next
-            })
-          }, 300)
-
-          if (!isOwnAction) {
-            setWsCheckedHighlightItemIds((prev) => new Set([...prev, message.payload.id]))
+          wsAnimationTimersRef.current.push(
             setTimeout(() => {
-              setWsCheckedHighlightItemIds((prev) => {
+              setWsCheckedItemIds((prev) => {
                 const next = new Set(prev)
                 next.delete(message.payload.id)
                 return next
               })
             }, 300)
+          )
+
+          if (!isOwnAction) {
+            setWsCheckedHighlightItemIds((prev) => new Set([...prev, message.payload.id]))
+            wsAnimationTimersRef.current.push(
+              setTimeout(() => {
+                setWsCheckedHighlightItemIds((prev) => {
+                  const next = new Set(prev)
+                  next.delete(message.payload.id)
+                  return next
+                })
+              }, 300)
+            )
 
             setItems((prev) =>
               prev.map((i) =>
@@ -340,6 +347,8 @@ export const ListView: React.FC = () => {
       if (membersRefreshTimerRef.current) {
         clearTimeout(membersRefreshTimerRef.current)
       }
+      wsAnimationTimersRef.current.forEach(clearTimeout)
+      wsAnimationTimersRef.current = []
     }
   }, [])
 
