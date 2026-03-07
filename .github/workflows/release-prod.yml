@@ -31,6 +31,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           RELEASE_SHA="${{ github.event.workflow_run.head_sha }}"
           EXISTING_TAG="$(git tag --points-at "$RELEASE_SHA" --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)"
 
