@@ -14,7 +14,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'contracts/**'
+            backend:
+              - 'backend/**'
+              - 'Dockerfile'
+              - 'contracts/**'
+
   frontend-quality:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -93,6 +114,8 @@ jobs:
           path: frontend/coverage
 
   frontend-e2e:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -122,6 +145,8 @@ jobs:
         run: npm run test:e2e
 
   backend-quality:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -170,6 +195,8 @@ jobs:
             backend/target/dependency-check-report.json
 
   backend-smoke:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -203,6 +230,7 @@ jobs:
           kill "$APP_PID"
 
   security-and-compliance:
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -251,6 +279,7 @@ jobs:
         run: npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
 
       - name: Cache NVD database
+        if: needs.changes.outputs.backend == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
@@ -258,6 +287,7 @@ jobs:
           restore-keys: nvd-${{ runner.os }}-
 
       - name: Backend dependency check
+        if: needs.changes.outputs.backend == 'true'
         working-directory: backend
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
