@@ -5,22 +5,14 @@ on:
     workflows: [CI]
     branches: ["release/**"]
     types: [completed]
-  workflow_dispatch:
-    inputs:
-      confirm:
-        description: "Digite o nome da branch para confirmar o deploy"
-        required: true
 
 concurrency:
-  group: deploy-dev-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  group: deploy-dev-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 jobs:
   deploy:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push')
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     permissions:
       contents: read
       packages: write
