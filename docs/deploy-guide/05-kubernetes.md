@@ -135,6 +135,16 @@ spec:
                 name: nossalista-dev
                 port:
                   number: 80
+    - host: leo-ubuntu.tail7485fb.ts.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nossalista-dev
+                port:
+                  number: 80
 ```
 
 ---
