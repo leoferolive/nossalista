@@ -77,7 +77,7 @@ export default function Login() {
         sessionStorage.removeItem('postLoginRedirect')
         navigate(redirectPath)
       } else {
-        navigate('/')
+        navigate('/home')
       }
     } catch {
       setError('Email ou senha inválidos')
