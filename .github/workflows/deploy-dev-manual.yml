@@ -14,53 +14,16 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/arm64
-          push: true
-          tags: ghcr.io/leoferolive/nossalista:dev
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Setup Tailscale
-        uses: tailscale/github-action@v2
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-
-      - name: Configure kubectl
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
-
-      - name: Deploy to dev
-        run: |
-          kubectl apply -f k8s/dev/
-          kubectl set image deployment/nossalista-dev \
-            nossalista-dev=ghcr.io/leoferolive/nossalista:dev \
-            -n nossalista-dev
-          kubectl rollout status deployment/nossalista-dev \
-            -n nossalista-dev --timeout=300s
+    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
+    with:
+      app_name: nossalista-dev
+      app_namespace: nossalista-dev
+      app_type: backend
+      dockerfile_path: ./Dockerfile
+      k8s_path: ./k8s/dev
+      image_tag: dev
+      ref: ${{ inputs.ref }}
+    secrets: inherit
