@@ -29,11 +29,11 @@ export const OnlineMembersBar: React.FC<OnlineMembersBarProps> = ({ members, cur
 
   return (
     <section
-      className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 mb-4"
+      className="bg-nl-success/10 border border-nl-success/10 rounded-lg p-3 mb-4"
       aria-label="Membros online"
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-emerald-800">
+        <p className="text-sm font-medium text-nl-success">
           {onlyCurrentUserOnline ? 'Apenas você online agora' : `Online agora: ${members.length}`}
         </p>
 
@@ -52,7 +52,7 @@ export const OnlineMembersBar: React.FC<OnlineMembersBarProps> = ({ members, cur
                   className="w-8 h-8 rounded-full border-2 border-white object-cover"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-white bg-nl-success/10 text-nl-success text-xs font-semibold flex items-center justify-center">
                   {getInitials(member.name, member.username)}
                 </div>
               )}
@@ -61,7 +61,7 @@ export const OnlineMembersBar: React.FC<OnlineMembersBarProps> = ({ members, cur
           ))}
 
           {overflowCount > 0 && (
-            <div className="-ml-2 w-8 h-8 rounded-full border-2 border-white bg-emerald-200 text-emerald-900 text-xs font-semibold flex items-center justify-center">
+            <div className="-ml-2 w-8 h-8 rounded-full border-2 border-white bg-nl-success/10 text-nl-success text-xs font-semibold flex items-center justify-center">
               +{overflowCount}
             </div>
           )}

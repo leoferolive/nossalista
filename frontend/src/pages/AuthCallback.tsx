@@ -101,12 +101,12 @@ export function AuthCallback() {
     return (
       <div className="nl-page flex items-center justify-center p-4">
         <div className="nl-card w-full max-w-md p-6 text-center">
-          <h1 className="mb-2 font-display text-xl font-bold text-slate-800">Falha no Login</h1>
-          <p className="mb-4 text-slate-600">{error}</p>
+          <h1 className="mb-2 font-display text-xl font-bold text-nl-text">Falha no Login</h1>
+          <p className="mb-4 text-nl-muted">{error}</p>
           <button
             type="button"
             onClick={() => navigate('/login', { replace: true })}
-            className="w-full rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2.5 font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300"
+            className="w-full rounded-xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-4 py-2.5 font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
           >
             Voltar Para Login
           </button>
@@ -118,8 +118,8 @@ export function AuthCallback() {
   return (
     <div className="nl-page flex items-center justify-center p-4">
       <div className="nl-card w-full max-w-md p-6 text-center">
-        <h1 className="mb-2 font-display text-xl font-bold text-slate-800">Concluindo Login…</h1>
-        <p className="text-slate-600">Aguarde um Instante.</p>
+        <h1 className="mb-2 font-display text-xl font-bold text-nl-text">Concluindo Login…</h1>
+        <p className="text-nl-muted">Aguarde um Instante.</p>
       </div>
     </div>
   )

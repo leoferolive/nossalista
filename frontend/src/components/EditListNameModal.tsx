@@ -140,7 +140,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
     >
       <div className="nl-card mx-4 w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <h2 id="modal-title" className="mb-4 font-display text-xl font-bold text-slate-900">
+        <h2 id="modal-title" className="mb-4 font-display text-xl font-bold text-nl-text">
           Editar Nome da Lista
         </h2>
 
@@ -148,7 +148,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
         <div className="mb-4">
           <label
             htmlFor="list-name-input"
-            className="mb-2 block text-sm font-medium text-slate-700"
+            className="mb-2 block text-sm font-medium text-nl-text"
           >
             Nome da lista
           </label>
@@ -161,9 +161,9 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             onKeyDown={handleInputKeyDown}
             placeholder="Nome da lista…"
             disabled={isSaving}
-            className={`w-full rounded-xl border px-4 py-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-orange-300 ${
-              validationError ? 'border-red-500' : 'border-orange-200 focus:border-orange-400'
-            } ${isSaving ? 'cursor-not-allowed bg-slate-100' : ''}`}
+            className={`w-full rounded-xl border px-4 py-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-nl-focus/40 ${
+              validationError ? 'border-nl-danger/30' : 'border-nl-border/20 focus:border-nl-focus/40'
+            } ${isSaving ? 'cursor-not-allowed bg-nl-surface-strong' : ''}`}
             aria-invalid={!!validationError}
             aria-describedby={validationError ? 'name-error' : 'name-counter'}
             autoComplete="off"
@@ -172,7 +172,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
           {/* Contador de caracteres */}
           <div className="flex justify-between mt-1">
             {validationError ? (
-              <span id="name-error" className="text-sm text-red-600" role="alert">
+              <span id="name-error" className="text-sm text-nl-danger" role="alert">
                 {validationError}
               </span>
             ) : (
@@ -180,7 +180,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             )}
             <span
               id="name-counter"
-              className={`text-sm ${isMaxLength ? 'font-medium text-red-600' : 'text-slate-500'}`}
+              className={`text-sm ${isMaxLength ? 'font-medium text-nl-danger' : 'text-nl-muted'}`}
             >
               {charCount}/{MAX_NAME_LENGTH}
             </span>
@@ -192,7 +192,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="min-h-[44px] min-w-[44px] rounded-xl bg-slate-100 px-4 py-2 font-medium text-slate-700 transition-colors hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-[44px] min-w-[44px] rounded-xl bg-nl-surface-strong px-4 py-2 font-medium text-nl-text transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-focus/40 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -201,8 +201,8 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             disabled={!canSave}
             className={`min-h-[44px] min-w-[44px] rounded-xl px-4 py-2 font-medium transition-colors ${
               canSave
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300'
-                : 'cursor-not-allowed bg-orange-200 text-white'
+                ? 'bg-gradient-to-r from-nl-accent to-nl-accent-strong text-white hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-focus/40'
+                : 'cursor-not-allowed bg-nl-border/20 text-white'
             }`}
           >
             {isSaving ? (

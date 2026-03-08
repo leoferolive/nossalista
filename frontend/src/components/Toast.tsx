@@ -39,7 +39,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type, duration = 3000, on
       className={`
         fixed top-4 right-4 z-50
         ${bgColor}
-        px-5 py-3 rounded-2xl shadow-tropical border
+        px-5 py-3 rounded-2xl shadow-earthen border
         flex items-center gap-3
         animate-slideIn
         max-w-md
@@ -53,7 +53,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type, duration = 3000, on
       <span className="text-sm font-medium">{message}</span>
       <button
         onClick={onClose}
-        className="ml-2 rounded-lg p-1 text-current transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-orange-400"
+        className="ml-2 rounded-lg p-1 text-current transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
         aria-label="Fechar notificação"
       >
         ✕

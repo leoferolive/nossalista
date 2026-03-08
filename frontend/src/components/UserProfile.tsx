@@ -60,12 +60,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <img
               src={isEditing ? editedAvatarUrl : avatarUrl!}
               alt={username}
-              className="h-24 w-24 rounded-3xl border-4 border-orange-100 object-cover shadow-md"
+              className="h-24 w-24 rounded-3xl border-4 border-nl-border/20 object-cover shadow-md"
               width={96}
               height={96}
             />
           ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-3xl border-4 border-orange-100 bg-gradient-to-br from-orange-500 to-amber-500 text-4xl font-bold text-white shadow-md">
+            <div className="flex h-24 w-24 items-center justify-center rounded-3xl border-4 border-nl-border/20 bg-gradient-to-br from-nl-accent to-nl-accent-strong text-4xl font-bold text-white shadow-md">
               {username.charAt(0).toUpperCase()}
             </div>
           )}
@@ -74,7 +74,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <button
               type="button"
               onClick={onEdit}
-              className="absolute -bottom-1 -right-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-2xl border border-orange-200 bg-white text-slate-700 shadow-sm transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="absolute -bottom-1 -right-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-2xl border border-nl-border/20 bg-nl-surface text-nl-text shadow-sm transition-colors hover:bg-nl-bg-soft focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               aria-label="Editar perfil"
             >
               ✎
@@ -83,8 +83,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         </div>
 
         <div className="min-w-0 flex-1">
-          <h2 className="font-display text-2xl font-bold text-slate-900">Seu Perfil</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <h2 className="font-display text-2xl font-bold text-nl-text">Seu Perfil</h2>
+          <p className="mt-1 text-sm text-nl-muted">
             Mantenha seus dados atualizados para facilitar convites e colaboracao.
           </p>
 
@@ -92,7 +92,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <button
               type="button"
               onClick={onEdit}
-              className="mt-4 inline-flex min-h-[44px] items-center rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="mt-4 inline-flex min-h-[44px] items-center rounded-xl bg-gradient-to-r from-nl-primary to-nl-primary-strong px-4 py-2 text-sm font-semibold text-white transition-colors hover:from-nl-primary-strong hover:to-nl-primary-strong focus-visible:ring-2 focus-visible:ring-nl-focus/40"
             >
               Editar Perfil
             </button>
@@ -101,7 +101,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               <button
                 type="button"
                 onClick={onCancelEdit}
-                className="inline-flex min-h-[44px] items-center rounded-xl border border-orange-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+                className="inline-flex min-h-[44px] items-center rounded-xl border border-nl-border/20 px-4 py-2 text-sm font-medium text-nl-text transition-colors hover:bg-nl-bg-soft focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               >
                 Cancelar
               </button>
@@ -109,7 +109,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="inline-flex min-h-[44px] items-center rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-[44px] items-center rounded-xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-4 py-2 text-sm font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-focus/40 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving ? 'Salvando…' : 'Salvar Alteracoes'}
               </button>
@@ -120,27 +120,27 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
       {!isEditing && (
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-orange-100 bg-orange-50/70 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-700">
+          <div className="rounded-2xl border border-nl-border/20 bg-nl-bg-soft px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-accent">
               Username
             </p>
-            <p className="mt-1 truncate text-lg font-medium text-slate-900">@{username}</p>
+            <p className="mt-1 truncate text-lg font-medium text-nl-text">@{username}</p>
           </div>
-          <div className="rounded-2xl border border-orange-100 bg-orange-50/70 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-700">
+          <div className="rounded-2xl border border-nl-border/20 bg-nl-bg-soft px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-accent">
               Email
             </p>
-            <p className="mt-1 truncate text-lg text-slate-900">{email}</p>
+            <p className="mt-1 truncate text-lg text-nl-text">{email}</p>
           </div>
-          <div className="rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Nome</p>
-            <p className="mt-1 truncate text-lg text-slate-900">{name || 'Nao informado'}</p>
+          <div className="rounded-2xl border border-nl-border/20 bg-nl-primary/15 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-primary">Nome</p>
+            <p className="mt-1 truncate text-lg text-nl-text">{name || 'Nao informado'}</p>
           </div>
-          <div className="rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
+          <div className="rounded-2xl border border-nl-border/20 bg-nl-primary/15 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-primary">
               Metodo de Acesso
             </p>
-            <p className="mt-1 text-lg text-slate-900">{providerLabel}</p>
+            <p className="mt-1 text-lg text-nl-text">{providerLabel}</p>
           </div>
         </div>
       )}
@@ -150,7 +150,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           <div>
             <label
               htmlFor="profile-name"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-medium text-nl-text"
             >
               Nome
             </label>
@@ -160,7 +160,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               type="text"
               value={editedName}
               onChange={(e) => setEditedName(e.target.value)}
-              className="w-full rounded-xl border border-orange-200 px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-xl border border-nl-border/20 px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               placeholder="Como voce quer aparecer…"
               maxLength={100}
               autoComplete="name"
@@ -169,7 +169,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           </div>
 
           <div>
-            <label htmlFor="avatar-url" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="avatar-url" className="mb-1.5 block text-sm font-medium text-nl-text">
               URL da Foto
             </label>
             <input
@@ -178,18 +178,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               type="url"
               value={editedAvatarUrl}
               onChange={(e) => setEditedAvatarUrl(e.target.value)}
-              className="w-full rounded-xl border border-orange-200 px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-xl border border-nl-border/20 px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               placeholder="https://exemplo.com/foto.jpg"
               inputMode="url"
               autoComplete="off"
               data-testid="avatar-url-input"
             />
             {editedAvatarUrl && (
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/60 p-3">
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-nl-border/20 bg-nl-bg-soft p-3">
                 <img
                   src={editedAvatarUrl}
                   alt="Preview do avatar"
-                  className="h-12 w-12 rounded-xl border border-orange-100 object-cover"
+                  className="h-12 w-12 rounded-xl border border-nl-border/20 object-cover"
                   width={48}
                   height={48}
                   onError={(e) => {
@@ -199,7 +199,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 <button
                   type="button"
                   onClick={() => setEditedAvatarUrl('')}
-                  className="inline-flex min-h-[44px] items-center rounded-xl border border-orange-200 px-3 py-1 text-sm text-slate-700 transition-colors hover:bg-orange-100 focus-visible:ring-2 focus-visible:ring-orange-300"
+                  className="inline-flex min-h-[44px] items-center rounded-xl border border-nl-border/20 px-3 py-1 text-sm text-nl-text transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-focus/40"
                 >
                   Remover
                 </button>
@@ -207,7 +207,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             )}
           </div>
 
-          <p className="rounded-xl border border-teal-100 bg-teal-50/60 px-4 py-3 text-sm text-teal-800">
+          <p className="rounded-xl border border-nl-border/20 bg-nl-primary/15 px-4 py-3 text-sm text-nl-primary">
             Username e email nao podem ser alterados nesta versao.
           </p>
         </div>

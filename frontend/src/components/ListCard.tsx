@@ -17,10 +17,10 @@ export function ListCard({ list }: ListCardProps) {
       to={`/lists/${list.id}`}
       className="
         min-h-[160px]
-        rounded-3xl border border-orange-200 bg-white/95 p-5
-        hover:-translate-y-1 hover:border-orange-300 hover:shadow-tropical
+        rounded-3xl border border-nl-border/20 bg-nl-surface/95 p-5
+        hover:-translate-y-1 hover:border-nl-border/50 hover:shadow-earthen
         transition-transform transition-colors
-        focus-visible:ring-2 focus-visible:ring-orange-300
+        focus-visible:ring-2 focus-visible:ring-nl-focus/40
         flex flex-col justify-between
       "
       aria-label={`Abrir lista ${list.name}`}
@@ -31,10 +31,10 @@ export function ListCard({ list }: ListCardProps) {
           {typeEmoji}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 font-display text-lg font-semibold text-slate-900">
+          <h3 className="line-clamp-2 font-display text-lg font-semibold text-nl-text">
             {list.name}
           </h3>
-          <p className="mt-1 text-sm text-slate-500">{list.type.name}</p>
+          <p className="mt-1 text-sm text-nl-muted">{list.type.name}</p>
         </div>
       </div>
 
@@ -42,16 +42,16 @@ export function ListCard({ list }: ListCardProps) {
       <div className="flex items-center justify-between mt-4">
         <div>
           {list.isOwner ? (
-            <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-800">
+            <span className="rounded-full bg-nl-primary/15 px-3 py-1 text-xs font-semibold text-nl-primary">
               Minha
             </span>
           ) : (
-            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
+            <span className="rounded-full bg-nl-bg-soft px-3 py-1 text-xs font-semibold text-nl-accent">
               Compartilhada
             </span>
           )}
         </div>
-        <div className="font-tabular text-sm text-slate-600">
+        <div className="font-tabular text-sm text-nl-muted">
           {list.itemsCount} {list.itemsCount === 1 ? 'item' : 'itens'}
         </div>
       </div>

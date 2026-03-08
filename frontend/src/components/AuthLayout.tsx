@@ -28,35 +28,35 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               className="absolute -bottom-10 -left-8 h-44 w-44 rounded-full bg-teal-300/35 blur-2xl"
               aria-hidden="true"
             />
-            <p className="inline-flex rounded-full border border-orange-300 bg-orange-100/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-orange-700">
+            <p className="inline-flex rounded-full border border-nl-border/20 bg-nl-bg-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-nl-accent">
               {badge}
             </p>
-            <h2 className="mt-6 font-display text-3xl font-bold text-slate-900">
+            <h2 className="mt-6 font-display text-3xl font-bold text-nl-text">
               Organize Tudo Sem Caos
             </h2>
-            <p className="mt-4 max-w-sm text-base leading-7 text-slate-700">
+            <p className="mt-4 max-w-sm text-base leading-7 text-nl-text">
               Centralize listas, convites e atualizacoes em um espaco com ritmo rapido para o dia a
               dia.
             </p>
-            <ul className="mt-8 space-y-3 text-sm text-slate-700">
-              <li className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3">
+            <ul className="mt-8 space-y-3 text-sm text-nl-text">
+              <li className="rounded-2xl border border-nl-border/20 bg-nl-surface/80 px-4 py-3">
                 Colaboracao em tempo real com feedback imediato.
               </li>
-              <li className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3">
+              <li className="rounded-2xl border border-nl-border/20 bg-nl-surface/80 px-4 py-3">
                 Fluxo simples para entrar, criar e compartilhar listas.
               </li>
-              <li className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3">
+              <li className="rounded-2xl border border-nl-border/20 bg-nl-surface/80 px-4 py-3">
                 Visual vibrante para reduzir friccao e aumentar foco.
               </li>
             </ul>
           </aside>
 
           <section className="nl-card w-full p-6 sm:p-8" aria-label="Formulario de acesso">
-            <p className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">
+            <p className="inline-flex rounded-full border border-nl-border/20 bg-nl-primary/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-nl-primary">
               {badge}
             </p>
-            <h1 className="mt-4 font-display text-3xl font-bold text-slate-900">{title}</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+            <h1 className="mt-4 font-display text-3xl font-bold text-nl-text">{title}</h1>
+            <p className="mt-2 text-sm leading-6 text-nl-muted">{description}</p>
 
             <div className="mt-6">{children}</div>
 

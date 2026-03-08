@@ -122,13 +122,13 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       aria-labelledby="edit-item-title"
     >
       <div className="nl-card w-full max-w-md p-6">
-        <h2 id="edit-item-title" className="mb-4 font-display text-xl font-semibold text-slate-900">
+        <h2 id="edit-item-title" className="mb-4 font-display text-xl font-semibold text-nl-text">
           Editar Item
         </h2>
 
         {/* Campo name (obrigatório para todos os tipos) */}
         <div className="mb-4">
-          <label htmlFor="edit-item-name" className="mb-1 block text-sm font-medium text-slate-700">
+          <label htmlFor="edit-item-name" className="mb-1 block text-sm font-medium text-nl-text">
             Nome
           </label>
           <input
@@ -137,7 +137,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
             name="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-orange-200 px-3 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+            className="w-full rounded-xl border border-nl-border/20 px-3 py-2.5 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
             placeholder="Nome do item…"
             autoComplete="off"
             data-testid="edit-item-name"
@@ -149,7 +149,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           <div className="mb-4">
             <label
               htmlFor="edit-item-quantity"
-              className="mb-1 block text-sm font-medium text-slate-700"
+              className="mb-1 block text-sm font-medium text-nl-text"
             >
               Quantidade
             </label>
@@ -160,7 +160,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
               min="1"
               value={quantity}
               onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              className="w-full rounded-xl border border-orange-200 px-3 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-xl border border-nl-border/20 px-3 py-2.5 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               inputMode="numeric"
             />
           </div>
@@ -170,7 +170,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           <div className="mb-4">
             <label
               htmlFor="edit-item-due-date"
-              className="mb-1 block text-sm font-medium text-slate-700"
+              className="mb-1 block text-sm font-medium text-nl-text"
             >
               Data de Prazo
             </label>
@@ -180,7 +180,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
               name="dueDate"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full rounded-xl border border-orange-200 px-3 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-xl border border-nl-border/20 px-3 py-2.5 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
             />
           </div>
         )}
@@ -189,7 +189,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           <div className="mb-4">
             <label
               htmlFor="edit-item-url"
-              className="mb-1 block text-sm font-medium text-slate-700"
+              className="mb-1 block text-sm font-medium text-nl-text"
             >
               URL/Link
             </label>
@@ -199,7 +199,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
               name="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className="w-full rounded-xl border border-orange-200 px-3 py-2.5 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-xl border border-nl-border/20 px-3 py-2.5 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               placeholder="https://exemplo.com/produto…"
               inputMode="url"
               spellCheck={false}
@@ -212,14 +212,14 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           <button
             onClick={handleClose}
             disabled={isSaving}
-            className="min-h-[44px] rounded-xl border border-orange-200 px-4 py-2 text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-[44px] rounded-xl border border-nl-border/20 px-4 py-2 text-nl-text transition-colors hover:bg-nl-bg-soft focus-visible:ring-2 focus-visible:ring-nl-focus/40 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="min-h-[44px] rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-[44px] rounded-xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-4 py-2 font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-focus/40 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? 'Salvando…' : 'Salvar'}
           </button>

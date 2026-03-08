@@ -95,10 +95,10 @@ export const Register: React.FC = () => {
       title="Crie Sua Conta"
       description="Configure seu acesso e entre no fluxo colaborativo do NossaLista sem perder tempo."
       footer={
-        <div className="rounded-3xl border border-orange-200 bg-orange-50/70 p-4 text-sm text-slate-700">
+        <div className="rounded-3xl border border-nl-border/20 bg-nl-bg-soft p-4 text-sm text-nl-text">
           Ja tem conta?{' '}
           <Link
-            className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4"
+            className="font-semibold text-nl-primary underline decoration-nl-accent underline-offset-4"
             to={loginHref}
           >
             Voltar para login
@@ -108,7 +108,7 @@ export const Register: React.FC = () => {
     >
       {error && (
         <div
-          className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-5 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm text-nl-danger"
           role="alert"
           aria-live="polite"
         >
@@ -119,7 +119,7 @@ export const Register: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-nl-text">
               Nome
             </label>
             <input
@@ -128,14 +128,14 @@ export const Register: React.FC = () => {
               name="name"
               value={formData.name}
               onChange={(event) => handleChange('name', event.target.value)}
-              className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-2xl border border-nl-border/20 bg-nl-surface px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               placeholder="Como voce quer aparecer…"
               autoComplete="name"
             />
           </div>
 
           <div>
-            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-nl-text">
               Username
             </label>
             <input
@@ -144,7 +144,7 @@ export const Register: React.FC = () => {
               name="username"
               value={formData.username}
               onChange={(event) => handleChange('username', event.target.value)}
-              className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-2xl border border-nl-border/20 bg-nl-surface px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               placeholder="leo_oliveira"
               autoComplete="username"
               spellCheck={false}
@@ -153,7 +153,7 @@ export const Register: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-nl-text">
               Email
             </label>
             <input
@@ -162,7 +162,7 @@ export const Register: React.FC = () => {
               name="email"
               value={formData.email}
               onChange={(event) => handleChange('email', event.target.value)}
-              className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-2xl border border-nl-border/20 bg-nl-surface px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               placeholder="voce@email.com"
               autoComplete="email"
               inputMode="email"
@@ -174,7 +174,7 @@ export const Register: React.FC = () => {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-nl-text">
               Senha
             </label>
             <input
@@ -183,7 +183,7 @@ export const Register: React.FC = () => {
               name="password"
               value={formData.password}
               onChange={(event) => handleChange('password', event.target.value)}
-              className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-2xl border border-nl-border/20 bg-nl-surface px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               autoComplete="new-password"
               required
             />
@@ -192,7 +192,7 @@ export const Register: React.FC = () => {
           <div>
             <label
               htmlFor="confirm-password"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-medium text-nl-text"
             >
               Confirmar senha
             </label>
@@ -202,7 +202,7 @@ export const Register: React.FC = () => {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={(event) => handleChange('confirmPassword', event.target.value)}
-              className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-2xl border border-nl-border/20 bg-nl-surface px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
               autoComplete="new-password"
               required
             />
@@ -212,16 +212,16 @@ export const Register: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-2xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-focus/40 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? 'Criando Conta…' : 'Criar Conta'}
         </button>
       </form>
 
-      <div className="mt-5 text-sm text-slate-600">
+      <div className="mt-5 text-sm text-nl-muted">
         Esqueceu a senha antes mesmo de entrar?{' '}
         <Link
-          className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4"
+          className="font-semibold text-nl-primary underline decoration-nl-accent underline-offset-4"
           to={forgotPasswordHref}
         >
           Ver opcoes de acesso

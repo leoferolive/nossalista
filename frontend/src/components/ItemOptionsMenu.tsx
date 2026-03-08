@@ -70,7 +70,7 @@ export function ItemOptionsMenu({
             onEdit()
             onClose()
           }}
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-700"
+          className="w-full text-left px-4 py-2 hover:bg-nl-surface-strong rounded-lg transition-colors text-nl-text"
           data-testid="item-option-edit"
         >
           Editar
@@ -80,7 +80,7 @@ export function ItemOptionsMenu({
             onDelete()
             onClose()
           }}
-          className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+          className="w-full text-left px-4 py-2 hover:bg-nl-danger/10 text-nl-danger rounded-lg transition-colors"
           data-testid="item-option-delete"
         >
           Remover

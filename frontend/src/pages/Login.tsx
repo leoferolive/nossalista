@@ -105,10 +105,10 @@ export default function Login() {
       title="Entre na Sua Conta"
       description="Continue suas listas em segundos com login por email ou Google."
       footer={
-        <div className="rounded-3xl border border-orange-200 bg-orange-50/70 p-4 text-sm text-slate-700">
+        <div className="rounded-3xl border border-nl-border/20 bg-nl-bg-soft p-4 text-sm text-nl-text">
           Nao tem conta ainda?{' '}
           <Link
-            className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4"
+            className="font-semibold text-nl-primary underline decoration-nl-accent underline-offset-4"
             to={registerHref}
           >
             Criar conta
@@ -128,7 +128,7 @@ export default function Login() {
 
       {error && (
         <div
-          className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-5 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm text-nl-danger"
           role="alert"
           aria-live="polite"
         >
@@ -138,7 +138,7 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-nl-text">
             Email
           </label>
           <input
@@ -147,7 +147,7 @@ export default function Login() {
             name="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+            className="w-full rounded-2xl border border-nl-border/20 bg-nl-surface px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
             autoComplete="email"
             inputMode="email"
             spellCheck={false}
@@ -157,12 +157,12 @@ export default function Login() {
 
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-3">
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="password" className="block text-sm font-medium text-nl-text">
               Senha
             </label>
             <Link
               to={forgotPasswordHref}
-              className="text-sm font-medium text-teal-700 underline decoration-orange-400 underline-offset-4 hover:text-teal-900"
+              className="text-sm font-medium text-nl-primary underline decoration-nl-accent underline-offset-4 hover:text-nl-primary"
             >
               Esqueci minha senha
             </Link>
@@ -173,7 +173,7 @@ export default function Login() {
             name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+            className="w-full rounded-2xl border border-nl-border/20 bg-nl-surface px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
             autoComplete="current-password"
             required
           />
@@ -182,24 +182,24 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-800/20 transition-transform hover:-translate-y-0.5 hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-2xl bg-gradient-to-r from-nl-primary to-nl-primary-strong px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-800/20 transition-transform hover:-translate-y-0.5 hover:from-nl-primary-strong hover:to-nl-primary-strong focus-visible:ring-2 focus-visible:ring-nl-focus/40 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
 
       <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">ou</span>
-        <div className="h-px flex-1 bg-slate-200" />
+        <div className="h-px flex-1 bg-nl-border/20" />
+        <span className="text-xs font-semibold uppercase tracking-[0.24em] text-nl-muted">ou</span>
+        <div className="h-px flex-1 bg-nl-border/20" />
       </div>
 
       <button
-        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-orange-200 bg-white px-5 py-3.5 text-sm font-semibold text-slate-700 transition-colors hover:border-orange-300 hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-nl-border/20 bg-nl-surface px-5 py-3.5 text-sm font-semibold text-nl-text transition-colors hover:border-nl-border/50 hover:bg-nl-bg-soft focus-visible:ring-2 focus-visible:ring-nl-focus/40"
         onClick={handleGoogleLogin}
       >
         <span
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-nl-surface-strong text-xs font-bold text-nl-text"
           aria-hidden="true"
         >
           G
@@ -207,10 +207,10 @@ export default function Login() {
         Continuar com Google
       </button>
 
-      <div className="mt-5 text-sm text-slate-600">
+      <div className="mt-5 text-sm text-nl-muted">
         Quer entrar com email e ainda nao criou conta?{' '}
         <Link
-          className="font-semibold text-teal-800 underline decoration-orange-400 underline-offset-4"
+          className="font-semibold text-nl-primary underline decoration-nl-accent underline-offset-4"
           to={registerHref}
         >
           Criar conta
