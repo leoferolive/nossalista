@@ -35,7 +35,7 @@ Docker multi-stage build:
 | Trigger deploy          | Push na `main`                           | `workflow_dispatch` manual                    |
 | Spring profile          | `dev`                                    | `prod`                                        |
 | Banco de dados          | `nossalista_dev` (postgres.database)     | `nossalista` (postgres.database)              |
-| Acesso                  | Rede local (Traefik direto)              | Internet (Cloudflare Tunnel)                  |
+| Acesso                  | Rede local + Tailnet (`:8443`)           | Internet (Cloudflare Tunnel)                  |
 | HTTPS                   | Não (HTTP apenas)                        | Sim (via Cloudflare)                          |
 | Google OAuth URI        | `http://nossalista.home/api/auth/google/callback` | `https://nossalista.leoferolive.com.br/api/auth/google/callback` |
 

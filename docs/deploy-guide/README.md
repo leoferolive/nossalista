@@ -19,7 +19,7 @@ A NossaLista é implantada como **um único container** (frontend React embutido
 | Trigger deploy      | Push na `main`                         | `workflow_dispatch` manual                    |
 | Spring profile      | `dev`                                  | `prod`                                        |
 | Banco de dados      | `nossalista_dev`                       | `nossalista`                                  |
-| Acesso              | Rede local (Traefik direto)            | Internet (Cloudflare Tunnel)                  |
+| Acesso              | Rede local + Tailnet (`:8443`)         | Internet (Cloudflare Tunnel)                  |
 | HTTPS               | Não (HTTP)                             | Sim (via Cloudflare)                          |
 
 ## Documentos
@@ -35,7 +35,7 @@ A NossaLista é implantada como **um único container** (frontend React embutido
 | [07-banco-de-dados.md](07-banco-de-dados.md) | Setup PostgreSQL: databases e usuários |
 | [08-github-actions.md](08-github-actions.md) | Workflows CI/CD (deploy-dev + deploy-prod) |
 | [09-github-secrets.md](09-github-secrets.md) | Secrets necessários no repositório GitHub |
-| [10-dns.md](10-dns.md) | DNS para nossalista.home + exposição Traefik |
+| [10-dns.md](10-dns.md) | DNS local + acesso via Tailscale + exposição Traefik |
 | [11-cloudflare-tunnel.md](11-cloudflare-tunnel.md) | Cloudflare Tunnel para domínio prod |
 | [12-google-oauth.md](12-google-oauth.md) | Redirect URIs no Google Cloud Console |
 | [TASKS.md](TASKS.md) | **Lista mestre de execução** com checklist por fase |
