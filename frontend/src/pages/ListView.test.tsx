@@ -24,6 +24,9 @@ vi.mock('../hooks/useItems')
 vi.mock('../components/Toast')
 vi.mock('../hooks/useWebSocket')
 vi.mock('../contexts/AuthContext')
+vi.mock('../contexts/ThemeContext', () => ({
+  useTheme: () => ({ theme: 'light', toggleTheme: vi.fn(), setTheme: vi.fn() }),
+}))
 vi.mock('../api/listsApi', () => ({
   listsApi: {
     getListMembers: vi.fn(),

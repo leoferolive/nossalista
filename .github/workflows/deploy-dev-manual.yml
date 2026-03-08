@@ -1,0 +1,29 @@
+name: Deploy Dev Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag ou SHA para deployar em dev"
+        required: true
+        default: "main"
+
+concurrency:
+  group: deploy-dev-manual
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    permissions:
+      contents: read
+      packages: write
+    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
+    with:
+      app_name: nossalista-dev
+      app_namespace: nossalista-dev
+      app_type: backend
+      dockerfile_path: ./Dockerfile
+      k8s_path: ./k8s/dev
+      image_tag: dev
+      ref: ${{ inputs.ref }}
+    secrets: inherit

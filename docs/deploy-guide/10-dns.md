@@ -143,3 +143,47 @@ curl http://nossalista.home/listas
 ## 5. DNS para nossalista.leoferolive.com.br (Ambiente Prod)
 
 Gerenciado pelo Cloudflare Tunnel — ver [11-cloudflare-tunnel.md](11-cloudflare-tunnel.md). Nenhuma configuração DNS manual necessária.
+
+---
+
+## 6. Acesso ao Dev via Tailscale (Celular)
+
+Para acessar o ambiente `nossalista-dev` fora da rede local, usar o `tailscale serve` no nó k3s apontando para o NodePort HTTP do Traefik (`31212`).
+
+### Pré-condições
+
+- Tailscale ativo no nó (`tailscale status`)
+- Celular conectado na mesma tailnet
+- Ingress dev com host `leo-ubuntu.tail7485fb.ts.net`
+
+### Configurar proxy HTTPS no Tailscale
+
+```bash
+# No nó k3s
+sudo tailscale serve --https=8443 --bg http://127.0.0.1:31212
+```
+
+### Verificar configuração
+
+```bash
+sudo tailscale serve status
+```
+
+Esperado:
+
+```text
+https://leo-ubuntu.tail7485fb.ts.net:8443 (tailnet only)
+|-- / proxy http://127.0.0.1:31212
+```
+
+### URL de acesso no celular
+
+```text
+https://leo-ubuntu.tail7485fb.ts.net:8443/
+```
+
+### Remover a publicação (se necessário)
+
+```bash
+sudo tailscale serve --https=8443 off
+```
