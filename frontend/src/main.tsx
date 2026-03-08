@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext.tsx'
 import { WebSocketProvider } from './contexts/WebSocketContext.tsx'
+import { ThemeProvider } from './contexts/ThemeContext.tsx'
 import Login from './pages/Login.tsx'
 import { AuthCallback } from './pages/AuthCallback.tsx'
 import { Home } from './pages/Home.tsx'
@@ -66,12 +67,14 @@ function AppRoutes() {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <WebSocketProvider>
-          <AppRoutes />
-        </WebSocketProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <WebSocketProvider>
+            <AppRoutes />
+          </WebSocketProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   </React.StrictMode>
 )

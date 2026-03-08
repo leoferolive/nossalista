@@ -6,24 +6,23 @@
   font-family: 'Outfit', 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #111827;
-  background-color: #fff7ed;
 
-  --nl-bg: #fff7ed;
-  --nl-bg-soft: #ffedd5;
-  --nl-surface: #fffdf8;
-  --nl-surface-strong: #ffffff;
-  --nl-border: #fed7aa;
-  --nl-border-strong: #fdba74;
-  --nl-text: #111827;
-  --nl-text-muted: #475569;
-  --nl-primary: #0f766e;
-  --nl-primary-strong: #115e59;
-  --nl-accent: #f97316;
-  --nl-accent-strong: #ea580c;
-  --nl-danger: #dc2626;
-  --nl-success: #15803d;
-  --nl-focus: #fb923c;
+  /* Tema claro "Terra Clara" (padrão) — canais RGB */
+  --nl-bg: 250 247 243;
+  --nl-bg-soft: 244 238 230;
+  --nl-surface: 255 253 248;
+  --nl-surface-strong: 237 229 218;
+  --nl-border: 180 140 100;
+  --nl-border-strong: 160 120 80;
+  --nl-text: 38 28 18;
+  --nl-text-muted: 120 90 62;
+  --nl-primary: 66 112 64;
+  --nl-primary-strong: 46 84 44;
+  --nl-accent: 196 104 62;
+  --nl-accent-strong: 162 76 40;
+  --nl-danger: 180 50 34;
+  --nl-success: 66 112 64;
+  --nl-focus: 196 104 62;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -31,15 +30,39 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+[data-theme="dark"] {
+  /* Tema escuro "Terra Viva" */
+  --nl-bg: 26 20 16;
+  --nl-bg-soft: 33 26 20;
+  --nl-surface: 45 34 24;
+  --nl-surface-strong: 56 43 31;
+  --nl-border: 210 165 110;
+  --nl-border-strong: 230 185 130;
+  --nl-text: 245 236 224;
+  --nl-text-muted: 168 144 114;
+  --nl-primary: 92 138 90;
+  --nl-primary-strong: 61 107 59;
+  --nl-accent: 212 132 90;
+  --nl-accent-strong: 184 97 58;
+  --nl-danger: 192 80 58;
+  --nl-success: 92 138 90;
+  --nl-focus: 212 132 90;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: rgb(var(--nl-bg));
+  color: rgb(var(--nl-text));
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+[data-theme="dark"] body {
   background:
-    radial-gradient(circle at 12% 8%, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0) 40%),
-    radial-gradient(circle at 88% 16%, rgba(20, 184, 166, 0.22) 0%, rgba(20, 184, 166, 0) 42%),
-    linear-gradient(165deg, #fff7ed 0%, #fffbeb 46%, #fef3c7 100%);
-  color: var(--nl-text);
+    radial-gradient(circle at 12% 8%, rgb(var(--nl-accent) / 0.15) 0%, rgb(var(--nl-accent) / 0) 40%),
+    radial-gradient(circle at 88% 16%, rgb(var(--nl-primary) / 0.12) 0%, rgb(var(--nl-primary) / 0) 42%),
+    rgb(var(--nl-bg));
 }
 
 #root {
@@ -66,7 +89,7 @@ textarea {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--nl-focus);
+  outline: 2px solid rgb(var(--nl-focus));
   outline-offset: 2px;
 }
 
@@ -85,19 +108,25 @@ textarea {
 }
 
 .nl-card {
-  background: color-mix(in srgb, var(--nl-surface-strong) 92%, #ffffff 8%);
-  border: 1px solid color-mix(in srgb, var(--nl-border) 74%, #ffffff 26%);
+  background: rgb(var(--nl-surface));
+  border: 1px solid rgb(var(--nl-border) / 0.25);
   border-radius: 1.5rem;
   box-shadow:
-    0 18px 40px rgba(234, 88, 12, 0.11),
-    0 2px 4px rgba(15, 23, 42, 0.05);
+    0 18px 40px rgb(var(--nl-accent-strong) / 0.12),
+    0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+[data-theme="dark"] .nl-card {
+  box-shadow:
+    0 18px 40px rgb(var(--nl-primary) / 0.12),
+    0 2px 8px rgb(0 0 0 / 0.35);
 }
 
 .nl-glass {
-  background: color-mix(in srgb, #ffffff 74%, #ffedd5 26%);
+  background: rgb(var(--nl-surface) / 0.88);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid color-mix(in srgb, var(--nl-border) 70%, #ffffff 30%);
+  border: 1px solid rgb(var(--nl-border) / 0.25);
 }
 
 /* Animação para Toast (300ms conforme AC4) */
@@ -181,10 +210,10 @@ textarea {
 
 /* Glassmorphism para cards e modais */
 .glass-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgb(var(--nl-surface) / 0.94);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgb(var(--nl-border) / 0.25);
 }
 
 /* Animação para itens adicionados via WebSocket */
@@ -206,7 +235,7 @@ textarea {
 /* Animação para itens marcados/desmarcados via WebSocket */
 @keyframes wsCheckedPulse {
   0% {
-    background-color: rgba(251, 191, 36, 0.4);
+    background-color: rgb(var(--nl-accent) / 0.4);
   }
   100% {
     background-color: transparent;

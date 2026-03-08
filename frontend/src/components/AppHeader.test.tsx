@@ -15,6 +15,10 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
+vi.mock('../contexts/ThemeContext', () => ({
+  useTheme: () => ({ theme: 'light', toggleTheme: vi.fn(), setTheme: vi.fn() }),
+}))
+
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: {
