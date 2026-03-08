@@ -28,8 +28,8 @@ describe('TypeCard', () => {
     const { container } = render(<TypeCard {...mockProps} isSelected={true} />)
 
     const card = container.firstChild as HTMLElement
-    expect(card.className).toContain('border-teal-500')
-    expect(card.className).toContain('bg-teal-50')
+    expect(card.className).toContain('border-nl-primary')
+    expect(card.className).toContain('bg-nl-primary/10')
   })
 
   it('deve chamar onClick quando clicado', async () => {

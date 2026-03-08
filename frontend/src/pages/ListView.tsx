@@ -714,28 +714,28 @@ export const ListView: React.FC = () => {
         <div className="nl-container max-w-4xl">
           {/* Skeleton Header */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="h-10 w-10 animate-pulse rounded-xl bg-orange-200" />
-            <div className="h-8 w-64 animate-pulse rounded-xl bg-orange-200" />
+            <div className="h-10 w-10 animate-pulse rounded-xl bg-nl-surface-strong" />
+            <div className="h-8 w-64 animate-pulse rounded-xl bg-nl-surface-strong" />
           </div>
 
           {/* Skeleton Info Card */}
           <div className="nl-card mb-6 p-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 animate-pulse rounded-full bg-orange-200" />
+              <div className="h-12 w-12 animate-pulse rounded-full bg-nl-surface-strong" />
               <div className="flex-1">
-                <div className="mb-2 h-5 w-32 animate-pulse rounded bg-orange-200" />
-                <div className="h-4 w-48 animate-pulse rounded bg-orange-100" />
+                <div className="mb-2 h-5 w-32 animate-pulse rounded bg-nl-surface-strong" />
+                <div className="h-4 w-48 animate-pulse rounded bg-nl-surface-strong" />
               </div>
             </div>
           </div>
 
           {/* Skeleton Items Section */}
           <div className="nl-card p-4">
-            <div className="mb-4 h-6 w-32 animate-pulse rounded bg-orange-200" />
+            <div className="mb-4 h-6 w-32 animate-pulse rounded bg-nl-surface-strong" />
             <div className="space-y-3">
-              <div className="h-16 w-full animate-pulse rounded bg-orange-100" />
-              <div className="h-16 w-full animate-pulse rounded bg-orange-100" />
-              <div className="h-16 w-full animate-pulse rounded bg-orange-100" />
+              <div className="h-16 w-full animate-pulse rounded bg-nl-surface-strong" />
+              <div className="h-16 w-full animate-pulse rounded bg-nl-surface-strong" />
+              <div className="h-16 w-full animate-pulse rounded bg-nl-surface-strong" />
             </div>
           </div>
         </div>
@@ -751,11 +751,11 @@ export const ListView: React.FC = () => {
     return (
       <div className="nl-page">
         <div className="nl-container max-w-4xl">
-          <div className="nl-card mt-12 border border-red-200 bg-red-50 p-8 text-center">
-            <p className="text-red-800 font-semibold mb-4 text-lg">{errorList}</p>
+          <div className="nl-card mt-12 border border-nl-danger/30 bg-nl-danger/10 p-8 text-center">
+            <p className="text-nl-danger font-semibold mb-4 text-lg">{errorList}</p>
             <Link
               to="/"
-              className="inline-flex rounded-xl bg-red-600 px-6 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
+              className="inline-flex rounded-xl bg-nl-danger px-6 py-2 font-medium text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
             >
               Voltar para Home
             </Link>
@@ -770,14 +770,14 @@ export const ListView: React.FC = () => {
     return (
       <div className="nl-page">
         <div className="nl-container max-w-4xl">
-          <div className="nl-card mt-12 border border-red-200 bg-red-50 p-8 text-center">
-            <p className="text-red-800 font-semibold mb-4 text-lg">{errorList}</p>
+          <div className="nl-card mt-12 border border-nl-danger/30 bg-nl-danger/10 p-8 text-center">
+            <p className="text-nl-danger font-semibold mb-4 text-lg">{errorList}</p>
             <button
               onClick={() => {
                 clearListError()
                 if (id) fetchListById(id)
               }}
-              className="rounded-xl bg-red-600 px-6 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
+              className="rounded-xl bg-nl-danger px-6 py-2 font-medium text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
             >
               Tentar Novamente
             </button>
@@ -807,19 +807,19 @@ export const ListView: React.FC = () => {
             <>
               <button
                 onClick={handleOpenMembersModal}
-                className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+                className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
                 aria-label="Abrir membros"
               >
                 <span aria-hidden="true">👥</span>
                 <span>Membros</span>
-                <span className="font-tabular rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-800">
+                <span className="font-tabular rounded-full bg-nl-surface-strong px-2 py-0.5 text-xs text-nl-accent">
                   {memberCountLabel}
                 </span>
               </button>
               {ACTIVITY_TIMELINE_ENABLED && (
                 <button
                   onClick={() => setIsActivityTimelineOpen(true)}
-                  className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+                  className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
                   aria-label="Ver atividades da lista"
                   title="Histórico de atividades"
                 >
@@ -831,7 +831,7 @@ export const ListView: React.FC = () => {
                 <>
                   <button
                     onClick={handleOpenInviteModal}
-                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-orange-300"
+                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-nl-accent/30"
                     aria-label="Convidar para lista"
                     title="Convidar para lista"
                   >
@@ -840,7 +840,7 @@ export const ListView: React.FC = () => {
                   </button>
                   <button
                     onClick={handleOpenEditModal}
-                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
                     aria-label="Editar nome da lista"
                     title="Editar nome da lista"
                   >
@@ -848,7 +848,7 @@ export const ListView: React.FC = () => {
                   </button>
                   <button
                     onClick={handleOpenDeleteListModal}
-                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300"
+                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm font-medium text-nl-danger transition-colors hover:bg-nl-danger/15 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
                     aria-label="Excluir lista"
                     title="Excluir lista"
                   >
@@ -867,8 +867,8 @@ export const ListView: React.FC = () => {
               {typeEmoji}
             </span>
             <div>
-              <p className="font-semibold text-slate-900">{currentList.type.name}</p>
-              <p className="text-sm text-slate-600">
+              <p className="font-semibold text-nl-text">{currentList.type.name}</p>
+              <p className="text-sm text-nl-muted">
                 Criada por <span className="font-medium">{currentList.owner.username}</span>
               </p>
             </div>
@@ -877,18 +877,18 @@ export const ListView: React.FC = () => {
           {/* Badge de propriedade */}
           <div className="flex items-center gap-2 mt-2">
             {currentList.isOwner ? (
-              <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-medium text-teal-800">
+              <span className="rounded-full bg-nl-primary/15 px-3 py-1 text-xs font-medium text-nl-primary">
                 Você é o dono
               </span>
             ) : (
-              <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-800">
+              <span className="rounded-full bg-nl-surface-strong px-3 py-1 text-xs font-medium text-nl-accent">
                 Lista compartilhada
               </span>
             )}
           </div>
 
           {recentInvitedUsers.length > 0 && (
-            <p className="mt-2 text-xs text-teal-700">
+            <p className="mt-2 text-xs text-nl-primary">
               Convidados nesta sessao:{' '}
               {recentInvitedUsers.map((username) => `@${username}`).join(', ')}
             </p>
@@ -903,29 +903,29 @@ export const ListView: React.FC = () => {
 
         {/* Seção "Itens": Título + lista de itens */}
         <div className="nl-card p-5 shadow-sm">
-          <h2 className="mb-4 font-display text-lg font-semibold text-slate-900">
+          <h2 className="mb-4 font-display text-lg font-semibold text-nl-text">
             Itens ({items.length})
           </h2>
 
           {/* Loading state para itens */}
           {loadingItems && (
             <div className="space-y-3">
-              <div className="h-16 w-full rounded bg-orange-100 animate-pulse" />
-              <div className="h-16 w-full rounded bg-orange-100 animate-pulse" />
-              <div className="h-16 w-full rounded bg-orange-100 animate-pulse" />
+              <div className="h-16 w-full rounded bg-nl-surface-strong animate-pulse" />
+              <div className="h-16 w-full rounded bg-nl-surface-strong animate-pulse" />
+              <div className="h-16 w-full rounded bg-nl-surface-strong animate-pulse" />
             </div>
           )}
 
           {/* Error state para itens */}
           {errorItems && !loadingItems && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center">
-              <p className="text-red-800 mb-2">{errorItems}</p>
+            <div className="rounded-2xl border border-nl-danger/30 bg-nl-danger/10 p-4 text-center">
+              <p className="text-nl-danger mb-2">{errorItems}</p>
               <button
                 onClick={() => {
                   clearItemsError()
                   if (id) fetchItems(id)
                 }}
-                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
+                className="rounded-xl bg-nl-danger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
               >
                 Tentar Novamente
               </button>
@@ -953,10 +953,10 @@ export const ListView: React.FC = () => {
 
           {/* Estado vazio */}
           {!loadingItems && !errorItems && items.length === 0 && (
-            <div className="py-12 text-center text-slate-500">
+            <div className="py-12 text-center text-nl-muted">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-16 w-16 mx-auto mb-4 text-gray-300"
+                className="h-16 w-16 mx-auto mb-4 text-nl-muted/50"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -982,7 +982,7 @@ export const ListView: React.FC = () => {
                 onChange={(e) => setNewItemName(e.target.value)}
                 placeholder="Adicionar novo item…"
                 disabled={addingItem}
-                className="flex-1 rounded-2xl border border-orange-200 px-4 py-3 focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:bg-slate-100"
+                className="flex-1 rounded-2xl border border-nl-border px-4 py-3 focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:bg-nl-surface-strong"
                 maxLength={200}
                 name="newItem"
                 autoComplete="off"

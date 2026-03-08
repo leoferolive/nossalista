@@ -129,19 +129,19 @@ export function JoinListPage() {
   if (loading || joining) {
     return (
       <div className="nl-page px-0 py-0">
-        <header className="nl-glass border-b border-orange-200 px-4 py-3">
+        <header className="nl-glass border-b border-nl-border px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
-              <span className="font-display font-semibold text-slate-900">NossaLista</span>
+              <span className="font-display font-semibold text-nl-text">NossaLista</span>
             </div>
           </div>
         </header>
         <main className="max-w-lg mx-auto p-4">
           {joining ? (
             <div className="text-center py-12">
-              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500" />
-              <p className="text-slate-600">Entrando na lista…</p>
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-nl-accent" />
+              <p className="text-nl-muted">Entrando na lista…</p>
             </div>
           ) : (
             <div className="animate-pulse">
@@ -163,19 +163,19 @@ export function JoinListPage() {
   if (error === 'not_found') {
     return (
       <div className="nl-page flex flex-col px-0 py-0">
-        <header className="nl-glass border-b border-orange-200 px-4 py-3">
+        <header className="nl-glass border-b border-nl-border px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
-              <span className="font-semibold text-gray-900">NossaLista</span>
+              <span className="font-semibold text-nl-text">NossaLista</span>
             </div>
           </div>
         </header>
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">🔗</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Convite não encontrado</h1>
-            <p className="text-gray-600 mb-6">Este link pode ter sido desativado ou não existe.</p>
+            <h1 className="text-2xl font-bold text-nl-text mb-2">Convite não encontrado</h1>
+            <p className="text-nl-muted mb-6">Este link pode ter sido desativado ou não existe.</p>
             <Link
               to="/"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
@@ -192,19 +192,19 @@ export function JoinListPage() {
   if (error === 'expired') {
     return (
       <div className="nl-page flex flex-col px-0 py-0">
-        <header className="nl-glass border-b border-orange-200 px-4 py-3">
+        <header className="nl-glass border-b border-nl-border px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
-              <span className="font-semibold text-gray-900">NossaLista</span>
+              <span className="font-semibold text-nl-text">NossaLista</span>
             </div>
           </div>
         </header>
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">⏰</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Link de convite expirado</h1>
-            <p className="text-gray-600 mb-6">
+            <h1 className="text-2xl font-bold text-nl-text mb-2">Link de convite expirado</h1>
+            <p className="text-nl-muted mb-6">
               Este link de convite expirou. Peça um novo link ao dono da lista.
             </p>
             <Link
@@ -223,19 +223,19 @@ export function JoinListPage() {
   if (error === 'generic') {
     return (
       <div className="nl-page flex flex-col px-0 py-0">
-        <header className="nl-glass border-b border-orange-200 px-4 py-3">
+        <header className="nl-glass border-b border-nl-border px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
-              <span className="font-semibold text-gray-900">NossaLista</span>
+              <span className="font-semibold text-nl-text">NossaLista</span>
             </div>
           </div>
         </header>
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">⚠️</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Erro ao carregar lista</h1>
-            <p className="text-gray-600 mb-6">{errorMessage}</p>
+            <h1 className="text-2xl font-bold text-nl-text mb-2">Erro ao carregar lista</h1>
+            <p className="text-nl-muted mb-6">{errorMessage}</p>
             <button
               onClick={() => window.location.reload()}
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
@@ -256,15 +256,15 @@ export function JoinListPage() {
   return (
     <div className="nl-page flex flex-col px-0 py-0">
       {/* Header */}
-      <header className="nl-glass border-b border-orange-200 px-4 py-3">
+      <header className="nl-glass border-b border-nl-border px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">📋</span>
-            <span className="font-display font-semibold text-slate-900">NossaLista</span>
+            <span className="font-display font-semibold text-nl-text">NossaLista</span>
           </div>
           <button
             onClick={handleEmailLogin}
-            className="text-sm font-medium text-teal-700 hover:text-teal-900"
+            className="text-sm font-medium text-nl-primary hover:text-nl-primary"
           >
             Entrar
           </button>
@@ -283,18 +283,21 @@ export function JoinListPage() {
 
         {/* Lista info */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-nl-text mb-1 flex items-center gap-2">
             <span>{getTypeEmoji(listData.type_slug)}</span>
             {listData.name}
           </h1>
-          <p className="text-gray-600 text-sm">
+          <p className="text-nl-muted text-sm">
             {listData.type_name} • por @{listData.owner_username}
           </p>
         </div>
 
         {/* Aviso modo leitura */}
-        <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50 p-4" role="alert">
-          <p className="text-sm text-teal-800">
+        <div
+          className="mb-4 rounded-xl border border-nl-primary/30 bg-nl-primary/10 p-4"
+          role="alert"
+        >
+          <p className="text-sm text-nl-primary">
             <span className="font-medium">📖 Você está visualizando em modo leitura.</span>
             <br />
             Entre para colaborar com esta lista!
@@ -303,8 +306,8 @@ export function JoinListPage() {
 
         {/* Aviso expiração próxima */}
         {expiringSoon && (
-          <div className="mb-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
-            <p className="text-orange-800 text-sm">
+          <div className="mb-4 bg-nl-surface-strong border border-nl-border rounded-xl p-4">
+            <p className="text-nl-accent text-sm">
               <span className="font-medium">⚠️ Este link expira em breve!</span>
               <br />
               Entre agora ou peça um novo link.
@@ -314,12 +317,12 @@ export function JoinListPage() {
 
         {/* Lista de itens */}
         <div className="nl-card rounded-xl border shadow-sm">
-          <div className="rounded-t-xl border-b bg-orange-50 px-4 py-3">
-            <h2 className="font-medium text-gray-700">Itens ({listData.items.length})</h2>
+          <div className="rounded-t-xl border-b bg-nl-surface-strong px-4 py-3">
+            <h2 className="font-medium text-nl-muted">Itens ({listData.items.length})</h2>
           </div>
 
           {listData.items.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-nl-muted">
               <p>Esta lista ainda não tem itens.</p>
             </div>
           ) : (
@@ -335,17 +338,17 @@ export function JoinListPage() {
                     type="checkbox"
                     checked={item.checked}
                     disabled
-                    className="h-5 w-5 cursor-not-allowed rounded border-orange-200 text-teal-700"
+                    className="h-5 w-5 cursor-not-allowed rounded border-nl-border text-nl-primary"
                     aria-disabled="true"
                   />
                   <span
                     className={`flex-1 ${
-                      item.checked ? 'line-through text-gray-500' : 'text-gray-900'
+                      item.checked ? 'line-through text-nl-muted' : 'text-nl-text'
                     }`}
                   >
                     {item.name}
                   </span>
-                  {item.quantity && <span className="text-sm text-gray-500">×{item.quantity}</span>}
+                  {item.quantity && <span className="text-sm text-nl-muted">×{item.quantity}</span>}
                 </li>
               ))}
             </ul>
@@ -354,9 +357,9 @@ export function JoinListPage() {
       </main>
 
       {/* Rodapé fixo com CTAs */}
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-orange-200 bg-white/95 px-4 py-4 backdrop-blur-sm">
+      <footer className="fixed bottom-0 left-0 right-0 border-t border-nl-border bg-nl-surface-strong/95 px-4 py-4 backdrop-blur-sm">
         <div className="max-w-lg mx-auto space-y-3">
-          <p className="text-center text-sm text-gray-600 mb-3">
+          <p className="text-center text-sm text-nl-muted mb-3">
             Entre para participar desta lista
           </p>
           <button
@@ -385,7 +388,7 @@ export function JoinListPage() {
           </button>
           <button
             onClick={handleEmailLogin}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-4 py-3 font-medium text-slate-700 transition-colors hover:bg-orange-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-nl-border bg-nl-surface-strong px-4 py-3 font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

@@ -108,7 +108,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-nl-bg/80 p-4"
       onClick={(e) => {
         // Fecha ao clicar no overlay (fora do modal)
         if (e.target === e.currentTarget) {
@@ -125,12 +125,12 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 id="modal-title" className="font-display text-2xl font-bold text-slate-900">
+          <h2 id="modal-title" className="font-display text-2xl font-bold text-nl-text">
             Criar Nova Lista
           </h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 transition-colors hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-orange-300"
+            className="rounded-lg p-1 text-nl-muted transition-colors hover:text-nl-muted focus-visible:ring-2 focus-visible:ring-nl-accent/30"
             aria-label="Fechar modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +148,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
         <form onSubmit={handleSubmit}>
           {/* Nome da lista */}
           <div className="mb-6">
-            <label htmlFor="list-name" className="mb-2 block text-sm font-medium text-slate-700">
+            <label htmlFor="list-name" className="mb-2 block text-sm font-medium text-nl-muted">
               Nome da lista
             </label>
             <input
@@ -160,13 +160,13 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ex: Mercado semanal…"
-              className="w-full rounded-xl border border-orange-200 px-4 py-2.5 focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-xl border border-nl-border px-4 py-2.5 focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
               autoComplete="off"
               aria-describedby="name-error"
               aria-invalid={name.length > 0 && !isNameValid}
             />
             {name.length > 0 && !isNameValid && (
-              <p id="name-error" className="mt-1 text-sm text-red-600" role="alert">
+              <p id="name-error" className="mt-1 text-sm text-nl-danger" role="alert">
                 O nome deve ter no mínimo 3 caracteres
               </p>
             )}
@@ -174,7 +174,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
 
           {/* Tipo da lista */}
           <div className="mb-6">
-            <label className="mb-3 block text-sm font-medium text-slate-700">Tipo da lista</label>
+            <label className="mb-3 block text-sm font-medium text-nl-muted">Tipo da lista</label>
             <div
               className="grid grid-cols-2 gap-4 sm:grid-cols-4"
               role="radiogroup"
@@ -196,11 +196,11 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
           {/* Erro */}
           {error && (
             <div
-              className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg"
+              className="mb-4 p-3 bg-nl-danger/10 border border-nl-danger/30 rounded-lg"
               role="alert"
               aria-live="polite"
             >
-              <p className="text-sm text-red-800">{error}</p>
+              <p className="text-sm text-nl-danger">{error}</p>
             </div>
           )}
 
@@ -210,7 +210,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl bg-slate-100 px-4 py-2 text-slate-700 transition-colors hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-nl-surface-strong px-4 py-2 text-nl-muted transition-colors hover:bg-nl-surface/50 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -219,11 +219,11 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
               disabled={!isFormValid || loading}
               className={`
                 rounded-xl px-6 py-2 font-medium
-                focus-visible:ring-2 focus-visible:ring-orange-300
+                focus-visible:ring-2 focus-visible:ring-nl-accent/30
                 ${
                   isFormValid && !loading
                     ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-300 text-nl-muted cursor-not-allowed'
                 }
               `}
             >

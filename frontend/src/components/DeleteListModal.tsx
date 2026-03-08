@@ -71,7 +71,7 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-nl-bg/80"
       onClick={isDeleting ? undefined : onClose}
       onKeyDown={handleKeyDown}
       role="dialog"
@@ -81,10 +81,10 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
       <div className="nl-card mx-4 w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
         {/* Header com ícone de alerta */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-nl-danger/15">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-red-600"
+              className="h-6 w-6 text-nl-danger"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -98,18 +98,18 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
               />
             </svg>
           </div>
-          <h2 id="delete-modal-title" className="font-display text-xl font-bold text-slate-900">
+          <h2 id="delete-modal-title" className="font-display text-xl font-bold text-nl-text">
             Excluir Lista?
           </h2>
         </div>
 
         {/* Mensagem de confirmação */}
         <div className="mb-6">
-          <p className="mb-2 text-slate-700">
+          <p className="mb-2 text-nl-muted">
             Tem certeza que deseja excluir{' '}
-            <span className="font-semibold text-slate-900">&ldquo;{listName}&rdquo;</span>?
+            <span className="font-semibold text-nl-text">&ldquo;{listName}&rdquo;</span>?
           </p>
-          <p className="text-red-600 text-sm font-medium">
+          <p className="text-nl-danger text-sm font-medium">
             Esta ação não pode ser desfeita. Todos os itens e membros serão removidos
             permanentemente.
           </p>
@@ -121,7 +121,7 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
             ref={cancelButtonRef}
             onClick={onClose}
             disabled={isDeleting}
-            className="min-h-[44px] min-w-[44px] rounded-xl bg-slate-100 px-4 py-2 font-medium text-slate-700 transition-colors hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-[44px] min-w-[44px] rounded-xl bg-nl-surface-strong px-4 py-2 font-medium text-nl-muted transition-colors hover:bg-nl-surface/50 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -129,7 +129,7 @@ export const DeleteListModal: React.FC<DeleteListModalProps> = ({
             ref={confirmButtonRef}
             onClick={handleConfirm}
             disabled={isDeleting}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-xl bg-nl-danger px-4 py-2 font-medium text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDeleting ? (
               <>

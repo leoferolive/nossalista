@@ -203,7 +203,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-nl-bg/80 p-4 backdrop-blur-sm"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
@@ -215,12 +215,12 @@ export const InviteModal: React.FC<InviteModalProps> = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 id="invite-modal-title" className="font-display text-xl font-bold text-slate-900">
+          <h2 id="invite-modal-title" className="font-display text-xl font-bold text-nl-text">
             Convidar
           </h2>
           <button
             onClick={handleClose}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-slate-500 transition-colors hover:bg-orange-50 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-orange-300"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-nl-muted transition-colors hover:bg-nl-surface-strong hover:text-nl-muted focus-visible:ring-2 focus-visible:ring-nl-accent/30"
             aria-label="Fechar modal"
           >
             <svg
@@ -242,7 +242,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
 
         {/* Seção Convidar por Username */}
         <div className="space-y-4 mb-6">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-primary">
             Convidar por Username
           </h3>
 
@@ -255,26 +255,26 @@ export const InviteModal: React.FC<InviteModalProps> = ({
                 setSelectedUser(null)
               }}
               placeholder="Buscar usuário…"
-              className="w-full rounded-xl border border-orange-200 px-4 py-3 text-sm text-slate-900 transition-colors focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="w-full rounded-xl border border-nl-border px-4 py-3 text-sm text-nl-text transition-colors focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
               autoComplete="off"
               spellCheck={false}
             />
 
             {searching && (
-              <p className="mt-2 text-xs text-slate-500" role="status" aria-live="polite">
+              <p className="mt-2 text-xs text-nl-muted" role="status" aria-live="polite">
                 Buscando…
               </p>
             )}
 
             {searchError && (
-              <p className="mt-2 text-xs text-red-600" role="alert">
+              <p className="mt-2 text-xs text-nl-danger" role="alert">
                 {searchError}
               </p>
             )}
 
             {searchResults.length > 0 && (
               <div
-                className="absolute z-20 mt-2 max-h-56 w-full overflow-y-auto rounded-xl border border-orange-200 bg-white shadow-tropical"
+                className="absolute z-20 mt-2 max-h-56 w-full overflow-y-auto rounded-xl border border-nl-border bg-nl-surface-strong shadow-tropical"
                 style={{ overscrollBehavior: 'contain' }}
               >
                 {searchResults.map((user) => (
@@ -282,7 +282,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
                     key={user.username}
                     type="button"
                     onClick={() => handleSelectUser(user)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-300"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
                   >
                     {user.avatarUrl ? (
                       <img
@@ -293,13 +293,13 @@ export const InviteModal: React.FC<InviteModalProps> = ({
                         height={32}
                       />
                     ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-xs text-orange-700">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-nl-surface-strong text-xs text-nl-accent">
                         {user.username.slice(0, 2).toUpperCase()}
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium text-slate-900">{user.username}</p>
-                      <p className="text-xs text-slate-500">{user.name}</p>
+                      <p className="text-sm font-medium text-nl-text">{user.username}</p>
+                      <p className="text-xs text-nl-muted">{user.name}</p>
                     </div>
                   </button>
                 ))}
@@ -311,7 +311,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
             type="button"
             onClick={handleInviteByUsername}
             disabled={!selectedUser || inviting}
-            className="w-full min-h-[48px] rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 px-6 py-3 font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full min-h-[48px] rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 px-6 py-3 font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {inviting ? 'Convidando…' : 'Convidar'}
           </button>
@@ -319,19 +319,19 @@ export const InviteModal: React.FC<InviteModalProps> = ({
 
         {/* Seção Convidar por Link */}
         <div className="space-y-4">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-700">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-accent">
             Convidar por Link
           </h3>
 
           {/* Lista sendo compartilhada */}
-          <p className="text-sm text-slate-600">
-            Compartilhar lista: <span className="font-medium text-slate-900">{listName}</span>
+          <p className="text-sm text-nl-muted">
+            Compartilhar lista: <span className="font-medium text-nl-text">{listName}</span>
           </p>
 
           {/* Error message */}
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3" role="alert">
-              <p className="text-red-800 text-sm">{error}</p>
+            <div className="rounded-xl border border-nl-danger/30 bg-nl-danger/10 p-3" role="alert">
+              <p className="text-nl-danger text-sm">{error}</p>
             </div>
           )}
 
@@ -339,15 +339,13 @@ export const InviteModal: React.FC<InviteModalProps> = ({
           {inviteData && (
             <div className="space-y-3">
               {/* Link em área de display */}
-              <div className="rounded-xl border border-orange-200 bg-orange-50/65 px-4 py-3">
-                <p className="mb-1 text-xs text-slate-500">Link de convite:</p>
-                <p className="break-all font-mono text-sm text-slate-800">
-                  {inviteData.invite_link}
-                </p>
+              <div className="rounded-xl border border-nl-border bg-nl-surface/65 px-4 py-3">
+                <p className="mb-1 text-xs text-nl-muted">Link de convite:</p>
+                <p className="break-all font-mono text-sm text-nl-text">{inviteData.invite_link}</p>
               </div>
 
               {/* Tempo de expiração */}
-              <p className="flex items-center gap-1 text-xs text-slate-600">
+              <p className="flex items-center gap-1 text-xs text-nl-muted">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4"
@@ -373,7 +371,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
             <button
               onClick={handleGenerateLink}
               disabled={generating}
-              className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {generating ? (
                 <>
@@ -423,7 +421,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
             // Estado 3: Copiado!
             <button
               disabled
-              className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white"
+              className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl bg-nl-primary px-6 py-3 font-semibold text-white"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -446,7 +444,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
             <button
               onClick={handleCopyLink}
               disabled={copying}
-              className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {copying ? (
                 <>
@@ -495,7 +493,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
           )}
 
           {/* Dica */}
-          <p className="text-center text-xs text-slate-500">
+          <p className="text-center text-xs text-nl-muted">
             Qualquer pessoa com o link pode visualizar a lista por 24 horas.
           </p>
         </div>

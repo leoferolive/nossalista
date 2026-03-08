@@ -11,15 +11,15 @@ export const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps>
   }
 
   const styles: Record<Exclude<WebSocketStatus, 'CONNECTED'>, string> = {
-    CONNECTING: 'text-teal-700 bg-teal-50 border-teal-200',
+    CONNECTING: 'text-nl-primary bg-nl-primary/10 border-nl-primary/30',
     RECONNECTING: 'text-amber-700 bg-amber-50 border-amber-200',
-    DISCONNECTED: 'text-red-700 bg-red-50 border-red-200',
+    DISCONNECTED: 'text-nl-danger bg-nl-danger/10 border-nl-danger/30',
   }
 
   const dots: Record<Exclude<WebSocketStatus, 'CONNECTED'>, string> = {
-    CONNECTING: 'bg-teal-400 animate-pulse',
+    CONNECTING: 'bg-nl-primary animate-pulse',
     RECONNECTING: 'bg-amber-400 animate-pulse',
-    DISCONNECTED: 'bg-red-500',
+    DISCONNECTED: 'bg-nl-danger/100',
   }
 
   const labels: Record<Exclude<WebSocketStatus, 'CONNECTED'>, string> = {

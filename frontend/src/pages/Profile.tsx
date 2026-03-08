@@ -97,7 +97,7 @@ export const Profile: React.FC = () => {
     return (
       <div className="nl-page flex items-center justify-center p-8">
         <div
-          className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500"
+          className="h-12 w-12 animate-spin rounded-full border-b-2 border-nl-accent"
           aria-label="Carregando perfil"
         />
       </div>
@@ -109,11 +109,11 @@ export const Profile: React.FC = () => {
     return (
       <div className="nl-page flex items-center justify-center p-8">
         <div className="nl-card max-w-md p-8 text-center">
-          <p className="mb-2 text-xl font-bold text-red-900">Erro ao Carregar Perfil</p>
-          <p className="mb-4 text-red-700">{error}</p>
+          <p className="mb-2 text-xl font-bold text-nl-danger">Erro ao Carregar Perfil</p>
+          <p className="mb-4 text-nl-danger">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="rounded-xl bg-red-600 px-6 py-2 font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300"
+            className="rounded-xl bg-nl-danger px-6 py-2 font-medium text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
           >
             Tentar Novamente
           </button>
@@ -146,11 +146,11 @@ export const Profile: React.FC = () => {
         />
 
         {/* Botão Logout */}
-        <div className="mt-8 border-t border-orange-200 pt-6">
+        <div className="mt-8 border-t border-nl-border pt-6">
           <button
             onClick={handleLogout}
             disabled={updating}
-            className="w-full min-h-[48px] rounded-2xl bg-gradient-to-r from-red-600 to-red-500 px-4 py-3 font-semibold text-white transition-colors hover:from-red-700 hover:to-red-600 focus-visible:ring-2 focus-visible:ring-red-300 disabled:bg-red-300 disabled:opacity-50"
+            className="w-full min-h-[48px] rounded-2xl bg-gradient-to-r from-red-600 to-red-500 px-4 py-3 font-semibold text-white transition-colors hover:from-red-700 hover:to-red-600 focus-visible:ring-2 focus-visible:ring-nl-danger/40 disabled:bg-nl-danger/50 disabled:opacity-50"
             aria-label="Sair da conta"
           >
             {updating ? 'Saindo…' : 'Sair da Conta'}
