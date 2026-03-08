@@ -1,0 +1,36 @@
+name: Deploy Prod (nossalista.leoferolive.com.br)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag semântica para deploy em produção, ex: v1.2.3"
+        required: true
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Aguardando aprovação manual
+        run: echo "Aprovação recebida para deploy da tag ${{ inputs.tag }} em produção."
+
+  deploy:
+    needs: approve
+    permissions:
+      contents: read
+      packages: write
+    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
+    with:
+      app_name: nossalista
+      app_namespace: nossalista
+      app_type: backend
+      dockerfile_path: ./Dockerfile
+      k8s_path: ./k8s/prod
+      image_tag: ${{ inputs.tag }}
+      ref: ${{ inputs.tag }}
+    secrets: inherit
