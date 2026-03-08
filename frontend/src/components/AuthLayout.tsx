@@ -18,45 +18,36 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   return (
     <div className="nl-page flex items-center justify-center">
       <div className="nl-container w-full">
-        <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_1.1fr]">
-          <aside className="nl-card relative hidden overflow-hidden p-8 lg:block">
-            <div
-              className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-orange-300/45 blur-2xl"
-              aria-hidden="true"
-            />
-            <div
-              className="absolute -bottom-10 -left-8 h-44 w-44 rounded-full bg-teal-300/35 blur-2xl"
-              aria-hidden="true"
-            />
-            <p className="inline-flex rounded-full border border-nl-border/20 bg-nl-bg-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-nl-accent">
-              {badge}
+        <div className="mx-auto max-w-md">
+          {/* Decoração geométrica sutil */}
+          <div className="relative mb-8 flex flex-col items-center" aria-hidden="true">
+            <svg
+              className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-10"
+              width="260"
+              height="60"
+              viewBox="0 0 260 60"
+              fill="none"
+            >
+              <line x1="0" y1="30" x2="260" y2="30" stroke="#d2a56e" strokeWidth="0.5" />
+              <line x1="130" y1="0" x2="130" y2="60" stroke="#d2a56e" strokeWidth="0.5" />
+              <circle cx="130" cy="30" r="20" stroke="#d2a56e" strokeWidth="0.5" />
+              <circle cx="130" cy="30" r="8" stroke="#d2a56e" strokeWidth="0.5" />
+            </svg>
+            {/* Logo */}
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-nl-accent to-nl-accent-strong text-xl font-bold text-nl-text shadow-earthen">
+              NL
+            </div>
+            <p className="mt-3 font-sans text-xs font-semibold uppercase tracking-[0.3em] text-nl-muted">
+              NossaLista
             </p>
-            <h2 className="mt-6 font-display text-3xl font-bold text-nl-text">
-              Organize Tudo Sem Caos
-            </h2>
-            <p className="mt-4 max-w-sm text-base leading-7 text-nl-text">
-              Centralize listas, convites e atualizacoes em um espaco com ritmo rapido para o dia a
-              dia.
-            </p>
-            <ul className="mt-8 space-y-3 text-sm text-nl-text">
-              <li className="rounded-2xl border border-nl-border/20 bg-nl-surface/80 px-4 py-3">
-                Colaboracao em tempo real com feedback imediato.
-              </li>
-              <li className="rounded-2xl border border-nl-border/20 bg-nl-surface/80 px-4 py-3">
-                Fluxo simples para entrar, criar e compartilhar listas.
-              </li>
-              <li className="rounded-2xl border border-nl-border/20 bg-nl-surface/80 px-4 py-3">
-                Visual vibrante para reduzir friccao e aumentar foco.
-              </li>
-            </ul>
-          </aside>
+          </div>
 
           <section className="nl-card w-full p-6 sm:p-8" aria-label="Formulario de acesso">
-            <p className="inline-flex rounded-full border border-nl-border/20 bg-nl-primary/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-nl-primary">
+            <p className="inline-flex rounded-full border border-nl-border-strong bg-nl-surface-strong px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-nl-accent">
               {badge}
             </p>
             <h1 className="mt-4 font-display text-3xl font-bold text-nl-text">{title}</h1>
-            <p className="mt-2 text-sm leading-6 text-nl-muted">{description}</p>
+            <p className="mt-2 font-sans text-sm leading-6 text-nl-muted">{description}</p>
 
             <div className="mt-6">{children}</div>
 

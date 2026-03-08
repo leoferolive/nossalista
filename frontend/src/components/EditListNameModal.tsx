@@ -131,7 +131,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-nl-bg/80"
       onClick={onClose}
       onKeyDown={handleKeyDown}
       role="dialog"
@@ -146,7 +146,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
 
         {/* Input field */}
         <div className="mb-4">
-          <label htmlFor="list-name-input" className="mb-2 block text-sm font-medium text-nl-text">
+          <label htmlFor="list-name-input" className="mb-2 block text-sm font-medium text-nl-muted">
             Nome da lista
           </label>
           <input
@@ -158,10 +158,8 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             onKeyDown={handleInputKeyDown}
             placeholder="Nome da lista…"
             disabled={isSaving}
-            className={`w-full rounded-xl border px-4 py-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-nl-focus/40 ${
-              validationError
-                ? 'border-nl-danger/30'
-                : 'border-nl-border/20 focus:border-nl-focus/40'
+            className={`w-full rounded-xl border px-4 py-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-nl-accent/30 ${
+              validationError ? 'border-nl-danger' : 'border-nl-border focus:border-nl-accent'
             } ${isSaving ? 'cursor-not-allowed bg-nl-surface-strong' : ''}`}
             aria-invalid={!!validationError}
             aria-describedby={validationError ? 'name-error' : 'name-counter'}
@@ -191,7 +189,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="min-h-[44px] min-w-[44px] rounded-xl bg-nl-surface-strong px-4 py-2 font-medium text-nl-text transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-focus/40 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-[44px] min-w-[44px] rounded-xl bg-nl-surface-strong px-4 py-2 font-medium text-nl-muted transition-colors hover:bg-nl-surface/50 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -200,8 +198,8 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             disabled={!canSave}
             className={`min-h-[44px] min-w-[44px] rounded-xl px-4 py-2 font-medium transition-colors ${
               canSave
-                ? 'bg-gradient-to-r from-nl-accent to-nl-accent-strong text-white hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-focus/40'
-                : 'cursor-not-allowed bg-nl-border/20 text-white'
+                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-accent/30'
+                : 'cursor-not-allowed bg-nl-surface-strong text-white'
             }`}
           >
             {isSaving ? (

@@ -46,7 +46,7 @@ export function DeleteConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-nl-bg/80 animate-fade-in"
       onClick={onCancel}
       data-testid="delete-confirm-modal"
       role="dialog"
@@ -71,7 +71,7 @@ export function DeleteConfirmModal({
         <div className="flex gap-2 justify-end">
           <button
             onClick={onCancel}
-            className="min-h-[44px] rounded-xl border border-nl-border/20 px-4 py-2 text-nl-text transition-colors hover:bg-nl-bg-soft focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+            className="min-h-[44px] rounded-xl border border-nl-border px-4 py-2 text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
             data-testid="delete-cancel-button"
           >
             Cancelar
@@ -79,7 +79,7 @@ export function DeleteConfirmModal({
           <button
             ref={confirmButtonRef}
             onClick={onConfirm}
-            className="min-h-[44px] rounded-xl bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
+            className="min-h-[44px] rounded-xl bg-nl-danger px-4 py-2 text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
             data-testid="delete-confirm-button"
           >
             Confirmar

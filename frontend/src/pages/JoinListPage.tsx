@@ -129,7 +129,7 @@ export function JoinListPage() {
   if (loading || joining) {
     return (
       <div className="nl-page px-0 py-0">
-        <header className="nl-glass border-b border-nl-border/20 px-4 py-3">
+        <header className="nl-glass border-b border-nl-border px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
@@ -145,11 +145,11 @@ export function JoinListPage() {
             </div>
           ) : (
             <div className="animate-pulse">
-              <div className="h-8 bg-nl-surface-strong rounded mb-4 w-2/3" />
-              <div className="h-4 bg-nl-surface-strong rounded mb-6 w-1/2" />
+              <div className="h-8 bg-gray-200 rounded mb-4 w-2/3" />
+              <div className="h-4 bg-gray-200 rounded mb-6 w-1/2" />
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-14 bg-nl-bg-soft rounded-lg" />
+                  <div key={i} className="h-14 bg-gray-100 rounded-lg" />
                 ))}
               </div>
             </div>
@@ -163,7 +163,7 @@ export function JoinListPage() {
   if (error === 'not_found') {
     return (
       <div className="nl-page flex flex-col px-0 py-0">
-        <header className="nl-glass border-b border-nl-border/20 px-4 py-3">
+        <header className="nl-glass border-b border-nl-border px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
@@ -178,7 +178,7 @@ export function JoinListPage() {
             <p className="text-nl-muted mb-6">Este link pode ter sido desativado ou não existe.</p>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
             >
               Ir para página inicial
             </Link>
@@ -192,7 +192,7 @@ export function JoinListPage() {
   if (error === 'expired') {
     return (
       <div className="nl-page flex flex-col px-0 py-0">
-        <header className="nl-glass border-b border-nl-border/20 px-4 py-3">
+        <header className="nl-glass border-b border-nl-border px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
@@ -209,7 +209,7 @@ export function JoinListPage() {
             </p>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
             >
               Ir para página inicial
             </Link>
@@ -223,7 +223,7 @@ export function JoinListPage() {
   if (error === 'generic') {
     return (
       <div className="nl-page flex flex-col px-0 py-0">
-        <header className="nl-glass border-b border-nl-border/20 px-4 py-3">
+        <header className="nl-glass border-b border-nl-border px-4 py-3">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📋</span>
@@ -238,7 +238,7 @@ export function JoinListPage() {
             <p className="text-nl-muted mb-6">{errorMessage}</p>
             <button
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
             >
               Tentar novamente
             </button>
@@ -256,7 +256,7 @@ export function JoinListPage() {
   return (
     <div className="nl-page flex flex-col px-0 py-0">
       {/* Header */}
-      <header className="nl-glass border-b border-nl-border/20 px-4 py-3">
+      <header className="nl-glass border-b border-nl-border px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">📋</span>
@@ -294,7 +294,7 @@ export function JoinListPage() {
 
         {/* Aviso modo leitura */}
         <div
-          className="mb-4 rounded-xl border border-nl-border/20 bg-nl-primary/15 p-4"
+          className="mb-4 rounded-xl border border-nl-primary/30 bg-nl-primary/10 p-4"
           role="alert"
         >
           <p className="text-sm text-nl-primary">
@@ -306,7 +306,7 @@ export function JoinListPage() {
 
         {/* Aviso expiração próxima */}
         {expiringSoon && (
-          <div className="mb-4 bg-nl-bg-soft border border-nl-border/20 rounded-xl p-4">
+          <div className="mb-4 bg-nl-surface-strong border border-nl-border rounded-xl p-4">
             <p className="text-nl-accent text-sm">
               <span className="font-medium">⚠️ Este link expira em breve!</span>
               <br />
@@ -317,8 +317,8 @@ export function JoinListPage() {
 
         {/* Lista de itens */}
         <div className="nl-card rounded-xl border shadow-sm">
-          <div className="rounded-t-xl border-b bg-nl-bg-soft px-4 py-3">
-            <h2 className="font-medium text-nl-text">Itens ({listData.items.length})</h2>
+          <div className="rounded-t-xl border-b bg-nl-surface-strong px-4 py-3">
+            <h2 className="font-medium text-nl-muted">Itens ({listData.items.length})</h2>
           </div>
 
           {listData.items.length === 0 ? (
@@ -338,7 +338,7 @@ export function JoinListPage() {
                     type="checkbox"
                     checked={item.checked}
                     disabled
-                    className="h-5 w-5 cursor-not-allowed rounded border-nl-border/20 text-nl-primary"
+                    className="h-5 w-5 cursor-not-allowed rounded border-nl-border text-nl-primary"
                     aria-disabled="true"
                   />
                   <span
@@ -357,14 +357,14 @@ export function JoinListPage() {
       </main>
 
       {/* Rodapé fixo com CTAs */}
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-nl-border/20 bg-nl-surface/95 px-4 py-4 backdrop-blur-sm">
+      <footer className="fixed bottom-0 left-0 right-0 border-t border-nl-border bg-nl-surface-strong/95 px-4 py-4 backdrop-blur-sm">
         <div className="max-w-lg mx-auto space-y-3">
           <p className="text-center text-sm text-nl-muted mb-3">
             Entre para participar desta lista
           </p>
           <button
             onClick={handleGoogleLogin}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-nl-primary to-nl-primary-strong px-4 py-3 font-medium text-white transition-colors hover:from-nl-primary-strong hover:to-nl-primary-strong"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-3 font-medium text-white transition-colors hover:from-teal-800 hover:to-teal-700"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -388,7 +388,7 @@ export function JoinListPage() {
           </button>
           <button
             onClick={handleEmailLogin}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-nl-border/20 bg-nl-surface px-4 py-3 font-medium text-nl-text transition-colors hover:bg-nl-bg-soft"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-nl-border bg-nl-surface-strong px-4 py-3 font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

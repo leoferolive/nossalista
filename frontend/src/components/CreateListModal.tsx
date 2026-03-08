@@ -108,7 +108,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-nl-bg/80 p-4"
       onClick={(e) => {
         // Fecha ao clicar no overlay (fora do modal)
         if (e.target === e.currentTarget) {
@@ -130,7 +130,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
           </h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-nl-muted transition-colors hover:text-nl-text focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+            className="rounded-lg p-1 text-nl-muted transition-colors hover:text-nl-muted focus-visible:ring-2 focus-visible:ring-nl-accent/30"
             aria-label="Fechar modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +148,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
         <form onSubmit={handleSubmit}>
           {/* Nome da lista */}
           <div className="mb-6">
-            <label htmlFor="list-name" className="mb-2 block text-sm font-medium text-nl-text">
+            <label htmlFor="list-name" className="mb-2 block text-sm font-medium text-nl-muted">
               Nome da lista
             </label>
             <input
@@ -160,7 +160,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ex: Mercado semanal…"
-              className="w-full rounded-xl border border-nl-border/20 px-4 py-2.5 focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+              className="w-full rounded-xl border border-nl-border px-4 py-2.5 focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
               autoComplete="off"
               aria-describedby="name-error"
               aria-invalid={name.length > 0 && !isNameValid}
@@ -174,7 +174,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
 
           {/* Tipo da lista */}
           <div className="mb-6">
-            <label className="mb-3 block text-sm font-medium text-nl-text">Tipo da lista</label>
+            <label className="mb-3 block text-sm font-medium text-nl-muted">Tipo da lista</label>
             <div
               className="grid grid-cols-2 gap-4 sm:grid-cols-4"
               role="radiogroup"
@@ -210,7 +210,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl bg-nl-surface-strong px-4 py-2 text-nl-text transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-focus/40 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-nl-surface-strong px-4 py-2 text-nl-muted transition-colors hover:bg-nl-surface/50 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -219,11 +219,11 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
               disabled={!isFormValid || loading}
               className={`
                 rounded-xl px-6 py-2 font-medium
-                focus-visible:ring-2 focus-visible:ring-nl-focus/40
+                focus-visible:ring-2 focus-visible:ring-nl-accent/30
                 ${
                   isFormValid && !loading
-                    ? 'bg-gradient-to-r from-nl-accent to-nl-accent-strong text-white hover:from-orange-600 hover:to-amber-600'
-                    : 'bg-nl-surface-strong text-nl-muted cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600'
+                    : 'bg-gray-300 text-nl-muted cursor-not-allowed'
                 }
               `}
             >

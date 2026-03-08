@@ -17,41 +17,45 @@ export function ListCard({ list }: ListCardProps) {
       to={`/lists/${list.id}`}
       className="
         min-h-[160px]
-        rounded-3xl border border-nl-border/20 bg-nl-surface/95 p-5
-        hover:-translate-y-1 hover:border-nl-border/50 hover:shadow-earthen
-        transition-transform transition-colors
-        focus-visible:ring-2 focus-visible:ring-nl-focus/40
+        rounded-3xl border border-nl-border bg-nl-surface p-5
+        hover:-translate-y-1 hover:border-nl-border-strong hover:shadow-earthen-strong
+        transition-all duration-200
+        focus-visible:ring-2 focus-visible:ring-nl-accent/40
         flex flex-col justify-between
+        group
       "
       aria-label={`Abrir lista ${list.name}`}
     >
       {/* Header: Emoji + Nome */}
       <div className="flex items-start gap-3">
-        <span className="text-3xl" aria-hidden="true">
+        <span
+          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-nl-surface-strong text-2xl transition-transform group-hover:scale-110"
+          aria-hidden="true"
+        >
           {typeEmoji}
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="line-clamp-2 font-display text-lg font-semibold text-nl-text">
             {list.name}
           </h3>
-          <p className="mt-1 text-sm text-nl-muted">{list.type.name}</p>
+          <p className="mt-1 font-sans text-sm text-nl-muted">{list.type.name}</p>
         </div>
       </div>
 
       {/* Footer: Badge + Contagem */}
-      <div className="flex items-center justify-between mt-4">
+      <div className="mt-4 flex items-center justify-between">
         <div>
           {list.isOwner ? (
-            <span className="rounded-full bg-nl-primary/15 px-3 py-1 text-xs font-semibold text-nl-primary">
+            <span className="rounded-full border border-nl-primary/30 bg-nl-primary/15 px-3 py-1 font-sans text-xs font-semibold text-nl-primary">
               Minha
             </span>
           ) : (
-            <span className="rounded-full bg-nl-bg-soft px-3 py-1 text-xs font-semibold text-nl-accent">
+            <span className="rounded-full border border-nl-accent/30 bg-nl-accent/15 px-3 py-1 font-sans text-xs font-semibold text-nl-accent">
               Compartilhada
             </span>
           )}
         </div>
-        <div className="font-tabular text-sm text-nl-muted">
+        <div className="font-tabular font-sans text-sm text-nl-muted">
           {list.itemsCount} {list.itemsCount === 1 ? 'item' : 'itens'}
         </div>
       </div>

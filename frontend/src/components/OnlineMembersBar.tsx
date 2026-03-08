@@ -29,11 +29,11 @@ export const OnlineMembersBar: React.FC<OnlineMembersBarProps> = ({ members, cur
 
   return (
     <section
-      className="bg-nl-success/10 border border-nl-success/10 rounded-lg p-3 mb-4"
+      className="bg-nl-primary/10 border border-nl-border rounded-lg p-3 mb-4"
       aria-label="Membros online"
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-nl-success">
+        <p className="text-sm font-medium text-nl-primary">
           {onlyCurrentUserOnline ? 'Apenas você online agora' : `Online agora: ${members.length}`}
         </p>
 
@@ -49,19 +49,19 @@ export const OnlineMembersBar: React.FC<OnlineMembersBarProps> = ({ members, cur
                 <img
                   src={member.avatarUrl}
                   alt={member.username}
-                  className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                  className="w-8 h-8 rounded-full border-2 border-nl-surface object-cover"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full border-2 border-white bg-nl-success/10 text-nl-success text-xs font-semibold flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-nl-surface bg-nl-primary/15 text-nl-primary text-xs font-semibold flex items-center justify-center">
                   {getInitials(member.name, member.username)}
                 </div>
               )}
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border border-white" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border border-nl-surface" />
             </div>
           ))}
 
           {overflowCount > 0 && (
-            <div className="-ml-2 w-8 h-8 rounded-full border-2 border-white bg-nl-success/10 text-nl-success text-xs font-semibold flex items-center justify-center">
+            <div className="-ml-2 w-8 h-8 rounded-full border-2 border-nl-surface bg-nl-primary/15 text-nl-text text-xs font-semibold flex items-center justify-center">
               +{overflowCount}
             </div>
           )}

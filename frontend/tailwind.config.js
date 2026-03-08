@@ -1,7 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
-  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       fontFamily: {
@@ -10,26 +9,25 @@ export default {
       },
       colors: {
         nl: {
-          bg: 'rgb(var(--nl-bg) / <alpha-value>)',
-          'bg-soft': 'rgb(var(--nl-bg-soft) / <alpha-value>)',
-          surface: 'rgb(var(--nl-surface) / <alpha-value>)',
-          'surface-strong': 'rgb(var(--nl-surface-strong) / <alpha-value>)',
-          border: 'rgb(var(--nl-border) / <alpha-value>)',
-          'border-strong': 'rgb(var(--nl-border-strong) / <alpha-value>)',
-          text: 'rgb(var(--nl-text) / <alpha-value>)',
-          muted: 'rgb(var(--nl-text-muted) / <alpha-value>)',
-          primary: 'rgb(var(--nl-primary) / <alpha-value>)',
-          'primary-strong': 'rgb(var(--nl-primary-strong) / <alpha-value>)',
-          accent: 'rgb(var(--nl-accent) / <alpha-value>)',
-          'accent-strong': 'rgb(var(--nl-accent-strong) / <alpha-value>)',
-          danger: 'rgb(var(--nl-danger) / <alpha-value>)',
-          success: 'rgb(var(--nl-success) / <alpha-value>)',
+          bg: '#1a1410',
+          'bg-soft': '#211a14',
+          surface: '#2d2218',
+          'surface-strong': '#382b1f',
+          border: 'rgba(210,165,110,0.2)',
+          'border-strong': 'rgba(210,165,110,0.4)',
+          text: '#f5ece0',
+          muted: '#a89072',
+          primary: '#5c8a5a',
+          'primary-strong': '#3d6b3b',
+          accent: '#d4845a',
+          'accent-strong': '#b8613a',
+          danger: '#c0503a',
+          success: '#5c8a5a',
         },
       },
       boxShadow: {
-        earthen: '0 18px 40px rgb(var(--nl-accent-strong) / 0.12), 0 2px 8px rgb(0 0 0 / 0.08)',
-        'earthen-strong':
-          '0 24px 60px rgb(var(--nl-accent-strong) / 0.18), 0 4px 12px rgb(0 0 0 / 0.12)',
+        earthen: '0 18px 40px rgba(92,138,90,0.12), 0 2px 8px rgba(0,0,0,0.35)',
+        'earthen-strong': '0 24px 60px rgba(92,138,90,0.18), 0 4px 12px rgba(0,0,0,0.45)',
       },
     },
   },

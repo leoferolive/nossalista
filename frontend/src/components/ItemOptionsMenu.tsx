@@ -70,7 +70,7 @@ export function ItemOptionsMenu({
             onEdit()
             onClose()
           }}
-          className="w-full text-left px-4 py-2 hover:bg-nl-surface-strong rounded-lg transition-colors text-nl-text"
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg transition-colors text-nl-muted"
           data-testid="item-option-edit"
         >
           Editar

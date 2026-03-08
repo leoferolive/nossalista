@@ -32,10 +32,10 @@ export const TypeCard: React.FC<TypeCardProps> = ({
         transition-transform transition-colors duration-200
         ${
           isSelected
-            ? 'border-2 border-nl-primary bg-nl-primary/15 shadow-md scale-[1.02]'
-            : 'border-2 border-nl-border/20 bg-nl-surface hover:border-nl-border/50 hover:bg-nl-bg-soft'
+            ? 'border-2 border-nl-primary bg-nl-primary/10 shadow-md scale-[1.02]'
+            : 'border-2 border-nl-border bg-nl-surface-strong hover:border-nl-border-strong hover:bg-nl-surface-strong/50'
         }
-        focus-visible:ring-2 focus-visible:ring-nl-focus/40 focus-visible:ring-offset-2
+        focus-visible:ring-2 focus-visible:ring-nl-accent/30 focus-visible:ring-offset-2
       `}
     >
       <div className="text-5xl mb-2" aria-hidden="true">

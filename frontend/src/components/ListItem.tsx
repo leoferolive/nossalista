@@ -72,7 +72,7 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
       <>
         <div
           id={`list-item-${item.id}`}
-          className={`flex items-center gap-3 rounded-2xl border border-nl-border/20 bg-nl-surface/80 p-3 transition-colors hover:bg-nl-bg-soft ${
+          className={`flex items-center gap-3 rounded-2xl border border-nl-border bg-nl-surface p-3 transition-colors hover:bg-nl-surface-strong ${
             item.checked ? 'opacity-50' : ''
           } ${isDeleting ? 'animate-fade-out' : ''} ${isWsAdded ? 'ws-item-added' : ''} ${isWsCheckedHighlight ? 'ws-item-checked' : ''}`}
           {...longPressProps}
@@ -82,10 +82,10 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
           {/* Checkbox customizado com animação "pop" */}
           <button
             onClick={handleCheckboxClick}
-            className={`h-6 w-6 rounded border-2 transition-colors duration-300 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-nl-focus/40 ${
+            className={`h-6 w-6 rounded border-2 transition-colors duration-300 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-nl-accent/40 ${
               item.checked
-                ? 'border-teal-600 bg-teal-600'
-                : 'border-nl-border/20 hover:border-nl-focus/40'
+                ? 'border-nl-primary bg-nl-primary'
+                : 'border-nl-border hover:border-nl-border-strong'
             } ${isWsChecked ? 'animate-pop' : ''}`}
             aria-label={item.checked ? 'Marcar como não concluído' : 'Marcar como concluído'}
             aria-checked={item.checked}
@@ -107,18 +107,18 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
             <button
               type="button"
               onClick={handleItemClick}
-              className={`w-full truncate text-left font-medium transition-colors hover:text-nl-primary focus-visible:ring-2 focus-visible:ring-nl-focus/40 ${
-                item.checked ? 'text-nl-muted line-through' : 'text-nl-text'
+              className={`w-full truncate text-left font-sans font-medium transition-colors hover:text-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/40 ${
+                item.checked ? 'text-nl-muted line-through decoration-nl-muted/60' : 'text-nl-text'
               }`}
             >
               {item.name}
             </button>
 
             {/* Campos extras */}
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-nl-muted">
+            <div className="mt-1 flex flex-wrap items-center gap-2 font-sans text-sm text-nl-muted">
               {/* Quantity (Compras) */}
               {item.quantity !== null && item.quantity !== undefined && (
-                <span className="rounded bg-nl-bg-soft px-2 py-0.5 text-xs font-medium text-nl-accent">
+                <span className="rounded border border-nl-accent/20 bg-nl-accent/10 px-2 py-0.5 text-xs font-medium text-nl-accent">
                   {item.quantity}x
                 </span>
               )}
@@ -162,20 +162,20 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
           </div>
 
           {/* Criador (avatar + username) */}
-          <div className="flex items-center gap-2 text-sm text-nl-muted">
+          <div className="flex items-center gap-2 font-sans text-sm text-nl-muted">
             <img
               src={
                 item.createdBy.avatarUrl ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=fed7aa&color=c2410c`
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=382b1f&color=d4845a`
               }
               alt={item.createdBy.username}
-              className="h-6 w-6 rounded-full bg-nl-bg-soft"
+              className="h-6 w-6 rounded-full bg-nl-surface-strong"
               width={24}
               height={24}
               onError={(e) => {
                 const target = e.target as HTMLImageElement
                 target.onerror = null
-                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=fed7aa&color=c2410c`
+                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=382b1f&color=d4845a`
               }}
             />
             <span className="hidden sm:inline truncate max-w-[100px]">

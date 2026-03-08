@@ -105,10 +105,10 @@ export default function Login() {
       title="Entre na Sua Conta"
       description="Continue suas listas em segundos com login por email ou Google."
       footer={
-        <div className="rounded-3xl border border-nl-border/20 bg-nl-bg-soft p-4 text-sm text-nl-text">
+        <div className="rounded-2xl border border-nl-border bg-nl-surface-strong p-4 text-sm text-nl-muted">
           Nao tem conta ainda?{' '}
           <Link
-            className="font-semibold text-nl-primary underline decoration-nl-accent underline-offset-4"
+            className="font-semibold text-nl-accent underline decoration-nl-accent/50 underline-offset-4 hover:text-nl-accent-strong"
             to={registerHref}
           >
             Criar conta
@@ -118,7 +118,7 @@ export default function Login() {
     >
       {registered && (
         <div
-          className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+          className="mb-5 rounded-2xl border border-nl-primary/30 bg-nl-primary/10 px-4 py-3 text-sm text-nl-text"
           role="status"
           aria-live="polite"
         >
@@ -128,7 +128,7 @@ export default function Login() {
 
       {error && (
         <div
-          className="mb-5 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm text-nl-danger"
+          className="mb-5 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm text-nl-text"
           role="alert"
           aria-live="polite"
         >
@@ -138,7 +138,10 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-nl-text">
+          <label
+            htmlFor="email"
+            className="mb-1.5 block font-sans text-sm font-medium text-nl-text"
+          >
             Email
           </label>
           <input
@@ -147,7 +150,7 @@ export default function Login() {
             name="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-2xl border border-nl-border/20 bg-nl-surface px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+            className="w-full rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 font-sans text-nl-text transition-colors placeholder:text-nl-muted/60 focus:border-nl-border-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
             autoComplete="email"
             inputMode="email"
             spellCheck={false}
@@ -157,12 +160,12 @@ export default function Login() {
 
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-3">
-            <label htmlFor="password" className="block text-sm font-medium text-nl-text">
+            <label htmlFor="password" className="block font-sans text-sm font-medium text-nl-text">
               Senha
             </label>
             <Link
               to={forgotPasswordHref}
-              className="text-sm font-medium text-nl-primary underline decoration-nl-accent underline-offset-4 hover:text-nl-primary"
+              className="font-sans text-sm font-medium text-nl-muted underline decoration-nl-accent/50 underline-offset-4 hover:text-nl-text"
             >
               Esqueci minha senha
             </Link>
@@ -173,7 +176,7 @@ export default function Login() {
             name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-2xl border border-nl-border/20 bg-nl-surface px-4 py-3 text-nl-text transition-colors focus:border-nl-focus/40 focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+            className="w-full rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 font-sans text-nl-text transition-colors placeholder:text-nl-muted/60 focus:border-nl-border-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
             autoComplete="current-password"
             required
           />
@@ -182,24 +185,26 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-2xl bg-gradient-to-r from-nl-primary to-nl-primary-strong px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-800/20 transition-transform hover:-translate-y-0.5 hover:from-nl-primary-strong hover:to-nl-primary-strong focus-visible:ring-2 focus-visible:ring-nl-focus/40 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-2xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-5 py-3.5 font-sans text-sm font-semibold text-nl-text shadow-earthen transition-transform hover:-translate-y-0.5 hover:shadow-earthen-strong focus-visible:ring-2 focus-visible:ring-nl-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
 
       <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-nl-border/20" />
-        <span className="text-xs font-semibold uppercase tracking-[0.24em] text-nl-muted">ou</span>
-        <div className="h-px flex-1 bg-nl-border/20" />
+        <div className="h-px flex-1 bg-nl-border" />
+        <span className="font-sans text-xs font-semibold uppercase tracking-[0.24em] text-nl-muted">
+          ou
+        </span>
+        <div className="h-px flex-1 bg-nl-border" />
       </div>
 
       <button
-        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-nl-border/20 bg-nl-surface px-5 py-3.5 text-sm font-semibold text-nl-text transition-colors hover:border-nl-border/50 hover:bg-nl-bg-soft focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-nl-border bg-nl-surface-strong px-5 py-3.5 font-sans text-sm font-semibold text-nl-text transition-colors hover:border-nl-border-strong hover:bg-nl-surface focus-visible:ring-2 focus-visible:ring-nl-accent/30"
         onClick={handleGoogleLogin}
       >
         <span
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-nl-surface-strong text-xs font-bold text-nl-text"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-nl-surface text-xs font-bold text-nl-accent"
           aria-hidden="true"
         >
           G
@@ -207,10 +212,10 @@ export default function Login() {
         Continuar com Google
       </button>
 
-      <div className="mt-5 text-sm text-nl-muted">
+      <div className="mt-5 font-sans text-sm text-nl-muted">
         Quer entrar com email e ainda nao criou conta?{' '}
         <Link
-          className="font-semibold text-nl-primary underline decoration-nl-accent underline-offset-4"
+          className="font-semibold text-nl-accent underline decoration-nl-accent/50 underline-offset-4 hover:text-nl-accent-strong"
           to={registerHref}
         >
           Criar conta

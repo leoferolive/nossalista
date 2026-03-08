@@ -29,7 +29,7 @@ describe('TypeCard', () => {
 
     const card = container.firstChild as HTMLElement
     expect(card.className).toContain('border-nl-primary')
-    expect(card.className).toContain('bg-nl-primary/15')
+    expect(card.className).toContain('bg-nl-primary/10')
   })
 
   it('deve chamar onClick quando clicado', async () => {

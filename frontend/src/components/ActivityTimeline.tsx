@@ -87,16 +87,16 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-nl-border/20 bg-nl-surface shadow-earthen">
+    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-nl-border bg-nl-surface-strong shadow-tropical">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-nl-border/20 p-4">
+      <div className="flex items-center justify-between border-b border-nl-border p-4">
         <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-nl-text">
           <span>📜</span>
           <span>Atividades</span>
         </h2>
         <button
           onClick={onClose}
-          className="rounded-xl p-2 transition-colors hover:bg-nl-bg-soft focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+          className="rounded-xl p-2 transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
           aria-label="Fechar timeline"
         >
           <svg
@@ -136,7 +136,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                 >
                   {/* Avatar */}
                   <div className="flex-shrink-0">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-nl-accent to-nl-accent-strong text-sm font-medium text-white">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-sm font-medium text-white">
                       {(activity.userName || activity.userId).charAt(0).toUpperCase()}
                     </div>
                   </div>
@@ -155,7 +155,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
 
                     {/* Detalhes expandidos (opcional) */}
                     {isExpanded && activity.details && (
-                      <div className="mt-2 rounded bg-nl-bg-soft p-2 text-xs text-nl-muted">
+                      <div className="mt-2 rounded bg-nl-surface-strong p-2 text-xs text-nl-muted">
                         <pre className="whitespace-pre-wrap font-mono">
                           {JSON.stringify(activity.details, null, 2)}
                         </pre>
@@ -166,7 +166,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                     {activity.details && (
                       <button
                         onClick={() => toggleExpand(activity.id)}
-                        className="mt-1 text-xs text-nl-primary transition-colors hover:text-nl-primary focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+                        className="mt-1 text-xs text-nl-primary transition-colors hover:text-nl-primary focus-visible:ring-2 focus-visible:ring-nl-accent/30"
                       >
                         {isExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
                       </button>
@@ -190,7 +190,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
           <div className="flex justify-center py-4">
             <button
               onClick={handleLoadMore}
-              className="rounded-xl bg-nl-bg-soft px-4 py-2 text-sm font-medium text-nl-accent transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+              className="rounded-xl bg-nl-surface-strong px-4 py-2 text-sm font-medium text-nl-accent transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
             >
               Carregar mais atividades
             </button>

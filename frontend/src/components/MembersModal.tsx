@@ -51,7 +51,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-nl-bg/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="members-modal-title"
@@ -64,7 +64,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
           </h2>
           <button
             onClick={onClose}
-            className="min-h-[44px] min-w-[44px] rounded-xl p-2 text-nl-muted transition-colors hover:bg-nl-bg-soft hover:text-nl-text focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+            className="min-h-[44px] min-w-[44px] rounded-xl p-2 text-nl-muted transition-colors hover:bg-nl-surface-strong hover:text-nl-muted focus-visible:ring-2 focus-visible:ring-nl-accent/30"
             aria-label="Fechar membros"
           >
             ✕
@@ -96,7 +96,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
           >
             {members.map((member) => (
               <div key={member.user.id}>
-                <div className="flex items-center gap-3 rounded-xl border border-nl-border/20 bg-nl-bg-soft p-2.5">
+                <div className="flex items-center gap-3 rounded-xl border border-nl-border bg-nl-surface/40 p-2.5">
                   {/* Avatar */}
                   {member.user.avatar_url ? (
                     <img
@@ -107,7 +107,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                       height={40}
                     />
                   ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-nl-surface-strong text-sm text-nl-text">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-nl-surface-strong text-sm text-nl-accent">
                       {member.user.username.slice(0, 2).toUpperCase()}
                     </div>
                   )}
@@ -125,7 +125,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                     className={`text-xs px-2 py-1 rounded font-medium ${
                       member.role === 'OWNER'
                         ? 'bg-nl-primary/15 text-nl-primary'
-                        : 'bg-nl-bg-soft text-nl-accent'
+                        : 'bg-nl-surface-strong text-nl-accent'
                     }`}
                   >
                     {member.role === 'OWNER' ? 'Dono' : 'Membro'}
@@ -136,7 +136,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                     <button
                       onClick={() => onRemoveMember(member.user.id)}
                       disabled={removingMemberId === member.user.id}
-                      className="min-h-[36px] min-w-[36px] rounded-lg p-1.5 text-red-500 transition-colors hover:bg-nl-danger/10 focus-visible:ring-2 focus-visible:ring-nl-danger/40 disabled:opacity-50"
+                      className="min-h-[36px] min-w-[36px] rounded-lg p-1.5 text-nl-danger transition-colors hover:bg-nl-danger/10 focus-visible:ring-2 focus-visible:ring-nl-danger/40 disabled:opacity-50"
                       aria-label={`Remover ${member.user.username}`}
                     >
                       <svg
@@ -166,14 +166,14 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={onCancelRemove}
-                        className="min-h-[36px] rounded-lg border border-nl-border/20 px-3 py-1.5 text-sm text-nl-text transition-colors hover:bg-nl-surface focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+                        className="min-h-[36px] rounded-lg border border-nl-border px-3 py-1.5 text-sm text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
                         disabled={removingMemberId === member.user.id}
                       >
                         Cancelar
                       </button>
                       <button
                         onClick={onConfirmRemove}
-                        className="min-h-[36px] rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-nl-danger/40 disabled:bg-red-300"
+                        className="min-h-[36px] rounded-lg bg-nl-danger px-3 py-1.5 text-sm text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40 disabled:bg-nl-danger/50"
                         disabled={removingMemberId === member.user.id}
                       >
                         {removingMemberId === member.user.id ? 'Removendo…' : 'Confirmar Remoção'}
@@ -188,7 +188,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
 
         {/* Mensagem para dono */}
         {!loading && !error && isOwner && (
-          <p className="mt-4 rounded-xl border border-nl-border/20 bg-nl-primary/15 p-3 text-sm text-nl-primary">
+          <p className="mt-4 rounded-xl border border-nl-primary/30 bg-nl-primary/10 p-3 text-sm text-nl-primary">
             Você é o dono
           </p>
         )}
@@ -197,7 +197,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
         {!loading && !error && !isOwner && (
           <button
             onClick={onLeaveList}
-            className="mt-4 w-full min-h-[44px] rounded-xl bg-red-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
+            className="mt-4 w-full min-h-[44px] rounded-xl bg-nl-danger px-4 py-3 font-semibold text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
             aria-label="Sair da lista"
           >
             Sair da Lista
@@ -211,14 +211,14 @@ export const MembersModal: React.FC<MembersModalProps> = ({
             <div className="flex gap-2 justify-end">
               <button
                 onClick={onCancelLeave}
-                className="min-h-[44px] rounded-xl border border-nl-border/20 px-4 py-2 text-nl-text transition-colors hover:bg-nl-surface focus-visible:ring-2 focus-visible:ring-nl-focus/40"
+                className="min-h-[44px] rounded-xl border border-nl-border px-4 py-2 text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
                 disabled={leaving}
               >
                 Cancelar
               </button>
               <button
                 onClick={onConfirmLeave}
-                className="min-h-[44px] rounded-xl bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-nl-danger/40 disabled:bg-red-300"
+                className="min-h-[44px] rounded-xl bg-nl-danger px-4 py-2 text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40 disabled:bg-nl-danger/50"
                 disabled={leaving}
               >
                 {leaving ? 'Saindo…' : 'Sair'}

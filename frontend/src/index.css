@@ -1,28 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: 'Outfit', 'Segoe UI', sans-serif;
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  color: #f5ece0;
+  background-color: #1a1410;
 
-  /* Tema claro "Terra Clara" (padrão) — canais RGB */
-  --nl-bg: 250 247 243;
-  --nl-bg-soft: 244 238 230;
-  --nl-surface: 255 253 248;
-  --nl-surface-strong: 237 229 218;
-  --nl-border: 180 140 100;
-  --nl-border-strong: 160 120 80;
-  --nl-text: 38 28 18;
-  --nl-text-muted: 120 90 62;
-  --nl-primary: 66 112 64;
-  --nl-primary-strong: 46 84 44;
-  --nl-accent: 196 104 62;
-  --nl-accent-strong: 162 76 40;
-  --nl-danger: 180 50 34;
-  --nl-success: 66 112 64;
-  --nl-focus: 196 104 62;
+  --nl-bg: #1a1410;
+  --nl-bg-soft: #211a14;
+  --nl-surface: #2d2218;
+  --nl-surface-strong: #382b1f;
+  --nl-border: rgba(210, 165, 110, 0.2);
+  --nl-border-strong: rgba(210, 165, 110, 0.4);
+  --nl-text: #f5ece0;
+  --nl-text-muted: #a89072;
+  --nl-primary: #5c8a5a;
+  --nl-primary-strong: #3d6b3b;
+  --nl-accent: #d4845a;
+  --nl-accent-strong: #b8613a;
+  --nl-danger: #c0503a;
+  --nl-success: #5c8a5a;
+  --nl-focus: #d4845a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -30,52 +33,28 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-[data-theme='dark'] {
-  /* Tema escuro "Terra Viva" */
-  --nl-bg: 26 20 16;
-  --nl-bg-soft: 33 26 20;
-  --nl-surface: 45 34 24;
-  --nl-surface-strong: 56 43 31;
-  --nl-border: 210 165 110;
-  --nl-border-strong: 230 185 130;
-  --nl-text: 245 236 224;
-  --nl-text-muted: 168 144 114;
-  --nl-primary: 92 138 90;
-  --nl-primary-strong: 61 107 59;
-  --nl-accent: 212 132 90;
-  --nl-accent-strong: 184 97 58;
-  --nl-danger: 192 80 58;
-  --nl-success: 92 138 90;
-  --nl-focus: 212 132 90;
-}
-
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: rgb(var(--nl-bg));
-  color: rgb(var(--nl-text));
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
+  background-color: var(--nl-bg);
+  color: var(--nl-text);
+  position: relative;
 }
 
-[data-theme='dark'] body {
-  background:
-    radial-gradient(
-      circle at 12% 8%,
-      rgb(var(--nl-accent) / 0.15) 0%,
-      rgb(var(--nl-accent) / 0) 40%
-    ),
-    radial-gradient(
-      circle at 88% 16%,
-      rgb(var(--nl-primary) / 0.12) 0%,
-      rgb(var(--nl-primary) / 0) 42%
-    ),
-    rgb(var(--nl-bg));
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  opacity: 0.5;
 }
 
 #root {
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
 }
 
@@ -85,7 +64,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Sora', 'Outfit', sans-serif;
+  font-family: 'Playfair Display', Georgia, serif;
   text-wrap: balance;
 }
 
@@ -99,7 +78,7 @@ textarea {
 }
 
 *:focus-visible {
-  outline: 2px solid rgb(var(--nl-focus));
+  outline: 2px solid var(--nl-focus);
   outline-offset: 2px;
 }
 
@@ -118,28 +97,22 @@ textarea {
 }
 
 .nl-card {
-  background: rgb(var(--nl-surface));
-  border: 1px solid rgb(var(--nl-border) / 0.25);
+  background: var(--nl-surface);
+  border: 1px solid var(--nl-border);
   border-radius: 1.5rem;
   box-shadow:
-    0 18px 40px rgb(var(--nl-accent-strong) / 0.12),
-    0 2px 8px rgb(0 0 0 / 0.08);
-}
-
-[data-theme='dark'] .nl-card {
-  box-shadow:
-    0 18px 40px rgb(var(--nl-primary) / 0.12),
-    0 2px 8px rgb(0 0 0 / 0.35);
+    0 18px 40px rgba(92, 138, 90, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .nl-glass {
-  background: rgb(var(--nl-surface) / 0.88);
+  background: rgba(45, 34, 24, 0.85);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgb(var(--nl-border) / 0.25);
+  border: 1px solid rgba(210, 165, 110, 0.2);
 }
 
-/* Animação para Toast (300ms conforme AC4) */
+/* Animacao para Toast (300ms conforme AC4) */
 @keyframes slideIn {
   from {
     transform: translateX(100%);
@@ -155,7 +128,7 @@ textarea {
   animation: slideIn 300ms ease-out;
 }
 
-/* Animação "pop" para checkbox (300ms conforme AC) */
+/* Animacao "pop" para checkbox (300ms conforme AC) */
 @keyframes pop {
   0% {
     transform: scale(0.8);
@@ -172,7 +145,7 @@ textarea {
   animation: pop 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Animação fade-in para modais e menus (200ms conforme AC) */
+/* Animacao fade-in para modais e menus (200ms conforme AC) */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -186,7 +159,7 @@ textarea {
   animation: fadeIn 200ms ease-out;
 }
 
-/* Animação fade-out para remoção de item (200ms conforme AC Story 3.6) */
+/* Animacao fade-out para remocao de item (200ms conforme AC Story 3.6) */
 @keyframes fadeOut {
   from {
     opacity: 1;
@@ -202,7 +175,7 @@ textarea {
   animation: fadeOut 200ms ease-out forwards;
 }
 
-/* Animação scale-in para modais */
+/* Animacao scale-in para modais */
 @keyframes scaleIn {
   from {
     opacity: 0;
@@ -220,13 +193,13 @@ textarea {
 
 /* Glassmorphism para cards e modais */
 .glass-card {
-  background: rgb(var(--nl-surface) / 0.94);
+  background: rgba(45, 34, 24, 0.92);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgb(var(--nl-border) / 0.25);
+  border: 1px solid rgba(210, 165, 110, 0.2);
 }
 
-/* Animação para itens adicionados via WebSocket */
+/* Animacao para itens adicionados via WebSocket */
 @keyframes pulse {
   0% {
     opacity: 0.6;
@@ -242,10 +215,10 @@ textarea {
   animation: pulse 300ms ease-out;
 }
 
-/* Animação para itens marcados/desmarcados via WebSocket */
+/* Animacao para itens marcados/desmarcados via WebSocket */
 @keyframes wsCheckedPulse {
   0% {
-    background-color: rgb(var(--nl-accent) / 0.4);
+    background-color: rgba(92, 138, 90, 0.3);
   }
   100% {
     background-color: transparent;

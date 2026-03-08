@@ -9,7 +9,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (isBootstrapping) {
     return (
       <div className="nl-page flex items-center justify-center">
-        <div className="nl-card px-6 py-4 text-nl-text">Validando Sessão…</div>
+        <div className="nl-card px-6 py-4 text-nl-muted">Validando Sessão…</div>
       </div>
     )
   }
