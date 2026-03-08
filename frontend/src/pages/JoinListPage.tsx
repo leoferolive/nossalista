@@ -293,7 +293,10 @@ export function JoinListPage() {
         </div>
 
         {/* Aviso modo leitura */}
-        <div className="mb-4 rounded-xl border border-nl-border/20 bg-nl-primary/15 p-4" role="alert">
+        <div
+          className="mb-4 rounded-xl border border-nl-border/20 bg-nl-primary/15 p-4"
+          role="alert"
+        >
           <p className="text-sm text-nl-primary">
             <span className="font-medium">📖 Você está visualizando em modo leitura.</span>
             <br />

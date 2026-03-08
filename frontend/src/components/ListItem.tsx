@@ -164,7 +164,10 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
           {/* Criador (avatar + username) */}
           <div className="flex items-center gap-2 text-sm text-nl-muted">
             <img
-              src={item.createdBy.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=fed7aa&color=c2410c`}
+              src={
+                item.createdBy.avatarUrl ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=fed7aa&color=c2410c`
+              }
               alt={item.createdBy.username}
               className="h-6 w-6 rounded-full bg-nl-bg-soft"
               width={24}

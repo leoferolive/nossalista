@@ -30,7 +30,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   /* Tema escuro "Terra Viva" */
   --nl-bg: 26 20 16;
   --nl-bg-soft: 33 26 20;
@@ -55,13 +55,23 @@ body {
   min-height: 100vh;
   background: rgb(var(--nl-bg));
   color: rgb(var(--nl-text));
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
-[data-theme="dark"] body {
+[data-theme='dark'] body {
   background:
-    radial-gradient(circle at 12% 8%, rgb(var(--nl-accent) / 0.15) 0%, rgb(var(--nl-accent) / 0) 40%),
-    radial-gradient(circle at 88% 16%, rgb(var(--nl-primary) / 0.12) 0%, rgb(var(--nl-primary) / 0) 42%),
+    radial-gradient(
+      circle at 12% 8%,
+      rgb(var(--nl-accent) / 0.15) 0%,
+      rgb(var(--nl-accent) / 0) 40%
+    ),
+    radial-gradient(
+      circle at 88% 16%,
+      rgb(var(--nl-primary) / 0.12) 0%,
+      rgb(var(--nl-primary) / 0) 42%
+    ),
     rgb(var(--nl-bg));
 }
 
@@ -116,7 +126,7 @@ textarea {
     0 2px 8px rgb(0 0 0 / 0.08);
 }
 
-[data-theme="dark"] .nl-card {
+[data-theme='dark'] .nl-card {
   box-shadow:
     0 18px 40px rgb(var(--nl-primary) / 0.12),
     0 2px 8px rgb(0 0 0 / 0.35);

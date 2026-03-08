@@ -146,10 +146,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
 
         {/* Input field */}
         <div className="mb-4">
-          <label
-            htmlFor="list-name-input"
-            className="mb-2 block text-sm font-medium text-nl-text"
-          >
+          <label htmlFor="list-name-input" className="mb-2 block text-sm font-medium text-nl-text">
             Nome da lista
           </label>
           <input
@@ -162,7 +159,9 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             placeholder="Nome da lista…"
             disabled={isSaving}
             className={`w-full rounded-xl border px-4 py-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-nl-focus/40 ${
-              validationError ? 'border-nl-danger/30' : 'border-nl-border/20 focus:border-nl-focus/40'
+              validationError
+                ? 'border-nl-danger/30'
+                : 'border-nl-border/20 focus:border-nl-focus/40'
             } ${isSaving ? 'cursor-not-allowed bg-nl-surface-strong' : ''}`}
             aria-invalid={!!validationError}
             aria-describedby={validationError ? 'name-error' : 'name-counter'}

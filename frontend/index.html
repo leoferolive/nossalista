@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <script>
-      (function() {
+      ;(function () {
         try {
-          var s = localStorage.getItem('nl-theme');
-          var d = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var s = localStorage.getItem('nl-theme')
+          var d = window.matchMedia('(prefers-color-scheme: dark)').matches
           if (s === 'dark' || (!s && d)) {
-            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.setAttribute('data-theme', 'dark')
           }
-        } catch(e) {}
-      })();
+        } catch (e) {}
+      })()
     </script>
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

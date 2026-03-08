@@ -187,10 +187,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
         {listType === 'WISHLIST' && (
           <div className="mb-4">
-            <label
-              htmlFor="edit-item-url"
-              className="mb-1 block text-sm font-medium text-nl-text"
-            >
+            <label htmlFor="edit-item-url" className="mb-1 block text-sm font-medium text-nl-text">
               URL/Link
             </label>
             <input

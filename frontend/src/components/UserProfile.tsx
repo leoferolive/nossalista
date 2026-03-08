@@ -133,7 +133,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <p className="mt-1 truncate text-lg text-nl-text">{email}</p>
           </div>
           <div className="rounded-2xl border border-nl-border/20 bg-nl-primary/15 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-primary">Nome</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-primary">
+              Nome
+            </p>
             <p className="mt-1 truncate text-lg text-nl-text">{name || 'Nao informado'}</p>
           </div>
           <div className="rounded-2xl border border-nl-border/20 bg-nl-primary/15 px-4 py-3">
@@ -148,10 +150,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       {isEditing && (
         <div className="mt-8 space-y-4">
           <div>
-            <label
-              htmlFor="profile-name"
-              className="mb-1.5 block text-sm font-medium text-nl-text"
-            >
+            <label htmlFor="profile-name" className="mb-1.5 block text-sm font-medium text-nl-text">
               Nome
             </label>
             <input

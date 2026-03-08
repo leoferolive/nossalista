@@ -341,9 +341,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
               {/* Link em área de display */}
               <div className="rounded-xl border border-nl-border/20 bg-nl-bg-soft px-4 py-3">
                 <p className="mb-1 text-xs text-nl-muted">Link de convite:</p>
-                <p className="break-all font-mono text-sm text-nl-text">
-                  {inviteData.invite_link}
-                </p>
+                <p className="break-all font-mono text-sm text-nl-text">{inviteData.invite_link}</p>
               </div>
 
               {/* Tempo de expiração */}
