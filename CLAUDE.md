@@ -94,17 +94,28 @@ src/
 - `namespace.yaml`: Namespace dedicado `nossalista`
 
 ### CI/CD
-O pipeline de CI/CD usa `deploy-environment.yml` como workflow reutilizável central para `deploy-branch-dev.yml` e `deploy-prod.yml`. O `release.yml` chama `self-workflows` diretamente por limitação do GitHub Actions (`workflow_run` + repo privado não suportam `./` nem `owner/repo@ref` no mesmo repo):
-- Build da imagem Docker
+O pipeline de CI/CD usa `deploy-environment.yml` como workflow reutilizável central para `deploy-branch-dev.yml` e `deploy-prod.yml`. A lógica de build/deploy está em `deploy-core.yml` (local — sem dependência externa). O `release.yml` chama self-workflows diretamente por limitação do GitHub Actions (`workflow_run` + repo privado não suportam `./` nem `owner/repo@ref` no mesmo repo):
+- Build da imagem Docker (via `deploy-core.yml`)
 - Push para GitHub Container Registry (`ghcr.io/leoferolive/nossalista`)
 - Deploy no cluster K3s via kubectl
+
+### Arquitetura de Workflows
+
+```
+deploy-branch-dev.yml ─┐
+deploy-prod.yml        ├─→ deploy-environment.yml → deploy-core.yml (local)
+deploy-on-tag.yml      ┘
+```
+
+- **`deploy-core.yml`**: Workflow local reutilizável (workflow_call) com jobs `build-and-push` e `deploy`. Substitui a dependência com `leoferolive/self-workflows` externo.
+- **`deploy-environment.yml`**: Repassa inputs de ambiente (`dev`/`prod`) para `deploy-core.yml`. Único lugar com mapeamento de parâmetros de deploy.
 
 ### Fluxo de Deploy (Regra Obrigatória)
 
 ```
 push main → CI passa → release.yml
               └─ cria tag semântica v1.2.x
-              └─ chama self-workflows diretamente → deploy dev
+              └─ chama deploy-on-tag → deploy-environment → deploy-core (local)
 
 workflow_dispatch → deploy-branch-dev.yml (para branches/SHAs não mergeados)
               └─ cria RC tag v1.2.x-rc.{sha} (pre-release)
@@ -117,7 +128,7 @@ workflow_dispatch → deploy-prod.yml (com tag semântica estável)
 ```
 
 **Regras:**
-- `deploy-environment.yml` é o único lugar com parâmetros de deploy — nunca chame `self-workflows` diretamente.
+- `deploy-environment.yml` é o único lugar com parâmetros de deploy — nunca chame `deploy-core.yml` diretamente.
 - `deploy-branch-dev.yml` é para testar branches/SHAs ainda **não** mergeados — sempre gera uma RC tag rastreável.
 - Prod **sempre** recebe uma tag semântica estável (`v1.2.x`), nunca uma RC.
 - RC tags são pre-releases e **não** aparecem como "Latest" no GitHub Releases.
