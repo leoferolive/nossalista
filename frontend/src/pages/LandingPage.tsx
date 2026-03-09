@@ -47,14 +47,13 @@ export function LandingPage() {
 
         {/* Headline */}
         <h1 className="mb-5 font-display text-4xl font-bold leading-tight text-nl-text sm:text-5xl">
-          Tudo na mesma lista.{' '}
-          <span className="text-nl-accent">Todo mundo junto.</span>
+          Tudo na mesma lista. <span className="text-nl-accent">Todo mundo junto.</span>
         </h1>
 
         {/* Description */}
         <p className="mb-10 max-w-md font-sans text-lg leading-relaxed text-nl-muted">
-          Crie listas de compras, tarefas e desejos — compartilhe com quem quiser e veja as
-          mudanças em tempo real, sem precisar dar F5.
+          Crie listas de compras, tarefas e desejos — compartilhe com quem quiser e veja as mudanças
+          em tempo real, sem precisar dar F5.
         </p>
 
         {/* CTA */}
