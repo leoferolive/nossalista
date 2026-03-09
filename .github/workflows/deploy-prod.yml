@@ -21,16 +21,9 @@ jobs:
 
   deploy:
     needs: approve
-    permissions:
-      contents: read
-      packages: write
-    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
+    uses: ./.github/workflows/deploy-environment.yml
     with:
-      app_name: nossalista
-      app_namespace: nossalista
-      app_type: backend
-      dockerfile_path: ./Dockerfile
-      k8s_path: ./k8s/prod
-      image_tag: ${{ inputs.tag }}
+      environment: prod
+      tag: ${{ inputs.tag }}
       ref: ${{ inputs.tag }}
     secrets: inherit
