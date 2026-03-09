@@ -102,17 +102,26 @@ O pipeline em `.github/workflows/deploy.yml` utiliza um workflow reutilizável d
 ### Fluxo de Deploy (Regra Obrigatória)
 
 ```
-push main → CI passa → release.yml (auto-tag v1.2.x + deploy dev)
-                                          ↓
-                               validar em dev (nossalista.home)
-                                          ↓
-                         deploy-prod.yml (workflow_dispatch com a tag)
+push main → CI passa → release.yml
+              └─ cria tag semântica v1.2.x
+              └─ deploy-environment(dev, v1.2.x)
+
+workflow_dispatch → deploy-branch-dev.yml (para branches/SHAs não mergeados)
+              └─ cria RC tag v1.2.x-rc.{sha} (pre-release)
+              └─ deploy-environment(dev, v1.2.x-rc.{sha})
+              └─ limpa RC tags antigas (mantém 10 tags / 3 imagens)
+
+workflow_dispatch → deploy-prod.yml (com tag semântica estável)
+              └─ aprovação manual (environment: production)
+              └─ deploy-environment(prod, v1.2.x)
 ```
 
 **Regras:**
+- `deploy-environment.yml` é o único lugar com parâmetros de deploy — nunca chame `self-workflows` diretamente.
+- `deploy-branch-dev.yml` é para testar branches/SHAs ainda **não** mergeados — sempre gera uma RC tag rastreável.
+- Prod **sempre** recebe uma tag semântica estável (`v1.2.x`), nunca uma RC.
+- RC tags são pre-releases e **não** aparecem como "Latest" no GitHub Releases.
 - **Nunca** usar `deploy-branch-dev.yml` para promover código a prod — ele não gera tag semântica.
-- O `deploy-branch-dev.yml` é exclusivo para testar branches/SHAs ainda não mergeados ao `main`.
-- Prod sempre recebe uma tag semântica rastreável (`v1.2.x`), nunca uma imagem `:dev`.
 
 ### Comandos de Deploy
 ```bash
@@ -125,6 +134,16 @@ kubectl logs -f deployment/nossalista -n nossalista
 
 # Restart do deployment
 kubectl rollout restart deployment/nossalista -n nossalista
+```
+
+### Workflows de Deploy
+
+```bash
+# Testar branch/SHA em dev (gera RC tag auditável)
+gh workflow run deploy-branch-dev.yml --field ref=<branch-ou-sha>
+
+# Deploy em produção (requer tag semântica e aprovação manual)
+gh workflow run deploy-prod.yml --field tag=v1.2.3
 ```
 
 ## Decisões Arquiteturais Importantes
