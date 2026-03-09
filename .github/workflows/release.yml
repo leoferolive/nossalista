@@ -1,4 +1,4 @@
-name: Release + Deploy Dev
+name: Release
 
 on:
   workflow_run:
@@ -16,9 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    outputs:
-      release_tag: ${{ steps.version.outputs.release_tag }}
-      release_sha: ${{ steps.version.outputs.release_sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,19 +72,3 @@ jobs:
               --title "$RELEASE_TAG" \
               --generate-notes
           fi
-
-  deploy-dev:
-    needs: release
-    permissions:
-      contents: read
-      packages: write
-    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
-    with:
-      app_name: nossalista-dev
-      app_namespace: nossalista-dev
-      app_type: backend
-      dockerfile_path: ./Dockerfile
-      k8s_path: ./k8s/dev
-      image_tag: ${{ needs.release.outputs.release_tag }}
-      ref: ${{ needs.release.outputs.release_sha }}
-    secrets: inherit

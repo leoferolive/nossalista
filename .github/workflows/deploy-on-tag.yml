@@ -1,0 +1,21 @@
+name: Deploy Dev on Release Tag
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+concurrency:
+  group: deploy-dev-on-tag
+  cancel-in-progress: false
+
+jobs:
+  deploy-dev:
+    # Ignora RC tags — apenas tags semânticas estáveis (ex: v1.2.3)
+    if: ${{ !contains(github.ref_name, '-rc.') }}
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: dev
+      tag: ${{ github.ref_name }}
+      ref: ${{ github.sha }}
+    secrets: inherit
