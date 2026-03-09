@@ -99,6 +99,21 @@ O pipeline em `.github/workflows/deploy.yml` utiliza um workflow reutilizável d
 - Push para GitHub Container Registry (`ghcr.io/leoferolive/nossalista`)
 - Deploy no cluster K3s via kubectl
 
+### Fluxo de Deploy (Regra Obrigatória)
+
+```
+push main → CI passa → release.yml (auto-tag v1.2.x + deploy dev)
+                                          ↓
+                               validar em dev (nossalista.home)
+                                          ↓
+                         deploy-prod.yml (workflow_dispatch com a tag)
+```
+
+**Regras:**
+- **Nunca** usar `deploy-branch-dev.yml` para promover código a prod — ele não gera tag semântica.
+- O `deploy-branch-dev.yml` é exclusivo para testar branches/SHAs ainda não mergeados ao `main`.
+- Prod sempre recebe uma tag semântica rastreável (`v1.2.x`), nunca uma imagem `:dev`.
+
 ### Comandos de Deploy
 ```bash
 # Deploy manual (se necessário)

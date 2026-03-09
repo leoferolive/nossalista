@@ -1,4 +1,4 @@
-name: Deploy Dev Manual
+name: Deploy Branch Dev (nossalista-dev)
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: "main"
 
 concurrency:
-  group: deploy-dev-manual
+  group: deploy-branch-dev
   cancel-in-progress: true
 
 jobs:

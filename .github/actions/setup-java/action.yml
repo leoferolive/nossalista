@@ -1,0 +1,22 @@
+name: Setup Java
+description: Configura Java Temurin com cache Maven e torna o Maven Wrapper executável
+
+inputs:
+  java-version:
+    description: "Versão do Java"
+    required: false
+    default: "25"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+        cache: maven
+
+    - name: Ensure Maven wrapper is executable
+      shell: bash
+      run: chmod +x backend/mvnw
