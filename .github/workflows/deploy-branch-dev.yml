@@ -13,17 +13,99 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  create-rc:
+    runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
-    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
+      contents: write
+    outputs:
+      rc_tag: ${{ steps.version.outputs.rc_tag }}
+      rc_sha: ${{ steps.version.outputs.rc_sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref }}
+
+      - name: Criar RC tag
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          RC_SHA="$(git rev-parse HEAD)"
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+
+          # Última tag semântica estável (ignora -rc.*)
+          LAST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' \
+            | grep -v -- '-rc\.' \
+            | sort -V | tail -n 1)"
+          [ -z "$LAST_TAG" ] && LAST_TAG="v0.0.0"
+
+          VERSION="${LAST_TAG#v}"
+          MAJOR="${VERSION%%.*}"; REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"; PATCH="${REST##*.}"
+          NEXT_PATCH=$((PATCH + 1))
+
+          RC_TAG="v${MAJOR}.${MINOR}.${NEXT_PATCH}-rc.${SHORT_SHA}"
+
+          git tag -a "$RC_TAG" "$RC_SHA" -m "Release candidate $RC_TAG"
+          git push origin "$RC_TAG"
+
+          gh release create "$RC_TAG" \
+            --target "$RC_SHA" \
+            --title "$RC_TAG" \
+            --notes "Release candidate para branch/ref: \`${{ inputs.ref }}\`" \
+            --prerelease
+
+          echo "rc_tag=$RC_TAG" >> "$GITHUB_OUTPUT"
+          echo "rc_sha=$RC_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Limpar RC tags antigas (manter últimas 10)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # Lista todas as RC tags, ordena por versão, pega as mais antigas além das 10 últimas
+          OLD_RC_TAGS="$(git tag --list 'v*.*.*-rc.*' \
+            | sort -V \
+            | head -n -10)"
+
+          if [ -z "$OLD_RC_TAGS" ]; then
+            echo "Nenhuma RC tag para remover."
+            exit 0
+          fi
+
+          while IFS= read -r tag; do
+            echo "Removendo RC tag: $tag"
+            gh release delete "$tag" --yes --cleanup-tag 2>/dev/null || true
+          done <<< "$OLD_RC_TAGS"
+
+  deploy:
+    needs: create-rc
+    uses: ./.github/workflows/deploy-environment.yml
     with:
-      app_name: nossalista-dev
-      app_namespace: nossalista-dev
-      app_type: backend
-      dockerfile_path: ./Dockerfile
-      k8s_path: ./k8s/dev
-      image_tag: dev
-      ref: ${{ inputs.ref }}
+      environment: dev
+      tag: ${{ needs.create-rc.outputs.rc_tag }}
+      ref: ${{ needs.create-rc.outputs.rc_sha }}
     secrets: inherit
+
+  cleanup-images:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Apagar imagens RC antigas do ghcr.io (manter últimas 3)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: nossalista
+          package-type: container
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-versions-to-keep: 3
+          ignore-versions: "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
