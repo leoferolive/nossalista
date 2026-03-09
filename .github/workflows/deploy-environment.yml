@@ -1,0 +1,33 @@
+name: Deploy to Environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Ambiente alvo: 'dev' ou 'prod'"
+        required: true
+        type: string
+      tag:
+        description: "Tag da imagem Docker a deployar"
+        required: true
+        type: string
+      ref:
+        description: "Git ref (tag, SHA ou branch) para fazer checkout do código"
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    permissions:
+      contents: read
+      packages: write
+    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
+    with:
+      app_name: ${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}
+      app_namespace: ${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}
+      app_type: backend
+      dockerfile_path: ./Dockerfile
+      k8s_path: ${{ inputs.environment == 'prod' && './k8s/prod' || './k8s/dev' }}
+      image_tag: ${{ inputs.tag }}
+      ref: ${{ inputs.ref }}
+    secrets: inherit
