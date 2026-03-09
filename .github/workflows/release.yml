@@ -74,16 +74,9 @@ jobs:
 
   deploy-dev:
     needs: release
-    permissions:
-      contents: read
-      packages: write
-    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
+    uses: ./.github/workflows/deploy-environment.yml
     with:
-      app_name: nossalista-dev
-      app_namespace: nossalista-dev
-      app_type: backend
-      dockerfile_path: ./Dockerfile
-      k8s_path: ./k8s/dev
-      image_tag: ${{ needs.release.outputs.release_tag }}
+      environment: dev
+      tag: ${{ needs.release.outputs.release_tag }}
       ref: ${{ needs.release.outputs.release_sha }}
     secrets: inherit
