@@ -94,8 +94,8 @@ src/
 - `namespace.yaml`: Namespace dedicado `nossalista`
 
 ### CI/CD
-O pipeline em `.github/workflows/deploy.yml` utiliza um workflow reutilizável de `self-workflows` que:
-- Build da imagem Docker (Java 21)
+O pipeline de CI/CD utiliza um workflow reutilizável central (`deploy-environment.yml`) que encapsula todos os parâmetros de deploy. Os workflows `release.yml`, `deploy-branch-dev.yml` e `deploy-prod.yml` o chamam com `environment` e `tag`:
+- Build da imagem Docker
 - Push para GitHub Container Registry (`ghcr.io/leoferolive/nossalista`)
 - Deploy no cluster K3s via kubectl
 
