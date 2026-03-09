@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext.tsx'
 import Login from './pages/Login.tsx'
 import { AuthCallback } from './pages/AuthCallback.tsx'
 import { Home } from './pages/Home.tsx'
+import { LandingPage } from './pages/LandingPage.tsx'
 import { ListView } from './pages/ListView.tsx'
 import { JoinListPage } from './pages/JoinListPage.tsx'
 import { Profile } from './pages/Profile.tsx'
@@ -30,12 +31,13 @@ if (typeof browserGlobal.global === 'undefined') {
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
-        path="/"
+        path="/home"
         element={
           <ProtectedRoute>
             <Home />

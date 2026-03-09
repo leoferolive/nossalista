@@ -73,7 +73,7 @@ export function AuthCallback() {
               setError('Link de convite expirou. Peça um novo link.')
             } else {
               // Redirecionar para home com mensagem de erro via state
-              navigate('/', {
+              navigate('/home', {
                 replace: true,
                 state: {
                   toastMessage: 'Erro ao entrar na lista. Tente novamente.',
@@ -86,7 +86,7 @@ export function AuthCallback() {
         }
 
         // Se não há pending invite, redirecionar para home normalmente
-        navigate('/', { replace: true })
+        navigate('/home', { replace: true })
       } catch {
         clearStoredSession()
         sessionStorage.removeItem('pendingInviteCode')
