@@ -94,7 +94,7 @@ src/
 - `namespace.yaml`: Namespace dedicado `nossalista`
 
 ### CI/CD
-O pipeline de CI/CD utiliza um workflow reutilizável central (`deploy-environment.yml`) que encapsula todos os parâmetros de deploy. Os workflows `release.yml`, `deploy-branch-dev.yml` e `deploy-prod.yml` o chamam com `environment` e `tag`:
+O pipeline de CI/CD usa `deploy-environment.yml` como workflow reutilizável central para `deploy-branch-dev.yml` e `deploy-prod.yml`. O `release.yml` chama `self-workflows` diretamente por limitação do GitHub Actions (`workflow_run` + repo privado não suportam `./` nem `owner/repo@ref` no mesmo repo):
 - Build da imagem Docker
 - Push para GitHub Container Registry (`ghcr.io/leoferolive/nossalista`)
 - Deploy no cluster K3s via kubectl
@@ -104,7 +104,7 @@ O pipeline de CI/CD utiliza um workflow reutilizável central (`deploy-environme
 ```
 push main → CI passa → release.yml
               └─ cria tag semântica v1.2.x
-              └─ deploy-environment(dev, v1.2.x)
+              └─ chama self-workflows diretamente → deploy dev
 
 workflow_dispatch → deploy-branch-dev.yml (para branches/SHAs não mergeados)
               └─ cria RC tag v1.2.x-rc.{sha} (pre-release)
