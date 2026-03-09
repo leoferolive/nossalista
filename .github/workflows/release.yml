@@ -78,7 +78,7 @@ jobs:
 
   deploy-dev:
     needs: release
-    uses: ./.github/workflows/deploy-environment.yml
+    uses: leoferolive/nossalista/.github/workflows/deploy-environment.yml@main
     with:
       environment: dev
       tag: ${{ needs.release.outputs.release_tag }}
