@@ -53,14 +53,18 @@ jobs:
 
           RC_TAG="v${MAJOR}.${MINOR}.${NEXT_PATCH}-rc.${SHORT_SHA}"
 
-          git tag -a "$RC_TAG" "$RC_SHA" -m "Release candidate $RC_TAG"
-          git push origin "$RC_TAG"
+          if git rev-parse "$RC_TAG" >/dev/null 2>&1; then
+            echo "Tag $RC_TAG já existe, reutilizando."
+          else
+            git tag -a "$RC_TAG" "$RC_SHA" -m "Release candidate $RC_TAG"
+            git push origin "$RC_TAG"
 
-          gh release create "$RC_TAG" \
-            --target "$RC_SHA" \
-            --title "$RC_TAG" \
-            --notes "Release candidate para branch/ref: \`${{ inputs.ref }}\`" \
-            --prerelease
+            gh release create "$RC_TAG" \
+              --target "$RC_SHA" \
+              --title "$RC_TAG" \
+              --notes "Release candidate para branch/ref: \`${{ inputs.ref }}\`" \
+              --prerelease
+          fi
 
           echo "rc_tag=$RC_TAG" >> "$GITHUB_OUTPUT"
           echo "rc_sha=$RC_SHA" >> "$GITHUB_OUTPUT"

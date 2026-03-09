@@ -35,12 +35,16 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           RELEASE_SHA="${{ github.event.workflow_run.head_sha }}"
-          EXISTING_TAG="$(git tag --points-at "$RELEASE_SHA" --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)"
+          EXISTING_TAG="$(git tag --points-at "$RELEASE_SHA" --list 'v[0-9]*.[0-9]*.[0-9]*' \
+            | grep -v -- '-rc\.' \
+            | sort -V | tail -n 1)"
 
           if [ -n "$EXISTING_TAG" ]; then
             RELEASE_TAG="$EXISTING_TAG"
           else
-            LAST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)"
+            LAST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' \
+              | grep -v -- '-rc\.' \
+              | sort -V | tail -n 1)"
             [ -z "$LAST_TAG" ] && LAST_TAG="v0.0.0"
 
             VERSION="${LAST_TAG#v}"
