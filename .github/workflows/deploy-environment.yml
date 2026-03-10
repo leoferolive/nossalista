@@ -15,14 +15,6 @@ on:
         description: "Git ref (tag, SHA ou branch) para fazer checkout do código"
         required: true
         type: string
-    secrets:
-      TAILSCALE_AUTHKEY:
-        required: false
-      KUBECONFIG:
-        required: false
-      GHCR_PAT:
-        required: false
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
