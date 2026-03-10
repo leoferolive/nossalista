@@ -159,7 +159,10 @@ test('first login tutorial completa o fluxo e persiste conclusão', async ({ pag
 
   await expect(page.getByText('Defina nome e tipo')).toBeVisible()
   await page.getByLabel('Nome da lista').fill('Lista E2E Tutorial')
-  await page.getByRole('button', { name: /Compras/i }).first().click()
+  await page
+    .getByRole('button', { name: /Compras/i })
+    .first()
+    .click()
   await page.getByRole('button', { name: 'Criar Lista' }).click({ force: true })
 
   await expect(page).toHaveURL(/\/lists\/list-e2e-1/)
