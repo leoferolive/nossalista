@@ -1,6 +1,14 @@
 name: Deploy Dev on Release Tag
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag semântica a deployar em dev (ex: v1.2.3)"
+        required: true
+      ref:
+        description: "SHA do commit correspondente à tag"
+        required: true
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
@@ -14,6 +22,6 @@ jobs:
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: dev
-      tag: ${{ github.ref_name }}
-      ref: ${{ github.sha }}
+      tag: ${{ inputs.tag || github.ref_name }}
+      ref: ${{ inputs.ref || github.sha }}
     secrets: inherit
