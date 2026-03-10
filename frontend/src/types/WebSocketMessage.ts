@@ -25,7 +25,7 @@ export interface WebSocketMessage<T> {
   schemaVersion: number
   eventId: string
   listId: string
-  channel: 'items' | 'presence' | 'system'
+  channel: 'items' | 'presence' | 'system' | 'notifications'
   revision?: number
   type: string
   payload: T
@@ -68,6 +68,51 @@ export interface ListLayoutUpdatedPayload {
     position: number
   }>
 }
+
+export interface ListNameUpdatedPayload {
+  listId: string
+  oldName: string
+  newName: string
+}
+
+export interface MemberJoinedPayload {
+  userId: string
+  username: string
+  name: string
+  avatarUrl: string | null
+  listId: string
+  listName: string
+}
+
+export interface MemberLeftPayload {
+  userId: string
+  username: string
+  listId: string
+  listName: string
+  reason: 'LEFT' | 'REMOVED'
+}
+
+export type NotificationEventType =
+  | 'ITEM_ADDED'
+  | 'ITEM_UPDATED'
+  | 'ITEM_REMOVED'
+  | 'ITEM_CHECKED'
+  | 'LIST_NAME_UPDATED'
+  | 'MEMBER_JOINED'
+  | 'MEMBER_LEFT'
+  | 'MEMBER_REMOVED'
+
+export type NotificationWebSocketMessage =
+  | (WebSocketMessage<ListItem> & {
+      channel: 'notifications'
+      type: 'ITEM_ADDED' | 'ITEM_UPDATED' | 'ITEM_REMOVED' | 'ITEM_CHECKED'
+    })
+  | (WebSocketMessage<ListNameUpdatedPayload> & { channel: 'notifications'; type: 'LIST_NAME_UPDATED' })
+  | (WebSocketMessage<MemberJoinedPayload> & { channel: 'notifications'; type: 'MEMBER_JOINED' })
+  | (WebSocketMessage<MemberLeftPayload> & {
+      channel: 'notifications'
+      type: 'MEMBER_LEFT' | 'MEMBER_REMOVED'
+    })
 
 /**
  * Union discriminada por tipo de evento — permite narrowing correto do payload no switch/case
