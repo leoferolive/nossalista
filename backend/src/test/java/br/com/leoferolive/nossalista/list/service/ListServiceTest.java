@@ -14,6 +14,7 @@ import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.notification.NotificationService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
 import br.com.leoferolive.nossalista.websocket.dto.ListNameUpdatedPayload;
@@ -55,6 +56,9 @@ class ListServiceTest {
 
     @Mock
     private WebSocketEventPublisher eventPublisher;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private ListService listService;

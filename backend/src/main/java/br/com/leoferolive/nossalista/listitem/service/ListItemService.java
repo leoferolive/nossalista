@@ -15,6 +15,7 @@ import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.notification.NotificationService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
 import br.com.leoferolive.nossalista.websocket.dto.ListLayoutUpdatedPayload;
@@ -42,19 +43,22 @@ public class ListItemService {
     private final WebSocketEventPublisher eventPublisher;
     private final ListMemberRepository listMemberRepository;
     private final ActivityLogService activityLogService;
+    private final NotificationService notificationService;
 
     public ListItemService(ListItemRepository listItemRepository,
                            ListRepository listRepository,
                            ListItemMapper listItemMapper,
                            WebSocketEventPublisher eventPublisher,
                            ListMemberRepository listMemberRepository,
-                           ActivityLogService activityLogService) {
+                           ActivityLogService activityLogService,
+                           NotificationService notificationService) {
         this.listItemRepository = listItemRepository;
         this.listRepository = listRepository;
         this.listItemMapper = listItemMapper;
         this.eventPublisher = eventPublisher;
         this.listMemberRepository = listMemberRepository;
         this.activityLogService = activityLogService;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -120,6 +124,7 @@ public class ListItemService {
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
         Long revision = touchListRevision(list);
         broadcastItemEvent("ITEM_ADDED", result, creator, listId, revision);
+        notificationService.notifyListMembers(listId, creator.getId(), "ITEM_ADDED", result, creator);
 
         // 10. Retornar DTO
         return result;
@@ -281,6 +286,7 @@ public class ListItemService {
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
         Long revision = touchListRevision(list);
         broadcastItemEvent("ITEM_CHECKED", result, user, listId, revision);
+        notificationService.notifyListMembers(listId, user.getId(), "ITEM_CHECKED", result, user);
         return result;
     }
 
@@ -386,6 +392,7 @@ public class ListItemService {
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
         Long revision = touchListRevision(list);
         broadcastItemEvent("ITEM_UPDATED", result, user, listId, revision);
+        notificationService.notifyListMembers(listId, user.getId(), "ITEM_UPDATED", result, user);
         return result;
     }
 
@@ -440,6 +447,7 @@ public class ListItemService {
         // 10. Broadcast WebSocket
         broadcastItemEvent("ITEM_REMOVED", itemDTO, user, listId, revision);
         broadcastLayoutUpdatedEvent(listId, reorderedItems, user, revision);
+        notificationService.notifyListMembers(listId, user.getId(), "ITEM_REMOVED", itemDTO, user);
     }
 
     /**

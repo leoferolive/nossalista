@@ -13,6 +13,7 @@ import br.com.leoferolive.nossalista.member.exception.MemberInvitationConflictEx
 import br.com.leoferolive.nossalista.member.exception.MemberNotFoundException;
 import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteException;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.notification.NotificationService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
@@ -31,19 +32,22 @@ public class MemberService {
     private final ListMemberRepository listMemberRepository;
     private final ActivityLogService activityLogService;
     private final WebSocketEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public MemberService(
         ListRepository listRepository,
         UserRepository userRepository,
         ListMemberRepository listMemberRepository,
         ActivityLogService activityLogService,
-        WebSocketEventPublisher eventPublisher
+        WebSocketEventPublisher eventPublisher,
+        NotificationService notificationService
     ) {
         this.listRepository = listRepository;
         this.userRepository = userRepository;
         this.listMemberRepository = listMemberRepository;
         this.activityLogService = activityLogService;
         this.eventPublisher = eventPublisher;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -128,14 +132,12 @@ public class MemberService {
         activityLogService.logMemberRemoved(list, removedUser, list.getOwner());
         listMemberRepository.delete(targetMembership);
 
-        eventPublisher.publishItemsEvent(
-            listId, "MEMBER_REMOVED",
-            new MemberLeftPayload(
-                removedUser.getId().toString(), removedUser.getUsername(),
-                listId.toString(), list.getName(), "REMOVED"
-            ),
-            removedUser, null
+        MemberLeftPayload removedPayload = new MemberLeftPayload(
+            removedUser.getId().toString(), removedUser.getUsername(),
+            listId.toString(), list.getName(), "REMOVED"
         );
+        eventPublisher.publishItemsEvent(listId, "MEMBER_REMOVED", removedPayload, removedUser, null);
+        notificationService.notifyListMembers(listId, removedUser.getId(), "MEMBER_REMOVED", removedPayload, removedUser);
     }
 
     @Transactional
@@ -151,14 +153,12 @@ public class MemberService {
         activityLogService.logMemberLeft(list, leavingUser);
         listMemberRepository.delete(membership);
 
-        eventPublisher.publishItemsEvent(
-            listId, "MEMBER_LEFT",
-            new MemberLeftPayload(
-                leavingUser.getId().toString(), leavingUser.getUsername(),
-                listId.toString(), list.getName(), "LEFT"
-            ),
-            leavingUser, null
+        MemberLeftPayload leftPayload = new MemberLeftPayload(
+            leavingUser.getId().toString(), leavingUser.getUsername(),
+            listId.toString(), list.getName(), "LEFT"
         );
+        eventPublisher.publishItemsEvent(listId, "MEMBER_LEFT", leftPayload, leavingUser, null);
+        notificationService.notifyListMembers(listId, leavingUser.getId(), "MEMBER_LEFT", leftPayload, leavingUser);
     }
 
     @Transactional(readOnly = true)

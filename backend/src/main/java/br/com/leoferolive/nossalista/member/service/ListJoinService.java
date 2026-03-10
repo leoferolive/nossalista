@@ -13,6 +13,7 @@ import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.dto.ListJoinedResponse;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.notification.NotificationService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
@@ -38,19 +39,22 @@ public class ListJoinService {
     private final UserRepository userRepository;
     private final ActivityLogService activityLogService;
     private final WebSocketEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public ListJoinService(ListRepository listRepository,
                            ListItemRepository listItemRepository,
                            ListMemberRepository listMemberRepository,
                            UserRepository userRepository,
                            ActivityLogService activityLogService,
-                           WebSocketEventPublisher eventPublisher) {
+                           WebSocketEventPublisher eventPublisher,
+                           NotificationService notificationService) {
         this.listRepository = listRepository;
         this.listItemRepository = listItemRepository;
         this.listMemberRepository = listMemberRepository;
         this.userRepository = userRepository;
         this.activityLogService = activityLogService;
         this.eventPublisher = eventPublisher;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -184,15 +188,13 @@ public class ListJoinService {
             listMemberRepository.save(newMember);
             activityLogService.logMemberJoinedViaLink(list, user);
 
-            eventPublisher.publishItemsEvent(
-                list.getId(), "MEMBER_JOINED",
-                new MemberJoinedPayload(
-                    user.getId().toString(), user.getUsername(),
-                    user.getName(), user.getAvatarUrl(),
-                    list.getId().toString(), list.getName()
-                ),
-                user, null
+            MemberJoinedPayload joinedPayload = new MemberJoinedPayload(
+                user.getId().toString(), user.getUsername(),
+                user.getName(), user.getAvatarUrl(),
+                list.getId().toString(), list.getName()
             );
+            eventPublisher.publishItemsEvent(list.getId(), "MEMBER_JOINED", joinedPayload, user, null);
+            notificationService.notifyListMembers(list.getId(), user.getId(), "MEMBER_JOINED", joinedPayload, user);
 
             return buildListJoinedResponse(list, MemberRole.MEMBER,
                 "Bem-vindo à lista " + list.getName() + "!", true);

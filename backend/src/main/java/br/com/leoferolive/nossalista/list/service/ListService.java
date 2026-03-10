@@ -14,6 +14,7 @@ import br.com.leoferolive.nossalista.list.repository.ListTypeRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.notification.NotificationService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
 import br.com.leoferolive.nossalista.websocket.dto.ListNameUpdatedPayload;
@@ -43,17 +44,20 @@ public class ListService {
     private final ListMemberRepository listMemberRepository;
     private final ListItemRepository listItemRepository;
     private final WebSocketEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public ListService(ListRepository listRepository,
                        ListTypeRepository listTypeRepository,
                        ListMemberRepository listMemberRepository,
                        ListItemRepository listItemRepository,
-                       WebSocketEventPublisher eventPublisher) {
+                       WebSocketEventPublisher eventPublisher,
+                       NotificationService notificationService) {
         this.listRepository = listRepository;
         this.listTypeRepository = listTypeRepository;
         this.listMemberRepository = listMemberRepository;
         this.listItemRepository = listItemRepository;
         this.eventPublisher = eventPublisher;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -233,6 +237,10 @@ public class ListService {
             new ListNameUpdatedPayload(listId.toString(), oldName, trimmedName),
             savedList.getOwner(), null
         );
+        notificationService.notifyListMembers(listId, savedList.getOwner().getId(),
+            "LIST_NAME_UPDATED",
+            new ListNameUpdatedPayload(listId.toString(), oldName, trimmedName),
+            savedList.getOwner());
 
         return savedList;
     }

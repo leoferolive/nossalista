@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.UUID;
 
+import br.com.leoferolive.nossalista.notification.NotificationService;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
 import br.com.leoferolive.nossalista.websocket.dto.MemberLeftPayload;
 import org.mockito.ArgumentCaptor;
@@ -57,6 +58,9 @@ class MemberServiceTest {
 
     @Mock
     private WebSocketEventPublisher eventPublisher;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private MemberService memberService;
