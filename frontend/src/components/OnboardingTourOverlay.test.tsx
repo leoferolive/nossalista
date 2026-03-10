@@ -113,6 +113,39 @@ describe('OnboardingTourOverlay', () => {
     })
   })
 
+  it('recalcula spotlight quando alvo aparece depois da renderização inicial', async () => {
+    const { container } = render(
+      <OnboardingTourOverlay
+        active
+        step={baseStep}
+        currentStepIndex={0}
+        totalSteps={6}
+        canAdvance
+        onNext={vi.fn()}
+        onSkip={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      const hiddenLayers = Array.from(container.querySelectorAll('[aria-hidden="true"]'))
+      const fallbackLayer = hiddenLayers.find((layer) =>
+        layer.className.includes('absolute inset-0 bg-[rgba(8,6,4,0.78)]')
+      )
+      expect(fallbackLayer).toBeInTheDocument()
+    })
+
+    appendTarget()
+
+    await waitFor(() => {
+      const spotlight = container.querySelector('[aria-hidden="true"][style*="width"]')
+      expect(spotlight).toBeInTheDocument()
+      expect(spotlight).toHaveStyle({
+        top: '90px',
+        left: '40px',
+      })
+    })
+  })
+
   it('dispara atalhos de teclado Esc/Enter/N conforme regra de avanço', async () => {
     appendTarget()
     const onNext = vi.fn()
@@ -182,6 +215,27 @@ describe('OnboardingTourOverlay', () => {
     ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Pular' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Próximo' })).not.toBeInTheDocument()
+  })
+
+  it('mantém o card no topo em desktop no passo create-list sem spotlight', async () => {
+    render(
+      <OnboardingTourOverlay
+        active
+        step={{ ...baseStep, id: 'create-list-modal' }}
+        currentStepIndex={1}
+        totalSteps={6}
+        canAdvance={false}
+        onNext={vi.fn()}
+        onSkip={vi.fn()}
+      />
+    )
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveStyle({
+      top: '16px',
+      left: '16px',
+      width: '360px',
+    })
   })
 
   it('exibe texto Concluir no último passo', async () => {

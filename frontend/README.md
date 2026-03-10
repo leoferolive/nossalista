@@ -51,6 +51,7 @@ App local: `http://localhost:5173`
 - Ao concluir ou pular, o frontend chama `POST /api/users/me/onboarding/complete` (idempotente).
 - Em caso de falha para persistir essa preferencia, o tour nao reabre na sessao atual e um aviso leve e exibido.
 - O usuario pode reabrir o fluxo completo a qualquer momento pelo menu da conta em `Ver tutorial`.
+- O spotlight recalcula automaticamente quando o alvo entra no DOM apos o passo iniciar (ex.: modal de criacao), evitando overlay opaco sem destaque.
 
 ## Estrutura principal
 

@@ -80,6 +80,7 @@ export function OnboardingTourOverlay({
       return
     }
 
+    let animationFrameId: number | null = null
     const recompute = () => {
       const rect = buildSpotlightRect(step)
       setSpotlightRect(rect)
@@ -90,13 +91,38 @@ export function OnboardingTourOverlay({
       }
     }
 
-    recompute()
-    window.addEventListener('resize', recompute)
-    window.addEventListener('scroll', recompute, true)
+    const scheduleRecompute = () => {
+      if (animationFrameId != null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+
+      animationFrameId = window.requestAnimationFrame(() => {
+        animationFrameId = null
+        recompute()
+      })
+    }
+
+    scheduleRecompute()
+    window.addEventListener('resize', scheduleRecompute)
+    window.addEventListener('scroll', scheduleRecompute, true)
+
+    const observer = new MutationObserver(() => {
+      scheduleRecompute()
+    })
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-tour', 'aria-hidden'],
+    })
 
     return () => {
-      window.removeEventListener('resize', recompute)
-      window.removeEventListener('scroll', recompute, true)
+      if (animationFrameId != null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+      observer.disconnect()
+      window.removeEventListener('resize', scheduleRecompute)
+      window.removeEventListener('scroll', scheduleRecompute, true)
     }
   }, [active, step])
 
@@ -141,19 +167,19 @@ export function OnboardingTourOverlay({
       }
     }
 
+    if (step.id === 'create-list-modal' && !isMobile) {
+      return {
+        width: 360,
+        top: 16,
+        left: 16,
+      }
+    }
+
     if (isMobile || !spotlightRect) {
       return {
         left: 16,
         right: 16,
         bottom: 16,
-      }
-    }
-
-    if (step.id === 'create-list-modal') {
-      return {
-        width: 360,
-        top: 16,
-        left: 16,
       }
     }
 
