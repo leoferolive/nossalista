@@ -15,6 +15,8 @@ import br.com.leoferolive.nossalista.member.dto.ListJoinedResponse;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
+import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
+import br.com.leoferolive.nossalista.websocket.dto.MemberJoinedPayload;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,17 +37,20 @@ public class ListJoinService {
     private final ListMemberRepository listMemberRepository;
     private final UserRepository userRepository;
     private final ActivityLogService activityLogService;
+    private final WebSocketEventPublisher eventPublisher;
 
     public ListJoinService(ListRepository listRepository,
                            ListItemRepository listItemRepository,
                            ListMemberRepository listMemberRepository,
                            UserRepository userRepository,
-                           ActivityLogService activityLogService) {
+                           ActivityLogService activityLogService,
+                           WebSocketEventPublisher eventPublisher) {
         this.listRepository = listRepository;
         this.listItemRepository = listItemRepository;
         this.listMemberRepository = listMemberRepository;
         this.userRepository = userRepository;
         this.activityLogService = activityLogService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -178,6 +183,16 @@ public class ListJoinService {
             newMember.setRole(MemberRole.MEMBER);
             listMemberRepository.save(newMember);
             activityLogService.logMemberJoinedViaLink(list, user);
+
+            eventPublisher.publishItemsEvent(
+                list.getId(), "MEMBER_JOINED",
+                new MemberJoinedPayload(
+                    user.getId().toString(), user.getUsername(),
+                    user.getName(), user.getAvatarUrl(),
+                    list.getId().toString(), list.getName()
+                ),
+                user, null
+            );
 
             return buildListJoinedResponse(list, MemberRole.MEMBER,
                 "Bem-vindo à lista " + list.getName() + "!", true);

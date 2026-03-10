@@ -27,9 +27,15 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
+import br.com.leoferolive.nossalista.websocket.dto.MemberJoinedPayload;
+import org.mockito.ArgumentCaptor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -53,6 +59,9 @@ class ListJoinServiceTest {
 
     @Mock
     private ActivityLogService activityLogService;
+
+    @Mock
+    private WebSocketEventPublisher eventPublisher;
 
     @InjectMocks
     private ListJoinService listJoinService;
@@ -366,6 +375,36 @@ class ListJoinServiceTest {
         assertThatThrownBy(() -> listJoinService.joinList(testUser.getId(), INVALID_INVITE_CODE))
             .isInstanceOf(ListNotFoundException.class)
             .hasMessageContaining("Convite não encontrado");
+    }
+
+    @Test
+    @DisplayName("joinList: Deve publicar evento MEMBER_JOINED via WebSocket ao entrar em lista nova")
+    void shouldPublishMemberJoinedEventWhenNewMember() {
+        // Arrange
+        when(listRepository.findByInviteCodeWithDetails(VALID_INVITE_CODE))
+            .thenReturn(Optional.of(testList));
+        when(userRepository.findById(testUser.getId()))
+            .thenReturn(Optional.of(testUser));
+        when(listMemberRepository.findByListIdAndUserId(testList.getId(), testUser.getId()))
+            .thenReturn(Optional.empty());
+        when(listItemRepository.countByListId(testList.getId()))
+            .thenReturn(0L);
+
+        // Act
+        listJoinService.joinList(testUser.getId(), VALID_INVITE_CODE);
+
+        // Assert
+        ArgumentCaptor<MemberJoinedPayload> payloadCaptor =
+            ArgumentCaptor.forClass(MemberJoinedPayload.class);
+        verify(eventPublisher).publishItemsEvent(
+            eq(testList.getId()), eq("MEMBER_JOINED"), payloadCaptor.capture(), eq(testUser), isNull()
+        );
+
+        MemberJoinedPayload payload = payloadCaptor.getValue();
+        assertThat(payload.userId()).isEqualTo(testUser.getId().toString());
+        assertThat(payload.username()).isEqualTo(testUser.getUsername());
+        assertThat(payload.listId()).isEqualTo(testList.getId().toString());
+        assertThat(payload.listName()).isEqualTo(testList.getName());
     }
 
     @Test
