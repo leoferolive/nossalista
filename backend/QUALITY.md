@@ -11,6 +11,7 @@ Este documento define os gates obrigatorios de qualidade do backend.
 - **Cobertura JaCoCo**: minimo de **80% em linhas** e **75% em branches** no bundle monitorado.
 - **Suíte de regressao**: testes criticos marcados com `@RegressionTest`.
 - **SCA / OWASP Dependency-Check**: dependencias com CVEs bloqueantes falham o pipeline. Em Spring Boot 4, manter o SpringDoc na linha **3.x**; a linha `2.8.x` nao e compativel com Boot 4 e quebra a inicializacao dos testes.
+- **Supressoes de SCA**: registrar em `backend/dependency-check-suppressions.xml` somente com justificativa objetiva, prazo de remocao e referencia ao fornecedor upstream. Atualmente existe uma supressao temporaria para `CVE-2026-29062` porque o Spring Boot `4.0.3` ainda gerencia `tools.jackson.core:3.0.4`.
 
 ## Comandos principais
 
