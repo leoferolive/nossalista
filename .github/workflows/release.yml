@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      release_sha: ${{ steps.version.outputs.release_sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,3 +76,12 @@ jobs:
               --generate-notes
           fi
 
+  deploy-dev:
+    needs: release
+    if: ${{ needs.release.result == 'success' }}
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: dev
+      tag: ${{ needs.release.outputs.release_tag }}
+      ref: ${{ needs.release.outputs.release_sha }}
+    secrets: inherit
