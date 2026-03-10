@@ -195,8 +195,10 @@ describe('OnboardingTourOverlay', () => {
     })
   })
 
-  it('em etapa create-list esconde CTAs e mostra dica de continuidade', async () => {
+  it('em etapa create-list mantém CTAs acessíveis e bloqueia avanço até criar lista', async () => {
     appendTarget()
+    const onSkip = vi.fn()
+    const onNext = vi.fn()
 
     render(
       <OnboardingTourOverlay
@@ -205,16 +207,22 @@ describe('OnboardingTourOverlay', () => {
         currentStepIndex={1}
         totalSteps={6}
         canAdvance={false}
-        onNext={vi.fn()}
-        onSkip={vi.fn()}
+        onNext={onNext}
+        onSkip={onSkip}
       />
     )
 
     expect(
       await screen.findByText('Crie a lista para liberar o próximo passo.')
     ).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Pular' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Próximo' })).not.toBeInTheDocument()
+
+    const skipButton = screen.getByRole('button', { name: 'Pular' })
+    const nextButton = screen.getByRole('button', { name: 'Próximo' })
+    expect(nextButton).toBeDisabled()
+
+    fireEvent.click(skipButton)
+    expect(onSkip).toHaveBeenCalledTimes(1)
+    expect(onNext).not.toHaveBeenCalled()
   })
 
   it('mantém o card no topo em desktop no passo create-list sem spotlight', async () => {
@@ -277,6 +285,45 @@ describe('OnboardingTourOverlay', () => {
       left: '16px',
       right: '16px',
       bottom: '16px',
+    })
+  })
+
+  it('mantém o spotlight dentro do viewport mesmo com alvo colado na borda', async () => {
+    const target = document.createElement('button')
+    target.setAttribute('data-tour', 'target')
+    target.getBoundingClientRect = vi.fn(() => ({
+      width: 80,
+      height: 40,
+      top: 870,
+      left: 1260,
+      right: 1340,
+      bottom: 910,
+      x: 1260,
+      y: 870,
+      toJSON: () => ({}),
+    }))
+    target.scrollIntoView = vi.fn()
+    document.body.appendChild(target)
+
+    const { container } = render(
+      <OnboardingTourOverlay
+        active
+        step={baseStep}
+        currentStepIndex={0}
+        totalSteps={6}
+        canAdvance
+        onNext={vi.fn()}
+        onSkip={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      const spotlight = container.querySelector('[aria-hidden="true"][style*="width"]')
+      expect(spotlight).toBeInTheDocument()
+      expect(spotlight).toHaveStyle({
+        left: '1172px',
+        top: '832px',
+      })
     })
   })
 })

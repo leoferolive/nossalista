@@ -52,6 +52,7 @@ App local: `http://localhost:5173`
 - Em caso de falha para persistir essa preferencia, o tour nao reabre na sessao atual e um aviso leve e exibido.
 - O usuario pode reabrir o fluxo completo a qualquer momento pelo menu da conta em `Ver tutorial`.
 - O spotlight recalcula automaticamente quando o alvo entra no DOM apos o passo iniciar (ex.: modal de criacao), evitando overlay opaco sem destaque.
+- Todos os passos mantem acao `Pular`; no passo de criacao, `Proximo` fica desabilitado ate a lista ser criada.
 
 ## Estrutura principal
 
