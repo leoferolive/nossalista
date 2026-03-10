@@ -3,6 +3,7 @@ package br.com.leoferolive.nossalista.notification;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.push.PushNotificationService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketDestinations;
 import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
@@ -36,6 +37,9 @@ class NotificationServiceTest {
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
+    @Mock
+    private PushNotificationService pushNotificationService;
+
     private NotificationService notificationService;
 
     private User actor;
@@ -45,7 +49,7 @@ class NotificationServiceTest {
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationService(listMemberRepository, messagingTemplate);
+        notificationService = new NotificationService(listMemberRepository, messagingTemplate, pushNotificationService);
 
         listId = UUID.randomUUID();
 
