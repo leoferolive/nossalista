@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { useWebSocketContext } from './WebSocketContext'
 import { getUserNotificationsTopic } from '../api/websocket'
 import type {
@@ -57,7 +57,14 @@ interface NotificationContextType {
   clearAll: () => void
 }
 
-const NotificationCtx = createContext<NotificationContextType | undefined>(undefined)
+const defaultNotificationContext: NotificationContextType = {
+  notifications: [],
+  unreadCount: 0,
+  markAllRead: () => {},
+  clearAll: () => {},
+}
+
+export const NotificationCtx = createContext<NotificationContextType>(defaultNotificationContext)
 
 function formatMessage(type: string, payload: unknown, actor: WebSocketActor): string {
   const actorName = actor?.username ?? 'Alguém'
@@ -165,9 +172,5 @@ export function NotificationProvider({ children, userId }: NotificationProviderP
 }
 
 export function useNotificationContext(): NotificationContextType {
-  const ctx = useContext(NotificationCtx)
-  if (ctx === undefined) {
-    throw new Error('useNotificationContext must be used within a NotificationProvider')
-  }
-  return ctx
+  return useContext(NotificationCtx)
 }

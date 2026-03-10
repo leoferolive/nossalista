@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useOnboarding } from '../contexts/OnboardingContext'
+import { NotificationBell } from './NotificationBell'
 
 interface AppHeaderProps {
   title: string
@@ -134,6 +135,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
 
           <div className="flex items-start justify-between gap-4 sm:justify-end">
+            {user && <NotificationBell />}
+
             <div className="hidden rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-right text-xs sm:block">
               <p className="font-sans font-semibold uppercase tracking-[0.15em] text-nl-muted">
                 Sessao Ativa
