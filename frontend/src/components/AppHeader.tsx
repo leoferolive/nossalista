@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useOnboarding } from '../contexts/OnboardingContext'
 import { NotificationBell } from './NotificationBell'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 
 interface AppHeaderProps {
   title: string
@@ -36,6 +37,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const location = useLocation()
   const { user, logout } = useAuth()
   const { startReplay } = useOnboarding()
+  const { permissionState, requestPermission } = usePushNotifications()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -229,6 +231,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                       Ver tutorial
                       <span aria-hidden="true">↺</span>
                     </button>
+                    {permissionState !== 'granted' && permissionState !== 'unsupported' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMenuOpen(false)
+                          requestPermission()
+                        }}
+                        className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
+                        role="menuitem"
+                      >
+                        Ativar notificações push
+                        <span aria-hidden="true">🔔</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={handleLogout}
