@@ -798,67 +798,70 @@ export const ListView: React.FC = () => {
   return (
     <div className="nl-page">
       <div className="nl-container max-w-4xl">
-        <AppHeader
-          eyebrow="Lista Viva"
-          title={currentList.name}
-          subtitle="Compartilhe progresso, acompanhe presenca em tempo real e mantenha tudo sincronizado."
-          onBack={() => navigate(-1)}
-          actions={
-            <>
-              <button
-                onClick={handleOpenMembersModal}
-                className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
-                aria-label="Abrir membros"
-              >
-                <span aria-hidden="true">👥</span>
-                <span>Membros</span>
-                <span className="font-tabular rounded-full bg-nl-surface-strong px-2 py-0.5 text-xs text-nl-accent">
-                  {memberCountLabel}
-                </span>
-              </button>
-              {ACTIVITY_TIMELINE_ENABLED && (
+        <div data-tour="list-header">
+          <AppHeader
+            eyebrow="Lista Viva"
+            title={currentList.name}
+            subtitle="Compartilhe progresso, acompanhe presenca em tempo real e mantenha tudo sincronizado."
+            onBack={() => navigate(-1)}
+            actions={
+              <>
                 <button
-                  onClick={() => setIsActivityTimelineOpen(true)}
+                  onClick={handleOpenMembersModal}
                   className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
-                  aria-label="Ver atividades da lista"
-                  title="Histórico de atividades"
+                  aria-label="Abrir membros"
                 >
-                  <span aria-hidden="true">📜</span>
-                  Historico
+                  <span aria-hidden="true">👥</span>
+                  <span>Membros</span>
+                  <span className="font-tabular rounded-full bg-nl-surface-strong px-2 py-0.5 text-xs text-nl-accent">
+                    {memberCountLabel}
+                  </span>
                 </button>
-              )}
-              {currentList.isOwner && (
-                <>
+                {ACTIVITY_TIMELINE_ENABLED && (
                   <button
-                    onClick={handleOpenInviteModal}
-                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-nl-accent/30"
-                    aria-label="Convidar para lista"
-                    title="Convidar para lista"
-                  >
-                    <span aria-hidden="true">+</span>
-                    Convidar
-                  </button>
-                  <button
-                    onClick={handleOpenEditModal}
+                    onClick={() => setIsActivityTimelineOpen(true)}
                     className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
-                    aria-label="Editar nome da lista"
-                    title="Editar nome da lista"
+                    aria-label="Ver atividades da lista"
+                    title="Histórico de atividades"
                   >
-                    Editar nome
+                    <span aria-hidden="true">📜</span>
+                    Historico
                   </button>
-                  <button
-                    onClick={handleOpenDeleteListModal}
-                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm font-medium text-nl-danger transition-colors hover:bg-nl-danger/15 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
-                    aria-label="Excluir lista"
-                    title="Excluir lista"
-                  >
-                    Excluir
-                  </button>
-                </>
-              )}
-            </>
-          }
-        />
+                )}
+                {currentList.isOwner && (
+                  <>
+                    <button
+                      onClick={handleOpenInviteModal}
+                      data-tour="list-invite"
+                      className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+                      aria-label="Convidar para lista"
+                      title="Convidar para lista"
+                    >
+                      <span aria-hidden="true">+</span>
+                      Convidar
+                    </button>
+                    <button
+                      onClick={handleOpenEditModal}
+                      className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+                      aria-label="Editar nome da lista"
+                      title="Editar nome da lista"
+                    >
+                      Editar nome
+                    </button>
+                    <button
+                      onClick={handleOpenDeleteListModal}
+                      className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm font-medium text-nl-danger transition-colors hover:bg-nl-danger/15 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
+                      aria-label="Excluir lista"
+                      title="Excluir lista"
+                    >
+                      Excluir
+                    </button>
+                  </>
+                )}
+              </>
+            }
+          />
+        </div>
 
         {/* Info da lista: Tipo (emoji + nome), Dono (avatar + username) */}
         <div className="nl-card mb-6 p-5">
@@ -895,7 +898,7 @@ export const ListView: React.FC = () => {
           )}
         </div>
 
-        <ConnectionStatusIndicator status={wsStatus} />
+        <ConnectionStatusIndicator status={wsStatus} dataTour="list-realtime" />
 
         {hasPresenceSnapshot && onlineMembers.size > 0 && (
           <OnlineMembersBar members={sortedOnlineMembers} currentUserId={currentUser?.id ?? ''} />
@@ -974,7 +977,7 @@ export const ListView: React.FC = () => {
           )}
 
           {/* Formulário para adicionar item */}
-          <form onSubmit={handleAddItem} className="mt-4">
+          <form onSubmit={handleAddItem} className="mt-4" data-tour="list-add-item">
             <div className="flex gap-2">
               <input
                 type="text"

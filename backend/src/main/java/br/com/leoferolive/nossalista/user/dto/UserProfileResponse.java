@@ -14,6 +14,7 @@ public record UserProfileResponse(
     String name,
     String avatarUrl,
     String authProvider,
+    LocalDateTime onboardingCompletedAt,
     LocalDateTime createdAt
 ) {
 }

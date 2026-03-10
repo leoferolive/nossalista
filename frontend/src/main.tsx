@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext.tsx'
+import { OnboardingProvider } from './contexts/OnboardingContext.tsx'
 import { WebSocketProvider } from './contexts/WebSocketContext.tsx'
 import { ThemeProvider } from './contexts/ThemeContext.tsx'
 import Login from './pages/Login.tsx'
@@ -72,9 +73,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
-          <WebSocketProvider>
-            <AppRoutes />
-          </WebSocketProvider>
+          <OnboardingProvider>
+            <WebSocketProvider>
+              <AppRoutes />
+            </WebSocketProvider>
+          </OnboardingProvider>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

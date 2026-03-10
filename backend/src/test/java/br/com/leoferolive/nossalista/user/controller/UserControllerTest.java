@@ -134,6 +134,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.name").value(testUser.getName()))
                 .andExpect(jsonPath("$.avatarUrl").value(testUser.getAvatarUrl()))
                 .andExpect(jsonPath("$.authProvider").value(testUser.getAuthProvider().toString()))
+                .andExpect(jsonPath("$.onboardingCompletedAt").isEmpty())
                 .andExpect(jsonPath("$.createdAt").exists())
                 // Verifica que password NÃO está no response
                 .andExpect(jsonPath("$.password").doesNotExist())
@@ -149,6 +150,7 @@ class UserControllerTest {
             assertEquals(testUser.getName(), response.name());
             assertEquals(testUser.getAvatarUrl(), response.avatarUrl());
             assertEquals(testUser.getAuthProvider().toString(), response.authProvider());
+            assertNull(response.onboardingCompletedAt());
         }
 
         @Test
@@ -262,6 +264,60 @@ class UserControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)))
                 // Then - deve retornar 401
+                .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/users/me/onboarding/complete - Concluir Onboarding")
+    class CompleteOnboardingTests {
+
+        @Test
+        @DisplayName("Deve marcar onboarding como concluído e retornar 204")
+        void shouldMarkOnboardingAsCompleted() throws Exception {
+            authenticateUser(testUser);
+
+            mockMvc.perform(post("/api/users/me/onboarding/complete")
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+
+            entityManager.flush();
+            entityManager.clear();
+
+            User updatedUser = userRepository.findById(testUser.getId()).orElseThrow();
+            assertNotNull(updatedUser.getOnboardingCompletedAt());
+        }
+
+        @Test
+        @DisplayName("Deve ser idempotente quando onboarding já concluído")
+        void shouldBeIdempotentWhenOnboardingAlreadyCompleted() throws Exception {
+            testUser.setOnboardingCompletedAt(LocalDateTime.now().minusDays(1));
+            userRepository.saveAndFlush(testUser);
+            entityManager.clear();
+            LocalDateTime persistedCompletedAt = userRepository
+                .findById(testUser.getId())
+                .orElseThrow()
+                .getOnboardingCompletedAt();
+            authenticateUser(testUser);
+
+            mockMvc.perform(post("/api/users/me/onboarding/complete")
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+
+            entityManager.flush();
+            entityManager.clear();
+
+            User updatedUser = userRepository.findById(testUser.getId()).orElseThrow();
+            assertEquals(persistedCompletedAt, updatedUser.getOnboardingCompletedAt());
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 sem autenticação")
+        void shouldReturn401WithoutAuthentication() throws Exception {
+            SecurityContextHolder.clearContext();
+
+            mockMvc.perform(post("/api/users/me/onboarding/complete")
+                    .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
         }
     }

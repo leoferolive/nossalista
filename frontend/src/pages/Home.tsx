@@ -6,6 +6,7 @@ import { useLists } from '../hooks/useLists'
 import { ListCard } from '../components/ListCard'
 import { AppHeader } from '../components/AppHeader'
 import { useAuth } from '../contexts/AuthContext'
+import { useOnboarding } from '../contexts/OnboardingContext'
 
 /**
  * Página Home - Exemplo de integração com CreateListModal
@@ -17,6 +18,12 @@ export const Home: React.FC = () => {
   const { toasts, showToast, removeToast } = useToast()
   const location = useLocation()
   const { user } = useAuth()
+  const {
+    isRunning: isOnboardingRunning,
+    requestOpenCreateListModal,
+    acknowledgeCreateListModalRequest,
+    onListCreated,
+  } = useOnboarding()
 
   // Carregar listas ao montar o componente
   useEffect(() => {
@@ -42,13 +49,25 @@ export const Home: React.FC = () => {
     }
   }, [location.state, fetchLists])
 
+  useEffect(() => {
+    if (!requestOpenCreateListModal) {
+      return
+    }
+
+    setIsModalOpen(true)
+    acknowledgeCreateListModalRequest()
+  }, [acknowledgeCreateListModalRequest, requestOpenCreateListModal])
+
   const handleCreateList = async (request: { name: string; typeId: number }) => {
     const newList = await createList(request)
     return { id: newList.id }
   }
 
   const handleSuccess = async (listId: string) => {
-    void listId
+    if (isOnboardingRunning) {
+      onListCreated(listId)
+    }
+
     // AC4: Modal fecha primeiro (evita race condition com refetch)
     setIsModalOpen(false)
 
@@ -56,10 +75,12 @@ export const Home: React.FC = () => {
     showToast('Lista criada!', 'success')
 
     // AC4: Refetch listas após modal fechar
-    try {
-      await fetchLists()
-    } catch {
-      showToast('Lista criada, mas houve erro ao atualizar a lista.', 'error')
+    if (!isOnboardingRunning) {
+      try {
+        await fetchLists()
+      } catch {
+        showToast('Lista criada, mas houve erro ao atualizar a lista.', 'error')
+      }
     }
 
     // Opcional: navegar para lista criada
@@ -76,6 +97,7 @@ export const Home: React.FC = () => {
           actions={
             <button
               onClick={() => setIsModalOpen(true)}
+              data-tour="home-create-list"
               className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-5 py-3 font-sans text-sm font-semibold text-nl-text shadow-earthen transition-transform hover:-translate-y-0.5 hover:shadow-earthen-strong focus-visible:ring-2 focus-visible:ring-nl-accent/40"
             >
               <span aria-hidden="true">+</span>

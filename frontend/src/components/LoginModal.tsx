@@ -9,6 +9,7 @@ interface LoginResponse {
   email: string
   name: string
   avatarUrl?: string
+  onboardingCompletedAt?: string | null
   token: string
 }
 
@@ -44,6 +45,7 @@ export function LoginModal({ onClose }: Props) {
         email: data.email,
         displayName: data.name,
         avatarUrl: data.avatarUrl,
+        onboardingCompletedAt: data.onboardingCompletedAt ?? null,
       })
       navigate('/home')
     } catch {

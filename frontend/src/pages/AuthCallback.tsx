@@ -12,6 +12,7 @@ interface CurrentUserResponse {
   email: string
   name: string
   avatarUrl?: string
+  onboardingCompletedAt?: string | null
 }
 
 export function AuthCallback() {
@@ -46,6 +47,7 @@ export function AuthCallback() {
           email: data.email,
           displayName: data.name,
           avatarUrl: data.avatarUrl,
+          onboardingCompletedAt: data.onboardingCompletedAt ?? null,
         })
 
         // Verificar se há um pending invite code para processar

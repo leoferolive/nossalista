@@ -19,6 +19,7 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 | --- | --- | --- | --- |
 | `GET` | `/api/users/me` | `frontend/src/contexts/AuthContext.tsx`, `frontend/src/api/usersApi.ts` | Requer JWT |
 | `PATCH` | `/api/users/me` | `frontend/src/api/usersApi.ts` | Requer JWT |
+| `POST` | `/api/users/me/onboarding/complete` | `frontend/src/contexts/OnboardingContext.tsx` | Requer JWT |
 | `GET` | `/api/users/search` | `frontend/src/api/listsApi.ts` | Requer JWT |
 | `POST` | `/api/lists` | `frontend/src/api/listsApi.ts` | Requer JWT |
 | `GET` | `/api/lists` | `frontend/src/api/listsApi.ts` | Requer JWT |
@@ -42,3 +43,4 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 ## Observacoes
 
 - O endpoint de atividades agora existe no backend e atende o contrato paginado esperado pelo frontend.
+- `POST /api/auth/login` e `GET /api/users/me` retornam `onboardingCompletedAt` para controlar o tutorial de primeiro login por conta.

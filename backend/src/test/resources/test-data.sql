@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     avatar_url VARCHAR(500),
     auth_provider VARCHAR(20) NOT NULL,
     role VARCHAR(20) NOT NULL,
+    onboarding_completed_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );

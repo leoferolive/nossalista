@@ -6,7 +6,6 @@ on:
       ref:
         description: "Ref do checkout (branch, tag ou SHA) para gerar uma RC e deployar em dev"
         required: true
-        default: "main"
 
 concurrency:
   group: deploy-branch-dev
@@ -106,6 +105,7 @@ jobs:
       packages: write
     steps:
       - name: Apagar imagens RC antigas do ghcr.io (manter últimas 3)
+        continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
           package-name: nossalista-dev

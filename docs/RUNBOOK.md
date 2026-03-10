@@ -85,17 +85,20 @@ kubectl rollout restart deployment/nossalista -n nossalista
 ## Release e Deploy (GitHub Actions)
 
 - Dev:
-  - push em `main` roda `CI`
-  - `release.yml` cria/reutiliza a tag semantica `vX.Y.Z`
-  - `deploy-on-tag.yml` reconstrói o SHA aprovado e implanta a mesma tag em `nossalista-dev`
-  - `deploy-branch-dev.yml` e o caminho manual para branches/SHAs nao mergeados; ele gera `vX.Y.Z-rc.<sha>` e implanta essa RC
+  - `deploy-branch-dev.yml`: deploy manual de branch/SHA com RC tag rastreavel
+  - `deploy-on-tag.yml`: deploy em dev de tag estavel `vX.Y.Z` (manual ou disparado por `release.yml`)
 - Prod:
-  - `deploy-prod.yml` promove uma tag estavel existente `vX.Y.Z`
-  - o job de deploy exige aprovacao no environment `production`
-- Semantica operacional:
-  - `tag` = tag da imagem implantada
-  - `ref` = ref do checkout usado para build
-  - o workflow sempre aplica o manifesto e depois executa `kubectl set image`, entao `latest` e `:dev` nao sao mais fonte de verdade
+  - `deploy-prod.yml`: deploy manual de tag estavel `vX.Y.Z` com aprovacao no environment `production`
+- Release:
+  - push em `main` roda `CI`
+  - `release.yml` cria/reutiliza tag patch `vX.Y.Z`, publica GitHub Release e dispara `deploy-on-tag.yml`
+
+Regras operacionais:
+- `deploy-branch-dev.yml`: `ref` obrigatorio (sem default)
+- `deploy-on-tag.yml`: valida formato de tag estavel e alinhamento entre `tag` e `ref`
+- `deploy-prod.yml`: aceita apenas tag estavel existente no repositorio
+- `deploy-environment.yml` aplica o manifesto e depois executa `kubectl set image`, entao `latest` e `:dev` nao sao mais fonte de verdade do que ficou implantado
+- `tag` = tag da imagem implantada; `ref` = ref do checkout usado para build
 
 ## Rollback de Produção por Tag
 

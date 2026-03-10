@@ -8,10 +8,12 @@ Aplicativo web de listas compartilhadas em tempo real.
 ## Sobre o projeto
 
 NossaLista permite criar, compartilhar e editar listas colaborativas com sincronizacao em tempo real.
+Usuarios novos recebem um tutorial guiado no primeiro login para aprender criacao, compartilhamento, edicao e acompanhamento realtime.
 
 Status atual:
 - MVP em desenvolvimento ativo
 - Backend e frontend implementados no monorepo
+- Onboarding guiado no primeiro login (com replay manual no menu da conta)
 - CI ativo para frontend e backend
 - Release automática em `main` com tag SemVer patch e deploy automático em `dev`
 - Deploy manual em `dev` para branches/SHAs não mergeados via RC tag auditável
@@ -123,6 +125,13 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
   - imagem do Deployment recebe explicitamente `ghcr.io/...:<tag>`
   - annotations `deploy.nossalista/tag` e `deploy.nossalista/sha` são atualizadas no cluster
   - `GET /api/health` retorna `version`, `gitSha`, `gitTag`, `environment` e `buildTime`
+- Imagens publicadas:
+  - Dev: `ghcr.io/leoferolive/nossalista-dev:latest` + tags RC/estáveis para rastreabilidade
+  - Prod: `ghcr.io/leoferolive/nossalista:latest` + tag estável `vX.Y.Z`
+- Guardrails de deploy:
+  - `deploy-branch-dev.yml`: `ref` é obrigatório (sem default), evitando deploy acidental de `main`
+  - `deploy-on-tag.yml`: valida formato de tag estável e se `tag` e `ref` apontam para o mesmo commit
+  - `deploy-prod.yml`: aceita apenas tag estável `vX.Y.Z` existente no repositório
 
 - Operação manual (fallback):
 

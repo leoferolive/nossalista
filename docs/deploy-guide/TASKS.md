@@ -76,9 +76,11 @@ Marcar `[x]` ao concluir cada item.
 
 ## Fase 6 — GitHub Actions
 
-- [x] Criar `.github/workflows/deploy-dev.yml` — ver [08-github-actions.md](08-github-actions.md) seção 2
+- [x] Criar `.github/workflows/deploy-branch-dev.yml` — ver [08-github-actions.md](08-github-actions.md) seção 1
+- [x] Criar `.github/workflows/deploy-on-tag.yml` — ver [08-github-actions.md](08-github-actions.md) seção 1
 - [x] Criar `.github/workflows/deploy-prod.yml` — ver [08-github-actions.md](08-github-actions.md) seção 3
-- [x] Remover `.github/workflows/deploy.yml` (legado) — ver [08-github-actions.md](08-github-actions.md) seção 4
+- [x] Criar `.github/workflows/release.yml` — ver [08-github-actions.md](08-github-actions.md) seção 1
+- [x] Remover `.github/workflows/deploy.yml` (legado)
 
 ---
 
@@ -155,7 +157,7 @@ Marcar `[x]` ao concluir cada item.
 - [x] Testar SPA: `curl http://nossalista.home/` → HTML do React
 - [x] Testar rota React Router: `curl http://nossalista.home/listas` → mesmo HTML (não 404)
 - [x] Fazer push para `main` e verificar deploy automático via GitHub Actions
-  - `gh run watch --workflow=deploy-dev.yml`
+  - `gh run watch --workflow=deploy-on-tag.yml`
 
 ### 12.2 Deploy Prod
 - [x] Aplicar manifests: `kubectl apply -f k8s/prod/`
@@ -181,6 +183,7 @@ kubectl get pods -n nossalista
 kubectl get ingress -A
 
 # GitHub Actions
-gh run list --workflow=deploy-dev.yml --limit 3
+gh run list --workflow=deploy-branch-dev.yml --limit 3
+gh run list --workflow=deploy-on-tag.yml --limit 3
 gh run list --workflow=deploy-prod.yml --limit 3
 ```

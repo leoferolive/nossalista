@@ -94,7 +94,7 @@ docker buildx build --platform linux/arm64 -t nossalista:arm64 . --load
 
 # Ou fazer push direto
 docker buildx build --platform linux/arm64 \
-  -t ghcr.io/leoferolive/nossalista:dev \
+  -t ghcr.io/leoferolive/nossalista-dev:latest \
   --push .
 ```
 

@@ -7,6 +7,7 @@ export interface StoredUser {
   email: string
   displayName: string | null
   avatarUrl?: string | null
+  onboardingCompletedAt: string | null
 }
 
 export function getStoredAuthToken(): string | null {
@@ -21,7 +22,20 @@ export function getStoredUser(): StoredUser | null {
   }
 
   try {
-    return JSON.parse(rawUser) as StoredUser
+    const parsed = JSON.parse(rawUser) as Partial<StoredUser>
+    if (!parsed.id || !parsed.username || !parsed.email) {
+      clearStoredSession()
+      return null
+    }
+
+    return {
+      id: parsed.id,
+      username: parsed.username,
+      email: parsed.email,
+      displayName: parsed.displayName ?? null,
+      avatarUrl: parsed.avatarUrl ?? null,
+      onboardingCompletedAt: parsed.onboardingCompletedAt ?? null,
+    }
   } catch {
     clearStoredSession()
     return null
