@@ -820,7 +820,6 @@ export const ListView: React.FC = () => {
                 {ACTIVITY_TIMELINE_ENABLED && (
                   <button
                     onClick={() => setIsActivityTimelineOpen(true)}
-                    data-tour="list-realtime"
                     className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
                     aria-label="Ver atividades da lista"
                     title="Histórico de atividades"
@@ -899,7 +898,7 @@ export const ListView: React.FC = () => {
           )}
         </div>
 
-        <ConnectionStatusIndicator status={wsStatus} />
+        <ConnectionStatusIndicator status={wsStatus} dataTour="list-realtime" />
 
         {hasPresenceSnapshot && onlineMembers.size > 0 && (
           <OnlineMembersBar members={sortedOnlineMembers} currentUserId={currentUser?.id ?? ''} />

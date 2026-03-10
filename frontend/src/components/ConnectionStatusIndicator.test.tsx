@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react'
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator'
 
 describe('ConnectionStatusIndicator', () => {
-  it('CONNECTED deve retornar null', () => {
-    const { container } = render(<ConnectionStatusIndicator status="CONNECTED" />)
-    expect(container.firstChild).toBeNull()
+  it('CONNECTED deve mostrar Online', () => {
+    render(<ConnectionStatusIndicator status="CONNECTED" />)
+    expect(screen.getByText('Online')).toBeInTheDocument()
   })
 
   it('RECONNECTING deve mostrar Reconectando… com animate-pulse', () => {
@@ -25,5 +25,10 @@ describe('ConnectionStatusIndicator', () => {
     render(<ConnectionStatusIndicator status="CONNECTING" />)
 
     expect(screen.getByText('Conectando…')).toBeInTheDocument()
+  })
+
+  it('aplica data-tour quando informado', () => {
+    const { container } = render(<ConnectionStatusIndicator status="CONNECTED" dataTour="realtime" />)
+    expect(container.querySelector('[data-tour="realtime"]')).toBeInTheDocument()
   })
 })
