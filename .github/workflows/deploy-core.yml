@@ -47,9 +47,9 @@ on:
         default: ""
     secrets:
       TAILSCALE_AUTHKEY:
-        required: true
+        required: false
       KUBECONFIG:
-        required: true
+        required: false
       GHCR_PAT:
         required: false
 
