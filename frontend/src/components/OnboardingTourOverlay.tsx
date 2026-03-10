@@ -169,7 +169,10 @@ export function OnboardingTourOverlay({
     } else if (canPlaceLeft) {
       left = spotlightRect.left - panelWidth - 14
     } else {
-      left = Math.max(viewportPadding, Math.min(window.innerWidth - panelWidth - viewportPadding, left))
+      left = Math.max(
+        viewportPadding,
+        Math.min(window.innerWidth - panelWidth - viewportPadding, left)
+      )
     }
 
     const top = Math.max(
