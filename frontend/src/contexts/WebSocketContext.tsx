@@ -61,7 +61,7 @@ const initialState: WebSocketState = {
   status: 'DISCONNECTED',
 }
 
-const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
+export const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
 
 interface PendingSubscription {
   key: string
