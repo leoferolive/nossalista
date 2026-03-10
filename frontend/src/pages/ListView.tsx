@@ -986,7 +986,7 @@ export const ListView: React.FC = () => {
                 onChange={(e) => setNewItemName(e.target.value)}
                 placeholder="Adicionar novo item…"
                 disabled={addingItem}
-                className="flex-1 rounded-2xl border border-nl-border px-4 py-3 focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:bg-nl-surface-strong"
+                className="flex-1 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-nl-text placeholder:text-nl-muted/70 caret-nl-accent focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:bg-nl-surface"
                 maxLength={200}
                 name="newItem"
                 autoComplete="off"
