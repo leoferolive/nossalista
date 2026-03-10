@@ -48,6 +48,7 @@ public class UserMapper {
             user.getEmail(),
             user.getName(),
             user.getAvatarUrl(),
+            user.getOnboardingCompletedAt(),
             user.getAuthProvider(),
             user.getCreatedAt(),
             token,
@@ -70,6 +71,7 @@ public class UserMapper {
             user.getName(),
             user.getAvatarUrl(),
             user.getAuthProvider().toString(),
+            user.getOnboardingCompletedAt(),
             user.getCreatedAt()
         );
     }

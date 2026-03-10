@@ -34,3 +34,8 @@
 
 - **Decisao:** frontend com threshold global >= 80% (lines/branches/functions/statements) e backend com >= 80% line + >= 75% branch.
 - **Motivo:** elevar padrao tecnico com controle de regressao por no-decrease entre branch base e branch do PR.
+
+## D-008 Onboarding inicial por conta
+
+- **Decisao:** tutorial guiado no primeiro login com persistencia por conta (`users.onboarding_completed_at`), endpoint idempotente de conclusao e replay manual no menu da conta.
+- **Motivo:** reduzir friccao para novos usuarios sem repetir onboarding em todos os acessos/dispositivos.

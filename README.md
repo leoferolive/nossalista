@@ -8,10 +8,12 @@ Aplicativo web de listas compartilhadas em tempo real.
 ## Sobre o projeto
 
 NossaLista permite criar, compartilhar e editar listas colaborativas com sincronizacao em tempo real.
+Usuarios novos recebem um tutorial guiado no primeiro login para aprender criacao, compartilhamento, edicao e acompanhamento realtime.
 
 Status atual:
 - MVP em desenvolvimento ativo
 - Backend e frontend implementados no monorepo
+- Onboarding guiado no primeiro login (com replay manual no menu da conta)
 - CI ativo para frontend e backend
 - Deploy dev automático para branches `release/*`
 - Release automática em `main` com tag SemVer patch e deploy prod com aprovação de environment

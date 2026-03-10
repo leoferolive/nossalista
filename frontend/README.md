@@ -36,6 +36,13 @@ App local: `http://localhost:5173`
 - Endpoints e contrato de autenticacao: `docs/auth-endpoints-matrix.md`
 - Sincronizacao realtime: STOMP/SockJS em `/ws/**`
 
+## Onboarding Guiado (Primeiro Login)
+
+- O tour inicia automaticamente na Home quando `user.onboardingCompletedAt` ainda e `null`.
+- Ao concluir ou pular, o frontend chama `POST /api/users/me/onboarding/complete` (idempotente).
+- Em caso de falha para persistir essa preferencia, o tour nao reabre na sessao atual e um aviso leve e exibido.
+- O usuario pode reabrir o fluxo completo a qualquer momento pelo menu da conta em `Ver tutorial`.
+
 ## Estrutura principal
 
 ```text

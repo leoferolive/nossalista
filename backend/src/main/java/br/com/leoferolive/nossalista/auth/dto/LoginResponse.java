@@ -12,6 +12,7 @@ import java.util.UUID;
  * @param email        Email do usuário
  * @param name         Nome completo do usuário
  * @param avatarUrl    URL do avatar (pode ser null)
+ * @param onboardingCompletedAt Data/hora de conclusão do onboarding (pode ser null)
  * @param authProvider Provedor de autenticação (EMAIL, GOOGLE)
  * @param createdAt    Data de criação da conta
  * @param token        JWT token para autenticação
@@ -23,6 +24,7 @@ public record LoginResponse(
     String email,
     String name,
     String avatarUrl,
+    LocalDateTime onboardingCompletedAt,
     AuthProvider authProvider,
     LocalDateTime createdAt,
     String token,

@@ -109,6 +109,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-nl-bg/80 p-4"
+      data-tour="create-list-modal"
       onClick={(e) => {
         // Fecha ao clicar no overlay (fora do modal)
         if (e.target === e.currentTarget) {
