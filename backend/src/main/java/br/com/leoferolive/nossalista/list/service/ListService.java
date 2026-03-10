@@ -15,6 +15,8 @@ import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
+import br.com.leoferolive.nossalista.websocket.dto.ListNameUpdatedPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -40,15 +42,18 @@ public class ListService {
     private final ListTypeRepository listTypeRepository;
     private final ListMemberRepository listMemberRepository;
     private final ListItemRepository listItemRepository;
+    private final WebSocketEventPublisher eventPublisher;
 
     public ListService(ListRepository listRepository,
                        ListTypeRepository listTypeRepository,
                        ListMemberRepository listMemberRepository,
-                       ListItemRepository listItemRepository) {
+                       ListItemRepository listItemRepository,
+                       WebSocketEventPublisher eventPublisher) {
         this.listRepository = listRepository;
         this.listTypeRepository = listTypeRepository;
         this.listMemberRepository = listMemberRepository;
         this.listItemRepository = listItemRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -217,10 +222,19 @@ public class ListService {
             throw new IllegalArgumentException("Nome da lista deve ter no máximo 100 caracteres");
         }
 
+        String oldName = list.getName();
         list.setName(trimmedName);
 
         // @PreUpdate vai atualizar o updatedAt automaticamente
-        return listRepository.save(list);
+        List savedList = listRepository.save(list);
+
+        eventPublisher.publishItemsEvent(
+            listId, "LIST_NAME_UPDATED",
+            new ListNameUpdatedPayload(listId.toString(), oldName, trimmedName),
+            savedList.getOwner(), null
+        );
+
+        return savedList;
     }
 
     /**

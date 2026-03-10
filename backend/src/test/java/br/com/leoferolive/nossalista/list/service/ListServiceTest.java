@@ -15,6 +15,8 @@ import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
+import br.com.leoferolive.nossalista.websocket.dto.ListNameUpdatedPayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,7 +32,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -50,6 +52,9 @@ class ListServiceTest {
 
     @Mock
     private ListItemRepository listItemRepository;
+
+    @Mock
+    private WebSocketEventPublisher eventPublisher;
 
     @InjectMocks
     private ListService listService;
@@ -487,6 +492,31 @@ class ListServiceTest {
             assertEquals("Nome da lista deve ter no máximo 100 caracteres", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
             verify(listRepository, never()).save(any(List.class));
+        }
+
+        @Test
+        @DisplayName("Deve publicar evento LIST_NAME_UPDATED via WebSocket ao renomear lista")
+        void shouldPublishListNameUpdatedEvent() {
+            // Arrange
+            String oldName = testList.getName(); // "Nome Original"
+            UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome");
+            when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
+            when(listRepository.save(any(List.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            listService.updateListName(listId, testUser.getId(), request);
+
+            // Assert
+            ArgumentCaptor<ListNameUpdatedPayload> payloadCaptor =
+                ArgumentCaptor.forClass(ListNameUpdatedPayload.class);
+            verify(eventPublisher).publishItemsEvent(
+                eq(listId), eq("LIST_NAME_UPDATED"), payloadCaptor.capture(), eq(testUser), isNull()
+            );
+
+            ListNameUpdatedPayload payload = payloadCaptor.getValue();
+            assertEquals(listId.toString(), payload.listId());
+            assertEquals(oldName, payload.oldName());
+            assertEquals("Novo Nome", payload.newName());
         }
     }
 
