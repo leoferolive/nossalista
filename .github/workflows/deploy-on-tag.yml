@@ -9,9 +9,6 @@ on:
       ref:
         description: "SHA do commit correspondente à tag"
         required: true
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 concurrency:
   group: deploy-dev-on-tag
@@ -22,6 +19,6 @@ jobs:
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: dev
-      tag: ${{ inputs.tag || github.ref_name }}
-      ref: ${{ inputs.ref || github.sha }}
+      tag: ${{ inputs.tag }}
+      ref: ${{ inputs.ref }}
     secrets: inherit
