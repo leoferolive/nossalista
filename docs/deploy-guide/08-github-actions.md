@@ -1,96 +1,69 @@
-# GitHub Actions — Workflows de Release e Deploy
+# GitHub Actions - Release e Deploy
 
-## 1. Visão Geral dos Workflows
+## 1. Visao geral
 
-O repositório usa três workflows principais:
+Workflows ativos no repositorio:
 
-- `ci.yml`: valida qualidade, testes, segurança e build.
-- `deploy-dev.yml`: deploy automático no ambiente dev após CI com sucesso em `release/*`.
-- `release-prod.yml`: gera release automática (`vX.Y.Z` patch), cria GitHub Release e faz deploy em prod com aprovação de environment.
+- `ci.yml`: quality gates (frontend, backend, seguranca, smoke).
+- `release.yml`: roda apos CI com sucesso em `main`, cria/reutiliza tag estavel e GitHub Release, depois dispara deploy em dev por tag.
+- `deploy-on-tag.yml`: deploy em dev para tag estavel (`vX.Y.Z`), com validacao de `tag` + `ref`.
+- `deploy-branch-dev.yml`: deploy manual em dev para branch/SHA nao mergeado, criando RC tag rastreavel.
+- `deploy-prod.yml`: deploy manual em prod com aprovacao de `environment: production`.
+- `deploy-environment.yml`: workflow reutilizavel central com build/push + apply/rollout Kubernetes.
 
----
+## 2. Fluxo oficial
 
-## 2. CI (`.github/workflows/ci.yml`)
+```text
+push main -> CI -> release.yml
+                 -> cria/reusa tag estavel vX.Y.Z
+                 -> gh workflow run deploy-on-tag.yml (tag + sha)
+                 -> deploy em dev
 
-### Triggers
+manual -> deploy-branch-dev.yml (ref obrigatorio)
+       -> cria RC tag vX.Y.Z-rc.<sha>
+       -> deploy em dev
 
-- `pull_request`
-- `push` em:
-  - `main`
-  - `release/**`
+manual -> deploy-prod.yml (tag estavel)
+       -> valida tag
+       -> aprovacao production
+       -> deploy em prod
+```
 
-### Objetivo
+## 3. Guardrails de seguranca operacional
 
-Garantir que somente commits aprovados pelo quality gate avancem para deploy/release.
+- `deploy-branch-dev.yml`
+  - input `ref` obrigatorio (sem default), para evitar deploy acidental de `main`.
+  - RC tag e pre-release para rastreabilidade.
+- `deploy-on-tag.yml`
+  - falha se `tag` nao estiver em formato estavel `vX.Y.Z`.
+  - falha se `tag` e `ref` nao apontarem para o mesmo commit.
+- `deploy-prod.yml`
+  - falha se `tag` nao estiver em formato estavel `vX.Y.Z`.
+  - falha se a tag nao existir no repositorio antes da aprovacao.
+- `deploy-environment.yml`
+  - build usa SHA real do checkout (`git rev-parse HEAD`) no `GIT_SHA`.
+  - dev usa imagem `ghcr.io/<owner>/nossalista-dev`.
+  - prod usa imagem `ghcr.io/<owner>/nossalista`.
 
----
+## 4. Ambientes e imagens
 
-## 3. Deploy Dev (`.github/workflows/deploy-dev.yml`)
+| Ambiente | Namespace K8s | Deployment | Imagem |
+| --- | --- | --- | --- |
+| Dev | `nossalista-dev` | `nossalista-dev` | `ghcr.io/leoferolive/nossalista-dev:latest` + tags RC/estaveis |
+| Prod | `nossalista` | `nossalista` | `ghcr.io/leoferolive/nossalista:latest` + tags estaveis |
 
-### Trigger
-
-`workflow_run` do workflow `CI`, somente quando:
-
-- branch do run: `release/**`
-- conclusão: `success`
-- evento original: `push`
-
-### Resultado
-
-- Build e push da imagem `ghcr.io/leoferolive/nossalista-dev:latest`
-- Apply em `k8s/dev`
-- Rollout de `nossalista-dev` no namespace `nossalista-dev`
-
-### Observação
-
-O ambiente dev é único. A última branch `release/*` com CI aprovado sobrescreve o deploy anterior.
-
----
-
-## 4. Release + Deploy Prod (`.github/workflows/release-prod.yml`)
-
-### Trigger
-
-`workflow_run` do workflow `CI`, somente quando:
-
-- branch do run: `main`
-- conclusão: `success`
-- evento original: `push`
-
-### Etapas
-
-1. Checkout no `head_sha` validado pelo CI.
-2. Resolver versão de release:
-   - se o commit já tiver tag `vX.Y.Z`, reutiliza;
-   - senão, lê última tag SemVer e incrementa patch.
-3. Criar tag Git anotada (`vX.Y.Z`) e publicar.
-4. Criar GitHub Release com `--generate-notes` (se ainda não existir).
-5. Aguardar aprovação manual no environment `production`.
-6. Build/push + deploy em `k8s/prod` usando `image_tag` igual à tag da release.
-
-### Resultado
-
-- Produção deixa de ser controlada por `latest` como versão operacional.
-- Toda entrega em prod fica rastreável por:
-  - tag Git (`vX.Y.Z`)
-  - GitHub Release
-  - imagem implantada com a mesma tag
-
----
-
-## 5. Workflow Prod Legado
-
-O workflow manual antigo `deploy-prod.yml` foi removido para evitar caminhos paralelos sem governança de release.
-
----
-
-## 6. Verificação Rápida via GitHub CLI
+## 5. Comandos uteis de validacao
 
 ```bash
-gh run list --workflow=ci.yml --limit 5
-gh run list --workflow=deploy-dev.yml --limit 5
-gh run list --workflow=release-prod.yml --limit 5
+# ultimos runs de dev por branch/SHA
+gh run list --workflow=deploy-branch-dev.yml --limit 5
 
-gh release list --limit 10
-gh release view vX.Y.Z
+# ultimos runs de dev por tag estavel
+gh run list --workflow=deploy-on-tag.yml --limit 5
+
+# ultimos runs de prod
+gh run list --workflow=deploy-prod.yml --limit 5
+
+# detalhes de um run
+gh run view <run-id> --log
 ```

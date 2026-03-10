@@ -118,8 +118,22 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
 
 - Manifests Kubernetes em `k8s/`
 - Ambientes:
-  - Dev: deploy automático após CI bem-sucedido em push para `release/*` (`deploy-dev.yml`, imagem `:dev`)
-  - Prod: release automática após CI bem-sucedido em push para `main` (`release-prod.yml`, tag `vX.Y.Z`), com aprovação obrigatória no environment `production`
+  - Dev:
+    - `deploy-branch-dev.yml` (manual): testa branch/SHA com RC tag rastreável em `nossalista-dev`
+    - `deploy-on-tag.yml` (manual/automático via `release.yml`): deploy em dev de tag estável `vX.Y.Z`
+  - Prod:
+    - `deploy-prod.yml` (manual): deploy de tag estável `vX.Y.Z` com aprovação obrigatória no environment `production`
+  - Release:
+    - `release.yml` (automático após CI em `main`) cria/reutiliza tag estável e dispara `deploy-on-tag.yml`
+
+- Imagens:
+  - Dev: `ghcr.io/leoferolive/nossalista-dev:latest` (e tags RC/estáveis para rastreabilidade)
+  - Prod: `ghcr.io/leoferolive/nossalista:latest` + tag estável `vX.Y.Z`
+
+- Guardrails de deploy:
+  - `deploy-branch-dev.yml`: `ref` é obrigatório (sem default), evitando deploy acidental de `main`
+  - `deploy-on-tag.yml`: valida formato de tag estável e se `tag` e `ref` apontam para o mesmo commit
+  - `deploy-prod.yml`: aceita apenas tag estável `vX.Y.Z` existente no repositório
 
 - Operação manual (fallback):
 

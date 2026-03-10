@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Branch, tag ou SHA para deployar em dev"
+        description: "Branch, tag ou SHA para deployar em dev (obrigatório)"
         required: true
-        default: "main"
 
 concurrency:
   group: deploy-branch-dev
