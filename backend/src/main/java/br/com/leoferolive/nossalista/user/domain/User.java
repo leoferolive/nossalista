@@ -51,6 +51,9 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "onboarding_completed_at")
+    private LocalDateTime onboardingCompletedAt;
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {
@@ -149,5 +152,13 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public LocalDateTime getOnboardingCompletedAt() {
+        return onboardingCompletedAt;
+    }
+
+    public void setOnboardingCompletedAt(LocalDateTime onboardingCompletedAt) {
+        this.onboardingCompletedAt = onboardingCompletedAt;
     }
 }

@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Branch, tag ou SHA para deployar em dev"
+        description: "Branch, tag ou SHA para deployar em dev (obrigatório)"
         required: true
-        default: "main"
 
 concurrency:
   group: deploy-branch-dev
@@ -106,6 +105,7 @@ jobs:
       packages: write
     steps:
       - name: Apagar imagens RC antigas do ghcr.io (manter últimas 3)
+        continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
           package-name: nossalista-dev

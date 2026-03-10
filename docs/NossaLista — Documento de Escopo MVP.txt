@@ -32,6 +32,7 @@ NossaLista é um aplicativo web de listas compartilhadas onde usuários podem cr
 - Login com email/senha — fallback
 - Registro de usuário com username único (usado para convites)
 - Sessão persistente via JWT
+- Tutorial guiado no primeiro login por conta (com opção de replay manual)
 
 ### 3.2 Tipos de Lista (pré-definidos)
 
@@ -90,6 +91,7 @@ Cada tipo define quais campos um item possui:
 │ password     │       └──────────────────┘
 │   (nullable) │
 │ auth_provider│
+│ onboarding_completed_at │
 │ created_at   │
 └──────┬───────┘
        │
@@ -148,6 +150,7 @@ Cada tipo define quais campos um item possui:
 - **list_types.field_schema**: JSONB que define os campos dinâmicos por tipo. Ex: `{"fields": [{"name": "quantity", "type": "number"}, {"name": "due_date", "type": "date"}]}`
 - **list_items**: colunas nullable para campos opcionais — abordagem simples para o MVP. Alternativa futura: coluna JSONB para dados extras.
 - **password nullable**: usuários que logam via Google não precisam de senha.
+- **onboarding_completed_at nullable**: controla se o tutorial inicial já foi concluído para a conta.
 
 ---
 
@@ -200,6 +203,7 @@ POST   /api/auth/refresh           Refresh token
 ```
 GET    /api/users/me               Perfil do usuário logado
 PATCH  /api/users/me               Atualizar perfil
+POST   /api/users/me/onboarding/complete  Marcar onboarding inicial como concluído
 GET    /api/users/search?q=        Buscar por username (p/ convite)
 ```
 

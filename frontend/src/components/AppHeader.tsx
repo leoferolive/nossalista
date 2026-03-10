@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useOnboarding } from '../contexts/OnboardingContext'
 
 interface AppHeaderProps {
   title: string
@@ -33,6 +34,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
+  const { startReplay } = useOnboarding()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -212,6 +214,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                       Meu perfil
                       <span aria-hidden="true">•</span>
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        startReplay()
+                      }}
+                      className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
+                      role="menuitem"
+                    >
+                      Ver tutorial
+                      <span aria-hidden="true">↺</span>
+                    </button>
                     <button
                       type="button"
                       onClick={handleLogout}

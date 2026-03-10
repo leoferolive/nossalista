@@ -45,6 +45,15 @@ App local: `http://localhost:5173`
   - Cursor de texto: `caret-nl-accent`
 - Evitar depender do estilo padrao do navegador para `input`, pois isso pode resultar em campo claro com fonte clara.
 
+## Onboarding Guiado (Primeiro Login)
+
+- O tour inicia automaticamente na Home quando `user.onboardingCompletedAt` ainda e `null`.
+- Ao concluir ou pular, o frontend chama `POST /api/users/me/onboarding/complete` (idempotente).
+- Em caso de falha para persistir essa preferencia, o tour nao reabre na sessao atual e um aviso leve e exibido.
+- O usuario pode reabrir o fluxo completo a qualquer momento pelo menu da conta em `Ver tutorial`.
+- O spotlight recalcula automaticamente quando o alvo entra no DOM apos o passo iniciar (ex.: modal de criacao), evitando overlay opaco sem destaque.
+- Todos os passos mantem acao `Pular`; no passo de criacao, `Proximo` fica desabilitado ate a lista ser criada.
+
 ## Estrutura principal
 
 ```text

@@ -15,7 +15,7 @@ A NossaLista é implantada como **um único container** (frontend React embutido
 |---------------------|----------------------------------------|-----------------------------------------------|
 | Domínio             | `nossalista.home`                      | `nossalista.leoferolive.com.br`               |
 | Namespace K8s       | `nossalista-dev`                       | `nossalista`                                  |
-| Image tag           | `ghcr.io/leoferolive/nossalista:dev`   | `ghcr.io/leoferolive/nossalista:vX.Y.Z`       |
+| Image tag           | `ghcr.io/leoferolive/nossalista-dev:latest`   | `ghcr.io/leoferolive/nossalista:vX.Y.Z`       |
 | Trigger deploy      | Push em `release/*`                    | Push na `main` + aprovação no environment `production` |
 | Spring profile      | `dev`                                  | `prod`                                        |
 | Banco de dados      | `nossalista_dev`                       | `nossalista`                                  |

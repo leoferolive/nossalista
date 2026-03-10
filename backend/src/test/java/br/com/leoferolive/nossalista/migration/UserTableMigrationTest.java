@@ -34,7 +34,8 @@ class UserTableMigrationTest {
         // Verify all expected columns exist (order may vary in H2)
         assertThat(columns)
             .containsExactlyInAnyOrder("id", "username", "email", "password", "name",
-                           "avatar_url", "auth_provider", "role", "created_at", "updated_at");
+                           "avatar_url", "auth_provider", "role", "created_at", "updated_at",
+                           "onboarding_completed_at");
     }
 
     @Test

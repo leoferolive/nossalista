@@ -80,12 +80,18 @@ kubectl rollout restart deployment/nossalista -n nossalista
 ## Release e Deploy (GitHub Actions)
 
 - Dev:
-  - push em `release/*` roda `CI`
-  - `deploy-dev.yml` publica `:dev` no namespace `nossalista-dev`
+  - `deploy-branch-dev.yml`: deploy manual de branch/SHA com RC tag rastreavel
+  - `deploy-on-tag.yml`: deploy em dev de tag estavel `vX.Y.Z` (manual ou disparado por `release.yml`)
 - Prod:
+  - `deploy-prod.yml`: deploy manual de tag estavel `vX.Y.Z` com aprovacao no environment `production`
+- Release:
   - push em `main` roda `CI`
-  - `release-prod.yml` cria tag patch `vX.Y.Z` e GitHub Release
-  - job de deploy exige aprovação no environment `production`
+  - `release.yml` cria/reutiliza tag patch `vX.Y.Z`, publica GitHub Release e dispara `deploy-on-tag.yml`
+
+Regras operacionais:
+- `deploy-branch-dev.yml`: `ref` obrigatorio (sem default)
+- `deploy-on-tag.yml`: valida formato de tag estavel e alinhamento entre `tag` e `ref`
+- `deploy-prod.yml`: aceita apenas tag estavel existente no repositorio
 
 ## Rollback de Produção por Tag
 
@@ -95,7 +101,7 @@ kubectl rollout restart deployment/nossalista -n nossalista
 gh release list --limit 20
 ```
 
-2. Reexecutar deploy de produção apontando `image_tag` para a tag alvo (via workflow `release-prod.yml` ajustado para o commit/tag, ou via procedimento operacional de emergência no cluster).
+2. Reexecutar deploy de produção via `deploy-prod.yml` usando a tag alvo.
 
 3. Verificar rollout:
 

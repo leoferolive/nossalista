@@ -10,6 +10,7 @@ interface LoginResponse {
   email: string
   name: string
   avatarUrl?: string
+  onboardingCompletedAt?: string | null
   token: string
 }
 
@@ -69,6 +70,7 @@ export default function Login() {
         email: data.email,
         displayName: data.name,
         avatarUrl: data.avatarUrl,
+        onboardingCompletedAt: data.onboardingCompletedAt ?? null,
       })
 
       // Verificar se há redirect pendente

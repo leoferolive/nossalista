@@ -14,6 +14,7 @@ interface CurrentUserResponse {
   email: string
   name: string | null
   avatarUrl?: string | null
+  onboardingCompletedAt?: string | null
 }
 
 type User = StoredUser
@@ -23,6 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isBootstrapping: boolean
   login: (token: string, user: User) => void
+  markOnboardingCompleted: (completedAt?: string) => void
   logout: () => void
 }
 
@@ -54,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.email,
           displayName: data.name,
           avatarUrl: data.avatarUrl ?? null,
+          onboardingCompletedAt: data.onboardingCompletedAt ?? null,
         }
         persistAuthSession(token, normalizedUser)
         setUser(normalizedUser)
@@ -76,6 +79,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsBootstrapping(false)
   }, [])
 
+  const markOnboardingCompleted = useCallback((completedAt?: string) => {
+    setUser((prev) => {
+      if (!prev) {
+        return prev
+      }
+
+      const nextUser: User = {
+        ...prev,
+        onboardingCompletedAt: completedAt ?? new Date().toISOString(),
+      }
+
+      const token = getStoredAuthToken()
+      if (token) {
+        persistAuthSession(token, nextUser)
+      }
+
+      return nextUser
+    })
+  }, [])
+
   const logout = useCallback(() => {
     clearStoredSession()
     setUser(null)
@@ -83,7 +106,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isBootstrapping, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated, isBootstrapping, login, markOnboardingCompleted, logout }}
+    >
       {children}
     </AuthContext.Provider>
   )

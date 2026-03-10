@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -269,6 +270,7 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.email").value("login@example.com"))
             .andExpect(jsonPath("$.name").value("Login User"))
             .andExpect(jsonPath("$.authProvider").value("EMAIL"))
+            .andExpect(jsonPath("$.onboardingCompletedAt").isEmpty())
             .andExpect(jsonPath("$.token").exists())
             .andExpect(jsonPath("$.expiresAt").exists())
             .andExpect(jsonPath("$.password").doesNotExist())
@@ -282,6 +284,28 @@ class AuthControllerTest {
         // Verify token contains correct userId
         UUID userId = jwtService.extractUserId(token);
         assertThat(userId).isEqualTo(user.getId());
+    }
+
+    @Test
+    void shouldReturnOnboardingCompletedAtWhenAlreadyCompleted() throws Exception {
+        User user = new User();
+        user.setEmail("onboarding@example.com");
+        user.setUsername("onboardinguser");
+        user.setPassword(passwordEncoder.encode("senha123"));
+        user.setAuthProvider(AuthProvider.EMAIL);
+        user.setRole(Role.USER);
+        user.setOnboardingCompletedAt(LocalDateTime.now().minusHours(4));
+        userRepository.save(user);
+
+        Map<String, String> loginRequest = new HashMap<>();
+        loginRequest.put("email", "onboarding@example.com");
+        loginRequest.put("password", "senha123");
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.onboardingCompletedAt").isNotEmpty());
     }
 
     @Test

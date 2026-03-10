@@ -9,6 +9,7 @@ import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -156,6 +157,25 @@ public class UserService {
 
         // @PreUpdate da entidade User atualiza updatedAt automaticamente
         return userRepository.save(user);
+    }
+
+    /**
+     * Marca o onboarding como concluído de forma idempotente.
+     *
+     * @param userId ID do usuário autenticado
+     * @return usuário atualizado
+     */
+    @Transactional
+    public User markOnboardingCompleted(UUID userId) {
+        User user = findById(userId)
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + userId));
+
+        if (user.getOnboardingCompletedAt() == null) {
+            user.setOnboardingCompletedAt(LocalDateTime.now());
+            return userRepository.save(user);
+        }
+
+        return user;
     }
 
     /**

@@ -9,6 +9,7 @@ export interface UserProfileResponse {
   name: string | null
   avatarUrl: string | null
   authProvider: string
+  onboardingCompletedAt: string | null
 }
 
 export interface UpdateProfileRequest {
@@ -96,5 +97,25 @@ export const usersApi = {
     // Em uma implementação completa, isso pode chamar um endpoint de logout no backend
     // Por enquanto, a função principal é limpar o token e redirecionar
     return Promise.resolve()
+  },
+
+  async completeOnboarding(): Promise<void> {
+    try {
+      await client.post(
+        '/api/users/me/onboarding/complete',
+        undefined,
+        preserveSessionOnUnauthorizedConfig
+      )
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>
+
+      if (axiosError.response?.status === 401) {
+        throw new Error('Sessão expirada. Faça login novamente.')
+      }
+
+      throw new Error(
+        axiosError.response?.data?.detail || 'Não foi possível concluir o tutorial agora.'
+      )
+    }
   },
 }

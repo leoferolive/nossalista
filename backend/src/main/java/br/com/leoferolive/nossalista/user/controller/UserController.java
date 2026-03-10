@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -115,6 +116,27 @@ public class UserController {
 
         UserProfileResponse response = userMapper.toUserProfileResponse(updatedUser);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Marca o onboarding do usuário autenticado como concluído.
+     *
+     * @return 204 No Content
+     */
+    @PostMapping("/me/onboarding/complete")
+    @Operation(
+        summary = "Concluir onboarding do usuário autenticado",
+        description = "Marca o onboarding como concluído de forma idempotente."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Onboarding marcado como concluído"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado - Token JWT ausente, inválido ou expirado",
+            content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
+    })
+    public ResponseEntity<Void> completeOnboarding() {
+        User currentUser = getCurrentAuthenticatedUser();
+        userService.markOnboardingCompleted(currentUser.getId());
+        return ResponseEntity.noContent().build();
     }
 
     /**
