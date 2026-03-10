@@ -182,7 +182,7 @@ export function OnboardingTourOverlay({
       top,
       left,
     }
-  }, [isMobile, spotlightRect])
+  }, [isMobile, spotlightRect, step])
 
   if (!active || !step) {
     return null
