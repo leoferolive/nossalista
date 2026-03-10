@@ -122,6 +122,8 @@ deploy-prod.yml (manual + aprovação) ─────────────�
 - **`deploy-on-tag.yml`**: Deploya tag estável em dev — chamado pelo release automático ou manualmente.
 - **`deploy-branch-dev.yml`**: Para branches/SHAs não mergeados. Cria RC tag rastreável, deploya em dev, limpa imagens RC antigas do `nossalista-dev` (mantém 3).
 - **`deploy-prod.yml`**: Deploy em prod com aprovação manual (environment `production`).
+- `tag` em workflows de deploy significa **tag da imagem implantada**; `ref` significa **ref do checkout que será reconstruído**.
+- O workflow de deploy aplica manifestos estruturais e depois força a imagem do Deployment com `kubectl set image`, além de registrar `deploy.nossalista/tag` e `deploy.nossalista/sha` via annotations.
 
 ### Fluxo de Deploy (Regra Obrigatória)
 
@@ -155,6 +157,8 @@ kubectl apply -f k8s/
 # Ver status do deployment
 kubectl get pods -n nossalista
 kubectl logs -f deployment/nossalista -n nossalista
+kubectl get deployment/nossalista -n nossalista -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+curl https://nossalista.leoferolive.com.br/api/health
 
 # Restart do deployment
 kubectl rollout restart deployment/nossalista -n nossalista

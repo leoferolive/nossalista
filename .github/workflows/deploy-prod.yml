@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag semântica para deploy em produção, ex: v1.2.3"
+        description: "Tag semântica da imagem para deploy em produção, ex: v1.2.3"
         required: true
 
 concurrency:
@@ -47,6 +47,6 @@ jobs:
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: prod
-      tag: ${{ inputs.tag }}
-      ref: ${{ inputs.tag }}
+      tag: ${{ inputs.tag }} # tag da imagem implantada
+      ref: ${{ inputs.tag }} # ref do checkout: a própria tag estável
     secrets: inherit

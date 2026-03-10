@@ -6,21 +6,21 @@ Documentação completa para configurar e operar os ambientes de deploy da aplic
 
 A NossaLista é implantada como **um único container** (frontend React embutido no JAR do Spring Boot), rodando em um cluster K3s em Raspberry Pi 4 com dois ambientes distintos:
 
-- **Dev** (`nossalista.home`): atualizado automaticamente a cada push em `release/*`
-- **Prod** (`nossalista.leoferolive.com.br`): release automática em push na `main`, com aprovação obrigatória de environment antes do deploy
+- **Dev** (`nossalista.home`): recebe a tag estável gerada em `main` ou uma RC manual para branch/SHA não mergeado
+- **Prod** (`nossalista.leoferolive.com.br`): promove uma tag estável existente com aprovação obrigatória de environment antes do deploy
 
 ## Tabela de Ambientes
 
-| Atributo            | Dev                                    | Prod                                          |
-|---------------------|----------------------------------------|-----------------------------------------------|
-| Domínio             | `nossalista.home`                      | `nossalista.leoferolive.com.br`               |
-| Namespace K8s       | `nossalista-dev`                       | `nossalista`                                  |
-| Image tag           | `ghcr.io/leoferolive/nossalista-dev:latest`   | `ghcr.io/leoferolive/nossalista:vX.Y.Z`       |
-| Trigger deploy      | Push em `release/*`                    | Push na `main` + aprovação no environment `production` |
-| Spring profile      | `dev`                                  | `prod`                                        |
-| Banco de dados      | `nossalista_dev`                       | `nossalista`                                  |
-| Acesso              | Rede local + Tailnet (`:8443`)         | Internet (Cloudflare Tunnel)                  |
-| HTTPS               | Não (HTTP)                             | Sim (via Cloudflare)                          |
+| Atributo            | Dev                                                     | Prod                                          |
+|---------------------|---------------------------------------------------------|-----------------------------------------------|
+| Domínio             | `nossalista.home`                                       | `nossalista.leoferolive.com.br`               |
+| Namespace K8s       | `nossalista-dev`                                        | `nossalista`                                  |
+| Image tag           | `ghcr.io/leoferolive/nossalista-dev:vX.Y.Z` ou `vX.Y.Z-rc.<sha>` | `ghcr.io/leoferolive/nossalista:vX.Y.Z` |
+| Trigger deploy      | `release.yml` ou `deploy-branch-dev.yml`                | `deploy-prod.yml` + aprovação no environment `production` |
+| Spring profile      | `dev`                                                   | `prod`                                        |
+| Banco de dados      | `nossalista_dev`                                        | `nossalista`                                  |
+| Acesso              | Rede local + Tailnet (`:8443`)                          | Internet (Cloudflare Tunnel)                  |
+| HTTPS               | Não (HTTP)                                              | Sim (via Cloudflare)                          |
 
 ## Documentos
 
@@ -33,7 +33,7 @@ A NossaLista é implantada como **um único container** (frontend React embutido
 | [05-kubernetes.md](05-kubernetes.md) | Todos os manifests K8s (dev + prod) |
 | [06-secrets.md](06-secrets.md) | Secrets K8s: ghcr-secret e nossalista-secrets |
 | [07-banco-de-dados.md](07-banco-de-dados.md) | Setup PostgreSQL: databases e usuários |
-| [08-github-actions.md](08-github-actions.md) | Workflows CI/CD (deploy-dev + release-prod) |
+| [08-github-actions.md](08-github-actions.md) | Workflows CI/CD atuais (`release`, `deploy-on-tag`, `deploy-branch-dev`, `deploy-prod`) |
 | [09-github-secrets.md](09-github-secrets.md) | Secrets necessários no repositório GitHub |
 | [10-dns.md](10-dns.md) | DNS local + acesso via Tailscale + exposição Traefik |
 | [11-cloudflare-tunnel.md](11-cloudflare-tunnel.md) | Cloudflare Tunnel para domínio prod |

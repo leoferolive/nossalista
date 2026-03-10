@@ -17,17 +17,50 @@ on:
         type: string
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      resolved_sha: ${{ steps.meta.outputs.resolved_sha }}
+      build_time: ${{ steps.meta.outputs.build_time }}
+      app_name: ${{ steps.meta.outputs.app_name }}
+      namespace: ${{ steps.meta.outputs.namespace }}
+      image_repository: ${{ steps.meta.outputs.image_repository }}
+      image_uri: ${{ steps.meta.outputs.image_uri }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Resolve deploy metadata
+        id: meta
+        run: |
+          set -euo pipefail
+
+          RESOLVED_SHA="$(git rev-parse HEAD)"
+          BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          APP_NAME="${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}"
+          NAMESPACE="$APP_NAME"
+          IMAGE_REPOSITORY="ghcr.io/${{ github.repository_owner }}/${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}"
+          IMAGE_URI="${IMAGE_REPOSITORY}:${{ inputs.tag }}"
+
+          echo "resolved_sha=$RESOLVED_SHA" >> "$GITHUB_OUTPUT"
+          echo "build_time=$BUILD_TIME" >> "$GITHUB_OUTPUT"
+          echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
+          echo "namespace=$NAMESPACE" >> "$GITHUB_OUTPUT"
+          echo "image_repository=$IMAGE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
   build-and-push:
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-
-      - name: Resolver SHA da revisão
-        id: revision
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -47,15 +80,27 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}:${{ inputs.tag }}
+            ${{ needs.prepare.outputs.image_repository }}:latest
+            ${{ needs.prepare.outputs.image_uri }}
+          labels: |
+            org.opencontainers.image.title=NossaLista
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ inputs.tag }}
+            org.opencontainers.image.revision=${{ needs.prepare.outputs.resolved_sha }}
+            org.opencontainers.image.ref.name=${{ inputs.ref }}
+            org.opencontainers.image.created=${{ needs.prepare.outputs.build_time }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            GIT_SHA=${{ steps.revision.outputs.sha }}
+            GIT_SHA=${{ needs.prepare.outputs.resolved_sha }}
+            APP_VERSION=${{ inputs.tag }}
+            APP_GIT_SHA=${{ needs.prepare.outputs.resolved_sha }}
+            APP_GIT_TAG=${{ inputs.tag }}
+            APP_BUILD_TIME=${{ needs.prepare.outputs.build_time }}
+            APP_ENVIRONMENT=${{ inputs.environment }}
 
   deploy:
-    needs: build-and-push
+    needs: [prepare, build-and-push]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (manifestos k8s)
@@ -79,12 +124,45 @@ jobs:
       - name: Aplicar manifestos Kubernetes
         run: kubectl apply -f ${{ inputs.environment == 'prod' && './k8s/prod' || './k8s/dev' }}
 
-      - name: Rollout restart do deployment
+      - name: Atualizar imagem e metadata do deployment
         run: |
-          APP_NAME="${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}"
-          kubectl rollout restart deployment/$APP_NAME -n $APP_NAME
+          APP_NAME="${{ needs.prepare.outputs.app_name }}"
+          NAMESPACE="${{ needs.prepare.outputs.namespace }}"
+          IMAGE_URI="${{ needs.prepare.outputs.image_uri }}"
+
+          kubectl set image "deployment/$APP_NAME" \
+            "$APP_NAME=$IMAGE_URI" \
+            -n "$NAMESPACE"
+
+          kubectl set env "deployment/$APP_NAME" \
+            APP_VERSION="${{ inputs.tag }}" \
+            APP_GIT_TAG="${{ inputs.tag }}" \
+            APP_GIT_SHA="${{ needs.prepare.outputs.resolved_sha }}" \
+            APP_BUILD_TIME="${{ needs.prepare.outputs.build_time }}" \
+            APP_ENVIRONMENT="${{ inputs.environment }}" \
+            -n "$NAMESPACE"
+
+          kubectl annotate "deployment/$APP_NAME" \
+            "deploy.nossalista/tag=${{ inputs.tag }}" \
+            "deploy.nossalista/sha=${{ needs.prepare.outputs.resolved_sha }}" \
+            "deploy.nossalista/build-time=${{ needs.prepare.outputs.build_time }}" \
+            --overwrite \
+            -n "$NAMESPACE"
 
       - name: Aguardar rollout completar
         run: |
-          APP_NAME="${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}"
-          kubectl rollout status deployment/$APP_NAME -n $APP_NAME --timeout=300s
+          APP_NAME="${{ needs.prepare.outputs.app_name }}"
+          NAMESPACE="${{ needs.prepare.outputs.namespace }}"
+          kubectl rollout status "deployment/$APP_NAME" -n "$NAMESPACE" --timeout=300s
+
+      - name: Exibir imagem implantada
+        run: |
+          APP_NAME="${{ needs.prepare.outputs.app_name }}"
+          NAMESPACE="${{ needs.prepare.outputs.namespace }}"
+          DEPLOYED_IMAGE="$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          DEPLOYED_TAG="$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.metadata.annotations.deploy\.nossalista/tag}')"
+          DEPLOYED_SHA="$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.metadata.annotations.deploy\.nossalista/sha}')"
+
+          echo "Imagem implantada: $DEPLOYED_IMAGE"
+          echo "Tag implantada: $DEPLOYED_TAG"
+          echo "SHA implantado: $DEPLOYED_SHA"

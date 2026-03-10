@@ -9,7 +9,7 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 | `POST` | `/api/auth/register` | fluxo de cadastro | Publico |
 | `POST` | `/api/auth/login` | `frontend/src/pages/Login.tsx` | Publico |
 | `GET` | `/api/auth/google` | `frontend/src/pages/Login.tsx`, `frontend/src/pages/JoinListPage.tsx` | Publico |
-| `GET` | `/api/health` | monitoramento | Publico |
+| `GET` | `/api/health` | monitoramento e auditoria operacional | Publico; retorna status, version, gitSha, gitTag, environment e buildTime |
 | `GET` | `/api/lists/join/{inviteCode}` | `frontend/src/api/listsApi.ts` | Publico para preview do convite |
 | `WS` | `/ws/**` | `frontend/src/api/websocket.ts` | Handshake permissivo; autenticacao exigida no CONNECT STOMP |
 

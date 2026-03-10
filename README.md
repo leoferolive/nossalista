@@ -15,8 +15,9 @@ Status atual:
 - Backend e frontend implementados no monorepo
 - Onboarding guiado no primeiro login (com replay manual no menu da conta)
 - CI ativo para frontend e backend
-- Deploy dev automático para branches `release/*`
-- Release automática em `main` com tag SemVer patch e deploy prod com aprovação de environment
+- Release automática em `main` com tag SemVer patch e deploy automático em `dev`
+- Deploy manual em `dev` para branches/SHAs não mergeados via RC tag auditável
+- Deploy manual em `prod` com aprovação de environment e tag estável existente
 
 ## Stack
 
@@ -118,18 +119,15 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
 
 - Manifests Kubernetes em `k8s/`
 - Ambientes:
-  - Dev:
-    - `deploy-branch-dev.yml` (manual): testa branch/SHA com RC tag rastreável em `nossalista-dev`
-    - `deploy-on-tag.yml` (manual/automático via `release.yml`): deploy em dev de tag estável `vX.Y.Z`
-  - Prod:
-    - `deploy-prod.yml` (manual): deploy de tag estável `vX.Y.Z` com aprovação obrigatória no environment `production`
-  - Release:
-    - `release.yml` (automático após CI em `main`) cria/reutiliza tag estável e dispara `deploy-on-tag.yml`
-
-- Imagens:
-  - Dev: `ghcr.io/leoferolive/nossalista-dev:latest` (e tags RC/estáveis para rastreabilidade)
+  - Dev: `release.yml` cria `vX.Y.Z` e dispara `deploy-on-tag.yml`; para branches/SHAs não mergeados, usar `deploy-branch-dev.yml`, que gera `vX.Y.Z-rc.<sha>`
+  - Prod: `deploy-prod.yml` promove uma tag estável existente (`vX.Y.Z`) com aprovação obrigatória no environment `production`
+- Fonte de verdade da versão implantada:
+  - imagem do Deployment recebe explicitamente `ghcr.io/...:<tag>`
+  - annotations `deploy.nossalista/tag` e `deploy.nossalista/sha` são atualizadas no cluster
+  - `GET /api/health` retorna `version`, `gitSha`, `gitTag`, `environment` e `buildTime`
+- Imagens publicadas:
+  - Dev: `ghcr.io/leoferolive/nossalista-dev:latest` + tags RC/estáveis para rastreabilidade
   - Prod: `ghcr.io/leoferolive/nossalista:latest` + tag estável `vX.Y.Z`
-
 - Guardrails de deploy:
   - `deploy-branch-dev.yml`: `ref` é obrigatório (sem default), evitando deploy acidental de `main`
   - `deploy-on-tag.yml`: valida formato de tag estável e se `tag` e `ref` apontam para o mesmo commit
@@ -142,6 +140,9 @@ kubectl apply -f k8s/dev/
 kubectl apply -f k8s/prod/
 kubectl get pods -n nossalista-dev
 kubectl get pods -n nossalista
+kubectl get deployment nossalista-dev -n nossalista-dev -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+curl http://nossalista.home/api/health
+curl https://nossalista.leoferolive.com.br/api/health
 ```
 
 ## Documentacao canonica

@@ -21,6 +21,16 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 RUN groupadd -r appuser && useradd -r -g appuser appuser
+ARG APP_VERSION=local-dev
+ARG APP_GIT_SHA=unknown
+ARG APP_GIT_TAG=unknown
+ARG APP_BUILD_TIME=unknown
+ARG APP_ENVIRONMENT=local
+ENV APP_VERSION=$APP_VERSION \
+    APP_GIT_SHA=$APP_GIT_SHA \
+    APP_GIT_TAG=$APP_GIT_TAG \
+    APP_BUILD_TIME=$APP_BUILD_TIME \
+    APP_ENVIRONMENT=$APP_ENVIRONMENT
 COPY --from=backend-builder /app/target/*.jar app.jar
 USER appuser
 EXPOSE 8080

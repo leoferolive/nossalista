@@ -27,6 +27,11 @@ npm run dev
 
 - API health: `GET http://localhost:8080/api/health`
 - Frontend: `http://localhost:5173`
+- Auditoria de versao implantada:
+  - `curl http://nossalista.home/api/health`
+  - `curl https://nossalista.leoferolive.com.br/api/health`
+  - `kubectl get deployment nossalista-dev -n nossalista-dev -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'`
+  - `kubectl get deployment nossalista -n nossalista -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'`
 
 ## Qualidade
 
@@ -92,6 +97,8 @@ Regras operacionais:
 - `deploy-branch-dev.yml`: `ref` obrigatorio (sem default)
 - `deploy-on-tag.yml`: valida formato de tag estavel e alinhamento entre `tag` e `ref`
 - `deploy-prod.yml`: aceita apenas tag estavel existente no repositorio
+- `deploy-environment.yml` aplica o manifesto e depois executa `kubectl set image`, entao `latest` e `:dev` nao sao mais fonte de verdade do que ficou implantado
+- `tag` = tag da imagem implantada; `ref` = ref do checkout usado para build
 
 ## Rollback de Produção por Tag
 
@@ -101,11 +108,13 @@ Regras operacionais:
 gh release list --limit 20
 ```
 
-2. Reexecutar deploy de produção via `deploy-prod.yml` usando a tag alvo.
+2. Reexecutar `deploy-prod.yml` apontando `tag` para a release estavel desejada.
 
 3. Verificar rollout:
 
 ```bash
 kubectl rollout status deployment/nossalista -n nossalista
 kubectl get pods -n nossalista
+kubectl get deployment nossalista -n nossalista -o jsonpath='{.metadata.annotations.deploy\.nossalista/tag}{"\n"}'
+curl https://nossalista.leoferolive.com.br/api/health
 ```

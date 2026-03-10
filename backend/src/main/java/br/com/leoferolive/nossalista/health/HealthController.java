@@ -17,13 +17,23 @@ import java.util.Map;
 @RequestMapping("/api/health")
 public class HealthController {
 
+    private final BuildMetadataProperties buildMetadata;
+
+    public HealthController(BuildMetadataProperties buildMetadata) {
+        this.buildMetadata = buildMetadata;
+    }
+
     @GetMapping
     public ResponseEntity<Map<String, Object>> health() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "UP");
         response.put("timestamp", LocalDateTime.now());
         response.put("application", "NossaLista API");
-        response.put("version", "0.0.1-SNAPSHOT");
+        response.put("version", buildMetadata.version());
+        response.put("gitSha", buildMetadata.gitSha());
+        response.put("gitTag", buildMetadata.gitTag());
+        response.put("environment", buildMetadata.environment());
+        response.put("buildTime", buildMetadata.buildTime());
 
         return ResponseEntity.ok(response);
     }

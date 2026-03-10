@@ -42,28 +42,35 @@ manual -> deploy-prod.yml (tag estavel)
   - falha se a tag nao existir no repositorio antes da aprovacao.
 - `deploy-environment.yml`
   - build usa SHA real do checkout (`git rev-parse HEAD`) no `GIT_SHA`.
-  - dev usa imagem `ghcr.io/<owner>/nossalista-dev`.
-  - prod usa imagem `ghcr.io/<owner>/nossalista`.
+  - publica `latest` por conveniencia operacional, mas implanta explicitamente `ghcr.io/<owner>/<app>:<tag>`.
+  - grava annotations `deploy.nossalista/tag` e `deploy.nossalista/sha` no Deployment.
+  - injeta `APP_VERSION`, `APP_GIT_TAG`, `APP_GIT_SHA`, `APP_BUILD_TIME` e `APP_ENVIRONMENT` no pod.
 
 ## 4. Ambientes e imagens
 
-| Ambiente | Namespace K8s | Deployment | Imagem |
+| Ambiente | Namespace K8s | Deployment | Imagem implantada |
 | --- | --- | --- | --- |
-| Dev | `nossalista-dev` | `nossalista-dev` | `ghcr.io/leoferolive/nossalista-dev:latest` + tags RC/estaveis |
-| Prod | `nossalista` | `nossalista` | `ghcr.io/leoferolive/nossalista:latest` + tags estaveis |
+| Dev | `nossalista-dev` | `nossalista-dev` | `ghcr.io/leoferolive/nossalista-dev:<tag-estavel-ou-rc>` |
+| Prod | `nossalista` | `nossalista` | `ghcr.io/leoferolive/nossalista:<tag-estavel>` |
 
-## 5. Comandos uteis de validacao
+## 5. Rastreabilidade da versao implantada
+
+- `tag`: tag da imagem publicada e implantada.
+- `ref`: ref do checkout usado para reconstruir o codigo.
+- O cluster deixa de depender de `:latest` ou `:dev` para decidir o que esta rodando.
+- `GET /api/health` retorna `version`, `gitSha`, `gitTag`, `environment` e `buildTime`.
+
+## 6. Comandos uteis de validacao
 
 ```bash
-# ultimos runs de dev por branch/SHA
 gh run list --workflow=deploy-branch-dev.yml --limit 5
-
-# ultimos runs de dev por tag estavel
 gh run list --workflow=deploy-on-tag.yml --limit 5
-
-# ultimos runs de prod
 gh run list --workflow=deploy-prod.yml --limit 5
+gh release list --limit 10
+gh release view vX.Y.Z
 
-# detalhes de um run
-gh run view <run-id> --log
+kubectl get deployment nossalista-dev -n nossalista-dev -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl get deployment nossalista -n nossalista -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+curl http://nossalista.home/api/health
+curl https://nossalista.leoferolive.com.br/api/health
 ```

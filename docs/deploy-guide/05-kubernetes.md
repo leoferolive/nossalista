@@ -53,13 +53,24 @@ spec:
         - name: ghcr-secret
       containers:
         - name: nossalista-dev
-          image: ghcr.io/leoferolive/nossalista-dev:latest
+          image: ghcr.io/leoferolive/nossalista-dev:bootstrap
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
             - secretRef:
                 name: nossalista-secrets
+          env:
+            - name: APP_ENVIRONMENT
+              value: dev
+            - name: APP_VERSION
+              value: bootstrap
+            - name: APP_GIT_TAG
+              value: bootstrap
+            - name: APP_GIT_SHA
+              value: unknown
+            - name: APP_BUILD_TIME
+              value: unknown
           resources:
             requests:
               memory: "512Mi"
@@ -90,6 +101,8 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
 ```
+
+> O valor `bootstrap` existe apenas para bootstrap do recurso. O workflow de deploy sempre sobrescreve a imagem real com `kubectl set image`.
 
 ---
 
@@ -182,7 +195,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: nossalista
-          image: ghcr.io/leoferolive/nossalista:latest
+          image: ghcr.io/leoferolive/nossalista:bootstrap
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -192,6 +205,16 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
+            - name: APP_ENVIRONMENT
+              value: prod
+            - name: APP_VERSION
+              value: bootstrap
+            - name: APP_GIT_TAG
+              value: bootstrap
+            - name: APP_GIT_SHA
+              value: unknown
+            - name: APP_BUILD_TIME
+              value: unknown
           resources:
             requests:
               memory: "512Mi"
@@ -305,9 +328,15 @@ kubectl get pods -n nossalista
 kubectl logs -f deployment/nossalista-dev -n nossalista-dev
 kubectl logs -f deployment/nossalista -n nossalista
 
-# Restart manual (força novo pull da imagem)
-kubectl rollout restart deployment/nossalista-dev -n nossalista-dev
-kubectl rollout restart deployment/nossalista -n nossalista
+# Verificar imagem/tag efetiva do deployment
+kubectl get deployment nossalista-dev -n nossalista-dev -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl get deployment nossalista-dev -n nossalista-dev -o jsonpath='{.metadata.annotations.deploy\.nossalista/tag}{"\n"}'
+kubectl get deployment nossalista -n nossalista -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl get deployment nossalista -n nossalista -o jsonpath='{.metadata.annotations.deploy\.nossalista/tag}{"\n"}'
+
+# Auditoria via endpoint técnico
+curl http://nossalista.home/api/health
+curl https://nossalista.leoferolive.com.br/api/health
 
 # Verificar ingress
 kubectl get ingress -A
