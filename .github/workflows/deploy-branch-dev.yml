@@ -108,7 +108,7 @@ jobs:
       - name: Apagar imagens RC antigas do ghcr.io (manter últimas 3)
         uses: actions/delete-package-versions@v5
         with:
-          package-name: nossalista
+          package-name: nossalista-dev
           package-type: container
           token: ${{ secrets.GITHUB_TOKEN }}
           min-versions-to-keep: 3

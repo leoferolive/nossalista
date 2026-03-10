@@ -94,33 +94,46 @@ src/
 - `namespace.yaml`: Namespace dedicado `nossalista`
 
 ### CI/CD
-O pipeline de CI/CD usa `deploy-environment.yml` como workflow reutilizável central para `deploy-branch-dev.yml` e `deploy-prod.yml`. A lógica de build/deploy está em `deploy-core.yml` (local — sem dependência externa). O `release.yml` chama self-workflows diretamente por limitação do GitHub Actions (`workflow_run` + repo privado não suportam `./` nem `owner/repo@ref` no mesmo repo):
-- Build da imagem Docker (via `deploy-core.yml`)
-- Push para GitHub Container Registry (`ghcr.io/leoferolive/nossalista`)
-- Deploy no cluster K3s via kubectl
+O pipeline usa `deploy-environment.yml` como único workflow reutilizável central. A lógica de build/deploy está **internalizada** nele (sem dependência de repos externos). O `release.yml` usa `GHCR_PAT` para disparar `deploy-on-tag.yml` via `workflow_dispatch` — necessário porque `GITHUB_TOKEN` não pode disparar outros workflows e `workflow_call` dentro de `workflow_run` não é suportado pelo GitHub.
+
+**Limitações conhecidas do GitHub Actions (não contornar):**
+- `GITHUB_TOKEN` não pode disparar `workflow_dispatch` em outros workflows (403)
+- `workflow_call` dentro de `workflow_run` causa `startup_failure`
+- `permissions:` dentro de jobs de reusable workflow (`workflow_call`) causa `startup_failure`
+- Push de tag via `GITHUB_TOKEN` não dispara eventos de outros workflows
 
 ### Arquitetura de Workflows
 
 ```
-deploy-branch-dev.yml ─┐
-deploy-prod.yml        ├─→ deploy-environment.yml → deploy-core.yml (local)
-deploy-on-tag.yml      ┘
+ci.yml (push/PR) ──────────────────────────────────────────── testes, lint, segurança
+
+release.yml (workflow_run após CI) ─── cria tag + release
+                                    └─ gh workflow run deploy-on-tag.yml (GHCR_PAT)
+                                                          ↓
+deploy-branch-dev.yml (manual) ───────────────────────────┤
+deploy-prod.yml (manual + aprovação) ─────────────────────┘
+                                              ↓
+                                   deploy-environment.yml
+                                   (build Docker + push GHCR + kubectl)
 ```
 
-- **`deploy-core.yml`**: Workflow local reutilizável (workflow_call) com jobs `build-and-push` e `deploy`. Substitui a dependência com `leoferolive/self-workflows` externo.
-- **`deploy-environment.yml`**: Repassa inputs de ambiente (`dev`/`prod`) para `deploy-core.yml`. Único lugar com mapeamento de parâmetros de deploy.
+- **`deploy-environment.yml`**: Reusable workflow com jobs `build-and-push` e `deploy`. Sem `permissions:` em jobs (causa startup_failure). Imagens: `nossalista` (prod) / `nossalista-dev` (dev).
+- **`release.yml`**: Cria tag semântica e GitHub Release. Usa `GHCR_PAT` (escopo `workflow`) para disparar deploy em dev.
+- **`deploy-on-tag.yml`**: Deploya tag estável em dev — chamado pelo release automático ou manualmente.
+- **`deploy-branch-dev.yml`**: Para branches/SHAs não mergeados. Cria RC tag rastreável, deploya em dev, limpa imagens RC antigas do `nossalista-dev` (mantém 3).
+- **`deploy-prod.yml`**: Deploy em prod com aprovação manual (environment `production`).
 
 ### Fluxo de Deploy (Regra Obrigatória)
 
 ```
 push main → CI passa → release.yml
               └─ cria tag semântica v1.2.x
-              └─ chama deploy-on-tag → deploy-environment → deploy-core (local)
+              └─ gh workflow run deploy-on-tag.yml (GHCR_PAT) → deploy dev
 
 workflow_dispatch → deploy-branch-dev.yml (para branches/SHAs não mergeados)
               └─ cria RC tag v1.2.x-rc.{sha} (pre-release)
               └─ deploy-environment(dev, v1.2.x-rc.{sha})
-              └─ limpa RC tags antigas (mantém 10 tags / 3 imagens)
+              └─ limpa RC tags antigas (mantém 10 tags / 3 imagens nossalista-dev)
 
 workflow_dispatch → deploy-prod.yml (com tag semântica estável)
               └─ aprovação manual (environment: production)
@@ -128,7 +141,7 @@ workflow_dispatch → deploy-prod.yml (com tag semântica estável)
 ```
 
 **Regras:**
-- `deploy-environment.yml` é o único lugar com parâmetros de deploy — nunca chame `deploy-core.yml` diretamente.
+- `deploy-environment.yml` é o único lugar com lógica de build/deploy — não duplicar.
 - `deploy-branch-dev.yml` é para testar branches/SHAs ainda **não** mergeados — sempre gera uma RC tag rastreável.
 - Prod **sempre** recebe uma tag semântica estável (`v1.2.x`), nunca uma RC.
 - RC tags são pre-releases e **não** aparecem como "Latest" no GitHub Releases.
