@@ -28,7 +28,9 @@ describe('ConnectionStatusIndicator', () => {
   })
 
   it('aplica data-tour quando informado', () => {
-    const { container } = render(<ConnectionStatusIndicator status="CONNECTED" dataTour="realtime" />)
+    const { container } = render(
+      <ConnectionStatusIndicator status="CONNECTED" dataTour="realtime" />
+    )
     expect(container.querySelector('[data-tour="realtime"]')).toBeInTheDocument()
   })
 })
