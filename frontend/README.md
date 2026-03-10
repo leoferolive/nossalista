@@ -36,6 +36,15 @@ App local: `http://localhost:5173`
 - Endpoints e contrato de autenticacao: `docs/auth-endpoints-matrix.md`
 - Sincronizacao realtime: STOMP/SockJS em `/ws/**`
 
+## Padrao visual de formularios
+
+- Inputs em telas/modais do tema principal devem explicitar contraste:
+  - Fundo: `bg-nl-surface-strong` (ou equivalente do tema)
+  - Texto digitado: `text-nl-text`
+  - Placeholder: `placeholder:text-nl-muted/70`
+  - Cursor de texto: `caret-nl-accent`
+- Evitar depender do estilo padrao do navegador para `input`, pois isso pode resultar em campo claro com fonte clara.
+
 ## Estrutura principal
 
 ```text

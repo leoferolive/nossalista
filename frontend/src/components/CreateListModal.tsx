@@ -160,7 +160,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ex: Mercado semanal…"
-              className="w-full rounded-xl border border-nl-border px-4 py-2.5 focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+              className="w-full rounded-xl border border-nl-border bg-nl-surface-strong px-4 py-2.5 text-nl-text placeholder:text-nl-muted/70 caret-nl-accent focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
               autoComplete="off"
               aria-describedby="name-error"
               aria-invalid={name.length > 0 && !isNameValid}
