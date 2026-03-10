@@ -27,6 +27,11 @@ npm run dev
 
 - API health: `GET http://localhost:8080/api/health`
 - Frontend: `http://localhost:5173`
+- Auditoria de versao implantada:
+  - `curl http://nossalista.home/api/health`
+  - `curl https://nossalista.leoferolive.com.br/api/health`
+  - `kubectl get deployment nossalista-dev -n nossalista-dev -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'`
+  - `kubectl get deployment nossalista -n nossalista -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'`
 
 ## Qualidade
 
@@ -80,12 +85,17 @@ kubectl rollout restart deployment/nossalista -n nossalista
 ## Release e Deploy (GitHub Actions)
 
 - Dev:
-  - push em `release/*` roda `CI`
-  - `deploy-dev.yml` publica `:dev` no namespace `nossalista-dev`
-- Prod:
   - push em `main` roda `CI`
-  - `release-prod.yml` cria tag patch `vX.Y.Z` e GitHub Release
-  - job de deploy exige aprovação no environment `production`
+  - `release.yml` cria/reutiliza a tag semantica `vX.Y.Z`
+  - `deploy-on-tag.yml` reconstrói o SHA aprovado e implanta a mesma tag em `nossalista-dev`
+  - `deploy-branch-dev.yml` e o caminho manual para branches/SHAs nao mergeados; ele gera `vX.Y.Z-rc.<sha>` e implanta essa RC
+- Prod:
+  - `deploy-prod.yml` promove uma tag estavel existente `vX.Y.Z`
+  - o job de deploy exige aprovacao no environment `production`
+- Semantica operacional:
+  - `tag` = tag da imagem implantada
+  - `ref` = ref do checkout usado para build
+  - o workflow sempre aplica o manifesto e depois executa `kubectl set image`, entao `latest` e `:dev` nao sao mais fonte de verdade
 
 ## Rollback de Produção por Tag
 
@@ -95,11 +105,13 @@ kubectl rollout restart deployment/nossalista -n nossalista
 gh release list --limit 20
 ```
 
-2. Reexecutar deploy de produção apontando `image_tag` para a tag alvo (via workflow `release-prod.yml` ajustado para o commit/tag, ou via procedimento operacional de emergência no cluster).
+2. Reexecutar `deploy-prod.yml` apontando `tag` para a release estavel desejada.
 
 3. Verificar rollout:
 
 ```bash
 kubectl rollout status deployment/nossalista -n nossalista
 kubectl get pods -n nossalista
+kubectl get deployment nossalista -n nossalista -o jsonpath='{.metadata.annotations.deploy\.nossalista/tag}{"\n"}'
+curl https://nossalista.leoferolive.com.br/api/health
 ```

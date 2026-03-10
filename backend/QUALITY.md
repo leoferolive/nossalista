@@ -70,3 +70,4 @@ java -jar target/nossalista-0.0.1-SNAPSHOT.jar --spring.profiles.active=ci
 ```
 
 - O profile `ci` usa H2 e permite validar `GET /actuator/health` localmente.
+- O endpoint tecnico `GET /api/health` tambem deve responder com `version`, `gitSha`, `gitTag`, `environment` e `buildTime` coerentes com os metadados de build/deploy.

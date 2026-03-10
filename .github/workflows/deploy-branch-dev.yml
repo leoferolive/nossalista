@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Branch, tag ou SHA para deployar em dev"
+        description: "Ref do checkout (branch, tag ou SHA) para gerar uma RC e deployar em dev"
         required: true
         default: "main"
 
@@ -95,8 +95,8 @@ jobs:
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: dev
-      tag: ${{ needs.create-rc.outputs.rc_tag }}
-      ref: ${{ needs.create-rc.outputs.rc_sha }}
+      tag: ${{ needs.create-rc.outputs.rc_tag }} # tag da imagem RC implantada
+      ref: ${{ needs.create-rc.outputs.rc_sha }} # SHA exato resolvido no job anterior
     secrets: inherit
 
   cleanup-images:

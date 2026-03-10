@@ -13,8 +13,9 @@ Status atual:
 - MVP em desenvolvimento ativo
 - Backend e frontend implementados no monorepo
 - CI ativo para frontend e backend
-- Deploy dev automático para branches `release/*`
-- Release automática em `main` com tag SemVer patch e deploy prod com aprovação de environment
+- Release automática em `main` com tag SemVer patch e deploy automático em `dev`
+- Deploy manual em `dev` para branches/SHAs não mergeados via RC tag auditável
+- Deploy manual em `prod` com aprovação de environment e tag estável existente
 
 ## Stack
 
@@ -116,8 +117,12 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
 
 - Manifests Kubernetes em `k8s/`
 - Ambientes:
-  - Dev: deploy automático após CI bem-sucedido em push para `release/*` (`deploy-dev.yml`, imagem `:dev`)
-  - Prod: release automática após CI bem-sucedido em push para `main` (`release-prod.yml`, tag `vX.Y.Z`), com aprovação obrigatória no environment `production`
+  - Dev: `release.yml` cria `vX.Y.Z` e dispara `deploy-on-tag.yml`; para branches/SHAs não mergeados, usar `deploy-branch-dev.yml`, que gera `vX.Y.Z-rc.<sha>`
+  - Prod: `deploy-prod.yml` promove uma tag estável existente (`vX.Y.Z`) com aprovação obrigatória no environment `production`
+- Fonte de verdade da versão implantada:
+  - imagem do Deployment recebe explicitamente `ghcr.io/...:<tag>`
+  - annotations `deploy.nossalista/tag` e `deploy.nossalista/sha` são atualizadas no cluster
+  - `GET /api/health` retorna `version`, `gitSha`, `gitTag`, `environment` e `buildTime`
 
 - Operação manual (fallback):
 
@@ -126,6 +131,9 @@ kubectl apply -f k8s/dev/
 kubectl apply -f k8s/prod/
 kubectl get pods -n nossalista-dev
 kubectl get pods -n nossalista
+kubectl get deployment nossalista-dev -n nossalista-dev -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+curl http://nossalista.home/api/health
+curl https://nossalista.leoferolive.com.br/api/health
 ```
 
 ## Documentacao canonica

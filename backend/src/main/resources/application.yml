@@ -46,6 +46,14 @@ jwt:
 frontend:
   url: ${FRONTEND_URL:http://localhost:5173}
 
+app:
+  build:
+    version: ${APP_VERSION:0.0.1-SNAPSHOT}
+    git-sha: ${APP_GIT_SHA:unknown}
+    git-tag: ${APP_GIT_TAG:unknown}
+    environment: ${APP_ENVIRONMENT:local}
+    build-time: ${APP_BUILD_TIME:unknown}
+
 management:
   endpoints:
     web:
