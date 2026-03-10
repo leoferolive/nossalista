@@ -18,13 +18,6 @@ on:
 
 jobs:
   deploy:
-    uses: leoferolive/self-workflows/.github/workflows/deploy.yml@main
-    with:
-      app_name: ${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}
-      app_namespace: ${{ inputs.environment == 'prod' && 'nossalista' || 'nossalista-dev' }}
-      app_type: backend
-      dockerfile_path: ./Dockerfile
-      k8s_path: ${{ inputs.environment == 'prod' && './k8s/prod' || './k8s/dev' }}
-      image_tag: ${{ inputs.tag }}
-      ref: ${{ inputs.ref }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploy ${{ inputs.environment }} tag=${{ inputs.tag }} ref=${{ inputs.ref }}"
