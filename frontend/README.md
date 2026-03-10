@@ -44,6 +44,7 @@ App local: `http://localhost:5173`
   - Placeholder: `placeholder:text-nl-muted/70`
   - Cursor de texto: `caret-nl-accent`
 - Evitar depender do estilo padrao do navegador para `input`, pois isso pode resultar em campo claro com fonte clara.
+
 ## Estrutura principal
 
 ```text

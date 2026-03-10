@@ -167,4 +167,33 @@ describe('CreateListModal', () => {
       expect(screen.getByText(type.emoji)).toBeInTheDocument()
     })
   })
+
+  it('deve exibir erro da API quando o submit falhar', async () => {
+    mockOnSubmit.mockRejectedValue({
+      response: { data: { detail: 'Nao foi possivel criar a lista' } },
+    })
+
+    render(
+      <CreateListModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+        onSubmit={mockOnSubmit}
+      />
+    )
+
+    const nameInput = screen.getByLabelText(/nome da lista/i)
+    await userEvent.type(nameInput, 'Lista com erro')
+
+    const firstTypeCard = screen.getByRole('button', { name: /Compras/i })
+    await userEvent.click(firstTypeCard)
+
+    const submitButton = screen.getByRole('button', { name: /criar lista/i })
+    await userEvent.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText('Nao foi possivel criar a lista')).toBeInTheDocument()
+      expect(mockOnSuccess).not.toHaveBeenCalled()
+    })
+  })
 })
