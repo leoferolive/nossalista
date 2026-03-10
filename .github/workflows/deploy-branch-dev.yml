@@ -106,6 +106,7 @@ jobs:
       packages: write
     steps:
       - name: Apagar imagens RC antigas do ghcr.io (manter últimas 3)
+        continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
           package-name: nossalista-dev

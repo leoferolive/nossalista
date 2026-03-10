@@ -81,7 +81,7 @@ kubectl rollout restart deployment/nossalista -n nossalista
 
 - Dev:
   - push em `release/*` roda `CI`
-  - `deploy-dev.yml` publica `:dev` no namespace `nossalista-dev`
+  - `deploy-dev.yml` publica `ghcr.io/leoferolive/nossalista-dev:latest` no namespace `nossalista-dev`
 - Prod:
   - push em `main` roda `CI`
   - `release-prod.yml` cria tag patch `vX.Y.Z` e GitHub Release

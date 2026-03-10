@@ -53,7 +53,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: nossalista-dev
-          image: ghcr.io/leoferolive/nossalista:dev
+          image: ghcr.io/leoferolive/nossalista-dev:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

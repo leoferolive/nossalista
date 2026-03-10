@@ -37,7 +37,7 @@ Garantir que somente commits aprovados pelo quality gate avancem para deploy/rel
 
 ### Resultado
 
-- Build e push da imagem `ghcr.io/leoferolive/nossalista:dev`
+- Build e push da imagem `ghcr.io/leoferolive/nossalista-dev:latest`
 - Apply em `k8s/dev`
 - Rollout de `nossalista-dev` no namespace `nossalista-dev`
 

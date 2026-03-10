@@ -31,7 +31,7 @@ Docker multi-stage build:
 |-------------------------|------------------------------------------|-----------------------------------------------|
 | Domínio                 | `nossalista.home`                        | `nossalista.leoferolive.com.br`               |
 | Namespace K8s           | `nossalista-dev`                         | `nossalista`                                  |
-| Image tag               | `ghcr.io/leoferolive/nossalista:dev`     | `ghcr.io/leoferolive/nossalista:vX.Y.Z`       |
+| Image tag               | `ghcr.io/leoferolive/nossalista-dev:latest` | `ghcr.io/leoferolive/nossalista:vX.Y.Z`    |
 | Trigger deploy          | Push em `release/*`                      | Push na `main` + approval no environment `production` |
 | Spring profile          | `dev`                                    | `prod`                                        |
 | Banco de dados          | `nossalista_dev` (postgres.database)     | `nossalista` (postgres.database)              |
@@ -46,7 +46,7 @@ Dev:
   git push release/*
     → GitHub Actions (deploy-dev.yml)
     → Docker build ARM64 (multi-stage)
-    → push ghcr.io/leoferolive/nossalista:dev
+    → push ghcr.io/leoferolive/nossalista-dev:latest
     → kubectl apply k8s/dev/
     → Pod reiniciado com nova imagem
 
