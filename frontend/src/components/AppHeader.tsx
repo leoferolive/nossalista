@@ -110,9 +110,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             )}
 
             <div>
-              <p className="nl-kicker">
-                {eyebrow}
-              </p>
+              <p className="nl-kicker">{eyebrow}</p>
               <div className="mt-2 flex items-center gap-3">
                 <div
                   className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-nl-accent to-nl-accent-strong text-sm font-bold text-[var(--nl-btn-text)] shadow-earthen"
@@ -125,9 +123,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     {title}
                   </h1>
                   {subtitle && (
-                    <p className="mt-2 max-w-2xl text-sm leading-7 text-nl-muted">
-                      {subtitle}
-                    </p>
+                    <p className="mt-2 max-w-2xl text-sm leading-7 text-nl-muted">{subtitle}</p>
                   )}
                 </div>
               </div>
@@ -139,7 +135,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <ThemeToggle />
               <div className="hidden rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-right text-xs sm:block">
                 <p className="font-sans font-semibold uppercase tracking-[0.15em] text-nl-muted">
-                Sessao Ativa
+                  Sessao Ativa
                 </p>
                 <p className="mt-1 font-sans text-sm font-medium text-nl-text">{displayName}</p>
               </div>

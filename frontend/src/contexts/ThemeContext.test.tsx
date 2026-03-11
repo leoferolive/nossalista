@@ -40,7 +40,7 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     )
     expect(screen.getByTestId('theme').textContent).toBe('light')
-    expect(document.documentElement.hasAttribute('data-theme')).toBe(false)
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
 
   it('inicia com tema dark quando localStorage tem nl-theme=dark', () => {
@@ -84,7 +84,7 @@ describe('ThemeContext', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     await user.click(screen.getByText('toggle'))
     expect(screen.getByTestId('theme').textContent).toBe('light')
-    expect(document.documentElement.hasAttribute('data-theme')).toBe(false)
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
 
   it('setTheme persiste no localStorage', async () => {
@@ -111,7 +111,7 @@ describe('ThemeContext', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
   })
 
-  it('remove data-theme ao mudar para light', async () => {
+  it('aplica data-theme=light ao mudar para light', async () => {
     localStorage.setItem('nl-theme', 'dark')
     const user = userEvent.setup()
     render(
@@ -120,7 +120,7 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     )
     await user.click(screen.getByText('set-light'))
-    expect(document.documentElement.hasAttribute('data-theme')).toBe(false)
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
 
   it('sincroniza com mudanca no prefers-color-scheme quando nao ha preferencia salva', () => {

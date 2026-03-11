@@ -880,13 +880,9 @@ export const ListView: React.FC = () => {
           {/* Badge de propriedade */}
           <div className="mt-2 flex items-center gap-2">
             {currentList.isOwner ? (
-              <span className="nl-pill">
-                Voce e o dono
-              </span>
+              <span className="nl-pill">Voce e o dono</span>
             ) : (
-              <span className="nl-pill">
-                Lista compartilhada
-              </span>
+              <span className="nl-pill">Lista compartilhada</span>
             )}
           </div>
 

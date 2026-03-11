@@ -85,7 +85,7 @@ describe('ListCard', () => {
       </BrowserRouter>
     )
 
-    expect(screen.getByText('1 item')).toBeInTheDocument()
+    expect(screen.getByText('1 item pronto para abrir')).toBeInTheDocument()
   })
 
   it('deve apontar para /lists/{id}', () => {
@@ -109,7 +109,7 @@ describe('ListCard', () => {
     )
 
     const card = screen.getByRole('link', { name: /abrir lista minha lista de teste/i })
-    expect(card).toHaveClass('min-h-[160px]') // NFR-A4: Touch target
+    expect(card).toHaveClass('min-h-[220px]') // NFR-A4: Touch target
   })
 
   it('deve renderizar emoji correto para tipo Tarefas', () => {

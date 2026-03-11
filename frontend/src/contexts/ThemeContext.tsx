@@ -14,7 +14,10 @@ function getInitialTheme(): Theme {
   try {
     const saved = localStorage.getItem('nl-theme')
     if (saved === 'dark' || saved === 'light') return saved
-    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    if (
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    ) {
       return 'dark'
     }
   } catch {

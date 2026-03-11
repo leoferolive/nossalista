@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 interface ModalShellProps {
   title: string
@@ -19,14 +19,14 @@ export function ModalShell({
 }: ModalShellProps) {
   const hasRequestedCloseRef = useRef(false)
 
-  const requestClose = () => {
+  const requestClose = useCallback(() => {
     if (hasRequestedCloseRef.current) {
       return
     }
 
     hasRequestedCloseRef.current = true
     onClose()
-  }
+  }, [onClose])
 
   useEffect(() => {
     hasRequestedCloseRef.current = false
@@ -41,7 +41,7 @@ export function ModalShell({
 
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [onClose])
+  }, [requestClose])
 
   return (
     <div
@@ -70,7 +70,9 @@ export function ModalShell({
           <div>
             {eyebrow && <p className="nl-kicker">{eyebrow}</p>}
             <h2 className="mt-2 font-display text-3xl font-semibold text-nl-text">{title}</h2>
-            {description && <p className="mt-3 max-w-2xl text-sm leading-6 text-nl-muted">{description}</p>}
+            {description && (
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-nl-muted">{description}</p>
+            )}
           </div>
 
           <button

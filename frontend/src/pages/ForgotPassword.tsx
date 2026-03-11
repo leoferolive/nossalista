@@ -32,8 +32,8 @@ export const ForgotPassword: React.FC = () => {
         <div className="nl-card-soft p-5">
           <p className="nl-kicker">Status atual</p>
           <p className="mt-3 text-sm leading-7 text-nl-muted">
-            A redefinicao completa ainda depende do backend. Por enquanto, use o login com Google
-            se sua conta ja estiver vinculada ou tente novamente com email e senha.
+            A redefinicao completa ainda depende do backend. Por enquanto, use o login com Google se
+            sua conta ja estiver vinculada ou tente novamente com email e senha.
           </p>
         </div>
 
@@ -51,7 +51,9 @@ export const ForgotPassword: React.FC = () => {
             Voltar Para Login
           </Link>
           <Link
-            to={redirectPath ? `/register?redirect=${encodeURIComponent(redirectPath)}` : '/register'}
+            to={
+              redirectPath ? `/register?redirect=${encodeURIComponent(redirectPath)}` : '/register'
+            }
             className="nl-btn-secondary flex-1"
           >
             Criar Conta

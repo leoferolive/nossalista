@@ -90,7 +90,11 @@ export function LoginModal({ onClose, onSwitchToRegister }: Props) {
             <label htmlFor="modal-password" className="nl-label mb-0">
               Senha
             </label>
-            <Link to="/forgot-password" onClick={onClose} className="text-sm font-semibold text-nl-accent">
+            <Link
+              to="/forgot-password"
+              onClick={onClose}
+              className="text-sm font-semibold text-nl-accent"
+            >
               Esqueci minha senha
             </Link>
           </div>

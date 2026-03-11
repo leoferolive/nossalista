@@ -146,10 +146,7 @@ export const Home: React.FC = () => {
                 <p className="mb-5 mt-3 font-sans text-lg text-nl-muted">
                   Voce ainda nao tem listas. Crie a primeira e compartilhe em segundos.
                 </p>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="nl-btn-primary"
-                >
+                <button onClick={() => setIsModalOpen(true)} className="nl-btn-primary">
                   <span aria-hidden="true">+</span>
                   Criar Primeira Lista
                 </button>

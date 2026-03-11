@@ -282,13 +282,19 @@ export const InviteModal: React.FC<InviteModalProps> = ({
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-muted">
                 Link ativo
               </p>
-              <p className="mt-2 break-all font-mono text-sm text-nl-text">{inviteData.invite_link}</p>
+              <p className="mt-2 break-all font-mono text-sm text-nl-text">
+                {inviteData.invite_link}
+              </p>
               <p className="mt-3 text-xs text-nl-muted">Expira em 24 horas.</p>
             </div>
           )}
 
           {!inviteData ? (
-            <button onClick={handleGenerateLink} disabled={generating} className="nl-btn-secondary mt-5 w-full">
+            <button
+              onClick={handleGenerateLink}
+              disabled={generating}
+              className="nl-btn-secondary mt-5 w-full"
+            >
               {generating ? 'Gerando...' : 'Gerar Link'}
             </button>
           ) : copied ? (
@@ -296,7 +302,11 @@ export const InviteModal: React.FC<InviteModalProps> = ({
               Copiado!
             </button>
           ) : (
-            <button onClick={handleCopyLink} disabled={copying} className="nl-btn-primary mt-5 w-full">
+            <button
+              onClick={handleCopyLink}
+              disabled={copying}
+              className="nl-btn-primary mt-5 w-full"
+            >
               {copying ? 'Copiando...' : 'Copiar Link'}
             </button>
           )}
