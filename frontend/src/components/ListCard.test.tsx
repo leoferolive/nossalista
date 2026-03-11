@@ -85,7 +85,7 @@ describe('ListCard', () => {
       </BrowserRouter>
     )
 
-    expect(screen.getByText('1 item pronto para abrir')).toBeInTheDocument()
+    expect(screen.getByText('1 item pronto')).toBeInTheDocument()
   })
 
   it('deve apontar para /lists/{id}', () => {

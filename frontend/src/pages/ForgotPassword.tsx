@@ -18,8 +18,8 @@ export const ForgotPassword: React.FC = () => {
   return (
     <AuthLayout
       badge="Recuperacao"
-      title="Retomar o Acesso"
-      description="O reset automatico ainda nao foi implementado, mas a interface ja organiza os caminhos de retorno com mais clareza."
+      title="Ajuda para Entrar"
+      description="O reset automatico ainda nao esta pronto, mas ja deixamos os caminhos de volta mais claros."
       footer={
         <div className="rounded-[1.4rem] border border-nl-border bg-nl-surface-muted/50 p-4 text-sm text-nl-muted">
           <Link className="font-semibold text-nl-accent" to={loginHref}>
@@ -32,13 +32,13 @@ export const ForgotPassword: React.FC = () => {
         <div className="nl-card-soft p-5">
           <p className="nl-kicker">Status atual</p>
           <p className="mt-3 text-sm leading-7 text-nl-muted">
-            A redefinicao completa ainda depende do backend. Por enquanto, use o login com Google se
-            sua conta ja estiver vinculada ou tente novamente com email e senha.
+            A redefinicao completa ainda depende do backend. Por enquanto, tente novamente com email
+            e senha ou use o login com Google se sua conta ja estiver vinculada.
           </p>
         </div>
 
         <div className="nl-card-soft p-5">
-          <p className="font-semibold text-nl-text">O que fazer agora</p>
+          <p className="font-semibold text-nl-text">O que voce pode fazer agora</p>
           <ul className="mt-3 space-y-2 text-sm leading-7 text-nl-muted">
             <li>Use o botao do Google se esse foi seu caminho anterior.</li>
             <li>Volte ao login e revise o email digitado.</li>

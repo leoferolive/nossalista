@@ -113,7 +113,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <p className="nl-kicker">{eyebrow}</p>
               <div className="mt-2 flex items-center gap-3">
                 <div
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-nl-accent to-nl-accent-strong text-sm font-bold text-[var(--nl-btn-text)] shadow-earthen"
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-nl-accent to-nl-primary text-sm font-bold text-[var(--nl-btn-text)] shadow-earthen"
                   aria-hidden="true"
                 >
                   NL
@@ -150,7 +150,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 aria-haspopup="menu"
                 aria-label="Abrir menu da conta"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-nl-surface font-sans text-sm font-semibold text-nl-accent">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-nl-surface-muted font-sans text-sm font-semibold text-nl-accent">
                   {user?.avatarUrl ? (
                     <img
                       src={user.avatarUrl}

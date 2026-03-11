@@ -83,9 +83,9 @@ export function RegisterModal({ onClose, onSwitchToLogin }: RegisterModalProps) 
 
   return (
     <ModalShell
-      title="Abrir Minha Base"
+      title="Criar Conta"
       eyebrow="Cadastro"
-      description="Monte seu espaco colaborativo e comece com listas vivas, checklists fluidos e compartilhamento em tempo real."
+      description="Abra sua conta, monte sua primeira lista e comece a organizar tudo com mais leveza."
       onClose={onClose}
     >
       {error && (
@@ -180,7 +180,7 @@ export function RegisterModal({ onClose, onSwitchToLogin }: RegisterModalProps) 
         </div>
 
         <p className="nl-helper">
-          Username e email ficam prontos para convite rapido, links e retomada de listas depois.
+          Username e email deixam seu convite rapido e seu acesso facil de retomar.
         </p>
 
         <button type="submit" disabled={!canSubmit || loading} className="nl-btn-primary w-full">

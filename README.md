@@ -11,10 +11,11 @@ NossaLista permite criar, compartilhar e editar listas colaborativas com sincron
 Usuarios novos recebem um tutorial guiado no primeiro login para aprender criacao, compartilhamento, edicao e acompanhamento realtime.
 
 Status atual:
+
 - MVP em desenvolvimento ativo
 - Backend e frontend implementados no monorepo
 - Onboarding guiado no primeiro login (com replay manual no menu da conta)
-- Redesign global do frontend com linguagem `paper tech editorial`, paridade light/dark e switch de tema exposto na UI
+- Rebranding global do frontend com linguagem `Fresh Lists`, paridade light/dark e switch de tema exposto na UI
 - Landing page publica com CTAs separados para cadastro e login em modais distintos
 - CI ativo para frontend e backend
 - Release automática em `main` com tag SemVer patch e deploy automático em `dev`
@@ -23,17 +24,17 @@ Status atual:
 
 ## Stack
 
-| Camada | Tecnologia |
-| --- | --- |
-| Frontend | React 19 + TypeScript + Vite |
-| Backend | Java 25 + Spring Boot 4 |
-| Real-time | Spring WebSocket (STOMP + SockJS) |
-| Auth | Google OAuth2 + email/senha + JWT |
-| BD Producao | PostgreSQL |
-| BD Dev | PostgreSQL |
-| BD Testes | H2 (MODE=PostgreSQL) |
-| Migrations | Flyway |
-| Infra | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
+| Camada      | Tecnologia                               |
+| ----------- | ---------------------------------------- |
+| Frontend    | React 19 + TypeScript + Vite             |
+| Backend     | Java 25 + Spring Boot 4                  |
+| Real-time   | Spring WebSocket (STOMP + SockJS)        |
+| Auth        | Google OAuth2 + email/senha + JWT        |
+| BD Producao | PostgreSQL                               |
+| BD Dev      | PostgreSQL                               |
+| BD Testes   | H2 (MODE=PostgreSQL)                     |
+| Migrations  | Flyway                                   |
+| Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
 
 ## Estrutura
 
@@ -87,15 +88,25 @@ npm run dev
 
 Frontend em `http://localhost:5173`.
 
+Para subir apenas o frontend com API mock em memoria:
+
+```bash
+cd frontend
+npm install
+npm run dev:mock
+```
+
 ## Qualidade e testes
 
 ## Experiencia de interface
 
-- Tema visual oficial do frontend: `paper tech editorial`
+- Tema visual oficial do frontend: `Fresh Lists`
+- Direcao visual: `Playful Editorial`, com paleta base `coral + teal`
 - Modos `light` e `dark` compartilham a mesma linguagem visual e os mesmos componentes
 - A landing usa dois fluxos distintos:
   - CTA principal abre cadastro
   - CTA secundario abre login
+- A landing publica deve permanecer minimalista: hero curto, preview principal unico e apoio enxuto
 - Modais e formularios principais seguem o mesmo padrao de textbox, label, helper text, feedback e hierarquia de botoes
 
 ### Frontend

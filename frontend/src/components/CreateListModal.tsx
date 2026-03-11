@@ -96,8 +96,8 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
   return (
     <ModalShell
       title="Criar Nova Lista"
-      eyebrow="Nova base"
-      description="Escolha o nome e o ritmo da sua lista. O visual segue a mesma folha inteligente do resto do app."
+      eyebrow="Nova lista"
+      description="Escolha um nome e um tipo. O resto fica simples de ajustar depois."
       onClose={onClose}
       size="lg"
     >
@@ -125,7 +125,7 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
               O nome deve ter no minimo 3 caracteres.
             </p>
           ) : (
-            <p className="nl-helper">Use um nome direto, facil de compartilhar e reconhecer.</p>
+            <p className="nl-helper">Use um nome curto e facil de reconhecer.</p>
           )}
         </div>
 

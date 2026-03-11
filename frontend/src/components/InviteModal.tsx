@@ -182,7 +182,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
     <ModalShell
       title="Convidar Pessoas"
       eyebrow="Compartilhamento"
-      description={`Leve ${listName} para outras pessoas por username ou por um link de acesso rapido.`}
+      description={`Compartilhe ${listName} por username ou por link, sem etapas desnecessarias.`}
       onClose={handleClose}
     >
       <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
@@ -251,7 +251,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
           </div>
 
           <p className="nl-helper">
-            O convite por username e o caminho mais rapido para quem ja esta no NossaLista.
+            O convite por username funciona melhor para quem ja usa o NossaLista.
           </p>
 
           <button

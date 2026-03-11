@@ -79,7 +79,7 @@ describe('LandingPage', () => {
     renderLanding()
 
     expect(screen.getByText('Sync instantaneo')).toBeInTheDocument()
-    expect(screen.getByText('Compartilhe por username ou link')).toBeInTheDocument()
-    expect(screen.getByText('Compras, tarefas e wishlist')).toBeInTheDocument()
+    expect(screen.getByText('Convite por link ou username')).toBeInTheDocument()
+    expect(screen.getByText('Compras, tarefas e desejos')).toBeInTheDocument()
   })
 })

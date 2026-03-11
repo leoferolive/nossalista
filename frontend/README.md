@@ -16,10 +16,18 @@ npm run dev
 
 App local: `http://localhost:5173`
 
+Para rodar sem backend, use o mockserver embutido:
+
+```bash
+npm install
+npm run dev:mock
+```
+
 ## Scripts
 
 - `npm run dev`: inicia servidor de desenvolvimento
 - `npm run build`: gera build de producao
+- `npm run dev:mock`: inicia o frontend com API mock em memoria
 - `npm run test`: executa testes com Vitest
 - `npm run test:coverage`: executa testes com cobertura (threshold >= 80%)
 - `npm run test:e2e`: executa smoke E2E com Playwright
@@ -33,16 +41,20 @@ App local: `http://localhost:5173`
 ## Integracao com backend
 
 - A API esperada e servida pelo backend em `http://localhost:8080`
+- Em modo `mock`, o Vite intercepta `/api/**` com respostas em memoria para login, perfil, listas, itens e convites
 - Endpoints e contrato de autenticacao: `docs/auth-endpoints-matrix.md`
 - Sincronizacao realtime: STOMP/SockJS em `/ws/**`
 
 ## Sistema visual
 
-- Linguagem visual oficial: `paper tech editorial`
+- Linguagem visual oficial: `Fresh Lists`
+- Direcao visual base: `Playful Editorial`
+- Paleta principal: `coral + teal`
 - Fonte display: `Fraunces`
-- Fonte de interface: `Manrope`
+- Fonte de interface: `Plus Jakarta Sans`
 - Tokens globais vivem em `src/index.css` e cobrem `light` e `dark` com paridade de superficie, borda, foco, sombra e overlays
 - O switch de tema e parte do produto e deve aparecer nas telas publicas e na area autenticada principal
+- A landing publica deve ficar mais leve que o produto autenticado: um hero, um preview principal e apoio curto
 
 ## Padrao visual de formularios e modais
 

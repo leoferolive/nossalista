@@ -30,6 +30,9 @@ export function ListCard({ list }: ListCardProps) {
               <h3 className="mt-2 line-clamp-2 font-display text-2xl font-semibold text-nl-text">
                 {list.name}
               </h3>
+              <p className="mt-2 text-sm text-nl-muted">
+                {list.isOwner ? 'Organizada por voce' : 'Compartilhada com voce'}
+              </p>
             </div>
           </div>
 
@@ -44,10 +47,10 @@ export function ListCard({ list }: ListCardProps) {
               </span>
               <span className="text-sm text-nl-muted">
                 {index === 0
-                  ? `${list.itemsCount} ${list.itemsCount === 1 ? 'item pronto para abrir' : 'itens prontos para abrir'}`
+                  ? `${list.itemsCount} ${list.itemsCount === 1 ? 'item pronto' : 'itens prontos'}`
                   : index === 1
-                    ? 'Compartilhamento, membros e progresso centralizados'
-                    : 'Fluxo de checklist com presenca em tempo real'}
+                    ? 'Checklist compartilhado em um so lugar'
+                    : 'Atualizacoes simples e em tempo real'}
               </span>
             </div>
           ))}
@@ -55,7 +58,7 @@ export function ListCard({ list }: ListCardProps) {
       </div>
 
       <div className="mt-6 flex items-center justify-between border-t border-nl-border pt-4 text-sm text-nl-muted">
-        <span className="font-medium text-nl-text">Entrar na lista</span>
+        <span className="font-medium text-nl-text">Abrir lista</span>
         <span className="font-tabular">{list.itemsCount} itens</span>
       </div>
     </Link>

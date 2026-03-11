@@ -93,7 +93,7 @@ export const Home: React.FC = () => {
         <AppHeader
           eyebrow="NossaLista"
           title="Minhas Listas"
-          subtitle={`Tudo pronto para ${user?.displayName || user?.username}. Crie, compartilhe e retome suas listas com ritmo rapido.`}
+          subtitle={`Tudo pronto para ${user?.displayName || user?.username}. Crie, compartilhe e encontre suas listas sem ruído.`}
           actions={
             <button
               onClick={() => setIsModalOpen(true)}
@@ -141,7 +141,7 @@ export const Home: React.FC = () => {
                   Comece Agora
                 </p>
                 <h2 className="font-display text-3xl font-semibold text-nl-text">
-                  Sua primeira folha colaborativa começa aqui.
+                  Sua primeira lista comeca aqui.
                 </h2>
                 <p className="mb-5 mt-3 font-sans text-lg text-nl-muted">
                   Voce ainda nao tem listas. Crie a primeira e compartilhe em segundos.

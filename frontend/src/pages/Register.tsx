@@ -92,8 +92,8 @@ export const Register: React.FC = () => {
   return (
     <AuthLayout
       badge="Cadastro"
-      title="Criar Minha Base"
-      description="Configure seu acesso com uma linguagem clara, papel vivo e um fluxo pronto para convidar outras pessoas sem ruído."
+      title="Criar Conta"
+      description="Configure seu acesso com um fluxo simples, bonito e pronto para convidar outras pessoas depois."
       footer={
         <div className="rounded-[1.4rem] border border-nl-border bg-nl-surface-muted/50 p-4 text-sm text-nl-muted">
           Ja tem conta?{' '}
@@ -205,9 +205,9 @@ export const Register: React.FC = () => {
       </form>
 
       <div className="mt-5 text-sm text-nl-muted">
-        Esqueceu a senha antes mesmo de entrar?{' '}
+        Quer revisar as opcoes de acesso?{' '}
         <Link className="font-semibold text-nl-accent" to={forgotPasswordHref}>
-          Ver opcoes de acesso
+          Ver ajuda de login
         </Link>
       </div>
     </AuthLayout>

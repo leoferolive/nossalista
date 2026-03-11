@@ -23,7 +23,7 @@ export const TypeCard: React.FC<TypeCardProps> = ({
       aria-pressed={isSelected}
       className={`nl-preview-card min-h-[160px] min-w-[160px] text-left transition-all duration-200 ${
         isSelected
-          ? 'border-2 border-nl-primary bg-nl-primary/10'
+          ? 'border-2 border-nl-primary bg-nl-primary/10 shadow-tropical'
           : 'hover:-translate-y-1 hover:border-nl-border-strong'
       }`}
     >
