@@ -156,4 +156,10 @@ public class PresenceService {
             .mapToInt(Map::size)
             .sum();
     }
+
+    public boolean isUserConnected(UUID userId) {
+        return sessionsByList.values().stream()
+            .flatMap(sessions -> sessions.values().stream())
+            .anyMatch(entry -> entry.user().getId().equals(userId));
+    }
 }

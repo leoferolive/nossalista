@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "channels": ["items", "presence", "system"],
+  "channels": ["items", "presence", "system", "notifications"],
   "requiredEnvelopeFields": [
     "schemaVersion",
     "eventId",
@@ -18,6 +18,16 @@
     "LIST_LAYOUT_UPDATED",
     "MEMBER_ONLINE",
     "MEMBER_OFFLINE"
+  ],
+  "notificationEventTypes": [
+    "ITEM_ADDED",
+    "ITEM_UPDATED",
+    "ITEM_REMOVED",
+    "ITEM_CHECKED",
+    "LIST_NAME_UPDATED",
+    "MEMBER_JOINED",
+    "MEMBER_LEFT",
+    "MEMBER_REMOVED"
   ],
   "revisionRequiredChannels": ["items"]
 }

@@ -13,8 +13,11 @@ import br.com.leoferolive.nossalista.member.exception.MemberInvitationConflictEx
 import br.com.leoferolive.nossalista.member.exception.MemberNotFoundException;
 import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteException;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.notification.NotificationService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
+import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
+import br.com.leoferolive.nossalista.websocket.dto.MemberLeftPayload;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,17 +31,23 @@ public class MemberService {
     private final UserRepository userRepository;
     private final ListMemberRepository listMemberRepository;
     private final ActivityLogService activityLogService;
+    private final WebSocketEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public MemberService(
         ListRepository listRepository,
         UserRepository userRepository,
         ListMemberRepository listMemberRepository,
-        ActivityLogService activityLogService
+        ActivityLogService activityLogService,
+        WebSocketEventPublisher eventPublisher,
+        NotificationService notificationService
     ) {
         this.listRepository = listRepository;
         this.userRepository = userRepository;
         this.listMemberRepository = listMemberRepository;
         this.activityLogService = activityLogService;
+        this.eventPublisher = eventPublisher;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -119,8 +128,16 @@ public class MemberService {
         ListMember targetMembership = listMemberRepository.findByListIdAndUserId(listId, targetUserId)
             .orElseThrow(() -> new MemberNotFoundException("Usuário não é membro desta lista"));
 
-        activityLogService.logMemberRemoved(list, targetMembership.getUser(), list.getOwner());
+        User removedUser = targetMembership.getUser();
+        activityLogService.logMemberRemoved(list, removedUser, list.getOwner());
         listMemberRepository.delete(targetMembership);
+
+        MemberLeftPayload removedPayload = new MemberLeftPayload(
+            removedUser.getId().toString(), removedUser.getUsername(),
+            listId.toString(), list.getName(), "REMOVED"
+        );
+        eventPublisher.publishItemsEvent(listId, "MEMBER_REMOVED", removedPayload, removedUser, null);
+        notificationService.notifyListMembers(listId, removedUser.getId(), "MEMBER_REMOVED", removedPayload, removedUser);
     }
 
     @Transactional
@@ -131,8 +148,17 @@ public class MemberService {
             throw new ForbiddenException("O dono nao pode sair. Transfira ou exclua a lista.");
         }
 
-        activityLogService.logMemberLeft(membership.getList(), membership.getUser());
+        User leavingUser = membership.getUser();
+        List list = membership.getList();
+        activityLogService.logMemberLeft(list, leavingUser);
         listMemberRepository.delete(membership);
+
+        MemberLeftPayload leftPayload = new MemberLeftPayload(
+            leavingUser.getId().toString(), leavingUser.getUsername(),
+            listId.toString(), list.getName(), "LEFT"
+        );
+        eventPublisher.publishItemsEvent(listId, "MEMBER_LEFT", leftPayload, leavingUser, null);
+        notificationService.notifyListMembers(listId, leavingUser.getId(), "MEMBER_LEFT", leftPayload, leavingUser);
     }
 
     @Transactional(readOnly = true)

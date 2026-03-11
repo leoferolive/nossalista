@@ -129,6 +129,38 @@ class PresenceServiceTest {
         assertThat(service.getTotalActiveSessions()).isEqualTo(3);
     }
 
+    @Test
+    @DisplayName("isUserConnected retorna true quando usuário tem sessão ativa em qualquer lista")
+    void isUserConnectedReturnsTrueWhenUserHasActiveSessions() {
+        PresenceService service = new PresenceService();
+        UUID listId = UUID.randomUUID();
+        User user = createUser("maria");
+        service.registerSession(listId, "session-1", user);
+
+        assertThat(service.isUserConnected(user.getId())).isTrue();
+    }
+
+    @Test
+    @DisplayName("isUserConnected retorna false quando usuário não tem sessões")
+    void isUserConnectedReturnsFalseWhenUserHasNoSessions() {
+        PresenceService service = new PresenceService();
+        UUID unknownUserId = UUID.randomUUID();
+
+        assertThat(service.isUserConnected(unknownUserId)).isFalse();
+    }
+
+    @Test
+    @DisplayName("isUserConnected retorna false após usuário sair de todas as listas")
+    void isUserConnectedReturnsFalseAfterUserLeavesAllLists() {
+        PresenceService service = new PresenceService();
+        UUID listId = UUID.randomUUID();
+        User user = createUser("maria");
+        service.registerSession(listId, "session-1", user);
+        service.removeSessionAllLists("session-1");
+
+        assertThat(service.isUserConnected(user.getId())).isFalse();
+    }
+
     private User createUser(String username) {
         User user = new User();
         user.setId(UUID.randomUUID());

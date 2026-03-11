@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import userEvent from '@testing-library/user-event'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { AppHeader } from './AppHeader'
 
@@ -20,6 +20,8 @@ vi.mock('../contexts/ThemeContext', () => ({
   useTheme: () => ({ theme: 'light', toggleTheme: vi.fn(), setTheme: vi.fn() }),
 }))
 
+let mockAvatarUrl: string | null = null
+
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: {
@@ -27,7 +29,10 @@ vi.mock('../contexts/AuthContext', () => ({
       username: 'leo',
       email: 'leo@test.com',
       displayName: 'Leo Oliveira',
-      avatarUrl: null,
+      get avatarUrl() {
+        return mockAvatarUrl
+      },
+      onboardingCompletedAt: null,
     },
     logout: mockLogout,
   }),
@@ -39,11 +44,40 @@ vi.mock('../contexts/OnboardingContext', () => ({
   }),
 }))
 
+const mockEnablePush = vi.fn()
+const mockDisablePush = vi.fn()
+let mockPermissionState: string = 'default'
+let mockPushEnabled = false
+let mockAvailability: 'available' | 'unsupported' | 'server-not-configured' | 'checking' =
+  'available'
+
+vi.mock('../hooks/usePushNotifications', () => ({
+  usePushNotifications: () => ({
+    get permissionState() {
+      return mockPermissionState
+    },
+    get pushEnabled() {
+      return mockPushEnabled
+    },
+    get availability() {
+      return mockAvailability
+    },
+    enablePush: mockEnablePush,
+    disablePush: mockDisablePush,
+  }),
+}))
+
 describe('AppHeader', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     mockLogout.mockReset()
     mockStartReplay.mockReset()
+    mockEnablePush.mockReset()
+    mockDisablePush.mockReset()
+    mockPermissionState = 'default'
+    mockPushEnabled = false
+    mockAvailability = 'available'
+    mockAvatarUrl = null
   })
 
   it('abre o menu da conta e faz logout', async () => {
@@ -79,5 +113,132 @@ describe('AppHeader', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Ver tutorial' }))
 
     expect(mockStartReplay).toHaveBeenCalledTimes(1)
+  })
+
+  it('exibe botão de ativar push e chama enablePush ao clicar', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    const pushBtn = screen.getByRole('menuitem', { name: /Ativar notificações push/i })
+    expect(pushBtn).toBeInTheDocument()
+
+    await user.click(pushBtn)
+
+    expect(mockEnablePush).toHaveBeenCalledTimes(1)
+  })
+
+  it('exibe botão de desativar push quando já está ativo', async () => {
+    mockPermissionState = 'granted'
+    mockPushEnabled = true
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    const disableBtn = screen.getByRole('menuitem', { name: /Desativar notificações push/i })
+    expect(disableBtn).toBeInTheDocument()
+    await user.click(disableBtn)
+    expect(mockDisablePush).toHaveBeenCalledTimes(1)
+  })
+
+  it('oculta botão de push quando API não suportada', async () => {
+    mockPermissionState = 'unsupported'
+    mockAvailability = 'unsupported'
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.queryByRole('menuitem', { name: /Ativar notificações push/i })).toBeNull()
+  })
+
+  it('mostra status de indisponível e oculta ações quando backend não tem VAPID', async () => {
+    mockAvailability = 'server-not-configured'
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.getByText(/Push: indisponível no ambiente/i)).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /Ativar notificações push/i })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: /Desativar notificações push/i })).toBeNull()
+  })
+
+  it('exibe avatar quando usuário tem avatarUrl', () => {
+    mockAvatarUrl = 'https://example.com/avatar.jpg'
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('img', { name: 'Leo Oliveira' })).toBeInTheDocument()
+  })
+
+  it('fecha menu ao clicar fora', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('renderiza botão de voltar quando onBack é fornecido', async () => {
+    const mockOnBack = vi.fn()
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Lista" onBack={mockOnBack} backLabel="Voltar" />
+      </MemoryRouter>
+    )
+
+    const backBtn = screen.getByRole('button', { name: 'Voltar' })
+    expect(backBtn).toBeInTheDocument()
+    await user.click(backBtn)
+    expect(mockOnBack).toHaveBeenCalledTimes(1)
+  })
+
+  it('fecha menu ao pressionar Escape', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 })

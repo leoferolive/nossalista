@@ -1,10 +1,14 @@
 import { Client, StompConfig } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 
-export type WebSocketChannel = 'items' | 'presence'
+export type WebSocketChannel = 'items' | 'presence' | 'notifications'
 
 export function getListTopic(listId: string, channel: WebSocketChannel): string {
   return `/topic/list/${listId}/${channel}`
+}
+
+export function getUserNotificationsTopic(userId: string): string {
+  return `/topic/user/${userId}/notifications`
 }
 
 /**

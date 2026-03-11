@@ -45,6 +45,16 @@ npm run dev:mock
 - Endpoints e contrato de autenticacao: `docs/auth-endpoints-matrix.md`
 - Sincronizacao realtime: STOMP/SockJS em `/ws/**`
 
+## Notificacoes (online + push)
+
+- Notificacoes online no sino ficam sempre ativas para usuario autenticado (conexao WebSocket global enquanto estiver logado).
+- Push do navegador e opcional (opt-in/opt-out) pelo menu da conta:
+  - `Ativar notificacoes push`: pede permissao e registra subscricao.
+  - `Desativar notificacoes push`: remove subscricao e para push do browser.
+- O menu da conta exibe status explicito de push (`ativado`, `desativado`, `nao suportado` ou `indisponivel no ambiente`).
+- Push depende de VAPID configurado no backend (`VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY`).
+- Em ambiente de desenvolvimento, o Service Worker/PWA fica habilitado para validar fluxo de push localmente.
+
 ## Sistema visual
 
 - Linguagem visual oficial: `Fresh Lists`

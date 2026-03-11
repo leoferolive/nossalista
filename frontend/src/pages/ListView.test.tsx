@@ -569,16 +569,6 @@ describe('ListView - WebSocket Integration', () => {
     })
   })
 
-  it('deve chamar connect() ao montar o componente', () => {
-    render(
-      <BrowserRouter>
-        <ListView />
-      </BrowserRouter>
-    )
-
-    expect(mockConnect).toHaveBeenCalled()
-  })
-
   it('deve chamar subscribe(listId, handler) quando status é CONNECTED', () => {
     render(
       <BrowserRouter>
@@ -588,18 +578,6 @@ describe('ListView - WebSocket Integration', () => {
 
     expect(mockSubscribe).toHaveBeenCalledWith('test-list-id', 'items', expect.any(Function))
     expect(mockSubscribe).toHaveBeenCalledWith('test-list-id', 'presence', expect.any(Function))
-  })
-
-  it('deve chamar disconnect() ao desmontar o componente', () => {
-    const { unmount } = render(
-      <BrowserRouter>
-        <ListView />
-      </BrowserRouter>
-    )
-
-    unmount()
-
-    expect(mockDisconnect).toHaveBeenCalled()
   })
 
   it('deve adicionar item ao estado quando recebe ITEM_ADDED de outro usuário', () => {

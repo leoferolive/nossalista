@@ -46,6 +46,11 @@ jwt:
 frontend:
   url: ${FRONTEND_URL:http://localhost:5173}
 
+vapid:
+  public-key: ${VAPID_PUBLIC_KEY:}
+  private-key: ${VAPID_PRIVATE_KEY:}
+  subject: ${VAPID_SUBJECT:mailto:nossalista@leoferolive.com.br}
+
 app:
   build:
     version: ${APP_VERSION:0.0.1-SNAPSHOT}

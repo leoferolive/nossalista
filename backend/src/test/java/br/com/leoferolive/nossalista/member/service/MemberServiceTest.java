@@ -26,9 +26,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.UUID;
 
+import br.com.leoferolive.nossalista.notification.NotificationService;
+import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
+import br.com.leoferolive.nossalista.websocket.dto.MemberLeftPayload;
+import org.mockito.ArgumentCaptor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,6 +55,12 @@ class MemberServiceTest {
 
     @Mock
     private ActivityLogService activityLogService;
+
+    @Mock
+    private WebSocketEventPublisher eventPublisher;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private MemberService memberService;
@@ -274,6 +287,50 @@ class MemberServiceTest {
             .hasMessageContaining("Lista não encontrada");
 
         verify(listMemberRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("Deve publicar evento MEMBER_LEFT via WebSocket ao sair da lista")
+    void shouldPublishMemberLeftEventWhenMemberLeaves() {
+        ListMember requesterMembership = new ListMember();
+        requesterMembership.setList(testList);
+        requesterMembership.setUser(memberUser);
+        requesterMembership.setRole(MemberRole.MEMBER);
+
+        when(listRepository.findById(testList.getId())).thenReturn(Optional.of(testList));
+        when(listMemberRepository.findByListIdAndUserId(testList.getId(), memberUser.getId()))
+            .thenReturn(Optional.of(requesterMembership));
+
+        memberService.leaveList(testList.getId(), memberUser.getId());
+
+        ArgumentCaptor<MemberLeftPayload> payloadCaptor = ArgumentCaptor.forClass(MemberLeftPayload.class);
+        verify(eventPublisher).publishItemsEvent(
+            eq(testList.getId()), eq("MEMBER_LEFT"), payloadCaptor.capture(), eq(memberUser), isNull()
+        );
+        assertThat(payloadCaptor.getValue().reason()).isEqualTo("LEFT");
+        assertThat(payloadCaptor.getValue().userId()).isEqualTo(memberUser.getId().toString());
+    }
+
+    @Test
+    @DisplayName("Deve publicar evento MEMBER_REMOVED via WebSocket ao remover membro")
+    void shouldPublishMemberRemovedEventWhenMemberRemoved() {
+        ListMember targetMembership = new ListMember();
+        targetMembership.setList(testList);
+        targetMembership.setUser(memberUser);
+        targetMembership.setRole(MemberRole.MEMBER);
+
+        when(listRepository.findByIdWithDetails(testList.getId())).thenReturn(Optional.of(testList));
+        when(listMemberRepository.findByListIdAndUserId(testList.getId(), memberUser.getId()))
+            .thenReturn(Optional.of(targetMembership));
+
+        memberService.removeMember(testList.getId(), owner.getId(), memberUser.getId());
+
+        ArgumentCaptor<MemberLeftPayload> payloadCaptor = ArgumentCaptor.forClass(MemberLeftPayload.class);
+        verify(eventPublisher).publishItemsEvent(
+            eq(testList.getId()), eq("MEMBER_REMOVED"), payloadCaptor.capture(), eq(memberUser), isNull()
+        );
+        assertThat(payloadCaptor.getValue().reason()).isEqualTo("REMOVED");
+        assertThat(payloadCaptor.getValue().userId()).isEqualTo(memberUser.getId().toString());
     }
 
     @Test

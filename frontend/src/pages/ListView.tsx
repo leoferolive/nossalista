@@ -52,8 +52,8 @@ export const ListView: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user: currentUser, isAuthenticated } = useAuth()
-  const { status: wsStatus, connect, disconnect, subscribe, unsubscribe, send } = useWebSocket()
+  const { user: currentUser } = useAuth()
+  const { status: wsStatus, subscribe, unsubscribe, send } = useWebSocket()
   const {
     currentList,
     loadingList,
@@ -351,17 +351,6 @@ export const ListView: React.FC = () => {
       wsAnimationTimersRef.current = []
     }
   }, [])
-
-  // Conexão WebSocket: conectar ao montar (apenas se autenticado), desconectar ao desmontar
-  useEffect(() => {
-    if (isAuthenticated) {
-      connect({
-        onReconnecting: () => showToast('Sem conexão. Reconectando…', 'info'),
-        onReconnected: () => showToast('Conectado novamente!', 'success'),
-      })
-    }
-    return () => disconnect()
-  }, [connect, disconnect, isAuthenticated, showToast])
 
   // Subscrição WebSocket: subscrever quando CONNECTED, desinscrever ao desmontar/trocar lista
   useEffect(() => {

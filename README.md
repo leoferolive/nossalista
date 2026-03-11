@@ -9,6 +9,7 @@ Aplicativo web de listas compartilhadas em tempo real.
 
 NossaLista permite criar, compartilhar e editar listas colaborativas com sincronizacao em tempo real.
 Usuarios novos recebem um tutorial guiado no primeiro login para aprender criacao, compartilhamento, edicao e acompanhamento realtime.
+O sistema suporta notificacoes online em tempo real e push do navegador opcional (ativacao/desativacao pelo usuario no menu da conta).
 
 Status atual:
 

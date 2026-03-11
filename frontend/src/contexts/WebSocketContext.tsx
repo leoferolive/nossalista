@@ -22,6 +22,8 @@ interface WebSocketActions {
     callback: (message: unknown) => void
   ) => void
   unsubscribe: (listId: string, channel: WebSocketChannel) => void
+  subscribeTopic: (topic: string, callback: (message: unknown) => void) => void
+  unsubscribeTopic: (topic: string) => void
   send: (destination: string, body: unknown) => void
 }
 
@@ -59,13 +61,14 @@ const initialState: WebSocketState = {
   status: 'DISCONNECTED',
 }
 
-const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
+export const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
 
 interface PendingSubscription {
   key: string
   listId: string
   channel: WebSocketChannel
   callback: (message: unknown) => void
+  directTopic?: string
 }
 
 function getSubscriptionKey(listId: string, channel: WebSocketChannel): string {
@@ -154,8 +157,20 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
       // Processar subscrições enfileiradas antes da conexão ser estabelecida.
       // Re-subscrição após reconexão é tratada pelo useEffect em ListView (via mudança de wsStatus).
-      pendingSubscriptionsRef.current.forEach(({ listId, channel, callback }) => {
-        doSubscribe(client, listId, channel, callback)
+      pendingSubscriptionsRef.current.forEach(({ key, listId, channel, callback, directTopic }) => {
+        if (directTopic) {
+          const subscription = client.subscribe(directTopic, (stompMessage) => {
+            try {
+              const parsed = JSON.parse(stompMessage.body)
+              callback(parsed)
+            } catch {
+              callback(stompMessage.body)
+            }
+          })
+          subscriptionsRef.current.set(key, subscription)
+        } else {
+          doSubscribe(client, listId, channel, callback)
+        }
       })
       pendingSubscriptionsRef.current.clear()
     }
@@ -320,6 +335,62 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     pendingSubscriptionsRef.current.delete(key)
   }, [])
 
+  const subscribeTopic = useCallback(
+    (topic: string, callback: (message: unknown) => void) => {
+      if (isMockMode) {
+        pendingSubscriptionsRef.current.set(topic, {
+          key: topic,
+          listId: topic,
+          channel: 'notifications',
+          callback,
+          directTopic: topic,
+        })
+        return
+      }
+
+      const client = clientRef.current
+
+      if (subscriptionsRef.current.has(topic) || pendingSubscriptionsRef.current.has(topic)) {
+        return
+      }
+
+      if (!client?.connected) {
+        if (client) {
+          pendingSubscriptionsRef.current.set(topic, {
+            key: topic,
+            listId: topic,
+            channel: 'notifications',
+            callback,
+            directTopic: topic,
+          })
+          return
+        }
+        console.warn('[WebSocket] Tentativa de subscribeTopic sem conexão ativa')
+        return
+      }
+
+      const subscription = client.subscribe(topic, (stompMessage) => {
+        try {
+          const parsed = JSON.parse(stompMessage.body)
+          callback(parsed)
+        } catch {
+          callback(stompMessage.body)
+        }
+      })
+      subscriptionsRef.current.set(topic, subscription)
+    },
+    [isMockMode]
+  )
+
+  const unsubscribeTopic = useCallback((topic: string) => {
+    const subscription = subscriptionsRef.current.get(topic)
+    if (subscription) {
+      subscription.unsubscribe()
+      subscriptionsRef.current.delete(topic)
+    }
+    pendingSubscriptionsRef.current.delete(topic)
+  }, [])
+
   const send = useCallback(
     (destination: string, body: unknown) => {
       if (isMockMode) {
@@ -348,6 +419,8 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         disconnect,
         subscribe,
         unsubscribe,
+        subscribeTopic,
+        unsubscribeTopic,
         send,
       }}
     >

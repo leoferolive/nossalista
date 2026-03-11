@@ -69,10 +69,31 @@ public class WebSocketSubscriptionInterceptor implements ChannelInterceptor {
                     throw new MessageDeliveryException(message,
                         "Acesso negado ao tópico: " + destination);
                 }
+            } else if (destination != null && destination.startsWith(WebSocketDestinations.USER_TOPIC_PREFIX)) {
+                User user = extractUser(accessor);
+                if (user == null) {
+                    throw new MessageDeliveryException(message,
+                        "Usuário não autenticado para subscribe em: " + destination);
+                }
+
+                UUID targetUserId = extractUserIdFromUserTopic(destination);
+                if (targetUserId == null || !targetUserId.equals(user.getId())) {
+                    throw new MessageDeliveryException(message,
+                        "Acesso negado: " + destination);
+                }
             }
         }
 
         return message;
+    }
+
+    private UUID extractUserIdFromUserTopic(String destination) {
+        try {
+            String after = destination.substring(WebSocketDestinations.USER_TOPIC_PREFIX.length());
+            return UUID.fromString(after.split("/")[0]);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private UUID extractListId(String destination) {

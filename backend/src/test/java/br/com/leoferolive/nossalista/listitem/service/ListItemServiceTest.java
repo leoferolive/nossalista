@@ -14,6 +14,7 @@ import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
+import br.com.leoferolive.nossalista.notification.NotificationService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
 import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
@@ -63,6 +64,9 @@ class ListItemServiceTest {
     @Mock
     private ActivityLogService activityLogService;
 
+    @Mock
+    private NotificationService notificationService;
+
     private ListItemService listItemService;
     private WebSocketEventPublisher eventPublisher;
 
@@ -80,7 +84,8 @@ class ListItemServiceTest {
             listItemMapper,
             eventPublisher,
             listMemberRepository,
-            activityLogService
+            activityLogService,
+            notificationService
         );
 
         testUser = new User();

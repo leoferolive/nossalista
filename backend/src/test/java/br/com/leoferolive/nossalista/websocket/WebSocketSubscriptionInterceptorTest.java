@@ -99,6 +99,31 @@ class WebSocketSubscriptionInterceptorTest {
     }
 
     @Test
+    @DisplayName("Usuário deve conseguir subscrever ao próprio tópico de notificações")
+    void shouldAllowSubscribeToOwnNotificationsTopic() {
+        User user = createUser(VALID_USER_ID);
+        Message<?> message = buildSubscribeMessage(
+            "/topic/user/" + VALID_USER_ID + "/notifications", user);
+
+        Message<?> result = interceptor.preSend(message, null);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Usuário não deve conseguir subscrever ao tópico de notificações de outro usuário")
+    void shouldRejectSubscribeToOtherUserNotificationsTopic() {
+        UUID otherUserId = UUID.randomUUID();
+        User user = createUser(VALID_USER_ID);
+        Message<?> message = buildSubscribeMessage(
+            "/topic/user/" + otherUserId + "/notifications", user);
+
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
+            .isInstanceOf(MessageDeliveryException.class)
+            .hasMessageContaining("Acesso negado");
+    }
+
+    @Test
     @DisplayName("Subscribe em tópico não-lista deve passar sem verificação de membership")
     void shouldAllowSubscribeForNonListTopic() {
         User user = createUser(VALID_USER_ID);
