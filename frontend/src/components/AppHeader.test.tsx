@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import userEvent from '@testing-library/user-event'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { AppHeader } from './AppHeader'
 
@@ -20,6 +20,8 @@ vi.mock('../contexts/ThemeContext', () => ({
   useTheme: () => ({ theme: 'light', toggleTheme: vi.fn(), setTheme: vi.fn() }),
 }))
 
+let mockAvatarUrl: string | null = null
+
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: {
@@ -27,7 +29,10 @@ vi.mock('../contexts/AuthContext', () => ({
       username: 'leo',
       email: 'leo@test.com',
       displayName: 'Leo Oliveira',
-      avatarUrl: null,
+      get avatarUrl() {
+        return mockAvatarUrl
+      },
+      onboardingCompletedAt: null,
     },
     logout: mockLogout,
   }),
@@ -59,6 +64,7 @@ describe('AppHeader', () => {
     mockStartReplay.mockReset()
     mockRequestPermission.mockReset()
     mockPermissionState = 'default'
+    mockAvatarUrl = null
   })
 
   it('abre o menu da conta e faz logout', async () => {
@@ -142,17 +148,8 @@ describe('AppHeader', () => {
     expect(screen.queryByRole('menuitem', { name: /Ativar notificações push/i })).toBeNull()
   })
 
-  it('exibe avatar quando usuário tem avatarUrl', async () => {
-    vi.mocked(await import('../contexts/AuthContext')).useAuth = () => ({
-      user: {
-        id: 'user-1',
-        username: 'leo',
-        email: 'leo@test.com',
-        displayName: 'Leo Oliveira',
-        avatarUrl: 'https://example.com/avatar.jpg',
-      },
-      logout: mockLogout,
-    })
+  it('exibe avatar quando usuário tem avatarUrl', () => {
+    mockAvatarUrl = 'https://example.com/avatar.jpg'
 
     render(
       <MemoryRouter>
@@ -161,5 +158,53 @@ describe('AppHeader', () => {
     )
 
     expect(screen.getByRole('img', { name: 'Leo Oliveira' })).toBeInTheDocument()
+  })
+
+  it('fecha menu ao clicar fora', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('renderiza botão de voltar quando onBack é fornecido', async () => {
+    const mockOnBack = vi.fn()
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Lista" onBack={mockOnBack} backLabel="Voltar" />
+      </MemoryRouter>
+    )
+
+    const backBtn = screen.getByRole('button', { name: 'Voltar' })
+    expect(backBtn).toBeInTheDocument()
+    await user.click(backBtn)
+    expect(mockOnBack).toHaveBeenCalledTimes(1)
+  })
+
+  it('fecha menu ao pressionar Escape', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 })
