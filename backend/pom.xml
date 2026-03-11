@@ -40,6 +40,12 @@
                 <artifactId>swagger-ui</artifactId>
                 <version>${swagger.ui.version}</version>
             </dependency>
+            <!-- Override transitive jose4j from web-push to fix CVE-2023-31582 and CVE-2024-29371 -->
+            <dependency>
+                <groupId>org.bitbucket.b_c</groupId>
+                <artifactId>jose4j</artifactId>
+                <version>0.9.6</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

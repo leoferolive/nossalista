@@ -40,10 +40,13 @@ vi.mock('../contexts/OnboardingContext', () => ({
 }))
 
 const mockRequestPermission = vi.fn()
+let mockPermissionState: string = 'default'
 
 vi.mock('../hooks/usePushNotifications', () => ({
   usePushNotifications: () => ({
-    permissionState: 'default',
+    get permissionState() {
+      return mockPermissionState
+    },
     requestPermission: mockRequestPermission,
     unsubscribe: vi.fn(),
   }),
@@ -55,6 +58,7 @@ describe('AppHeader', () => {
     mockLogout.mockReset()
     mockStartReplay.mockReset()
     mockRequestPermission.mockReset()
+    mockPermissionState = 'default'
   })
 
   it('abre o menu da conta e faz logout', async () => {
@@ -108,5 +112,54 @@ describe('AppHeader', () => {
     await user.click(pushBtn)
 
     expect(mockRequestPermission).toHaveBeenCalledTimes(1)
+  })
+
+  it('oculta botão de push quando permissão já concedida', async () => {
+    mockPermissionState = 'granted'
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.queryByRole('menuitem', { name: /Ativar notificações push/i })).toBeNull()
+  })
+
+  it('oculta botão de push quando API não suportada', async () => {
+    mockPermissionState = 'unsupported'
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.queryByRole('menuitem', { name: /Ativar notificações push/i })).toBeNull()
+  })
+
+  it('exibe avatar quando usuário tem avatarUrl', async () => {
+    vi.mocked(await import('../contexts/AuthContext')).useAuth = () => ({
+      user: {
+        id: 'user-1',
+        username: 'leo',
+        email: 'leo@test.com',
+        displayName: 'Leo Oliveira',
+        avatarUrl: 'https://example.com/avatar.jpg',
+      },
+      logout: mockLogout,
+    })
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('img', { name: 'Leo Oliveira' })).toBeInTheDocument()
   })
 })
