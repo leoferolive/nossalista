@@ -39,11 +39,22 @@ vi.mock('../contexts/OnboardingContext', () => ({
   }),
 }))
 
+const mockRequestPermission = vi.fn()
+
+vi.mock('../hooks/usePushNotifications', () => ({
+  usePushNotifications: () => ({
+    permissionState: 'default',
+    requestPermission: mockRequestPermission,
+    unsubscribe: vi.fn(),
+  }),
+}))
+
 describe('AppHeader', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     mockLogout.mockReset()
     mockStartReplay.mockReset()
+    mockRequestPermission.mockReset()
   })
 
   it('abre o menu da conta e faz logout', async () => {
@@ -79,5 +90,23 @@ describe('AppHeader', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Ver tutorial' }))
 
     expect(mockStartReplay).toHaveBeenCalledTimes(1)
+  })
+
+  it('exibe botão de push e chama requestPermission ao clicar', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    const pushBtn = screen.getByRole('menuitem', { name: /Ativar notificações push/i })
+    expect(pushBtn).toBeInTheDocument()
+
+    await user.click(pushBtn)
+
+    expect(mockRequestPermission).toHaveBeenCalledTimes(1)
   })
 })

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NotificationService Tests")
@@ -112,6 +113,107 @@ class NotificationServiceTest {
         assertThat(msg.getType()).isEqualTo("ITEM_ADDED");
         assertThat(msg.getChannel()).isEqualTo("notifications");
         assertThat(msg.getListId()).isEqualTo(listId);
+    }
+
+    @Test
+    @DisplayName("Deve usar 'Alguém' como actorName quando actor é nulo")
+    void shouldUseAlguemWhenActorIsNull() {
+        ListMember m1Membership = createMembership(member1, MemberRole.MEMBER);
+        when(listMemberRepository.findByListId(listId)).thenReturn(List.of(m1Membership));
+
+        notificationService.notifyListMembers(listId, actor.getId(), "ITEM_ADDED", "payload", null);
+
+        ArgumentCaptor<WebSocketMessage> captor = ArgumentCaptor.forClass(WebSocketMessage.class);
+        verify(messagingTemplate).convertAndSend(anyString(), captor.capture());
+        assertThat(captor.getValue().getActor()).isNull();
+    }
+
+    @Test
+    @DisplayName("Push body para ITEM_UPDATED")
+    void pushBody_itemUpdated() {
+        ListMember m1Membership = createMembership(member1, MemberRole.MEMBER);
+        when(listMemberRepository.findByListId(listId)).thenReturn(List.of(m1Membership));
+
+        notificationService.notifyListMembers(listId, actor.getId(), "ITEM_UPDATED", "payload", actor);
+
+        verify(pushNotificationService).sendToUser(eq(member1.getId()), any());
+    }
+
+    @Test
+    @DisplayName("Push body para ITEM_REMOVED")
+    void pushBody_itemRemoved() {
+        ListMember m1Membership = createMembership(member1, MemberRole.MEMBER);
+        when(listMemberRepository.findByListId(listId)).thenReturn(List.of(m1Membership));
+
+        notificationService.notifyListMembers(listId, actor.getId(), "ITEM_REMOVED", "payload", actor);
+
+        verify(pushNotificationService).sendToUser(eq(member1.getId()), any());
+    }
+
+    @Test
+    @DisplayName("Push body para ITEM_CHECKED")
+    void pushBody_itemChecked() {
+        ListMember m1Membership = createMembership(member1, MemberRole.MEMBER);
+        when(listMemberRepository.findByListId(listId)).thenReturn(List.of(m1Membership));
+
+        notificationService.notifyListMembers(listId, actor.getId(), "ITEM_CHECKED", "payload", actor);
+
+        verify(pushNotificationService).sendToUser(eq(member1.getId()), any());
+    }
+
+    @Test
+    @DisplayName("Push body para LIST_NAME_UPDATED")
+    void pushBody_listNameUpdated() {
+        ListMember m1Membership = createMembership(member1, MemberRole.MEMBER);
+        when(listMemberRepository.findByListId(listId)).thenReturn(List.of(m1Membership));
+
+        notificationService.notifyListMembers(listId, actor.getId(), "LIST_NAME_UPDATED", "payload", actor);
+
+        verify(pushNotificationService).sendToUser(eq(member1.getId()), any());
+    }
+
+    @Test
+    @DisplayName("Push body para MEMBER_JOINED")
+    void pushBody_memberJoined() {
+        ListMember m1Membership = createMembership(member1, MemberRole.MEMBER);
+        when(listMemberRepository.findByListId(listId)).thenReturn(List.of(m1Membership));
+
+        notificationService.notifyListMembers(listId, actor.getId(), "MEMBER_JOINED", "payload", actor);
+
+        verify(pushNotificationService).sendToUser(eq(member1.getId()), any());
+    }
+
+    @Test
+    @DisplayName("Push body para MEMBER_LEFT")
+    void pushBody_memberLeft() {
+        ListMember m1Membership = createMembership(member1, MemberRole.MEMBER);
+        when(listMemberRepository.findByListId(listId)).thenReturn(List.of(m1Membership));
+
+        notificationService.notifyListMembers(listId, actor.getId(), "MEMBER_LEFT", "payload", actor);
+
+        verify(pushNotificationService).sendToUser(eq(member1.getId()), any());
+    }
+
+    @Test
+    @DisplayName("Push body para MEMBER_REMOVED")
+    void pushBody_memberRemoved() {
+        ListMember m1Membership = createMembership(member1, MemberRole.MEMBER);
+        when(listMemberRepository.findByListId(listId)).thenReturn(List.of(m1Membership));
+
+        notificationService.notifyListMembers(listId, actor.getId(), "MEMBER_REMOVED", "payload", actor);
+
+        verify(pushNotificationService).sendToUser(eq(member1.getId()), any());
+    }
+
+    @Test
+    @DisplayName("Push body para tipo desconhecido retorna mensagem padrão")
+    void pushBody_unknownType() {
+        ListMember m1Membership = createMembership(member1, MemberRole.MEMBER);
+        when(listMemberRepository.findByListId(listId)).thenReturn(List.of(m1Membership));
+
+        notificationService.notifyListMembers(listId, actor.getId(), "UNKNOWN_TYPE", "payload", actor);
+
+        verify(pushNotificationService).sendToUser(eq(member1.getId()), any());
     }
 
     private ListMember createMembership(User user, MemberRole role) {

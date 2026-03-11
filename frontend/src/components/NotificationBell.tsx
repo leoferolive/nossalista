@@ -84,10 +84,7 @@ export function NotificationBell() {
           ) : (
             <ul className="max-h-80 overflow-y-auto">
               {notifications.map((n) => (
-                <li
-                  key={n.id}
-                  className="border-b border-nl-border px-4 py-3 last:border-b-0"
-                >
+                <li key={n.id} className="border-b border-nl-border px-4 py-3 last:border-b-0">
                   <p className="font-sans text-sm text-nl-text">{n.message}</p>
                   {n.timestamp && (
                     <p className="mt-1 font-sans text-xs text-nl-muted">

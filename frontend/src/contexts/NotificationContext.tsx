@@ -118,37 +118,34 @@ export function NotificationProvider({ children, userId }: NotificationProviderP
   const [state, dispatch] = useReducer(notificationReducer, { notifications: [] })
   const { subscribeTopic, unsubscribeTopic } = useWebSocketContext()
 
-  const handleMessage = useCallback(
-    (raw: unknown) => {
-      if (typeof raw !== 'object' || raw === null) return
-      const msg = raw as Record<string, unknown>
+  const handleMessage = useCallback((raw: unknown) => {
+    if (typeof raw !== 'object' || raw === null) return
+    const msg = raw as Record<string, unknown>
 
-      if (msg.channel !== 'notifications') return
+    if (msg.channel !== 'notifications') return
 
-      const type = msg.type as string
-      const payload = msg.payload
-      const actor = msg.actor as WebSocketActor | undefined
-      const listId = msg.listId as string
-      const timestamp = msg.timestamp as string
-      const eventId = msg.eventId as string
+    const type = msg.type as string
+    const payload = msg.payload
+    const actor = msg.actor as WebSocketActor | undefined
+    const listId = msg.listId as string
+    const timestamp = msg.timestamp as string
+    const eventId = msg.eventId as string
 
-      const message = formatMessage(type, payload, actor ?? { id: '', username: 'Alguém' })
+    const message = formatMessage(type, payload, actor ?? { id: '', username: 'Alguém' })
 
-      dispatch({
-        type: 'ADD',
-        notification: {
-          id: eventId ?? crypto.randomUUID(),
-          type,
-          listId,
-          message,
-          actor,
-          timestamp,
-          read: false,
-        },
-      })
-    },
-    []
-  )
+    dispatch({
+      type: 'ADD',
+      notification: {
+        id: eventId ?? crypto.randomUUID(),
+        type,
+        listId,
+        message,
+        actor,
+        timestamp,
+        read: false,
+      },
+    })
+  }, [])
 
   useEffect(() => {
     if (!userId) return
@@ -165,7 +162,9 @@ export function NotificationProvider({ children, userId }: NotificationProviderP
   const unreadCount = state.notifications.filter((n) => !n.read).length
 
   return (
-    <NotificationCtx.Provider value={{ notifications: state.notifications, unreadCount, markAllRead, clearAll }}>
+    <NotificationCtx.Provider
+      value={{ notifications: state.notifications, unreadCount, markAllRead, clearAll }}
+    >
       {children}
     </NotificationCtx.Provider>
   )

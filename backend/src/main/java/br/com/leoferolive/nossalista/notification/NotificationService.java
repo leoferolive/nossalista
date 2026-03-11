@@ -32,7 +32,9 @@ public class NotificationService {
 
         listMemberRepository.findByListId(listId).forEach(member -> {
             UUID memberId = member.getUser().getId();
-            if (memberId.equals(actorId)) return;
+            if (memberId.equals(actorId)) {
+                return;
+            }
 
             WebSocketMessage msg = WebSocketMessage.builder()
                 .listId(listId)

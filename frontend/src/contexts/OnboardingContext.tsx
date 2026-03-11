@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { usersApi } from '../api/usersApi'
 import { useAuth } from './AuthContext'
@@ -131,24 +123,21 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const currentStep = tourState.active ? ONBOARDING_STEPS[tourState.stepIndex] : null
 
-  const startTour = useCallback(
-    () => {
-      const shouldPersistCompletion = user?.onboardingCompletedAt == null
+  const startTour = useCallback(() => {
+    const shouldPersistCompletion = user?.onboardingCompletedAt == null
 
-      setTourState({
-        active: true,
-        shouldPersistCompletion,
-        stepIndex: 0,
-        createdListId: null,
-      })
-      setRequestOpenCreateListModal(false)
+    setTourState({
+      active: true,
+      shouldPersistCompletion,
+      stepIndex: 0,
+      createdListId: null,
+    })
+    setRequestOpenCreateListModal(false)
 
-      if (!isHomeRoute(location.pathname)) {
-        navigate('/home')
-      }
-    },
-    [location.pathname, navigate, user?.onboardingCompletedAt]
-  )
+    if (!isHomeRoute(location.pathname)) {
+      navigate('/home')
+    }
+  }, [location.pathname, navigate, user?.onboardingCompletedAt])
 
   const finishTour = useCallback(
     async (reason: 'completed' | 'skipped') => {

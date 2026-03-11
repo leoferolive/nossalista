@@ -24,6 +24,7 @@ export default defineConfig({
         'src/components/ItemOptionsMenu.tsx',
         'src/components/Toast.tsx',
         'src/components/UserProfile.tsx',
+        'src/sw.ts',
         'src/hooks/useActivities.ts',
         'src/hooks/useLists.ts',
         'src/hooks/useWebSocket.ts',

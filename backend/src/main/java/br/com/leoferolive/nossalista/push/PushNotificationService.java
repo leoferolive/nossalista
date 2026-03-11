@@ -102,7 +102,9 @@ public class PushNotificationService {
     }
 
     private String escape(String value) {
-        if (value == null) return "";
+        if (value == null) {
+            return "";
+        }
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 

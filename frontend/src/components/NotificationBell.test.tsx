@@ -4,11 +4,7 @@ import { NotificationBell } from './NotificationBell'
 import { NotificationCtx } from '../contexts/NotificationContext'
 import type { AppNotification } from '../contexts/NotificationContext'
 
-function makeCtx(
-  notifications: AppNotification[] = [],
-  markAllRead = vi.fn(),
-  clearAll = vi.fn()
-) {
+function makeCtx(notifications: AppNotification[] = [], markAllRead = vi.fn(), clearAll = vi.fn()) {
   return {
     notifications,
     unreadCount: notifications.filter((n) => !n.read).length,
@@ -62,11 +58,36 @@ describe('NotificationBell', () => {
 
   it('deve exibir mensagens das notificações no dropdown', () => {
     const notifications: AppNotification[] = [
-      { id: '1', type: 'ITEM_ADDED', listId: 'l1', message: 'joao adicionou "Leite"', timestamp: '', read: false },
+      {
+        id: '1',
+        type: 'ITEM_ADDED',
+        listId: 'l1',
+        message: 'joao adicionou "Leite"',
+        timestamp: '',
+        read: false,
+      },
     ]
     renderBell(makeCtx(notifications))
     fireEvent.click(screen.getByLabelText('Notificações'))
 
     expect(screen.getByText('joao adicionou "Leite"')).toBeTruthy()
+  })
+
+  it('deve fechar o dropdown ao pressionar Escape', () => {
+    renderBell(makeCtx([]))
+    fireEvent.click(screen.getByLabelText('Notificações'))
+    expect(screen.getByText('Nenhuma notificação')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByText('Nenhuma notificação')).toBeNull()
+  })
+
+  it('deve fechar o dropdown ao clicar fora do componente', () => {
+    renderBell(makeCtx([]))
+    fireEvent.click(screen.getByLabelText('Notificações'))
+    expect(screen.getByText('Nenhuma notificação')).toBeTruthy()
+
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByText('Nenhuma notificação')).toBeNull()
   })
 })

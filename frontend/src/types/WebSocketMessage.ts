@@ -107,7 +107,10 @@ export type NotificationWebSocketMessage =
       channel: 'notifications'
       type: 'ITEM_ADDED' | 'ITEM_UPDATED' | 'ITEM_REMOVED' | 'ITEM_CHECKED'
     })
-  | (WebSocketMessage<ListNameUpdatedPayload> & { channel: 'notifications'; type: 'LIST_NAME_UPDATED' })
+  | (WebSocketMessage<ListNameUpdatedPayload> & {
+      channel: 'notifications'
+      type: 'LIST_NAME_UPDATED'
+    })
   | (WebSocketMessage<MemberJoinedPayload> & { channel: 'notifications'; type: 'MEMBER_JOINED' })
   | (WebSocketMessage<MemberLeftPayload> & {
       channel: 'notifications'

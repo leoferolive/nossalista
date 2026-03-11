@@ -11,7 +11,5 @@ export const pushApi = {
     client.post('/api/push/subscribe', subscription).then(() => undefined),
 
   unsubscribe: (endpoint: string): Promise<void> =>
-    client
-      .delete('/api/push/unsubscribe', { data: { endpoint } })
-      .then(() => undefined),
+    client.delete('/api/push/unsubscribe', { data: { endpoint } }).then(() => undefined),
 }

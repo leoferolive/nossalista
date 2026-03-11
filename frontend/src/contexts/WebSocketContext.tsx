@@ -313,41 +313,38 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     pendingSubscriptionsRef.current.delete(key)
   }, [])
 
-  const subscribeTopic = useCallback(
-    (topic: string, callback: (message: unknown) => void) => {
-      const client = clientRef.current
+  const subscribeTopic = useCallback((topic: string, callback: (message: unknown) => void) => {
+    const client = clientRef.current
 
-      if (subscriptionsRef.current.has(topic) || pendingSubscriptionsRef.current.has(topic)) {
+    if (subscriptionsRef.current.has(topic) || pendingSubscriptionsRef.current.has(topic)) {
+      return
+    }
+
+    if (!client?.connected) {
+      if (client) {
+        pendingSubscriptionsRef.current.set(topic, {
+          key: topic,
+          listId: topic,
+          channel: 'notifications',
+          callback,
+          directTopic: topic,
+        })
         return
       }
+      console.warn('[WebSocket] Tentativa de subscribeTopic sem conexão ativa')
+      return
+    }
 
-      if (!client?.connected) {
-        if (client) {
-          pendingSubscriptionsRef.current.set(topic, {
-            key: topic,
-            listId: topic,
-            channel: 'notifications',
-            callback,
-            directTopic: topic,
-          })
-          return
-        }
-        console.warn('[WebSocket] Tentativa de subscribeTopic sem conexão ativa')
-        return
+    const subscription = client.subscribe(topic, (stompMessage) => {
+      try {
+        const parsed = JSON.parse(stompMessage.body)
+        callback(parsed)
+      } catch {
+        callback(stompMessage.body)
       }
-
-      const subscription = client.subscribe(topic, (stompMessage) => {
-        try {
-          const parsed = JSON.parse(stompMessage.body)
-          callback(parsed)
-        } catch {
-          callback(stompMessage.body)
-        }
-      })
-      subscriptionsRef.current.set(topic, subscription)
-    },
-    []
-  )
+    })
+    subscriptionsRef.current.set(topic, subscription)
+  }, [])
 
   const unsubscribeTopic = useCallback((topic: string) => {
     const subscription = subscriptionsRef.current.get(topic)
