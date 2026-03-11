@@ -1,0 +1,4 @@
+interface:
+  display_name: "Interface Design"
+  short_description: "Consistent app UI design memory"
+  default_prompt: "Use $interface-design to define or extend a consistent interface system for this app UI."

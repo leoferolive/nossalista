@@ -42,12 +42,17 @@ nossalista/
 |- backend/
 |- frontend/
 |- docs/
+|- .agents/skills/
 |- contracts/
 |- k8s/
 |- docker-compose.yml
 |- CLAUDE.md
 |- AGENTS.md -> CLAUDE.md
 ```
+
+## Skills locais
+
+- `.agents/skills/interface-design`: skill local para projetar e auditar interfaces de produto com memoria em `.interface-design/system.md`, mantendo consistencia de espacamento, profundidade, superficies e padroes de componentes.
 
 ## Como executar
 
@@ -135,6 +140,7 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
 - Fonte de verdade da versão implantada:
   - imagem do Deployment recebe explicitamente `ghcr.io/...:<tag>`
   - annotations `deploy.nossalista/tag` e `deploy.nossalista/sha` são atualizadas no cluster
+  - cada workflow de deploy publica `Deployment Summary` no GitHub Actions com `Tag version deployada`, imagem, SHA e ambiente
   - `GET /api/health` retorna `version`, `gitSha`, `gitTag`, `environment` e `buildTime`
 - Imagens publicadas:
   - Dev: `ghcr.io/leoferolive/nossalista-dev:latest` + tags RC/estáveis para rastreabilidade

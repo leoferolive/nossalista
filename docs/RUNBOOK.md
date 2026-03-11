@@ -99,6 +99,7 @@ Regras operacionais:
 - `deploy-prod.yml`: aceita apenas tag estavel existente no repositorio
 - `deploy-environment.yml` aplica o manifesto e depois executa `kubectl set image`, entao `latest` e `:dev` nao sao mais fonte de verdade do que ficou implantado
 - `tag` = tag da imagem implantada; `ref` = ref do checkout usado para build
+- ao final de cada workflow de deploy, consultar a aba **Summary** do GitHub Actions para ver `Tag version deployada`, imagem, SHA e ambiente efetivos
 
 ## Rollback de Produção por Tag
 
