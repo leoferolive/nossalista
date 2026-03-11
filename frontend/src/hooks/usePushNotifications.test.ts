@@ -70,7 +70,7 @@ describe('usePushNotifications', () => {
     const { result } = renderHook(() => usePushNotifications())
 
     await act(async () => {
-      await result.current.requestPermission()
+      await result.current.enablePush()
     })
 
     expect(result.current.permissionState).toBe('unsupported')
@@ -84,7 +84,7 @@ describe('usePushNotifications', () => {
     const { result } = renderHook(() => usePushNotifications())
 
     await act(async () => {
-      await result.current.requestPermission()
+      await result.current.enablePush()
     })
 
     expect(result.current.permissionState).toBe('denied')
@@ -102,10 +102,11 @@ describe('usePushNotifications', () => {
     const { result } = renderHook(() => usePushNotifications())
 
     await act(async () => {
-      await result.current.requestPermission()
+      await result.current.enablePush()
     })
 
     expect(result.current.permissionState).toBe('granted')
+    expect(result.current.pushEnabled).toBe(true)
     expect(pushManager.subscribe).toHaveBeenCalledWith(
       expect.objectContaining({ userVisibleOnly: true })
     )
@@ -120,13 +121,13 @@ describe('usePushNotifications', () => {
     const { result } = renderHook(() => usePushNotifications())
 
     await act(async () => {
-      await result.current.requestPermission()
+      await result.current.enablePush()
     })
 
     expect(pushManager.subscribe).not.toHaveBeenCalled()
   })
 
-  it('deve cancelar subscrição existente com unsubscribe', async () => {
+  it('deve cancelar subscrição existente com disablePush', async () => {
     const sub = makeSubscription()
     setupServiceWorker(sub)
     mockPushApi.unsubscribe.mockResolvedValue(undefined)
@@ -134,11 +135,12 @@ describe('usePushNotifications', () => {
     const { result } = renderHook(() => usePushNotifications())
 
     await act(async () => {
-      await result.current.unsubscribe()
+      await result.current.disablePush()
     })
 
     expect(mockPushApi.unsubscribe).toHaveBeenCalledWith(sub.endpoint)
     expect(sub.unsubscribe).toHaveBeenCalled()
+    expect(result.current.pushEnabled).toBe(false)
   })
 
   it('não deve falhar quando não há subscrição ativa para cancelar', async () => {
@@ -147,9 +149,22 @@ describe('usePushNotifications', () => {
     const { result } = renderHook(() => usePushNotifications())
 
     await act(async () => {
-      await result.current.unsubscribe()
+      await result.current.disablePush()
     })
 
     expect(mockPushApi.unsubscribe).not.toHaveBeenCalled()
+  })
+
+  it('deve expor pushEnabled true quando já existe subscrição ativa', async () => {
+    const sub = makeSubscription()
+    setupServiceWorker(sub)
+
+    const { result } = renderHook(() => usePushNotifications())
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(result.current.pushEnabled).toBe(true)
   })
 })

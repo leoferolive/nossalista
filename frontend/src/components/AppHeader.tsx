@@ -37,7 +37,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const location = useLocation()
   const { user, logout } = useAuth()
   const { startReplay } = useOnboarding()
-  const { permissionState, requestPermission } = usePushNotifications()
+  const { permissionState, pushEnabled, enablePush, disablePush } = usePushNotifications()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -231,18 +231,32 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                       Ver tutorial
                       <span aria-hidden="true">↺</span>
                     </button>
-                    {permissionState !== 'granted' && permissionState !== 'unsupported' && (
+                    {permissionState !== 'unsupported' && !pushEnabled && (
                       <button
                         type="button"
                         onClick={() => {
                           setIsMenuOpen(false)
-                          requestPermission()
+                          enablePush()
                         }}
                         className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
                         role="menuitem"
                       >
                         Ativar notificações push
                         <span aria-hidden="true">🔔</span>
+                      </button>
+                    )}
+                    {permissionState !== 'unsupported' && pushEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMenuOpen(false)
+                          disablePush()
+                        }}
+                        className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
+                        role="menuitem"
+                      >
+                        Desativar notificações push
+                        <span aria-hidden="true">🔕</span>
                       </button>
                     )}
                     <button

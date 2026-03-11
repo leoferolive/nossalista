@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { pushApi } from '../api/pushApi'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
@@ -22,15 +22,45 @@ export function usePushNotifications() {
     }
     return Notification.permission as PushPermissionState
   })
+  const [pushEnabled, setPushEnabled] = useState<boolean>(false)
 
-  const requestPermission = useCallback(async () => {
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) {
+      setPushEnabled(false)
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        if (!cancelled) {
+          setPushEnabled(Boolean(subscription))
+        }
+      } catch {
+        if (!cancelled) {
+          setPushEnabled(false)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const enablePush = useCallback(async () => {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       setPermissionState('unsupported')
       return
     }
 
-    const permission = await Notification.requestPermission()
-    setPermissionState(permission as PushPermissionState)
+    let permission = Notification.permission
+    if (permission !== 'granted') {
+      permission = await Notification.requestPermission()
+      setPermissionState(permission as PushPermissionState)
+    }
 
     if (permission !== 'granted') return
 
@@ -39,29 +69,38 @@ export function usePushNotifications() {
       if (!vapidPublicKey) return
 
       const registration = await navigator.serviceWorker.ready
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      })
+      let subscription = await registration.pushManager.getSubscription()
+
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        })
+      }
 
       await pushApi.subscribe(subscription.toJSON())
+      setPushEnabled(true)
     } catch (err) {
       console.error('[Push] Falha ao registrar subscrição push:', err)
     }
   }, [])
 
-  const unsubscribe = useCallback(async () => {
+  const disablePush = useCallback(async () => {
     try {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
-      if (!subscription) return
+      if (!subscription) {
+        setPushEnabled(false)
+        return
+      }
 
       await pushApi.unsubscribe(subscription.endpoint)
       await subscription.unsubscribe()
+      setPushEnabled(false)
     } catch (err) {
       console.error('[Push] Falha ao cancelar subscrição push:', err)
     }
   }, [])
 
-  return { permissionState, requestPermission, unsubscribe }
+  return { permissionState, pushEnabled, enablePush, disablePush }
 }

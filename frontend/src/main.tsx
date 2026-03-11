@@ -1,11 +1,13 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { registerSW } from 'virtual:pwa-register'
 import { AuthProvider, useAuth } from './contexts/AuthContext.tsx'
 import { OnboardingProvider } from './contexts/OnboardingContext.tsx'
 import { WebSocketProvider } from './contexts/WebSocketContext.tsx'
 import { NotificationProvider } from './contexts/NotificationContext.tsx'
 import { ThemeProvider } from './contexts/ThemeContext.tsx'
+import { WebSocketConnectionManager } from './components/WebSocketConnectionManager.tsx'
 import Login from './pages/Login.tsx'
 import { AuthCallback } from './pages/AuthCallback.tsx'
 import { Home } from './pages/Home.tsx'
@@ -26,6 +28,8 @@ const browserGlobal = globalThis as typeof globalThis & {
 if (typeof browserGlobal.global === 'undefined') {
   browserGlobal.global = globalThis
 }
+
+registerSW({ immediate: true })
 
 function NotificationWrapper({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
@@ -82,6 +86,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <OnboardingProvider>
             <WebSocketProvider>
+              <WebSocketConnectionManager />
               <NotificationWrapper>
                 <AppRoutes />
               </NotificationWrapper>

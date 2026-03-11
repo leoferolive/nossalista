@@ -36,6 +36,15 @@ App local: `http://localhost:5173`
 - Endpoints e contrato de autenticacao: `docs/auth-endpoints-matrix.md`
 - Sincronizacao realtime: STOMP/SockJS em `/ws/**`
 
+## Notificacoes (online + push)
+
+- Notificacoes online no sino ficam sempre ativas para usuario autenticado (conexao WebSocket global enquanto estiver logado).
+- Push do navegador e opcional (opt-in/opt-out) pelo menu da conta:
+  - `Ativar notificacoes push`: pede permissao e registra subscricao.
+  - `Desativar notificacoes push`: remove subscricao e para push do browser.
+- Push depende de VAPID configurado no backend (`VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY`).
+- Em ambiente de desenvolvimento, o Service Worker/PWA fica habilitado para validar fluxo de push localmente.
+
 ## Padrao visual de formularios
 
 - Inputs em telas/modais do tema principal devem explicitar contraste:

@@ -44,16 +44,21 @@ vi.mock('../contexts/OnboardingContext', () => ({
   }),
 }))
 
-const mockRequestPermission = vi.fn()
+const mockEnablePush = vi.fn()
+const mockDisablePush = vi.fn()
 let mockPermissionState: string = 'default'
+let mockPushEnabled = false
 
 vi.mock('../hooks/usePushNotifications', () => ({
   usePushNotifications: () => ({
     get permissionState() {
       return mockPermissionState
     },
-    requestPermission: mockRequestPermission,
-    unsubscribe: vi.fn(),
+    get pushEnabled() {
+      return mockPushEnabled
+    },
+    enablePush: mockEnablePush,
+    disablePush: mockDisablePush,
   }),
 }))
 
@@ -62,8 +67,10 @@ describe('AppHeader', () => {
     mockNavigate.mockReset()
     mockLogout.mockReset()
     mockStartReplay.mockReset()
-    mockRequestPermission.mockReset()
+    mockEnablePush.mockReset()
+    mockDisablePush.mockReset()
     mockPermissionState = 'default'
+    mockPushEnabled = false
     mockAvatarUrl = null
   })
 
@@ -102,7 +109,7 @@ describe('AppHeader', () => {
     expect(mockStartReplay).toHaveBeenCalledTimes(1)
   })
 
-  it('exibe botão de push e chama requestPermission ao clicar', async () => {
+  it('exibe botão de ativar push e chama enablePush ao clicar', async () => {
     const user = userEvent.setup()
 
     render(
@@ -117,11 +124,12 @@ describe('AppHeader', () => {
 
     await user.click(pushBtn)
 
-    expect(mockRequestPermission).toHaveBeenCalledTimes(1)
+    expect(mockEnablePush).toHaveBeenCalledTimes(1)
   })
 
-  it('oculta botão de push quando permissão já concedida', async () => {
+  it('exibe botão de desativar push quando já está ativo', async () => {
     mockPermissionState = 'granted'
+    mockPushEnabled = true
     const user = userEvent.setup()
 
     render(
@@ -131,7 +139,10 @@ describe('AppHeader', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
-    expect(screen.queryByRole('menuitem', { name: /Ativar notificações push/i })).toBeNull()
+    const disableBtn = screen.getByRole('menuitem', { name: /Desativar notificações push/i })
+    expect(disableBtn).toBeInTheDocument()
+    await user.click(disableBtn)
+    expect(mockDisablePush).toHaveBeenCalledTimes(1)
   })
 
   it('oculta botão de push quando API não suportada', async () => {
