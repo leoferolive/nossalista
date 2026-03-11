@@ -65,6 +65,7 @@ npm run dev:mock
   - Erro: `nl-alert` ou `nl-helper nl-helper-error`
   - Botoes: `nl-btn-primary`, `nl-btn-secondary`, `nl-btn-ghost`, `nl-btn-danger`
   - Estrutura de modal: `ModalShell`
+  - Em telas com pouca altura (mobile ou notebooks), o modal deve manter header fixo, corpo com rolagem interna e hint visual (`Role para continuar`) enquanto houver conteudo abaixo da dobra
 - Landing publica:
   - CTA principal abre cadastro
   - CTA secundario abre login
