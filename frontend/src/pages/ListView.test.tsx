@@ -284,7 +284,7 @@ describe('ListView - Delete Functionality', () => {
     )
 
     const deleteButton = screen.getByLabelText('Excluir lista')
-    expect(deleteButton).toHaveClass('min-h-[48px]')
+    expect(deleteButton).toHaveClass('nl-btn-danger')
   })
 
   it('deve abrir modal de membros e mostrar aviso para owner', async () => {
@@ -435,13 +435,13 @@ describe('ListView - Delete Functionality', () => {
     })
 
     fireEvent.click(screen.getByLabelText('Convidar para lista'))
-    fireEvent.change(screen.getByPlaceholderText(/Buscar usuário/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Buscar usuario/i), {
       target: { value: 'leo' },
     })
 
     expect(await screen.findByRole('button', { name: /leo/i })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /leo/i }))
-    fireEvent.click(screen.getByRole('button', { name: 'Convidar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Convidar por username' }))
 
     await waitFor(() => {
       expect(listsApi.inviteByUsername).toHaveBeenCalledWith('test-list-id', 'leo')

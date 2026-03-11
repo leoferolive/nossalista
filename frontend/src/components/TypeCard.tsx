@@ -8,10 +8,6 @@ interface TypeCardProps {
   onClick: () => void
 }
 
-/**
- * Card visual para seleção de tipo de lista
- * Touch target mínimo: 160px (NFR-A4)
- */
 export const TypeCard: React.FC<TypeCardProps> = ({
   emoji,
   name,
@@ -25,24 +21,22 @@ export const TypeCard: React.FC<TypeCardProps> = ({
       onClick={onClick}
       aria-label={`Selecionar tipo ${name}: ${description}`}
       aria-pressed={isSelected}
-      className={`
-        min-h-[160px] min-w-[160px]
-        flex flex-col items-center justify-center
-        p-4 rounded-2xl
-        transition-transform transition-colors duration-200
-        ${
-          isSelected
-            ? 'border-2 border-nl-primary bg-nl-primary/10 shadow-md scale-[1.02]'
-            : 'border-2 border-nl-border bg-nl-surface-strong hover:border-nl-border-strong hover:bg-nl-surface-strong/50'
-        }
-        focus-visible:ring-2 focus-visible:ring-nl-accent/30 focus-visible:ring-offset-2
-      `}
+      className={`nl-preview-card min-h-[160px] min-w-[160px] text-left transition-all duration-200 ${
+        isSelected
+          ? 'border-2 border-nl-primary bg-nl-primary/10 shadow-tropical'
+          : 'hover:-translate-y-1 hover:border-nl-border-strong'
+      }`}
     >
-      <div className="text-5xl mb-2" aria-hidden="true">
-        {emoji}
+      <div className="flex items-start justify-between gap-3">
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-nl-border bg-nl-surface-strong text-4xl">
+          {emoji}
+        </div>
+        <span className="nl-pill">{isSelected ? 'Selecionado' : 'Tipo'}</span>
       </div>
-      <div className="font-display text-lg font-semibold text-nl-text">{name}</div>
-      <div className="mt-1 text-center text-sm text-nl-muted">{description}</div>
+      <div className="mt-6">
+        <div className="font-display text-2xl font-semibold text-nl-text">{name}</div>
+        <div className="mt-2 text-sm leading-7 text-nl-muted">{description}</div>
+      </div>
     </button>
   )
 }

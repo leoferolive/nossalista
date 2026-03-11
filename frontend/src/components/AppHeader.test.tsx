@@ -63,7 +63,7 @@ describe('AppHeader', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Sair' }))
 
     expect(mockLogout).toHaveBeenCalledTimes(1)
-    expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true })
+    expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true })
   })
 
   it('abre o menu e dispara replay do tutorial', async () => {

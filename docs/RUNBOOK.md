@@ -27,6 +27,7 @@ npm run dev
 
 - API health: `GET http://localhost:8080/api/health`
 - Frontend: `http://localhost:5173`
+- Auth UI: landing em `http://localhost:5173/?auth=login` (rota `/login` e legada e redireciona para `/`)
 - Auditoria de versao implantada:
   - `curl http://nossalista.home/api/health`
   - `curl https://nossalista.leoferolive.com.br/api/health`

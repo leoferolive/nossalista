@@ -7,8 +7,8 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 | Metodo | Endpoint | Origem no frontend | Contrato |
 | --- | --- | --- | --- |
 | `POST` | `/api/auth/register` | fluxo de cadastro | Publico |
-| `POST` | `/api/auth/login` | `frontend/src/pages/Login.tsx` | Publico |
-| `GET` | `/api/auth/google` | `frontend/src/pages/Login.tsx`, `frontend/src/pages/JoinListPage.tsx` | Publico |
+| `POST` | `/api/auth/login` | `frontend/src/components/LoginModal.tsx` (landing), `frontend/src/pages/Login.tsx` (legado sem rota principal) | Publico |
+| `GET` | `/api/auth/google` | `frontend/src/components/LoginModal.tsx`, `frontend/src/pages/Login.tsx` (legado), `frontend/src/pages/JoinListPage.tsx` | Publico |
 | `GET` | `/api/health` | monitoramento e auditoria operacional | Publico; retorna status, version, gitSha, gitTag, environment e buildTime |
 | `GET` | `/api/lists/join/{inviteCode}` | `frontend/src/api/listsApi.ts` | Publico para preview do convite |
 | `WS` | `/ws/**` | `frontend/src/api/websocket.ts` | Handshake permissivo; autenticacao exigida no CONNECT STOMP |
@@ -44,3 +44,5 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 
 - O endpoint de atividades agora existe no backend e atende o contrato paginado esperado pelo frontend.
 - `POST /api/auth/login` e `GET /api/users/me` retornam `onboardingCompletedAt` para controlar o tutorial de primeiro login por conta.
+- O frontend centraliza auth na landing (`/`) e usa query params (`auth`, `registered`, `email`) para abrir modal e prefill.
+- `/login` permanece apenas para compatibilidade de links antigos e redireciona para `/?auth=login`.

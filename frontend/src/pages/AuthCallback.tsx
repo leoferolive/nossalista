@@ -107,10 +107,10 @@ export function AuthCallback() {
           <p className="mb-4 text-nl-muted">{error}</p>
           <button
             type="button"
-            onClick={() => navigate('/login', { replace: true })}
+            onClick={() => navigate('/', { replace: true })}
             className="w-full rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2.5 font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-accent/30"
           >
-            Voltar Para Login
+            Voltar Para Inicio
           </button>
         </div>
       </div>

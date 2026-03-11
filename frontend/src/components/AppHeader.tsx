@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useOnboarding } from '../contexts/OnboardingContext'
+import { ThemeToggle } from './ThemeToggle'
 
 interface AppHeaderProps {
   title: string
@@ -76,13 +77,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   const handleLogout = () => {
     logout()
-    navigate('/login', { replace: true })
+    navigate('/', { replace: true })
   }
 
   return (
-    <header className="nl-card mb-6 overflow-visible p-4 sm:p-6">
+    <header className="nl-card mb-6 overflow-visible p-5 sm:p-6">
       <div>
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="flex items-start gap-4">
             {onBack && (
               <button
@@ -109,48 +110,47 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             )}
 
             <div>
-              <p className="font-sans text-xs font-semibold uppercase tracking-[0.25em] text-nl-muted">
-                {eyebrow}
-              </p>
+              <p className="nl-kicker">{eyebrow}</p>
               <div className="mt-2 flex items-center gap-3">
                 <div
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-nl-accent to-nl-accent-strong text-sm font-bold text-nl-text shadow-earthen"
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-nl-accent to-nl-primary text-sm font-bold text-[var(--nl-btn-text)] shadow-earthen"
                   aria-hidden="true"
                 >
                   NL
                 </div>
                 <div>
-                  <h1 className="font-display text-2xl font-bold tracking-tight text-nl-text sm:text-3xl">
+                  <h1 className="font-display text-3xl font-bold tracking-tight text-nl-text sm:text-4xl">
                     {title}
                   </h1>
                   {subtitle && (
-                    <p className="mt-1 max-w-2xl font-sans text-sm leading-6 text-nl-muted">
-                      {subtitle}
-                    </p>
+                    <p className="mt-2 max-w-2xl text-sm leading-7 text-nl-muted">{subtitle}</p>
                   )}
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-start justify-between gap-4 sm:justify-end">
-            <div className="hidden rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-right text-xs sm:block">
-              <p className="font-sans font-semibold uppercase tracking-[0.15em] text-nl-muted">
-                Sessao Ativa
-              </p>
-              <p className="mt-1 font-sans text-sm font-medium text-nl-text">{displayName}</p>
+          <div className="flex flex-col items-start gap-4 xl:items-end">
+            <div className="flex flex-wrap items-center gap-3 self-stretch xl:justify-end">
+              <ThemeToggle />
+              <div className="hidden rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-right text-xs sm:block">
+                <p className="font-sans font-semibold uppercase tracking-[0.15em] text-nl-muted">
+                  Sessao Ativa
+                </p>
+                <p className="mt-1 font-sans text-sm font-medium text-nl-text">{displayName}</p>
+              </div>
             </div>
 
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
                 onClick={() => setIsMenuOpen((prev) => !prev)}
-                className="inline-flex min-h-[52px] items-center gap-3 rounded-2xl border border-nl-border bg-nl-surface-strong px-3 py-2 text-left text-nl-text shadow-earthen transition-colors hover:border-nl-border-strong focus-visible:ring-2 focus-visible:ring-nl-accent/40"
+                className="inline-flex min-h-[56px] items-center gap-3 rounded-2xl border border-nl-border bg-nl-surface-strong px-3 py-2 text-left text-nl-text shadow-earthen transition-colors hover:border-nl-border-strong focus-visible:ring-2 focus-visible:ring-nl-accent/40"
                 aria-expanded={isMenuOpen}
                 aria-haspopup="menu"
                 aria-label="Abrir menu da conta"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-nl-surface font-sans text-sm font-semibold text-nl-accent">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-nl-surface-muted font-sans text-sm font-semibold text-nl-accent">
                   {user?.avatarUrl ? (
                     <img
                       src={user.avatarUrl}
@@ -168,7 +168,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     {displayName}
                   </p>
                   <p className="max-w-[9rem] truncate font-sans text-xs text-nl-muted">
-                    @{user?.username}
+                    {user?.username ? `@${user.username}` : 'Conta ativa'}
                   </p>
                 </div>
                 <svg
@@ -199,7 +199,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
                   <div className="mt-2 space-y-1">
                     <Link
-                      to="/"
+                      to="/home"
                       className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
                       role="menuitem"
                     >
