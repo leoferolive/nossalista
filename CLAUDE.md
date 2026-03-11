@@ -85,6 +85,22 @@ src/
 - **Sincronização real-time**: WebSocket com STOMP para atualizações instantâneas
 - **Activity log**: Timeline de ações na lista
 
+## Diretriz Visual Atual do Frontend
+
+- A linguagem oficial do frontend e `paper tech editorial`
+- `light` e `dark` devem ser tratados como temas de primeira classe, com o mesmo nivel de refinamento visual
+- A landing publica deve manter dois fluxos distintos:
+  - CTA principal: cadastro
+  - CTA secundario: login
+- Evitar componentes publicos ou modais com comportamento ambiguo (ex.: dois links abrindo o mesmo fluxo)
+- Sempre priorizar primitives globais de tema/formulario/modal antes de criar estilos locais ad hoc
+
+## Skills Locais
+
+- `.agents/skills/interface-design`: skill local para design de interfaces de produto, com foco em dashboards, apps e paineis autenticados.
+- A skill pode persistir decisoes em `.interface-design/system.md` para manter consistencia visual entre sessoes.
+- Ao usar essa skill neste repositorio, respeitar a diretriz `paper tech editorial` e a paridade entre temas `light` e `dark`.
+
 ## Deploy e Infraestrutura
 
 ### Kubernetes (k8s/)

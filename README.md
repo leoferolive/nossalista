@@ -40,12 +40,17 @@ nossalista/
 |- backend/
 |- frontend/
 |- docs/
+|- .agents/skills/
 |- contracts/
 |- k8s/
 |- docker-compose.yml
 |- CLAUDE.md
 |- AGENTS.md -> CLAUDE.md
 ```
+
+## Skills locais
+
+- `.agents/skills/interface-design`: skill local para projetar e auditar interfaces de produto com memoria em `.interface-design/system.md`, mantendo consistencia de espacamento, profundidade, superficies e padroes de componentes.
 
 ## Como executar
 

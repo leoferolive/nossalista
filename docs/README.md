@@ -17,6 +17,7 @@ Este diretorio concentra documentacao canonica de produto, arquitetura e operaca
 - `docs/ENVIRONMENT.md`: variaveis de ambiente e valores esperados
 - `docs/RUNBOOK.md`: operacao local, troubleshooting e operacoes manuais
 - `docs/DECISIONS.md`: registro resumido de decisoes arquiteturais vigentes
+- `.agents/skills/interface-design/SKILL.md`: workflow local para consistencia de UI e memoria de design via `.interface-design/system.md`
 
 ## Regra de manutencao
 
