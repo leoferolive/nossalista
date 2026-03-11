@@ -83,6 +83,20 @@ class PushNotificationServiceTest {
     }
 
     @Test
+    @DisplayName("sendToUser é no-op quando construído com VAPID inválido (pushService=null)")
+    void sendToUser_isNoop_whenBuiltWithInvalidVapid() {
+        VapidConfig realConfig = new VapidConfig();
+        realConfig.setPublicKey("invalid-public-key");
+        realConfig.setPrivateKey("invalid-private-key");
+        realConfig.setSubject("mailto:test@test.com");
+
+        PushNotificationService svc = new PushNotificationService(subscriptionStore, presenceService, realConfig);
+        svc.sendToUser(userId, payload);
+
+        verify(subscriptionStore, never()).findByUserId(userId);
+    }
+
+    @Test
     @DisplayName("Deve tratar exceção de subscrição inválida sem remover (erro não-410)")
     void sendToUser_handlesException_andDoesNotRemove_forNon410Error() throws Exception {
         // A chave "p256dh" não é base64url válido no contexto de chave EC
