@@ -12,9 +12,13 @@ Usuarios novos recebem um tutorial guiado no primeiro login para aprender criaca
 O sistema suporta notificacoes online em tempo real e push do navegador opcional (ativacao/desativacao pelo usuario no menu da conta).
 
 Status atual:
+
 - MVP em desenvolvimento ativo
 - Backend e frontend implementados no monorepo
 - Onboarding guiado no primeiro login (com replay manual no menu da conta)
+- Rebranding global do frontend com linguagem `Fresh Lists`, paridade light/dark e switch de tema exposto na UI
+- Landing page publica com CTAs separados para cadastro e login em modais distintos
+- Fluxo deslogado centralizado na landing (`/`), com `/login` mantido apenas como redirecionamento legado para `/?auth=login`
 - CI ativo para frontend e backend
 - Release automática em `main` com tag SemVer patch e deploy automático em `dev`
 - Deploy manual em `dev` para branches/SHAs não mergeados via RC tag auditável
@@ -22,17 +26,17 @@ Status atual:
 
 ## Stack
 
-| Camada | Tecnologia |
-| --- | --- |
-| Frontend | React 19 + TypeScript + Vite |
-| Backend | Java 25 + Spring Boot 4 |
-| Real-time | Spring WebSocket (STOMP + SockJS) |
-| Auth | Google OAuth2 + email/senha + JWT |
-| BD Producao | PostgreSQL |
-| BD Dev | PostgreSQL |
-| BD Testes | H2 (MODE=PostgreSQL) |
-| Migrations | Flyway |
-| Infra | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
+| Camada      | Tecnologia                               |
+| ----------- | ---------------------------------------- |
+| Frontend    | React 19 + TypeScript + Vite             |
+| Backend     | Java 25 + Spring Boot 4                  |
+| Real-time   | Spring WebSocket (STOMP + SockJS)        |
+| Auth        | Google OAuth2 + email/senha + JWT        |
+| BD Producao | PostgreSQL                               |
+| BD Dev      | PostgreSQL                               |
+| BD Testes   | H2 (MODE=PostgreSQL)                     |
+| Migrations  | Flyway                                   |
+| Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
 
 ## Estrutura
 
@@ -41,12 +45,17 @@ nossalista/
 |- backend/
 |- frontend/
 |- docs/
+|- .agents/skills/
 |- contracts/
 |- k8s/
 |- docker-compose.yml
 |- CLAUDE.md
 |- AGENTS.md -> CLAUDE.md
 ```
+
+## Skills locais
+
+- `.agents/skills/interface-design`: skill local para projetar e auditar interfaces de produto com memoria em `.interface-design/system.md`, mantendo consistencia de espacamento, profundidade, superficies e padroes de componentes.
 
 ## Como executar
 
@@ -81,7 +90,30 @@ npm run dev
 
 Frontend em `http://localhost:5173`.
 
+Para subir apenas o frontend com API mock em memoria:
+
+```bash
+cd frontend
+npm install
+npm run dev:mock
+```
+
 ## Qualidade e testes
+
+## Experiencia de interface
+
+- Tema visual oficial do frontend: `Fresh Lists`
+- Direcao visual: `Playful Editorial`, com paleta base `coral + teal`
+- Modos `light` e `dark` compartilham a mesma linguagem visual e os mesmos componentes
+- A landing usa dois fluxos distintos:
+  - CTA principal abre cadastro
+  - CTA secundario abre login
+- A landing publica deve permanecer minimalista: hero curto, preview principal unico e apoio enxuto
+- Modais e formularios principais seguem o mesmo padrao de textbox, label, helper text, feedback e hierarquia de botoes
+- Rotas protegidas com usuario deslogado redirecionam para `/` (nao mais para `/login?redirect=...`)
+- Contrato de URL para orquestrar auth na landing:
+  - `/?auth=login|register`
+  - `/?auth=login&registered=1&email=...`
 
 ### Frontend
 
@@ -125,6 +157,7 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
 - Fonte de verdade da versão implantada:
   - imagem do Deployment recebe explicitamente `ghcr.io/...:<tag>`
   - annotations `deploy.nossalista/tag` e `deploy.nossalista/sha` são atualizadas no cluster
+  - cada workflow de deploy publica `Deployment Summary` no GitHub Actions com `Tag version deployada`, imagem, SHA e ambiente
   - `GET /api/health` retorna `version`, `gitSha`, `gitTag`, `environment` e `buildTime`
 - Imagens publicadas:
   - Dev: `ghcr.io/leoferolive/nossalista-dev:latest` + tags RC/estáveis para rastreabilidade

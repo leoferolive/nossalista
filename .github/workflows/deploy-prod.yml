@@ -50,3 +50,34 @@ jobs:
       tag: ${{ inputs.tag }} # tag da imagem implantada
       ref: ${{ inputs.tag }} # ref do checkout: a própria tag estável
     secrets: inherit
+
+  summary:
+    needs: [validate-tag, approve, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resumo do workflow
+        run: |
+          DEPLOY_RESULT="${{ needs.deploy.result }}"
+          RESULT_LABEL="SUCESSO"
+          if [ "$DEPLOY_RESULT" != "success" ]; then
+            RESULT_LABEL="FALHA"
+          fi
+
+          echo "Resultado: $RESULT_LABEL"
+          echo "Environment: prod"
+          echo "Tag version deployada: ${{ inputs.tag }}"
+          echo "Ref usado: ${{ inputs.tag }}"
+          echo "Status deploy: $DEPLOY_RESULT"
+
+          {
+            echo "## Deployment Summary"
+            echo
+            echo "| Campo | Valor |"
+            echo "| --- | --- |"
+            echo "| Resultado | $RESULT_LABEL |"
+            echo "| Environment | prod |"
+            echo "| Tag version deployada | \`${{ inputs.tag }}\` |"
+            echo "| Ref usado | \`${{ inputs.tag }}\` |"
+            echo "| Status deploy | \`$DEPLOY_RESULT\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

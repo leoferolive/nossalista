@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { render, screen } from '@testing-library/react'
 import Login from './Login'
+import { ThemeProvider } from '../contexts/ThemeContext'
 
 const mockLogin = vi.fn()
 
@@ -23,14 +24,19 @@ describe('Login page', () => {
     sessionStorage.clear()
   })
 
-  it('exibe links de cadastro e recuperacao preservando redirect', () => {
+  const renderLogin = (initialEntry: string) =>
     render(
-      <MemoryRouter initialEntries={['/login?redirect=%2Fjoin%2Fabc123']}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-        </Routes>
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>
     )
+
+  it('exibe links de cadastro e recuperacao preservando redirect', () => {
+    renderLogin('/login?redirect=%2Fjoin%2Fabc123')
 
     expect(
       screen
@@ -44,13 +50,7 @@ describe('Login page', () => {
   })
 
   it('mostra mensagem de sucesso quando usuario vem do cadastro', () => {
-    render(
-      <MemoryRouter initialEntries={['/login?registered=1&email=leo%40test.com']}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderLogin('/login?registered=1&email=leo%40test.com')
 
     expect(screen.getByText(/Conta criada com sucesso/i)).toBeInTheDocument()
     expect(screen.getByDisplayValue('leo@test.com')).toBeInTheDocument()

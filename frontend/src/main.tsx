@@ -8,13 +8,13 @@ import { WebSocketProvider } from './contexts/WebSocketContext.tsx'
 import { NotificationProvider } from './contexts/NotificationContext.tsx'
 import { ThemeProvider } from './contexts/ThemeContext.tsx'
 import { WebSocketConnectionManager } from './components/WebSocketConnectionManager.tsx'
-import Login from './pages/Login.tsx'
 import { AuthCallback } from './pages/AuthCallback.tsx'
 import { Home } from './pages/Home.tsx'
 import { LandingPage } from './pages/LandingPage.tsx'
 import { ListView } from './pages/ListView.tsx'
 import { JoinListPage } from './pages/JoinListPage.tsx'
 import { Profile } from './pages/Profile.tsx'
+import { LegacyLoginRedirect } from './pages/LegacyLoginRedirect.tsx'
 import { Register } from './pages/Register.tsx'
 import { ForgotPassword } from './pages/ForgotPassword.tsx'
 import { ProtectedRoute } from './components/ProtectedRoute.tsx'
@@ -44,7 +44,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<LegacyLoginRedirect />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />

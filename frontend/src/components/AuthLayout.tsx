@@ -1,4 +1,5 @@
 import React from 'react'
+import { ThemeToggle } from './ThemeToggle'
 
 interface AuthLayoutProps {
   title: string
@@ -6,6 +7,16 @@ interface AuthLayoutProps {
   badge?: string
   children: React.ReactNode
   footer?: React.ReactNode
+}
+
+const previewList = {
+  title: 'Lista da Semana',
+  status: 'Ao vivo',
+  items: [
+    { label: 'Tomate sweet grape', done: true },
+    { label: 'Separar presentes', done: false },
+    { label: 'Fechar wishlist', done: false },
+  ],
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
@@ -16,43 +27,76 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   footer,
 }) => {
   return (
-    <div className="nl-page flex items-center justify-center">
+    <div className="nl-page flex items-center">
       <div className="nl-container w-full">
-        <div className="mx-auto max-w-md">
-          {/* Decoração geométrica sutil */}
-          <div className="relative mb-8 flex flex-col items-center" aria-hidden="true">
-            <svg
-              className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-10"
-              width="260"
-              height="60"
-              viewBox="0 0 260 60"
-              fill="none"
-            >
-              <line x1="0" y1="30" x2="260" y2="30" stroke="#d2a56e" strokeWidth="0.5" />
-              <line x1="130" y1="0" x2="130" y2="60" stroke="#d2a56e" strokeWidth="0.5" />
-              <circle cx="130" cy="30" r="20" stroke="#d2a56e" strokeWidth="0.5" />
-              <circle cx="130" cy="30" r="8" stroke="#d2a56e" strokeWidth="0.5" />
-            </svg>
-            {/* Logo */}
-            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-nl-accent to-nl-accent-strong text-xl font-bold text-nl-text shadow-earthen">
-              NL
+        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <section className="nl-card relative overflow-hidden p-6 sm:p-8 lg:p-10">
+            <div className="nl-reveal flex items-start justify-between gap-4">
+              <div>
+                <div className="nl-badge">{badge}</div>
+                <h1 className="mt-5 font-display text-4xl font-semibold leading-tight text-nl-text sm:text-[3.6rem]">
+                  {title}
+                </h1>
+                <p className="mt-4 max-w-xl text-base leading-8 text-nl-muted sm:text-lg">
+                  {description}
+                </p>
+              </div>
+              <ThemeToggle />
             </div>
-            <p className="mt-3 font-sans text-xs font-semibold uppercase tracking-[0.3em] text-nl-muted">
-              NossaLista
-            </p>
-          </div>
 
-          <section className="nl-card w-full p-6 sm:p-8" aria-label="Formulario de acesso">
-            <p className="inline-flex rounded-full border border-nl-border-strong bg-nl-surface-strong px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-nl-accent">
-              {badge}
-            </p>
-            <h1 className="mt-4 font-display text-3xl font-bold text-nl-text">{title}</h1>
-            <p className="mt-2 font-sans text-sm leading-6 text-nl-muted">{description}</p>
+            <div className="nl-reveal nl-reveal-delay-1 mt-8 flex flex-wrap gap-3">
+              <span className="nl-pill">Fluxo leve</span>
+              <span className="nl-pill">Tema claro e escuro</span>
+            </div>
 
-            <div className="mt-6">{children}</div>
+            <div className="nl-reveal nl-reveal-delay-2 mt-8">{children}</div>
 
-            {footer && <div className="mt-6">{footer}</div>}
+            {footer && <div className="nl-reveal nl-reveal-delay-3 mt-6">{footer}</div>}
           </section>
+
+          <aside className="relative hidden xl:block">
+            <div className="sticky top-6 space-y-5">
+              <article className="nl-preview-card">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-muted">
+                      {previewList.status}
+                    </p>
+                    <h3 className="mt-2 font-display text-2xl font-semibold text-nl-text">
+                      {previewList.title}
+                    </h3>
+                  </div>
+                  <span className="nl-pill">2 online</span>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {previewList.items.map((item) => (
+                    <div key={item.label} className="nl-checkline">
+                      <span className="nl-check" data-done={item.done}>
+                        {item.done ? '✓' : ''}
+                      </span>
+                      <span
+                        className={`text-sm ${
+                          item.done ? 'text-nl-muted line-through' : 'text-nl-text'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <div className="nl-card-soft p-5">
+                <p className="text-sm font-semibold text-nl-text">
+                  Entre e siga do ponto em que parou.
+                </p>
+                <p className="mt-2 text-sm leading-7 text-nl-muted">
+                  Cadastro, login e convites usam a mesma base visual clara e sem excesso.
+                </p>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>

@@ -106,7 +106,7 @@ describe('CreateListModal', () => {
     const nameInput = screen.getByLabelText(/nome da lista/i)
     await userEvent.type(nameInput, 'AB')
 
-    expect(screen.getByText(/mínimo 3 caracteres/)).toBeInTheDocument()
+    expect(screen.getByText(/minimo 3 caracteres/i)).toBeInTheDocument()
   })
 
   it('deve submeter ao pressionar Enter quando válido', async () => {

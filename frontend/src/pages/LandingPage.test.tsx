@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { LandingPage } from './LandingPage'
+import { ThemeProvider } from '../contexts/ThemeContext'
 
 const mockNavigate = vi.fn()
 
@@ -15,18 +16,46 @@ vi.mock('react-router-dom', async () => {
 })
 
 vi.mock('../components/LoginModal', () => ({
-  LoginModal: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="login-modal">
+  LoginModal: ({
+    onClose,
+    initialEmail,
+    showRegisteredMessage,
+  }: {
+    onClose: () => void
+    initialEmail?: string
+    showRegisteredMessage?: boolean
+  }) => (
+    <div
+      data-testid="login-modal"
+      data-email={initialEmail ?? ''}
+      data-registered={showRegisteredMessage ? '1' : '0'}
+    >
       <button onClick={onClose}>Fechar modal</button>
     </div>
   ),
 }))
 
-function renderLanding() {
+vi.mock('../components/RegisterModal', () => ({
+  RegisterModal: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="register-modal">
+      <button onClick={onClose}>Fechar cadastro</button>
+    </div>
+  ),
+}))
+
+function LocationProbe() {
+  const location = useLocation()
+  return <p data-testid="location-search">{location.search}</p>
+}
+
+function renderLanding(initialEntries: string[] = ['/']) {
   return render(
-    <MemoryRouter>
-      <LandingPage />
-    </MemoryRouter>
+    <ThemeProvider>
+      <MemoryRouter initialEntries={initialEntries}>
+        <LandingPage />
+        <LocationProbe />
+      </MemoryRouter>
+    </ThemeProvider>
   )
 }
 
@@ -35,21 +64,21 @@ describe('LandingPage', () => {
     renderLanding()
 
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Começar agora/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Criar conta gratis/i })).toBeInTheDocument()
   })
 
-  it('abre o modal de login ao clicar em Começar agora', () => {
+  it('abre o modal de cadastro ao clicar em Criar conta gratis', () => {
     renderLanding()
 
-    fireEvent.click(screen.getByRole('button', { name: /Começar agora/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Criar conta gratis/i }))
 
-    expect(screen.getByTestId('login-modal')).toBeInTheDocument()
+    expect(screen.getByTestId('register-modal')).toBeInTheDocument()
   })
 
-  it('abre o modal de login ao clicar em Já tenho conta', () => {
+  it('abre o modal de login ao clicar em Ja tenho conta', () => {
     renderLanding()
 
-    fireEvent.click(screen.getByRole('button', { name: /Já tenho conta/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Ja tenho conta/i }))
 
     expect(screen.getByTestId('login-modal')).toBeInTheDocument()
   })
@@ -57,18 +86,28 @@ describe('LandingPage', () => {
   it('fecha o modal ao chamar onClose', () => {
     renderLanding()
 
-    fireEvent.click(screen.getByRole('button', { name: /Começar agora/i }))
-    expect(screen.getByTestId('login-modal')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Criar conta gratis/i }))
+    expect(screen.getByTestId('register-modal')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar modal' }))
-    expect(screen.queryByTestId('login-modal')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar cadastro' }))
+    expect(screen.queryByTestId('register-modal')).not.toBeInTheDocument()
+    expect(screen.getByTestId('location-search')).toHaveTextContent('')
   })
 
-  it('renderiza trust signals', () => {
+  it('renderiza elementos de valor na landing', () => {
     renderLanding()
 
-    expect(screen.getByText('Sync instantâneo')).toBeInTheDocument()
-    expect(screen.getByText('Compartilhe por link')).toBeInTheDocument()
-    expect(screen.getByText('Compras, tarefas e mais')).toBeInTheDocument()
+    expect(screen.getByText('Sync instantaneo')).toBeInTheDocument()
+    expect(screen.getByText('Convite por link ou username')).toBeInTheDocument()
+    expect(screen.getByText('Compras, tarefas e desejos')).toBeInTheDocument()
+  })
+
+  it('abre login via query string e repassa estado de cadastro concluido', () => {
+    renderLanding(['/?auth=login&registered=1&email=leo%40test.com'])
+
+    const loginModal = screen.getByTestId('login-modal')
+    expect(loginModal).toBeInTheDocument()
+    expect(loginModal).toHaveAttribute('data-registered', '1')
+    expect(loginModal).toHaveAttribute('data-email', 'leo@test.com')
   })
 })

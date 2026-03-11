@@ -155,14 +155,44 @@ jobs:
           NAMESPACE="${{ needs.prepare.outputs.namespace }}"
           kubectl rollout status "deployment/$APP_NAME" -n "$NAMESPACE" --timeout=300s
 
-      - name: Exibir imagem implantada
+      - name: Resumo final do deploy
+        if: always()
         run: |
+          set +e
           APP_NAME="${{ needs.prepare.outputs.app_name }}"
           NAMESPACE="${{ needs.prepare.outputs.namespace }}"
-          DEPLOYED_IMAGE="$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].image}')"
-          DEPLOYED_TAG="$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.metadata.annotations.deploy\.nossalista/tag}')"
-          DEPLOYED_SHA="$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.metadata.annotations.deploy\.nossalista/sha}')"
+          DEPLOYED_IMAGE="$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null)"
+          DEPLOYED_TAG="$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.metadata.annotations.deploy\.nossalista/tag}' 2>/dev/null)"
+          DEPLOYED_SHA="$(kubectl get deployment "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.metadata.annotations.deploy\.nossalista/sha}' 2>/dev/null)"
 
-          echo "Imagem implantada: $DEPLOYED_IMAGE"
-          echo "Tag implantada: $DEPLOYED_TAG"
-          echo "SHA implantado: $DEPLOYED_SHA"
+          [ -z "$DEPLOYED_IMAGE" ] && DEPLOYED_IMAGE="indisponivel"
+          [ -z "$DEPLOYED_TAG" ] && DEPLOYED_TAG="${{ inputs.tag }}"
+          [ -z "$DEPLOYED_SHA" ] && DEPLOYED_SHA="${{ needs.prepare.outputs.resolved_sha }}"
+
+          JOB_RESULT="${{ job.status }}"
+          RESULT_LABEL="SUCESSO"
+          if [ "$JOB_RESULT" != "success" ]; then
+            RESULT_LABEL="FALHA"
+          fi
+
+          echo "Resultado: $RESULT_LABEL"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Tag version deployada: $DEPLOYED_TAG"
+          echo "Imagem deployada: $DEPLOYED_IMAGE"
+          echo "Git SHA: $DEPLOYED_SHA"
+          echo "Build time (UTC): ${{ needs.prepare.outputs.build_time }}"
+          echo "Deployment/Namespace: $APP_NAME/$NAMESPACE"
+
+          {
+            echo "## Deployment Summary"
+            echo
+            echo "| Campo | Valor |"
+            echo "| --- | --- |"
+            echo "| Resultado | $RESULT_LABEL |"
+            echo "| Environment | ${{ inputs.environment }} |"
+            echo "| Tag version deployada | \`$DEPLOYED_TAG\` |"
+            echo "| Imagem deployada | \`$DEPLOYED_IMAGE\` |"
+            echo "| Git SHA | \`$DEPLOYED_SHA\` |"
+            echo "| Build time (UTC) | \`${{ needs.prepare.outputs.build_time }}\` |"
+            echo "| Deployment/Namespace | \`$APP_NAME/$NAMESPACE\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

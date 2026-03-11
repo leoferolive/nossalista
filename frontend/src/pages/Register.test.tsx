@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 import { Register } from './Register'
 import { authApi } from '../api/authApi'
+import { ThemeProvider } from '../contexts/ThemeContext'
 
 const mockNavigate = vi.fn()
 
@@ -25,9 +26,21 @@ describe('Register page', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     vi.mocked(authApi.register).mockReset()
+    sessionStorage.clear()
   })
 
-  it('envia cadastro e redireciona para login preservando redirect', async () => {
+  const renderRegister = (initialEntry: string) =>
+    render(
+      <ThemeProvider>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <Routes>
+            <Route path="/register" element={<Register />} />
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>
+    )
+
+  it('envia cadastro e redireciona para landing com login aberto', async () => {
     const user = userEvent.setup()
     vi.mocked(authApi.register).mockResolvedValue({
       id: 'user-1',
@@ -39,13 +52,7 @@ describe('Register page', () => {
       createdAt: '2026-03-04T12:00:00',
     })
 
-    render(
-      <MemoryRouter initialEntries={['/register?redirect=%2Fjoin%2Fcode-1']}>
-        <Routes>
-          <Route path="/register" element={<Register />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderRegister('/register?redirect=%2Fjoin%2Fcode-1')
 
     await user.type(screen.getByLabelText('Nome'), 'Leo Oliveira')
     await user.type(screen.getByLabelText('Username'), 'Leo_User')
@@ -63,22 +70,16 @@ describe('Register page', () => {
       })
     })
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      '/login?registered=1&email=leo%40test.com&redirect=%2Fjoin%2Fcode-1',
-      { replace: true }
-    )
+    expect(mockNavigate).toHaveBeenCalledWith('/?auth=login&registered=1&email=leo%40test.com', {
+      replace: true,
+    })
+    expect(sessionStorage.getItem('pendingInviteCode')).toBe('code-1')
   })
 
   it('bloqueia envio quando as senhas nao conferem', async () => {
     const user = userEvent.setup()
 
-    render(
-      <MemoryRouter initialEntries={['/register']}>
-        <Routes>
-          <Route path="/register" element={<Register />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderRegister('/register')
 
     await user.type(screen.getByLabelText('Username'), 'leo')
     await user.type(screen.getByLabelText('Email'), 'leo@test.com')

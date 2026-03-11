@@ -15,6 +15,7 @@ NossaLista e um aplicativo web de listas compartilhadas em tempo real. O projeto
 Ao final de **toda task**, e obrigatorio revisar e atualizar a documentacao canonica impactada pela mudanca.
 
 Escopo de "toda documentacao" neste repositorio:
+
 - `README.md`
 - `CLAUDE.md` (e `AGENTS.md`, que deve espelhar este arquivo via symlink)
 - `docs/**`
@@ -22,6 +23,7 @@ Escopo de "toda documentacao" neste repositorio:
 - `frontend/README.md`
 
 Regras obrigatorias:
+
 - Nenhuma task e considerada concluida sem atualizar a documentacao impactada.
 - Se a implementacao mudar contrato, fluxo, comando, arquitetura, ambiente ou operacao, a documentacao correspondente deve ser atualizada na mesma task.
 - Em caso de duvida, atualizar ao inves de adiar.
@@ -29,20 +31,21 @@ Regras obrigatorias:
 
 ## Stack Técnico Planejada
 
-| Camada       | Tecnologia                           |
-|-------------|--------------------------------------|
-| Frontend    | React 19 + TypeScript + Vite        |
-| Backend     | Java 25 + Spring Boot 4              |
-| Real-time   | Spring WebSocket (STOMP + SockJS)    |
-| Auth        | Google OAuth2 + email/senha          |
-| BD Produção | PostgreSQL                           |
-| BD Dev      | PostgreSQL (Docker Compose)          |
-| BD Testes   | H2 (MODE=PostgreSQL)                 |
+| Camada      | Tecnologia                               |
+| ----------- | ---------------------------------------- |
+| Frontend    | React 19 + TypeScript + Vite             |
+| Backend     | Java 25 + Spring Boot 4                  |
+| Real-time   | Spring WebSocket (STOMP + SockJS)        |
+| Auth        | Google OAuth2 + email/senha              |
+| BD Produção | PostgreSQL                               |
+| BD Dev      | PostgreSQL (Docker Compose)              |
+| BD Testes   | H2 (MODE=PostgreSQL)                     |
 | Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
 
 ## Documentação de Referência
 
 O documento de escopo completo está em `docs/NossaLista — Documento de Escopo MVP.txt` e contém:
+
 - Arquitetura detalhada do sistema
 - Modelo de dados (ERD)
 - Estrutura de pastas planejada para backend e frontend
@@ -53,6 +56,7 @@ O documento de escopo completo está em `docs/NossaLista — Documento de Escopo
 ## Estrutura de Pastas Planejada
 
 ### Backend (nossalista-api/)
+
 ```
 src/main/java/br/com/leoferolive/nossalista/
 ├── config/          (Security, WebSocket, CORS)
@@ -66,6 +70,7 @@ src/main/java/br/com/leoferolive/nossalista/
 ```
 
 ### Frontend (nossalista-web/)
+
 ```
 src/
 ├── api/             (axios client, endpoints, websocket)
@@ -85,18 +90,39 @@ src/
 - **Sincronização real-time**: WebSocket com STOMP para atualizações instantâneas
 - **Activity log**: Timeline de ações na lista
 
+## Diretriz Visual Atual do Frontend
+
+- A linguagem oficial do frontend e `Fresh Lists`
+- A direcao base do sistema visual e `Playful Editorial`, com paleta `coral + teal`
+- `light` e `dark` devem ser tratados como temas de primeira classe, com o mesmo nivel de refinamento visual
+- A landing publica deve manter dois fluxos distintos:
+  - CTA principal: cadastro
+  - CTA secundario: login
+- A landing publica deve permanecer minimalista, com hero curto, preview principal unico e pouco texto concorrente
+- Evitar componentes publicos ou modais com comportamento ambiguo (ex.: dois links abrindo o mesmo fluxo)
+- Sempre priorizar primitives globais de tema/formulario/modal antes de criar estilos locais ad hoc
+
+## Skills Locais
+
+- `.agents/skills/interface-design`: skill local para design de interfaces de produto, com foco em dashboards, apps e paineis autenticados.
+- A skill pode persistir decisoes em `.interface-design/system.md` para manter consistencia visual entre sessoes.
+- Ao usar essa skill neste repositorio, respeitar a diretriz `Fresh Lists`, a minimalidade da landing publica e a paridade entre temas `light` e `dark`.
+- O frontend pode rodar em modo `mock` via `npm run dev:mock`, servindo `/api/**` em memoria e mantendo o WebSocket em modo no-op conectado para desenvolvimento visual.
 ## Deploy e Infraestrutura
 
 ### Kubernetes (k8s/)
+
 - `deployment.yaml`: Deployment com 1 réplica, health checks em `/actuator/health`
 - `service.yaml`: Service tipo ClusterIP
 - `ingress.yaml`: Ingress Traefik para `nossalista.leoferolive.com.br`
 - `namespace.yaml`: Namespace dedicado `nossalista`
 
 ### CI/CD
+
 O pipeline usa `deploy-environment.yml` como único workflow reutilizável central. A lógica de build/deploy está **internalizada** nele (sem dependência de repos externos). O `release.yml` usa `GHCR_PAT` para disparar `deploy-on-tag.yml` via `workflow_dispatch` — necessário porque `GITHUB_TOKEN` não pode disparar outros workflows e `workflow_call` dentro de `workflow_run` não é suportado pelo GitHub.
 
 **Limitações conhecidas do GitHub Actions (não contornar):**
+
 - `GITHUB_TOKEN` não pode disparar `workflow_dispatch` em outros workflows (403)
 - `workflow_call` dentro de `workflow_run` causa `startup_failure`
 - `permissions:` dentro de jobs de reusable workflow (`workflow_call`) causa `startup_failure`
@@ -122,6 +148,7 @@ deploy-prod.yml (manual + aprovação) ─────────────�
 - **`deploy-on-tag.yml`**: Deploya tag estável em dev — chamado pelo release automático ou manualmente.
 - **`deploy-branch-dev.yml`**: Para branches/SHAs não mergeados. Cria RC tag rastreável, deploya em dev, limpa imagens RC antigas do `nossalista-dev` (mantém 3).
 - **`deploy-prod.yml`**: Deploy em prod com aprovação manual (environment `production`).
+- Todos os workflows de deploy publicam um `Deployment Summary` ao final da execução no GitHub Actions.
 - `tag` em workflows de deploy significa **tag da imagem implantada**; `ref` significa **ref do checkout que será reconstruído**.
 - O workflow de deploy aplica manifestos estruturais e depois força a imagem do Deployment com `kubectl set image`, além de registrar `deploy.nossalista/tag` e `deploy.nossalista/sha` via annotations.
 
@@ -143,6 +170,7 @@ workflow_dispatch → deploy-prod.yml (com tag semântica estável)
 ```
 
 **Regras:**
+
 - `deploy-environment.yml` é o único lugar com lógica de build/deploy — não duplicar.
 - `deploy-branch-dev.yml` é para testar branches/SHAs ainda **não** mergeados — sempre gera uma RC tag rastreável.
 - Prod **sempre** recebe uma tag semântica estável (`v1.2.x`), nunca uma RC.
@@ -150,6 +178,7 @@ workflow_dispatch → deploy-prod.yml (com tag semântica estável)
 - **Nunca** usar `deploy-branch-dev.yml` para promover código a prod — ele não gera tag semântica.
 
 ### Comandos de Deploy
+
 ```bash
 # Deploy manual (se necessário)
 kubectl apply -f k8s/
@@ -188,6 +217,7 @@ gh workflow run deploy-prod.yml --field tag=v1.2.3
 ## Fases de Implementação
 
 O roadmap define 5 fases sequenciais:
+
 1. **Fundação Backend**: Setup, modelo de dados, Spring Security, CRUD básico
 2. **Compartilhamento**: Convites, membros, activity log
 3. **Real-time**: WebSocket config, broadcast de alterações

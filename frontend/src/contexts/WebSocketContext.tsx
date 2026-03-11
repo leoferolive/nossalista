@@ -97,6 +97,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const isVoluntaryDisconnectRef = useRef<boolean>(false)
   const reconnectingToastShownRef = useRef<boolean>(false)
   const reconnectNotificationsRef = useRef<ReconnectNotifications>({})
+  const isMockMode = import.meta.env.VITE_USE_MOCK_SERVER === 'true'
 
   const doSubscribe = useCallback(
     (
@@ -238,6 +239,12 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
   const connect = useCallback(
     (notifications?: ReconnectNotifications) => {
+      if (isMockMode) {
+        reconnectNotificationsRef.current = notifications ?? {}
+        dispatch({ type: 'CONNECTED' })
+        return
+      }
+
       if (clientRef.current?.connected) {
         return
       }
@@ -254,10 +261,15 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'CONNECTING' })
       doReconnect()
     },
-    [doReconnect]
+    [doReconnect, isMockMode]
   )
 
   const disconnect = useCallback(() => {
+    if (isMockMode) {
+      dispatch({ type: 'DISCONNECTED' })
+      return
+    }
+
     if (clientRef.current) {
       isVoluntaryDisconnectRef.current = true
 
@@ -277,10 +289,20 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       clientRef.current = null
       dispatch({ type: 'DISCONNECTED' })
     }
-  }, [])
+  }, [isMockMode])
 
   const subscribe = useCallback(
     (listId: string, channel: WebSocketChannel, callback: (message: unknown) => void) => {
+      if (isMockMode) {
+        pendingSubscriptionsRef.current.set(getSubscriptionKey(listId, channel), {
+          key: getSubscriptionKey(listId, channel),
+          listId,
+          channel,
+          callback,
+        })
+        return
+      }
+
       const client = clientRef.current
       const key = getSubscriptionKey(listId, channel)
 
@@ -299,7 +321,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       }
       doSubscribe(client, listId, channel, callback)
     },
-    [doSubscribe]
+    [doSubscribe, isMockMode]
   )
 
   const unsubscribe = useCallback((listId: string, channel: WebSocketChannel) => {
@@ -313,15 +335,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     pendingSubscriptionsRef.current.delete(key)
   }, [])
 
-  const subscribeTopic = useCallback((topic: string, callback: (message: unknown) => void) => {
-    const client = clientRef.current
-
-    if (subscriptionsRef.current.has(topic) || pendingSubscriptionsRef.current.has(topic)) {
-      return
-    }
-
-    if (!client?.connected) {
-      if (client) {
+  const subscribeTopic = useCallback(
+    (topic: string, callback: (message: unknown) => void) => {
+      if (isMockMode) {
         pendingSubscriptionsRef.current.set(topic, {
           key: topic,
           listId: topic,
@@ -331,20 +347,40 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         })
         return
       }
-      console.warn('[WebSocket] Tentativa de subscribeTopic sem conexão ativa')
-      return
-    }
 
-    const subscription = client.subscribe(topic, (stompMessage) => {
-      try {
-        const parsed = JSON.parse(stompMessage.body)
-        callback(parsed)
-      } catch {
-        callback(stompMessage.body)
+      const client = clientRef.current
+
+      if (subscriptionsRef.current.has(topic) || pendingSubscriptionsRef.current.has(topic)) {
+        return
       }
-    })
-    subscriptionsRef.current.set(topic, subscription)
-  }, [])
+
+      if (!client?.connected) {
+        if (client) {
+          pendingSubscriptionsRef.current.set(topic, {
+            key: topic,
+            listId: topic,
+            channel: 'notifications',
+            callback,
+            directTopic: topic,
+          })
+          return
+        }
+        console.warn('[WebSocket] Tentativa de subscribeTopic sem conexão ativa')
+        return
+      }
+
+      const subscription = client.subscribe(topic, (stompMessage) => {
+        try {
+          const parsed = JSON.parse(stompMessage.body)
+          callback(parsed)
+        } catch {
+          callback(stompMessage.body)
+        }
+      })
+      subscriptionsRef.current.set(topic, subscription)
+    },
+    [isMockMode]
+  )
 
   const unsubscribeTopic = useCallback((topic: string) => {
     const subscription = subscriptionsRef.current.get(topic)
@@ -355,18 +391,25 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     pendingSubscriptionsRef.current.delete(topic)
   }, [])
 
-  const send = useCallback((destination: string, body: unknown) => {
-    const client = clientRef.current
-    if (!client?.connected) {
-      console.warn('[WebSocket] Tentativa de send sem conexão ativa')
-      return
-    }
+  const send = useCallback(
+    (destination: string, body: unknown) => {
+      if (isMockMode) {
+        return
+      }
 
-    client.publish({
-      destination,
-      body: JSON.stringify(body),
-    })
-  }, [])
+      const client = clientRef.current
+      if (!client?.connected) {
+        console.warn('[WebSocket] Tentativa de send sem conexão ativa')
+        return
+      }
+
+      client.publish({
+        destination,
+        body: JSON.stringify(body),
+      })
+    },
+    [isMockMode]
+  )
 
   return (
     <WebSocketContext.Provider

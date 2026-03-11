@@ -5,59 +5,61 @@ interface ListCardProps {
   list: ListResponse
 }
 
-/**
- * Card visual para exibir uma lista
- * Atende NFR-A4: Touch target mínimo de 44px (usa min-h-[160px])
- */
 export function ListCard({ list }: ListCardProps) {
   const typeEmoji = LIST_TYPES.find((t) => t.id === list.type.id)?.emoji || '📝'
 
   return (
     <Link
       to={`/lists/${list.id}`}
-      className="
-        min-h-[160px]
-        rounded-3xl border border-nl-border bg-nl-surface p-5
-        hover:-translate-y-1 hover:border-nl-border-strong hover:shadow-earthen-strong
-        transition-all duration-200
-        focus-visible:ring-2 focus-visible:ring-nl-accent/40
-        flex flex-col justify-between
-        group
-      "
+      className="nl-preview-card group flex min-h-[220px] flex-col justify-between transition-transform duration-200 hover:-translate-y-1"
       aria-label={`Abrir lista ${list.name}`}
     >
-      {/* Header: Emoji + Nome */}
-      <div className="flex items-start gap-3">
-        <span
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-nl-surface-strong text-2xl transition-transform group-hover:scale-110"
-          aria-hidden="true"
-        >
-          {typeEmoji}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 font-display text-lg font-semibold text-nl-text">
-            {list.name}
-          </h3>
-          <p className="mt-1 font-sans text-sm text-nl-muted">{list.type.name}</p>
+      <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <span
+              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-nl-border bg-nl-surface-strong text-2xl transition-transform duration-200 group-hover:scale-110"
+              aria-hidden="true"
+            >
+              {typeEmoji}
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-nl-muted">
+                {list.type.name}
+              </p>
+              <h3 className="mt-2 line-clamp-2 font-display text-2xl font-semibold text-nl-text">
+                {list.name}
+              </h3>
+              <p className="mt-2 text-sm text-nl-muted">
+                {list.isOwner ? 'Organizada por voce' : 'Compartilhada com voce'}
+              </p>
+            </div>
+          </div>
+
+          <span className="nl-pill">{list.isOwner ? 'Minha' : 'Compartilhada'}</span>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {Array.from({ length: Math.min(Math.max(list.itemsCount, 2), 3) }).map((_, index) => (
+            <div key={`${list.id}-${index}`} className="nl-checkline">
+              <span className="nl-check" data-done={index === 0 && list.itemsCount > 0}>
+                {index === 0 && list.itemsCount > 0 ? '✓' : ''}
+              </span>
+              <span className="text-sm text-nl-muted">
+                {index === 0
+                  ? `${list.itemsCount} ${list.itemsCount === 1 ? 'item pronto' : 'itens prontos'}`
+                  : index === 1
+                    ? 'Checklist compartilhado em um so lugar'
+                    : 'Atualizacoes simples e em tempo real'}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Footer: Badge + Contagem */}
-      <div className="mt-4 flex items-center justify-between">
-        <div>
-          {list.isOwner ? (
-            <span className="rounded-full border border-nl-primary/30 bg-nl-primary/15 px-3 py-1 font-sans text-xs font-semibold text-nl-primary">
-              Minha
-            </span>
-          ) : (
-            <span className="rounded-full border border-nl-accent/30 bg-nl-accent/15 px-3 py-1 font-sans text-xs font-semibold text-nl-accent">
-              Compartilhada
-            </span>
-          )}
-        </div>
-        <div className="font-tabular font-sans text-sm text-nl-muted">
-          {list.itemsCount} {list.itemsCount === 1 ? 'item' : 'itens'}
-        </div>
+      <div className="mt-6 flex items-center justify-between border-t border-nl-border pt-4 text-sm text-nl-muted">
+        <span className="font-medium text-nl-text">Abrir lista</span>
+        <span className="font-tabular">{list.itemsCount} itens</span>
       </div>
     </Link>
   )

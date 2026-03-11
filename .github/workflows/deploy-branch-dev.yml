@@ -113,3 +113,37 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           min-versions-to-keep: 3
           ignore-versions: "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+  summary:
+    needs: [create-rc, deploy, cleanup-images]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resumo do workflow
+        run: |
+          DEPLOY_RESULT="${{ needs.deploy.result }}"
+          CLEANUP_RESULT="${{ needs.cleanup-images.result }}"
+          RESULT_LABEL="SUCESSO"
+          if [ "$DEPLOY_RESULT" != "success" ]; then
+            RESULT_LABEL="FALHA"
+          fi
+
+          echo "Resultado: $RESULT_LABEL"
+          echo "Environment: dev"
+          echo "Tag version deployada: ${{ needs.create-rc.outputs.rc_tag }}"
+          echo "Ref/SHA usado: ${{ needs.create-rc.outputs.rc_sha }}"
+          echo "Status deploy: $DEPLOY_RESULT"
+          echo "Status cleanup imagens: $CLEANUP_RESULT"
+
+          {
+            echo "## Deployment Summary"
+            echo
+            echo "| Campo | Valor |"
+            echo "| --- | --- |"
+            echo "| Resultado | $RESULT_LABEL |"
+            echo "| Environment | dev |"
+            echo "| Tag version deployada | \`${{ needs.create-rc.outputs.rc_tag }}\` |"
+            echo "| Ref/SHA usado | \`${{ needs.create-rc.outputs.rc_sha }}\` |"
+            echo "| Status deploy | \`$DEPLOY_RESULT\` |"
+            echo "| Status cleanup imagens | \`$CLEANUP_RESULT\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

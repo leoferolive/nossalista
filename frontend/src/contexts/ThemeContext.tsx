@@ -14,7 +14,12 @@ function getInitialTheme(): Theme {
   try {
     const saved = localStorage.getItem('nl-theme')
     if (saved === 'dark' || saved === 'light') return saved
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark'
+    if (
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    ) {
+      return 'dark'
+    }
   } catch {
     // localStorage pode estar bloqueado em alguns contextos
   }
@@ -22,11 +27,7 @@ function getInitialTheme(): Theme {
 }
 
 function applyTheme(theme: Theme) {
-  if (theme === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark')
-  } else {
-    document.documentElement.removeAttribute('data-theme')
-  }
+  document.documentElement.setAttribute('data-theme', theme)
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Sincroniza com mudanças no SO enquanto não houver preferência salva
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') {
+      return undefined
+    }
+
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const handleChange = (e: MediaQueryListEvent) => {
       try {

@@ -26,7 +26,7 @@ export const Register: React.FC = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const loginHref = useMemo(() => buildLink('/login', redirectPath), [redirectPath])
+  const loginHref = '/?auth=login'
   const forgotPasswordHref = useMemo(
     () => buildLink('/forgot-password', redirectPath),
     [redirectPath]
@@ -71,15 +71,16 @@ export const Register: React.FC = () => {
         password: formData.password,
       })
 
-      const nextSearchParams = new URLSearchParams()
-      nextSearchParams.set('registered', '1')
-      nextSearchParams.set('email', normalizedEmail)
-
-      if (redirectPath) {
-        nextSearchParams.set('redirect', redirectPath)
+      if (redirectPath?.startsWith('/join/')) {
+        const inviteCode = redirectPath.slice('/join/'.length)
+        if (inviteCode) {
+          sessionStorage.setItem('pendingInviteCode', inviteCode)
+        }
       }
 
-      navigate(`/login?${nextSearchParams.toString()}`, { replace: true })
+      navigate(`/?auth=login&registered=1&email=${encodeURIComponent(normalizedEmail)}`, {
+        replace: true,
+      })
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : 'Nao foi possivel criar sua conta.'
@@ -92,34 +93,27 @@ export const Register: React.FC = () => {
   return (
     <AuthLayout
       badge="Cadastro"
-      title="Crie Sua Conta"
-      description="Configure seu acesso e entre no fluxo colaborativo do NossaLista sem perder tempo."
+      title="Criar Conta"
+      description="Configure seu acesso com um fluxo simples, bonito e pronto para convidar outras pessoas depois."
       footer={
-        <div className="rounded-3xl border border-nl-border bg-nl-surface-strong p-4 text-sm text-nl-muted">
+        <div className="rounded-[1.4rem] border border-nl-border bg-nl-surface-muted/50 p-4 text-sm text-nl-muted">
           Ja tem conta?{' '}
-          <Link
-            className="font-semibold text-nl-primary underline decoration-orange-400 underline-offset-4"
-            to={loginHref}
-          >
+          <Link className="font-semibold text-nl-accent" to={loginHref}>
             Voltar para login
           </Link>
         </div>
       }
     >
       {error && (
-        <div
-          className="mb-5 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm text-nl-danger"
-          role="alert"
-          aria-live="polite"
-        >
+        <div className="nl-alert mb-5" role="alert" aria-live="polite">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="nl-auth-grid">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-nl-muted">
+            <label htmlFor="name" className="nl-label">
               Nome
             </label>
             <input
@@ -128,14 +122,14 @@ export const Register: React.FC = () => {
               name="name"
               value={formData.name}
               onChange={(event) => handleChange('name', event.target.value)}
-              className="w-full rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-nl-text transition-colors focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
-              placeholder="Como voce quer aparecer…"
+              className="nl-input"
+              placeholder="Como voce quer aparecer"
               autoComplete="name"
             />
           </div>
 
           <div>
-            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-nl-muted">
+            <label htmlFor="username" className="nl-label">
               Username
             </label>
             <input
@@ -144,7 +138,7 @@ export const Register: React.FC = () => {
               name="username"
               value={formData.username}
               onChange={(event) => handleChange('username', event.target.value)}
-              className="w-full rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-nl-text transition-colors focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+              className="nl-input"
               placeholder="leo_oliveira"
               autoComplete="username"
               spellCheck={false}
@@ -153,7 +147,7 @@ export const Register: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-nl-muted">
+            <label htmlFor="email" className="nl-label">
               Email
             </label>
             <input
@@ -162,7 +156,7 @@ export const Register: React.FC = () => {
               name="email"
               value={formData.email}
               onChange={(event) => handleChange('email', event.target.value)}
-              className="w-full rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-nl-text transition-colors focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+              className="nl-input"
               placeholder="voce@email.com"
               autoComplete="email"
               inputMode="email"
@@ -174,7 +168,7 @@ export const Register: React.FC = () => {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-nl-muted">
+            <label htmlFor="password" className="nl-label">
               Senha
             </label>
             <input
@@ -183,17 +177,14 @@ export const Register: React.FC = () => {
               name="password"
               value={formData.password}
               onChange={(event) => handleChange('password', event.target.value)}
-              className="w-full rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-nl-text transition-colors focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+              className="nl-input"
               autoComplete="new-password"
               required
             />
           </div>
 
           <div>
-            <label
-              htmlFor="confirm-password"
-              className="mb-1.5 block text-sm font-medium text-nl-muted"
-            >
+            <label htmlFor="confirm-password" className="nl-label">
               Confirmar senha
             </label>
             <input
@@ -202,29 +193,22 @@ export const Register: React.FC = () => {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={(event) => handleChange('confirmPassword', event.target.value)}
-              className="w-full rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-nl-text transition-colors focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+              className="nl-input"
               autoComplete="new-password"
               required
             />
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-nl-accent/20 transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Criando Conta…' : 'Criar Conta'}
+        <button type="submit" disabled={loading} className="nl-btn-primary w-full">
+          {loading ? 'Criando conta...' : 'Criar conta'}
         </button>
       </form>
 
       <div className="mt-5 text-sm text-nl-muted">
-        Esqueceu a senha antes mesmo de entrar?{' '}
-        <Link
-          className="font-semibold text-nl-primary underline decoration-orange-400 underline-offset-4"
-          to={forgotPasswordHref}
-        >
-          Ver opcoes de acesso
+        Quer revisar as opcoes de acesso?{' '}
+        <Link className="font-semibold text-nl-accent" to={forgotPasswordHref}>
+          Ver ajuda de login
         </Link>
       </div>
     </AuthLayout>
