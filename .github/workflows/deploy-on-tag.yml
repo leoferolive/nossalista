@@ -63,3 +63,34 @@ jobs:
       tag: ${{ inputs.tag }} # tag da imagem implantada
       ref: ${{ inputs.ref }} # ref exato usado para checkout e build
     secrets: inherit
+
+  summary:
+    needs: [validate-inputs, deploy-dev]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resumo do workflow
+        run: |
+          DEPLOY_RESULT="${{ needs.deploy-dev.result }}"
+          RESULT_LABEL="SUCESSO"
+          if [ "$DEPLOY_RESULT" != "success" ]; then
+            RESULT_LABEL="FALHA"
+          fi
+
+          echo "Resultado: $RESULT_LABEL"
+          echo "Environment: dev"
+          echo "Tag version deployada: ${{ inputs.tag }}"
+          echo "Ref usado: ${{ inputs.ref }}"
+          echo "Status deploy: $DEPLOY_RESULT"
+
+          {
+            echo "## Deployment Summary"
+            echo
+            echo "| Campo | Valor |"
+            echo "| --- | --- |"
+            echo "| Resultado | $RESULT_LABEL |"
+            echo "| Environment | dev |"
+            echo "| Tag version deployada | \`${{ inputs.tag }}\` |"
+            echo "| Ref usado | \`${{ inputs.ref }}\` |"
+            echo "| Status deploy | \`$DEPLOY_RESULT\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

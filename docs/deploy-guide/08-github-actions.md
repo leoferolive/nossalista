@@ -45,6 +45,9 @@ manual -> deploy-prod.yml (tag estavel)
   - publica `latest` por conveniencia operacional, mas implanta explicitamente `ghcr.io/<owner>/<app>:<tag>`.
   - grava annotations `deploy.nossalista/tag` e `deploy.nossalista/sha` no Deployment.
   - injeta `APP_VERSION`, `APP_GIT_TAG`, `APP_GIT_SHA`, `APP_BUILD_TIME` e `APP_ENVIRONMENT` no pod.
+  - publica `Deployment Summary` ao final com: resultado, ambiente, tag version deployada, imagem, SHA, build time e deployment/namespace.
+
+Todos os workflows de deploy (`deploy-branch-dev.yml`, `deploy-on-tag.yml`, `deploy-prod.yml` e `deploy-environment.yml`) escrevem um resumo final no `GITHUB_STEP_SUMMARY` para facilitar auditoria da versao implantada sem depender de comandos manuais no cluster.
 
 ## 4. Ambientes e imagens
 
