@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag semântica a deployar em dev (ex: v1.2.3)"
+        description: "Tag semântica da imagem a deployar em dev (ex: v1.2.3)"
         required: true
       ref:
-        description: "SHA do commit correspondente à tag"
+        description: "Ref do checkout que será reconstruído (normalmente o SHA correspondente à tag)"
         required: true
 
 concurrency:
@@ -15,10 +15,51 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate-inputs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar formato da tag estável
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag inválida: '$TAG'. Use formato estável vX.Y.Z (sem -rc)."
+            exit 1
+          fi
+
+      - name: Checkout para validação de tag/ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validar alinhamento entre tag e ref
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          REF="${{ inputs.ref }}"
+
+          TAG_SHA="$(git rev-list -n 1 "$TAG" || true)"
+          if [ -z "$TAG_SHA" ]; then
+            echo "::error::Tag '$TAG' não encontrada no repositório."
+            exit 1
+          fi
+
+          REF_SHA="$(git rev-parse "$REF" || true)"
+          if [ -z "$REF_SHA" ]; then
+            echo "::error::Ref '$REF' não encontrada no repositório."
+            exit 1
+          fi
+
+          if [ "$TAG_SHA" != "$REF_SHA" ]; then
+            echo "::error::Tag '$TAG' aponta para '$TAG_SHA', mas o ref informado resolve para '$REF_SHA'."
+            exit 1
+          fi
+
   deploy-dev:
+    needs: validate-inputs
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: dev
-      tag: ${{ inputs.tag }}
-      ref: ${{ inputs.ref }}
+      tag: ${{ inputs.tag }} # tag da imagem implantada
+      ref: ${{ inputs.ref }} # ref exato usado para checkout e build
     secrets: inherit

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress>
+        <notes><![CDATA[
+Temporary suppression for Spring Boot 4.0.3 managed Jackson 3.0.4.
+Remove this entry as soon as Spring Boot 4.x ships a managed Jackson release
+without CVE-2026-29062 and the project can upgrade without overriding Boot's
+supported dependency matrix.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/tools\.jackson\.core/jackson-(core|databind)@3\.0\.4$</packageUrl>
+        <cve>CVE-2026-29062</cve>
+    </suppress>
+</suppressions>

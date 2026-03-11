@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag semântica para deploy em produção, ex: v1.2.3"
+        description: "Tag semântica da imagem para deploy em produção, ex: v1.2.3"
         required: true
 
 concurrency:
@@ -12,7 +12,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar formato da tag estável
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag inválida: '$TAG'. Produção aceita apenas tag estável vX.Y.Z."
+            exit 1
+          fi
+
+      - name: Checkout para validação da tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Garantir que a tag existe no repositório
+        run: |
+          set -euo pipefail
+          git rev-parse "${{ inputs.tag }}^{commit}" >/dev/null
+
   approve:
+    needs: validate-tag
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -24,6 +47,6 @@ jobs:
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: prod
-      tag: ${{ inputs.tag }}
-      ref: ${{ inputs.tag }}
+      tag: ${{ inputs.tag }} # tag da imagem implantada
+      ref: ${{ inputs.tag }} # ref do checkout: a própria tag estável
     secrets: inherit

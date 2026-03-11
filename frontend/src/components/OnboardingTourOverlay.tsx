@@ -53,11 +53,20 @@ function buildSpotlightRect(step: StepConfig | null) {
   const rect = target.getBoundingClientRect()
   const padding = 10
 
+  const requestedWidth = rect.width + padding * 2
+  const requestedHeight = rect.height + padding * 2
+  const maxWidth = Math.max(0, window.innerWidth - 16)
+  const maxHeight = Math.max(0, window.innerHeight - 16)
+  const width = Math.min(maxWidth, requestedWidth)
+  const height = Math.min(maxHeight, requestedHeight)
+  const maxLeft = Math.max(8, window.innerWidth - 8 - width)
+  const maxTop = Math.max(8, window.innerHeight - 8 - height)
+
   return {
-    top: Math.max(8, rect.top - padding),
-    left: Math.max(8, rect.left - padding),
-    width: Math.min(window.innerWidth - 16, rect.width + padding * 2),
-    height: Math.min(window.innerHeight - 16, rect.height + padding * 2),
+    top: Math.max(8, Math.min(maxTop, rect.top - padding)),
+    left: Math.max(8, Math.min(maxLeft, rect.left - padding)),
+    width,
+    height,
   }
 }
 
@@ -80,6 +89,7 @@ export function OnboardingTourOverlay({
       return
     }
 
+    let animationFrameId: number | null = null
     const recompute = () => {
       const rect = buildSpotlightRect(step)
       setSpotlightRect(rect)
@@ -90,13 +100,38 @@ export function OnboardingTourOverlay({
       }
     }
 
-    recompute()
-    window.addEventListener('resize', recompute)
-    window.addEventListener('scroll', recompute, true)
+    const scheduleRecompute = () => {
+      if (animationFrameId != null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+
+      animationFrameId = window.requestAnimationFrame(() => {
+        animationFrameId = null
+        recompute()
+      })
+    }
+
+    scheduleRecompute()
+    window.addEventListener('resize', scheduleRecompute)
+    window.addEventListener('scroll', scheduleRecompute, true)
+
+    const observer = new MutationObserver(() => {
+      scheduleRecompute()
+    })
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-tour', 'aria-hidden'],
+    })
 
     return () => {
-      window.removeEventListener('resize', recompute)
-      window.removeEventListener('scroll', recompute, true)
+      if (animationFrameId != null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+      observer.disconnect()
+      window.removeEventListener('resize', scheduleRecompute)
+      window.removeEventListener('scroll', scheduleRecompute, true)
     }
   }, [active, step])
 
@@ -141,19 +176,19 @@ export function OnboardingTourOverlay({
       }
     }
 
+    if (step.id === 'create-list-modal' && !isMobile) {
+      return {
+        width: 360,
+        top: 16,
+        left: 16,
+      }
+    }
+
     if (isMobile || !spotlightRect) {
       return {
         left: 16,
         right: 16,
         bottom: 16,
-      }
-    }
-
-    if (step.id === 'create-list-modal') {
-      return {
-        width: 360,
-        top: 16,
-        left: 16,
       }
     }
 
@@ -211,7 +246,7 @@ export function OnboardingTourOverlay({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`fixed rounded-3xl border border-amber-200/40 bg-gradient-to-br from-[#2f2016] via-[#281b13] to-[#1e1510] p-5 text-[#f7ecde] shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md ${isCreateStep ? 'pointer-events-none' : 'pointer-events-auto'}`}
+        className="pointer-events-auto fixed rounded-3xl border border-amber-200/40 bg-gradient-to-br from-[#2f2016] via-[#281b13] to-[#1e1510] p-5 text-[#f7ecde] shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md"
         style={panelStyle}
         role="dialog"
         aria-modal="true"
@@ -225,28 +260,26 @@ export function OnboardingTourOverlay({
 
         <p className="mt-2 font-sans text-sm leading-6 text-amber-50/90">{step.description}</p>
 
-        {!isCreateStep && (
-          <div className="mt-5 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => void onSkip()}
-              className="rounded-2xl border border-amber-200/35 px-4 py-2.5 font-sans text-xs font-semibold uppercase tracking-[0.16em] text-amber-100 transition-colors hover:bg-amber-50/10 focus-visible:ring-2 focus-visible:ring-amber-200/60"
-            >
-              Pular
-            </button>
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => void onSkip()}
+            className="rounded-2xl border border-amber-200/35 px-4 py-2.5 font-sans text-xs font-semibold uppercase tracking-[0.16em] text-amber-100 transition-colors hover:bg-amber-50/10 focus-visible:ring-2 focus-visible:ring-amber-200/60"
+          >
+            Pular
+          </button>
 
-            <button
-              type="button"
-              disabled={!canAdvance}
-              onClick={() => void onNext()}
-              className="rounded-2xl bg-gradient-to-r from-[#f3a45c] to-[#df7248] px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-[0.16em] text-[#2f1a10] shadow-[0_12px_30px_rgba(207,117,71,0.45)] transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-amber-100/70 disabled:cursor-not-allowed disabled:opacity-55"
-            >
-              {isLastStep ? 'Concluir' : 'Próximo'}
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            disabled={!canAdvance}
+            onClick={() => void onNext()}
+            className="rounded-2xl bg-gradient-to-r from-[#f3a45c] to-[#df7248] px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-[0.16em] text-[#2f1a10] shadow-[0_12px_30px_rgba(207,117,71,0.45)] transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-amber-100/70 disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {isLastStep ? 'Concluir' : 'Próximo'}
+          </button>
+        </div>
 
-        {!canAdvance && currentStepIndex === 1 && (
+        {isCreateStep && !canAdvance && (
           <p className="mt-3 font-sans text-xs text-amber-100/80">
             Crie a lista para liberar o próximo passo.
           </p>
