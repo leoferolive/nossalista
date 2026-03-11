@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import client from '../api/client'
 import { AuthLayout } from '../components/AuthLayout'
+import { GoogleAuthButton } from '../components/GoogleAuthButton'
 
 interface LoginResponse {
   id: string
@@ -96,8 +97,8 @@ export default function Login() {
   return (
     <AuthLayout
       badge="Login"
-      title="Voltar Para Sua Lista"
-      description="Entre com email ou Google e retome convites, checklists e listas compartilhadas sem perder o ritmo."
+      title="Entrar no NossaLista"
+      description="Retome suas listas, convites e checklists com uma interface clara, leve e pronta para compartilhar."
       footer={
         <div className="rounded-[1.4rem] border border-nl-border bg-nl-surface-muted/50 p-4 text-sm text-nl-muted">
           Nao tem conta ainda?{' '}
@@ -109,7 +110,7 @@ export default function Login() {
     >
       {registered && (
         <div className="mb-5 rounded-[1.2rem] border border-nl-primary/30 bg-nl-primary/10 px-4 py-3 text-sm text-nl-text">
-          Conta criada com sucesso. Agora e so entrar para continuar.
+          Conta criada com sucesso. Agora e so entrar.
         </div>
       )}
 
@@ -164,15 +165,7 @@ export default function Login() {
 
       <div className="mt-6 nl-or">ou</div>
 
-      <button onClick={handleGoogleLogin} className="nl-btn-secondary mt-6 w-full">
-        <span
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-nl-border bg-nl-surface text-xs font-bold text-nl-accent"
-          aria-hidden="true"
-        >
-          G
-        </span>
-        Continuar com Google
-      </button>
+      <GoogleAuthButton onClick={handleGoogleLogin} className="mt-6 w-full" />
 
       <div className="mt-5 text-sm text-nl-muted">
         Quer entrar com email e ainda nao criou conta?{' '}

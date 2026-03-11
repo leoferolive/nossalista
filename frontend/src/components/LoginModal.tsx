@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import client from '../api/client'
 import { ModalShell } from './ModalShell'
+import { GoogleAuthButton } from './GoogleAuthButton'
 
 interface LoginResponse {
   id: string
@@ -57,9 +58,9 @@ export function LoginModal({ onClose, onSwitchToRegister }: Props) {
 
   return (
     <ModalShell
-      title="Voltar Para Sua Lista"
+      title="Entrar no NossaLista"
       eyebrow="Login"
-      description="Entre com email ou Google e retome seu mural de listas, convites e checklists em segundos."
+      description="Acesse suas listas em segundos e continue do ponto em que o grupo parou."
       onClose={onClose}
     >
       {error && (
@@ -116,18 +117,10 @@ export function LoginModal({ onClose, onSwitchToRegister }: Props) {
 
       <div className="mt-6 nl-or">ou</div>
 
-      <button onClick={handleGoogleLogin} className="nl-btn-secondary mt-6 w-full">
-        <span
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-nl-border bg-nl-surface text-xs font-bold text-nl-accent"
-          aria-hidden="true"
-        >
-          G
-        </span>
-        Continuar com Google
-      </button>
+      <GoogleAuthButton onClick={handleGoogleLogin} className="mt-6 w-full" />
 
       <div className="mt-6 rounded-[1.4rem] border border-nl-border bg-nl-surface-muted/50 p-4 text-sm text-nl-muted">
-        Ainda nao criou sua base?{' '}
+        Ainda nao tem conta?{' '}
         {onSwitchToRegister ? (
           <button
             type="button"
