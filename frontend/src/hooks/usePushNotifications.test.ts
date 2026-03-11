@@ -49,17 +49,24 @@ describe('usePushNotifications', () => {
   })
 
   it('deve retornar "default" como estado inicial quando APIs estão disponíveis', () => {
+    mockPushApi.getVapidPublicKey.mockResolvedValue(
+      'BNbronVSVNFVUXJiMU1PQ1FNQkJOYnJvblZTVk5GVlVYSmk='
+    )
     setupServiceWorker()
     const { result } = renderHook(() => usePushNotifications())
     expect(result.current.permissionState).toBe('default')
   })
 
   it('deve retornar "unsupported" quando Notification API não está disponível', () => {
+    mockPushApi.getVapidPublicKey.mockResolvedValue(
+      'BNbronVSVNFVUXJiMU1PQ1FNQkJOYnJvblZTVk5GVlVYSmk='
+    )
     const orig = window.Notification
     // @ts-expect-error testing absence of API
     delete window.Notification
     const { result } = renderHook(() => usePushNotifications())
     expect(result.current.permissionState).toBe('unsupported')
+    expect(result.current.availability).toBe('unsupported')
     window.Notification = orig
   })
 
@@ -125,6 +132,7 @@ describe('usePushNotifications', () => {
     })
 
     expect(pushManager.subscribe).not.toHaveBeenCalled()
+    expect(result.current.availability).toBe('server-not-configured')
   })
 
   it('deve cancelar subscrição existente com disablePush', async () => {
@@ -157,6 +165,9 @@ describe('usePushNotifications', () => {
 
   it('deve expor pushEnabled true quando já existe subscrição ativa', async () => {
     const sub = makeSubscription()
+    mockPushApi.getVapidPublicKey.mockResolvedValue(
+      'BNbronVSVNFVUXJiMU1PQ1FNQkJOYnJvblZTVk5GVlVYSmk='
+    )
     setupServiceWorker(sub)
 
     const { result } = renderHook(() => usePushNotifications())
@@ -166,5 +177,6 @@ describe('usePushNotifications', () => {
     })
 
     expect(result.current.pushEnabled).toBe(true)
+    expect(result.current.availability).toBe('available')
   })
 })

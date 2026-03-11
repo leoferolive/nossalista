@@ -37,7 +37,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const location = useLocation()
   const { user, logout } = useAuth()
   const { startReplay } = useOnboarding()
-  const { permissionState, pushEnabled, enablePush, disablePush } = usePushNotifications()
+  const { permissionState, pushEnabled, availability, enablePush, disablePush } = usePushNotifications()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -81,6 +81,22 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     logout()
     navigate('/login', { replace: true })
   }
+
+  const pushStatus = (() => {
+    if (availability === 'unsupported') {
+      return { label: 'Push: não suportado neste navegador', tone: 'text-nl-muted' }
+    }
+    if (availability === 'server-not-configured') {
+      return { label: 'Push: indisponível no ambiente (VAPID)', tone: 'text-nl-danger' }
+    }
+    if (availability === 'checking') {
+      return { label: 'Push: verificando…', tone: 'text-nl-muted' }
+    }
+    if (pushEnabled) {
+      return { label: 'Push: ativado', tone: 'text-nl-accent' }
+    }
+    return { label: 'Push: desativado', tone: 'text-nl-muted' }
+  })()
 
   return (
     <header className="nl-card mb-6 overflow-visible p-4 sm:p-6">
@@ -203,6 +219,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   </div>
 
                   <div className="mt-2 space-y-1">
+                    <div className="rounded-xl bg-nl-surface-strong px-4 py-3">
+                      <p className={`font-sans text-xs font-semibold ${pushStatus.tone}`}>
+                        {pushStatus.label}
+                      </p>
+                    </div>
                     <Link
                       to="/"
                       className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
@@ -231,7 +252,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                       Ver tutorial
                       <span aria-hidden="true">↺</span>
                     </button>
-                    {permissionState !== 'unsupported' && !pushEnabled && (
+                    {permissionState !== 'unsupported' &&
+                      availability !== 'server-not-configured' &&
+                      !pushEnabled && (
                       <button
                         type="button"
                         onClick={() => {
@@ -245,7 +268,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                         <span aria-hidden="true">🔔</span>
                       </button>
                     )}
-                    {permissionState !== 'unsupported' && pushEnabled && (
+                    {permissionState !== 'unsupported' &&
+                      availability !== 'server-not-configured' &&
+                      pushEnabled && (
                       <button
                         type="button"
                         onClick={() => {

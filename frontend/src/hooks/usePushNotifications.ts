@@ -14,6 +14,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
 }
 
 export type PushPermissionState = 'default' | 'granted' | 'denied' | 'unsupported'
+export type PushAvailability = 'available' | 'unsupported' | 'server-not-configured' | 'checking'
 
 export function usePushNotifications() {
   const [permissionState, setPermissionState] = useState<PushPermissionState>(() => {
@@ -23,23 +24,41 @@ export function usePushNotifications() {
     return Notification.permission as PushPermissionState
   })
   const [pushEnabled, setPushEnabled] = useState<boolean>(false)
+  const [availability, setAvailability] = useState<PushAvailability>(() => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      return 'unsupported'
+    }
+    return 'checking'
+  })
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) {
       setPushEnabled(false)
+      setAvailability('unsupported')
       return
     }
 
     let cancelled = false
     ;(async () => {
       try {
+        const vapidPublicKey = await pushApi.getVapidPublicKey()
+        if (!vapidPublicKey) {
+          if (!cancelled) {
+            setAvailability('server-not-configured')
+            setPushEnabled(false)
+          }
+          return
+        }
+
         const registration = await navigator.serviceWorker.ready
         const subscription = await registration.pushManager.getSubscription()
         if (!cancelled) {
+          setAvailability('available')
           setPushEnabled(Boolean(subscription))
         }
       } catch {
         if (!cancelled) {
+          setAvailability('server-not-configured')
           setPushEnabled(false)
         }
       }
@@ -53,6 +72,7 @@ export function usePushNotifications() {
   const enablePush = useCallback(async () => {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       setPermissionState('unsupported')
+      setAvailability('unsupported')
       return
     }
 
@@ -66,7 +86,10 @@ export function usePushNotifications() {
 
     try {
       const vapidPublicKey = await pushApi.getVapidPublicKey()
-      if (!vapidPublicKey) return
+      if (!vapidPublicKey) {
+        setAvailability('server-not-configured')
+        return
+      }
 
       const registration = await navigator.serviceWorker.ready
       let subscription = await registration.pushManager.getSubscription()
@@ -79,6 +102,7 @@ export function usePushNotifications() {
       }
 
       await pushApi.subscribe(subscription.toJSON())
+      setAvailability('available')
       setPushEnabled(true)
     } catch (err) {
       console.error('[Push] Falha ao registrar subscrição push:', err)
@@ -102,5 +126,5 @@ export function usePushNotifications() {
     }
   }, [])
 
-  return { permissionState, pushEnabled, enablePush, disablePush }
+  return { permissionState, pushEnabled, availability, enablePush, disablePush }
 }

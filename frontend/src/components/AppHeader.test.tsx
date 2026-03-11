@@ -48,6 +48,7 @@ const mockEnablePush = vi.fn()
 const mockDisablePush = vi.fn()
 let mockPermissionState: string = 'default'
 let mockPushEnabled = false
+let mockAvailability: 'available' | 'unsupported' | 'server-not-configured' | 'checking' = 'available'
 
 vi.mock('../hooks/usePushNotifications', () => ({
   usePushNotifications: () => ({
@@ -56,6 +57,9 @@ vi.mock('../hooks/usePushNotifications', () => ({
     },
     get pushEnabled() {
       return mockPushEnabled
+    },
+    get availability() {
+      return mockAvailability
     },
     enablePush: mockEnablePush,
     disablePush: mockDisablePush,
@@ -71,6 +75,7 @@ describe('AppHeader', () => {
     mockDisablePush.mockReset()
     mockPermissionState = 'default'
     mockPushEnabled = false
+    mockAvailability = 'available'
     mockAvatarUrl = null
   })
 
@@ -147,6 +152,7 @@ describe('AppHeader', () => {
 
   it('oculta botão de push quando API não suportada', async () => {
     mockPermissionState = 'unsupported'
+    mockAvailability = 'unsupported'
     const user = userEvent.setup()
 
     render(
@@ -157,6 +163,22 @@ describe('AppHeader', () => {
 
     await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
     expect(screen.queryByRole('menuitem', { name: /Ativar notificações push/i })).toBeNull()
+  })
+
+  it('mostra status de indisponível e oculta ações quando backend não tem VAPID', async () => {
+    mockAvailability = 'server-not-configured'
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.getByText(/Push: indisponível no ambiente/i)).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /Ativar notificações push/i })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: /Desativar notificações push/i })).toBeNull()
   })
 
   it('exibe avatar quando usuário tem avatarUrl', () => {
