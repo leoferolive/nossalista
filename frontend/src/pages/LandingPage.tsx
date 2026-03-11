@@ -1,16 +1,37 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { LoginModal } from '../components/LoginModal'
+import { RegisterModal } from '../components/RegisterModal'
+import { ThemeToggle } from '../components/ThemeToggle'
 
-/**
- * Página inicial pública — landing page com split screen.
- * Usuários autenticados são redirecionados para /home automaticamente.
- */
+type AuthModal = 'login' | 'register' | null
+
+const previewColumns = [
+  {
+    title: 'Mercado editorial',
+    label: 'Compartilhada',
+    items: [
+      { name: 'Papel arroz premium', done: true },
+      { name: 'Queijo meia cura', done: false },
+      { name: 'Lista do almoco', done: false },
+    ],
+  },
+  {
+    title: 'Sexta em andamento',
+    label: 'Checklist',
+    items: [
+      { name: 'Separar presentes', done: true },
+      { name: 'Responder convites', done: false },
+      { name: 'Fechar wishlist', done: false },
+    ],
+  },
+]
+
 export function LandingPage() {
   const { isAuthenticated, isBootstrapping } = useAuth()
   const navigate = useNavigate()
-  const [showLogin, setShowLogin] = useState(false)
+  const [activeModal, setActiveModal] = useState<AuthModal>(null)
 
   useEffect(() => {
     if (!isBootstrapping && isAuthenticated) {
@@ -21,173 +42,152 @@ export function LandingPage() {
   if (isBootstrapping) {
     return (
       <div className="nl-page flex items-center justify-center">
-        <div className="nl-card px-6 py-4 text-nl-muted">Carregando…</div>
+        <div className="nl-card px-6 py-4 text-nl-muted">Carregando...</div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen bg-nl-bg">
-      {/* ── Left side: Hero ───────────────────────────── */}
-      <div className="flex w-full flex-col justify-center px-8 py-16 sm:px-14 lg:w-[55%] lg:px-20">
-        {/* Logo */}
-        <div className="mb-12">
-          <span
-            className="font-display text-xl font-bold tracking-tight text-nl-text"
-            aria-label="NossaLista"
-          >
-            Nossa<span className="text-nl-accent">Lista</span>
-          </span>
-        </div>
-
-        {/* Eyebrow */}
-        <span className="mb-3 inline-block w-fit rounded-full border border-nl-primary/30 bg-nl-primary/10 px-3 py-1 font-sans text-xs font-semibold uppercase tracking-widest text-nl-primary">
-          Listas em tempo real
-        </span>
-
-        {/* Headline */}
-        <h1 className="mb-5 font-display text-4xl font-bold leading-tight text-nl-text sm:text-5xl">
-          Tudo na mesma lista. <span className="text-nl-accent">Todo mundo junto.</span>
-        </h1>
-
-        {/* Description */}
-        <p className="mb-10 max-w-md font-sans text-lg leading-relaxed text-nl-muted">
-          Crie listas de compras, tarefas e desejos — compartilhe com quem quiser e veja as mudanças
-          em tempo real, sem precisar dar F5.
-        </p>
-
-        {/* CTA */}
-        <div className="flex flex-wrap items-center gap-4">
-          <button
-            onClick={() => setShowLogin(true)}
-            className="rounded-2xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-8 py-4 font-sans text-sm font-semibold text-nl-text shadow-earthen transition-transform hover:-translate-y-0.5 hover:shadow-earthen-strong focus-visible:ring-2 focus-visible:ring-nl-accent/50"
-          >
-            Começar agora — é grátis
-          </button>
-          <button
-            onClick={() => setShowLogin(true)}
-            className="font-sans text-sm font-medium text-nl-muted underline decoration-nl-accent/40 underline-offset-4 hover:text-nl-text"
-          >
-            Já tenho conta
-          </button>
-        </div>
-
-        {/* Trust signals */}
-        <div className="mt-10 flex flex-wrap gap-6">
-          {[
-            { icon: '⚡', text: 'Sync instantâneo' },
-            { icon: '🔗', text: 'Compartilhe por link' },
-            { icon: '📋', text: 'Compras, tarefas e mais' },
-          ].map(({ icon, text }) => (
-            <div key={text} className="flex items-center gap-2">
-              <span aria-hidden="true">{icon}</span>
-              <span className="font-sans text-sm text-nl-muted">{text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Right side: App preview ───────────────────── */}
-      <div className="relative hidden overflow-hidden bg-nl-surface lg:flex lg:w-[45%] lg:items-center lg:justify-center">
-        {/* Ambient glow */}
-        <div
-          className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #d4845a 0%, transparent 70%)' }}
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute -bottom-16 -right-16 h-64 w-64 rounded-full opacity-15"
-          style={{ background: 'radial-gradient(circle, #5c8a5a 0%, transparent 70%)' }}
-          aria-hidden="true"
-        />
-
-        {/* Mock app cards */}
-        <div className="relative z-10 flex flex-col gap-4 px-10" aria-hidden="true">
-          {/* Mock card 1 */}
-          <div className="nl-card w-72 p-5 shadow-earthen">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🛒</span>
-                <span className="font-display font-semibold text-nl-text">Mercado Semanal</span>
+    <div className="nl-page flex items-center">
+      <div className="nl-container w-full">
+        <div className="grid items-center gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <section className="nl-reveal relative overflow-hidden rounded-[2rem] p-3">
+            <div className="nl-card p-6 sm:p-8 lg:p-10">
+              <div className="flex flex-wrap items-start justify-between gap-6">
+                <div>
+                  <p className="font-display text-3xl font-semibold text-nl-text">
+                    Nossa<span className="nl-gradient-text">Lista</span>
+                  </p>
+                  <p className="mt-3 max-w-xl text-sm leading-7 text-nl-muted">
+                    Um mural colaborativo para compras, tarefas e desejos com atmosfera de papel
+                    marcado a mao e tempo real de verdade.
+                  </p>
+                </div>
+                <ThemeToggle />
               </div>
-              <span className="rounded-full bg-nl-primary/15 px-2 py-0.5 font-sans text-xs font-medium text-nl-primary">
-                Compartilhada
-              </span>
-            </div>
-            <div className="space-y-2">
-              {[
-                { label: 'Arroz 5kg', done: true },
-                { label: 'Feijão carioca', done: true },
-                { label: 'Azeite extravirgem', done: false },
-                { label: 'Queijo muçarela', done: false },
-              ].map(({ label, done }) => (
-                <div key={label} className="flex items-center gap-3">
-                  <div
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-xs ${
-                      done
-                        ? 'border-nl-primary bg-nl-primary text-nl-bg'
-                        : 'border-nl-border bg-nl-surface-strong'
-                    }`}
-                  >
-                    {done && '✓'}
-                  </div>
-                  <span
-                    className={`font-sans text-sm ${
-                      done ? 'text-nl-muted line-through' : 'text-nl-text'
-                    }`}
-                  >
-                    {label}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {/* Online members indicator */}
-            <div className="mt-4 flex items-center gap-1.5 border-t border-nl-border pt-3">
-              <div className="h-2 w-2 rounded-full bg-nl-primary" />
-              <span className="font-sans text-xs text-nl-muted">2 pessoas online agora</span>
-            </div>
-          </div>
 
-          {/* Mock card 2 — offset */}
-          <div className="nl-card ml-8 w-64 p-4 shadow-earthen">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="text-lg">✅</span>
-              <span className="font-display text-sm font-semibold text-nl-text">
-                Tarefas do Fim de Semana
-              </span>
-            </div>
-            <div className="space-y-2">
-              {[
-                { label: 'Lavar o carro', done: false },
-                { label: 'Ligar pro dentista', done: false },
-              ].map(({ label, done }) => (
-                <div key={label} className="flex items-center gap-3">
-                  <div
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-xs ${
-                      done
-                        ? 'border-nl-primary bg-nl-primary text-nl-bg'
-                        : 'border-nl-border bg-nl-surface-strong'
-                    }`}
-                  >
-                    {done && '✓'}
-                  </div>
-                  <span className="font-sans text-sm text-nl-text">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+              <div className="mt-10">
+                <div className="nl-badge">Listas em tempo real</div>
+                <h1 className="nl-section-title mt-6 text-nl-text">
+                  Tudo na mesma folha.
+                  <span className="nl-gradient-text block">Todo mundo no mesmo ritmo.</span>
+                </h1>
+                <p className="mt-6 max-w-2xl text-lg leading-9 text-nl-muted sm:text-xl">
+                  Organize compras, tarefas e desejos em um painel vivo: com presença online,
+                  mudanças instantaneas, links de convite e uma linguagem visual que lembra caderno,
+                  ficha e checklist bem resolvido.
+                </p>
+              </div>
 
-          {/* Live update toast mock */}
-          <div className="ml-2 flex items-center gap-3 rounded-2xl border border-nl-primary/30 bg-nl-primary/10 px-4 py-2.5">
-            <div className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-nl-primary" />
-            <span className="font-sans text-xs text-nl-primary">
-              Ana marcou "Arroz 5kg" como concluído
-            </span>
-          </div>
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <button
+                  onClick={() => setActiveModal('register')}
+                  className="nl-btn-primary px-7 sm:px-8"
+                >
+                  Criar conta gratis
+                </button>
+                <button onClick={() => setActiveModal('login')} className="nl-btn-secondary px-7">
+                  Ja tenho conta
+                </button>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <span className="nl-pill">Sync instantaneo</span>
+                <span className="nl-pill">Compartilhe por username ou link</span>
+                <span className="nl-pill">Compras, tarefas e wishlist</span>
+              </div>
+
+              <div className="mt-10 grid gap-4 sm:grid-cols-3">
+                {[
+                  {
+                    title: 'Presenca ao vivo',
+                    text: 'Veja quem entrou, marcou item e puxou a lista no mesmo instante.',
+                  },
+                  {
+                    title: 'Checklist com cara de produto',
+                    text: 'A experiencia parece uma folha bem desenhada, nao um formulario sem alma.',
+                  },
+                  {
+                    title: 'Fluxo rapido de entrada',
+                    text: 'Cadastro e login ficam claros, separados e prontos para mobile e desktop.',
+                  },
+                ].map((feature, index) => (
+                  <article
+                    key={feature.title}
+                    className={`nl-card-soft nl-reveal p-4 ${index === 1 ? 'nl-reveal-delay-1' : index === 2 ? 'nl-reveal-delay-2' : ''}`}
+                  >
+                    <p className="text-sm font-semibold text-nl-text">{feature.title}</p>
+                    <p className="mt-2 text-sm leading-7 text-nl-muted">{feature.text}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <aside className="relative hidden xl:block">
+            <div className="absolute -left-10 top-10 h-72 w-72 rounded-full bg-nl-accent/15 blur-3xl" />
+            <div className="absolute bottom-10 right-0 h-72 w-72 rounded-full bg-nl-primary/15 blur-3xl" />
+            <div className="relative z-10 flex flex-col gap-5 px-8">
+              {previewColumns.map((column, index) => (
+                <article
+                  key={column.title}
+                  className={`nl-preview-card ${index === 0 ? 'nl-float' : 'ml-16 nl-float-delay'}`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-muted">
+                        {column.label}
+                      </p>
+                      <h2 className="mt-2 font-display text-3xl font-semibold text-nl-text">
+                        {column.title}
+                      </h2>
+                    </div>
+                    <span className="nl-pill">{index === 0 ? '2 online' : 'Flow pessoal'}</span>
+                  </div>
+
+                  <div className="mt-6 space-y-3">
+                    {column.items.map((item) => (
+                      <div key={item.name} className="nl-checkline">
+                        <span className="nl-check" data-done={item.done}>
+                          {item.done ? '✓' : ''}
+                        </span>
+                        <span
+                          className={`text-sm ${
+                            item.done ? 'text-nl-muted line-through' : 'text-nl-text'
+                          }`}
+                        >
+                          {item.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+
+              <div className="nl-card-soft ml-5 flex items-center gap-3 p-4">
+                <span className="inline-flex h-3 w-3 rounded-full bg-nl-primary shadow-[0_0_20px_var(--nl-primary)]" />
+                <p className="text-sm text-nl-text">
+                  Ana concluiu "Papel arroz premium" e o grupo viu no mesmo instante.
+                </p>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
 
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
+      {activeModal === 'login' && (
+        <LoginModal
+          onClose={() => setActiveModal(null)}
+          onSwitchToRegister={() => setActiveModal('register')}
+        />
+      )}
+
+      {activeModal === 'register' && (
+        <RegisterModal
+          onClose={() => setActiveModal(null)}
+          onSwitchToLogin={() => setActiveModal('login')}
+        />
+      )}
     </div>
   )
 }

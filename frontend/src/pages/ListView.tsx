@@ -808,7 +808,7 @@ export const ListView: React.FC = () => {
               <>
                 <button
                   onClick={handleOpenMembersModal}
-                  className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+                  className="nl-btn-secondary"
                   aria-label="Abrir membros"
                 >
                   <span aria-hidden="true">👥</span>
@@ -820,7 +820,7 @@ export const ListView: React.FC = () => {
                 {ACTIVITY_TIMELINE_ENABLED && (
                   <button
                     onClick={() => setIsActivityTimelineOpen(true)}
-                    className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+                    className="nl-btn-secondary"
                     aria-label="Ver atividades da lista"
                     title="Histórico de atividades"
                   >
@@ -833,7 +833,7 @@ export const ListView: React.FC = () => {
                     <button
                       onClick={handleOpenInviteModal}
                       data-tour="list-invite"
-                      className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+                      className="nl-btn-primary"
                       aria-label="Convidar para lista"
                       title="Convidar para lista"
                     >
@@ -842,7 +842,7 @@ export const ListView: React.FC = () => {
                     </button>
                     <button
                       onClick={handleOpenEditModal}
-                      className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-sm font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+                      className="nl-btn-secondary"
                       aria-label="Editar nome da lista"
                       title="Editar nome da lista"
                     >
@@ -850,7 +850,7 @@ export const ListView: React.FC = () => {
                     </button>
                     <button
                       onClick={handleOpenDeleteListModal}
-                      className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm font-medium text-nl-danger transition-colors hover:bg-nl-danger/15 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
+                      className="nl-btn-danger"
                       aria-label="Excluir lista"
                       title="Excluir lista"
                     >
@@ -864,8 +864,8 @@ export const ListView: React.FC = () => {
         </div>
 
         {/* Info da lista: Tipo (emoji + nome), Dono (avatar + username) */}
-        <div className="nl-card mb-6 p-5">
-          <div className="flex items-center gap-3 mb-3">
+        <div className="nl-preview-card mb-6">
+          <div className="mb-3 flex items-center gap-3">
             <span className="text-4xl" aria-hidden="true">
               {typeEmoji}
             </span>
@@ -878,13 +878,13 @@ export const ListView: React.FC = () => {
           </div>
 
           {/* Badge de propriedade */}
-          <div className="flex items-center gap-2 mt-2">
+          <div className="mt-2 flex items-center gap-2">
             {currentList.isOwner ? (
-              <span className="rounded-full bg-nl-primary/15 px-3 py-1 text-xs font-medium text-nl-primary">
-                Você é o dono
+              <span className="nl-pill">
+                Voce e o dono
               </span>
             ) : (
-              <span className="rounded-full bg-nl-surface-strong px-3 py-1 text-xs font-medium text-nl-accent">
+              <span className="nl-pill">
                 Lista compartilhada
               </span>
             )}
@@ -906,7 +906,7 @@ export const ListView: React.FC = () => {
 
         {/* Seção "Itens": Título + lista de itens */}
         <div className="nl-card p-5 shadow-sm">
-          <h2 className="mb-4 font-display text-lg font-semibold text-nl-text">
+          <h2 className="mb-4 font-display text-2xl font-semibold text-nl-text">
             Itens ({items.length})
           </h2>
 
@@ -928,7 +928,7 @@ export const ListView: React.FC = () => {
                   clearItemsError()
                   if (id) fetchItems(id)
                 }}
-                className="rounded-xl bg-nl-danger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
+                className="nl-btn-danger"
               >
                 Tentar Novamente
               </button>

@@ -98,7 +98,7 @@ export const Home: React.FC = () => {
             <button
               onClick={() => setIsModalOpen(true)}
               data-tour="home-create-list"
-              className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-5 py-3 font-sans text-sm font-semibold text-nl-text shadow-earthen transition-transform hover:-translate-y-0.5 hover:shadow-earthen-strong focus-visible:ring-2 focus-visible:ring-nl-accent/40"
+              className="nl-btn-primary"
             >
               <span aria-hidden="true">+</span>
               Nova Lista
@@ -125,7 +125,7 @@ export const Home: React.FC = () => {
                 clearError()
                 fetchLists()
               }}
-              className="rounded-xl bg-nl-danger px-4 py-2 font-sans font-medium text-nl-text transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
+              className="nl-btn-danger"
             >
               Tentar Novamente
             </button>
@@ -140,12 +140,15 @@ export const Home: React.FC = () => {
                 <p className="mb-2 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-nl-accent">
                   Comece Agora
                 </p>
-                <p className="mb-5 font-sans text-lg text-nl-muted">
+                <h2 className="font-display text-3xl font-semibold text-nl-text">
+                  Sua primeira folha colaborativa começa aqui.
+                </h2>
+                <p className="mb-5 mt-3 font-sans text-lg text-nl-muted">
                   Voce ainda nao tem listas. Crie a primeira e compartilhe em segundos.
                 </p>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-gradient-to-r from-nl-primary to-nl-primary-strong px-5 py-3 font-sans text-sm font-semibold text-nl-text transition-transform hover:-translate-y-0.5 hover:shadow-earthen focus-visible:ring-2 focus-visible:ring-nl-primary/40"
+                  className="nl-btn-primary"
                 >
                   <span aria-hidden="true">+</span>
                   Criar Primeira Lista

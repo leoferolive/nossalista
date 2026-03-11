@@ -36,14 +36,28 @@ App local: `http://localhost:5173`
 - Endpoints e contrato de autenticacao: `docs/auth-endpoints-matrix.md`
 - Sincronizacao realtime: STOMP/SockJS em `/ws/**`
 
-## Padrao visual de formularios
+## Sistema visual
 
-- Inputs em telas/modais do tema principal devem explicitar contraste:
-  - Fundo: `bg-nl-surface-strong` (ou equivalente do tema)
-  - Texto digitado: `text-nl-text`
-  - Placeholder: `placeholder:text-nl-muted/70`
-  - Cursor de texto: `caret-nl-accent`
-- Evitar depender do estilo padrao do navegador para `input`, pois isso pode resultar em campo claro com fonte clara.
+- Linguagem visual oficial: `paper tech editorial`
+- Fonte display: `Fraunces`
+- Fonte de interface: `Manrope`
+- Tokens globais vivem em `src/index.css` e cobrem `light` e `dark` com paridade de superficie, borda, foco, sombra e overlays
+- O switch de tema e parte do produto e deve aparecer nas telas publicas e na area autenticada principal
+
+## Padrao visual de formularios e modais
+
+- Use as primitives globais sempre que possivel:
+  - Campo: `nl-input`
+  - Label: `nl-label`
+  - Helper text: `nl-helper`
+  - Erro: `nl-alert` ou `nl-helper nl-helper-error`
+  - Botoes: `nl-btn-primary`, `nl-btn-secondary`, `nl-btn-ghost`, `nl-btn-danger`
+  - Estrutura de modal: `ModalShell`
+- Landing publica:
+  - CTA principal abre cadastro
+  - CTA secundario abre login
+  - Nao reutilizar o mesmo modal para os dois CTAs
+- Evitar depender do estilo padrao do navegador para `input`, `button` ou `dialog`; o padrao oficial deve vir dos tokens/classes do projeto
 
 ## Onboarding Guiado (Primeiro Login)
 

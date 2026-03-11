@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { LandingPage } from './LandingPage'
+import { ThemeProvider } from '../contexts/ThemeContext'
 
 const mockNavigate = vi.fn()
 
@@ -22,11 +23,21 @@ vi.mock('../components/LoginModal', () => ({
   ),
 }))
 
+vi.mock('../components/RegisterModal', () => ({
+  RegisterModal: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="register-modal">
+      <button onClick={onClose}>Fechar cadastro</button>
+    </div>
+  ),
+}))
+
 function renderLanding() {
   return render(
-    <MemoryRouter>
-      <LandingPage />
-    </MemoryRouter>
+    <ThemeProvider>
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>
+    </ThemeProvider>
   )
 }
 
@@ -35,21 +46,21 @@ describe('LandingPage', () => {
     renderLanding()
 
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Começar agora/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Criar conta gratis/i })).toBeInTheDocument()
   })
 
-  it('abre o modal de login ao clicar em Começar agora', () => {
+  it('abre o modal de cadastro ao clicar em Criar conta gratis', () => {
     renderLanding()
 
-    fireEvent.click(screen.getByRole('button', { name: /Começar agora/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Criar conta gratis/i }))
 
-    expect(screen.getByTestId('login-modal')).toBeInTheDocument()
+    expect(screen.getByTestId('register-modal')).toBeInTheDocument()
   })
 
-  it('abre o modal de login ao clicar em Já tenho conta', () => {
+  it('abre o modal de login ao clicar em Ja tenho conta', () => {
     renderLanding()
 
-    fireEvent.click(screen.getByRole('button', { name: /Já tenho conta/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Ja tenho conta/i }))
 
     expect(screen.getByTestId('login-modal')).toBeInTheDocument()
   })
@@ -57,18 +68,18 @@ describe('LandingPage', () => {
   it('fecha o modal ao chamar onClose', () => {
     renderLanding()
 
-    fireEvent.click(screen.getByRole('button', { name: /Começar agora/i }))
-    expect(screen.getByTestId('login-modal')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Criar conta gratis/i }))
+    expect(screen.getByTestId('register-modal')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar modal' }))
-    expect(screen.queryByTestId('login-modal')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar cadastro' }))
+    expect(screen.queryByTestId('register-modal')).not.toBeInTheDocument()
   })
 
-  it('renderiza trust signals', () => {
+  it('renderiza elementos de valor na landing', () => {
     renderLanding()
 
-    expect(screen.getByText('Sync instantâneo')).toBeInTheDocument()
-    expect(screen.getByText('Compartilhe por link')).toBeInTheDocument()
-    expect(screen.getByText('Compras, tarefas e mais')).toBeInTheDocument()
+    expect(screen.getByText('Sync instantaneo')).toBeInTheDocument()
+    expect(screen.getByText('Compartilhe por username ou link')).toBeInTheDocument()
+    expect(screen.getByText('Compras, tarefas e wishlist')).toBeInTheDocument()
   })
 })

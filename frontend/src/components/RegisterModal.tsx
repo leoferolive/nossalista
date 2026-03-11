@@ -1,21 +1,15 @@
-import React, { useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { AuthLayout } from '../components/AuthLayout'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '../api/authApi'
+import { ModalShell } from './ModalShell'
 
-function buildLink(path: string, redirectPath: string | null) {
-  if (!redirectPath) {
-    return path
-  }
-
-  return `${path}?redirect=${encodeURIComponent(redirectPath)}`
+interface RegisterModalProps {
+  onClose: () => void
+  onSwitchToLogin?: () => void
 }
 
-export const Register: React.FC = () => {
+export function RegisterModal({ onClose, onSwitchToLogin }: RegisterModalProps) {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const redirectPath = searchParams.get('redirect')
-
   const [formData, setFormData] = useState({
     name: '',
     username: '',
@@ -26,10 +20,13 @@ export const Register: React.FC = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const loginHref = useMemo(() => buildLink('/login', redirectPath), [redirectPath])
-  const forgotPasswordHref = useMemo(
-    () => buildLink('/forgot-password', redirectPath),
-    [redirectPath]
+  const canSubmit = useMemo(
+    () =>
+      formData.username.trim().length >= 3 &&
+      formData.email.trim().length > 3 &&
+      formData.password.length >= 6 &&
+      formData.confirmPassword.length >= 6,
+    [formData]
   )
 
   const handleChange = (field: keyof typeof formData, value: string) => {
@@ -47,7 +44,7 @@ export const Register: React.FC = () => {
     const normalizedEmail = formData.email.trim().toLowerCase()
 
     if (!/^[a-z0-9_-]{3,50}$/.test(normalizedUsername)) {
-      setError('Use um username com 3 a 50 caracteres em minusculas, numeros, hifen ou underscore.')
+      setError('Use um username com 3 a 50 caracteres, minusculas, numeros, hifen ou underscore.')
       return
     }
 
@@ -71,15 +68,10 @@ export const Register: React.FC = () => {
         password: formData.password,
       })
 
-      const nextSearchParams = new URLSearchParams()
-      nextSearchParams.set('registered', '1')
-      nextSearchParams.set('email', normalizedEmail)
-
-      if (redirectPath) {
-        nextSearchParams.set('redirect', redirectPath)
-      }
-
-      navigate(`/login?${nextSearchParams.toString()}`, { replace: true })
+      navigate(`/login?registered=1&email=${encodeURIComponent(normalizedEmail)}`, {
+        replace: true,
+      })
+      onClose()
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : 'Nao foi possivel criar sua conta.'
@@ -90,18 +82,11 @@ export const Register: React.FC = () => {
   }
 
   return (
-    <AuthLayout
-      badge="Cadastro"
-      title="Criar Minha Base"
-      description="Configure seu acesso com uma linguagem clara, papel vivo e um fluxo pronto para convidar outras pessoas sem ruído."
-      footer={
-        <div className="rounded-[1.4rem] border border-nl-border bg-nl-surface-muted/50 p-4 text-sm text-nl-muted">
-          Ja tem conta?{' '}
-          <Link className="font-semibold text-nl-accent" to={loginHref}>
-            Voltar para login
-          </Link>
-        </div>
-      }
+    <ModalShell
+      title="Abrir Minha Base"
+      eyebrow="Cadastro"
+      description="Monte seu espaco colaborativo e comece com listas vivas, checklists fluidos e compartilhamento em tempo real."
+      onClose={onClose}
     >
       {error && (
         <div className="nl-alert mb-5" role="alert" aria-live="polite">
@@ -112,29 +97,27 @@ export const Register: React.FC = () => {
       <form onSubmit={handleSubmit} className="nl-auth-grid">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label htmlFor="name" className="nl-label">
+            <label htmlFor="register-modal-name" className="nl-label">
               Nome
             </label>
             <input
-              id="name"
+              id="register-modal-name"
               type="text"
-              name="name"
               value={formData.name}
               onChange={(event) => handleChange('name', event.target.value)}
               className="nl-input"
-              placeholder="Como voce quer aparecer"
+              placeholder="Como voce quer aparecer para a turma"
               autoComplete="name"
             />
           </div>
 
           <div>
-            <label htmlFor="username" className="nl-label">
+            <label htmlFor="register-modal-username" className="nl-label">
               Username
             </label>
             <input
-              id="username"
+              id="register-modal-username"
               type="text"
-              name="username"
               value={formData.username}
               onChange={(event) => handleChange('username', event.target.value)}
               className="nl-input"
@@ -146,20 +129,19 @@ export const Register: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="email" className="nl-label">
+            <label htmlFor="register-modal-email" className="nl-label">
               Email
             </label>
             <input
-              id="email"
+              id="register-modal-email"
               type="email"
-              name="email"
               value={formData.email}
               onChange={(event) => handleChange('email', event.target.value)}
               className="nl-input"
               placeholder="voce@email.com"
               autoComplete="email"
-              inputMode="email"
               spellCheck={false}
+              inputMode="email"
               required
             />
           </div>
@@ -167,13 +149,12 @@ export const Register: React.FC = () => {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="password" className="nl-label">
+            <label htmlFor="register-modal-password" className="nl-label">
               Senha
             </label>
             <input
-              id="password"
+              id="register-modal-password"
               type="password"
-              name="password"
               value={formData.password}
               onChange={(event) => handleChange('password', event.target.value)}
               className="nl-input"
@@ -183,13 +164,12 @@ export const Register: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="confirm-password" className="nl-label">
+            <label htmlFor="register-modal-confirm-password" className="nl-label">
               Confirmar senha
             </label>
             <input
-              id="confirm-password"
+              id="register-modal-confirm-password"
               type="password"
-              name="confirmPassword"
               value={formData.confirmPassword}
               onChange={(event) => handleChange('confirmPassword', event.target.value)}
               className="nl-input"
@@ -199,17 +179,27 @@ export const Register: React.FC = () => {
           </div>
         </div>
 
-        <button type="submit" disabled={loading} className="nl-btn-primary w-full">
-          {loading ? 'Criando conta...' : 'Criar conta'}
+        <p className="nl-helper">
+          Username e email ficam prontos para convite rapido, links e retomada de listas depois.
+        </p>
+
+        <button type="submit" disabled={!canSubmit || loading} className="nl-btn-primary w-full">
+          {loading ? 'Criando conta...' : 'Criar conta e continuar'}
         </button>
       </form>
 
-      <div className="mt-5 text-sm text-nl-muted">
-        Esqueceu a senha antes mesmo de entrar?{' '}
-        <Link className="font-semibold text-nl-accent" to={forgotPasswordHref}>
-          Ver opcoes de acesso
-        </Link>
+      <div className="mt-6 rounded-[1.4rem] border border-nl-border bg-nl-surface-muted/50 p-4 text-sm text-nl-muted">
+        Ja faz parte da lista?{' '}
+        {onSwitchToLogin ? (
+          <button type="button" className="font-semibold text-nl-accent" onClick={onSwitchToLogin}>
+            Entrar agora
+          </button>
+        ) : (
+          <Link to="/login" onClick={onClose} className="font-semibold text-nl-accent">
+            Entrar agora
+          </Link>
+        )}
       </div>
-    </AuthLayout>
+    </ModalShell>
   )
 }

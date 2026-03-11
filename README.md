@@ -14,6 +14,8 @@ Status atual:
 - MVP em desenvolvimento ativo
 - Backend e frontend implementados no monorepo
 - Onboarding guiado no primeiro login (com replay manual no menu da conta)
+- Redesign global do frontend com linguagem `paper tech editorial`, paridade light/dark e switch de tema exposto na UI
+- Landing page publica com CTAs separados para cadastro e login em modais distintos
 - CI ativo para frontend e backend
 - Release automática em `main` com tag SemVer patch e deploy automático em `dev`
 - Deploy manual em `dev` para branches/SHAs não mergeados via RC tag auditável
@@ -81,6 +83,15 @@ npm run dev
 Frontend em `http://localhost:5173`.
 
 ## Qualidade e testes
+
+## Experiencia de interface
+
+- Tema visual oficial do frontend: `paper tech editorial`
+- Modos `light` e `dark` compartilham a mesma linguagem visual e os mesmos componentes
+- A landing usa dois fluxos distintos:
+  - CTA principal abre cadastro
+  - CTA secundario abre login
+- Modais e formularios principais seguem o mesmo padrao de textbox, label, helper text, feedback e hierarquia de botoes
 
 ### Frontend
 

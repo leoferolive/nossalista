@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { InviteLinkResponse, InviteByUsernameResponse, UserSearchResult } from '../types/List'
 import { useToast } from './Toast'
+import { ModalShell } from './ModalShell'
 
 interface InviteModalProps {
   isOpen: boolean
@@ -12,11 +13,6 @@ interface InviteModalProps {
   onInviteSuccess?: (username: string) => void
 }
 
-/**
- * Modal para convidar pessoas via link de convite
- * AC2: Seção "Convidar por Link" com botão "Gerar Link"/"Copiar Link"
- * AC3: Clipboard copy com Toast feedback
- */
 export const InviteModal: React.FC<InviteModalProps> = ({
   isOpen,
   listName,
@@ -40,7 +36,6 @@ export const InviteModal: React.FC<InviteModalProps> = ({
   const { showToast } = useToast()
   const searchRequestRef = useRef(0)
 
-  // Handler para gerar link
   const handleGenerateLink = useCallback(async () => {
     setGenerating(true)
     setError(null)
@@ -56,18 +51,15 @@ export const InviteModal: React.FC<InviteModalProps> = ({
     }
   }, [onGenerateLink])
 
-  // Handler para copiar link
   const handleCopyLink = useCallback(async () => {
     if (!inviteData) return
 
     setCopying(true)
 
     try {
-      // Tenta usar a Clipboard API moderna
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(inviteData.invite_link)
       } else {
-        // Fallback para browsers antigos
         const textarea = document.createElement('textarea')
         textarea.value = inviteData.invite_link
         textarea.style.position = 'fixed'
@@ -78,18 +70,14 @@ export const InviteModal: React.FC<InviteModalProps> = ({
         document.body.removeChild(textarea)
       }
 
-      // Mostra estado "Copiado!"
       setCopied(true)
-
-      // Toast de sucesso AC3: "Link copiado!"
       showToast('Link copiado!', 'success')
 
-      // Volta para "Copiar Link" após 2 segundos
       setTimeout(() => {
         setCopied(false)
       }, 2000)
     } catch {
-      const errorMessage = 'Não foi possível copiar o link'
+      const errorMessage = 'Nao foi possivel copiar o link'
       setError(errorMessage)
       showToast(errorMessage, 'error')
     } finally {
@@ -97,7 +85,6 @@ export const InviteModal: React.FC<InviteModalProps> = ({
     }
   }, [inviteData, showToast])
 
-  // Fecha modal e reseta estado
   const handleClose = useCallback(() => {
     searchRequestRef.current += 1
     setInviteData(null)
@@ -145,7 +132,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
           return
         }
 
-        const message = err instanceof Error ? err.message : 'Erro ao buscar usuários'
+        const message = err instanceof Error ? err.message : 'Erro ao buscar usuarios'
         setSearchError(message)
         setSearchResults([])
       } finally {
@@ -181,7 +168,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
       onInviteSuccess?.(selectedUser.username)
       handleClose()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao convidar usuário'
+      const message = err instanceof Error ? err.message : 'Erro ao convidar usuario'
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -189,62 +176,18 @@ export const InviteModal: React.FC<InviteModalProps> = ({
     }
   }, [handleClose, onInviteByUsername, onInviteSuccess, selectedUser, showToast])
 
-  // Fecha ao clicar no backdrop
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === e.currentTarget) {
-        handleClose()
-      }
-    },
-    [handleClose]
-  )
-
   if (!isOpen) return null
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-nl-bg/80 p-4 backdrop-blur-sm"
-      onClick={handleBackdropClick}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="invite-modal-title"
+    <ModalShell
+      title="Convidar Pessoas"
+      eyebrow="Compartilhamento"
+      description={`Leve ${listName} para outras pessoas por username ou por um link de acesso rapido.`}
+      onClose={handleClose}
     >
-      <div
-        className="nl-card w-full max-w-md animate-scale-in p-6"
-        style={{ overscrollBehavior: 'contain' }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 id="invite-modal-title" className="font-display text-xl font-bold text-nl-text">
-            Convidar
-          </h2>
-          <button
-            onClick={handleClose}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-nl-muted transition-colors hover:bg-nl-surface-strong hover:text-nl-muted focus-visible:ring-2 focus-visible:ring-nl-accent/30"
-            aria-label="Fechar modal"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Seção Convidar por Username */}
-        <div className="space-y-4 mb-6">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-primary">
-            Convidar por Username
-          </h3>
+      <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="nl-card-soft p-5">
+          <p className="nl-label">Convidar por username</p>
 
           <div className="relative">
             <input
@@ -254,27 +197,27 @@ export const InviteModal: React.FC<InviteModalProps> = ({
                 setSearchQuery(e.target.value)
                 setSelectedUser(null)
               }}
-              placeholder="Buscar usuário…"
-              className="w-full rounded-xl border border-nl-border px-4 py-3 text-sm text-nl-text transition-colors focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+              placeholder="Buscar usuario..."
+              className="nl-input"
               autoComplete="off"
               spellCheck={false}
             />
 
             {searching && (
-              <p className="mt-2 text-xs text-nl-muted" role="status" aria-live="polite">
-                Buscando…
+              <p className="nl-helper" role="status" aria-live="polite">
+                Buscando...
               </p>
             )}
 
             {searchError && (
-              <p className="mt-2 text-xs text-nl-danger" role="alert">
+              <p className="nl-helper nl-helper-error" role="alert">
                 {searchError}
               </p>
             )}
 
             {searchResults.length > 0 && (
               <div
-                className="absolute z-20 mt-2 max-h-56 w-full overflow-y-auto rounded-xl border border-nl-border bg-nl-surface-strong shadow-tropical"
+                className="absolute z-20 mt-2 max-h-56 w-full overflow-y-auto rounded-2xl border border-nl-border bg-nl-surface-strong p-2 shadow-earthen-strong"
                 style={{ overscrollBehavior: 'contain' }}
               >
                 {searchResults.map((user) => (
@@ -282,23 +225,23 @@ export const InviteModal: React.FC<InviteModalProps> = ({
                     key={user.username}
                     type="button"
                     onClick={() => handleSelectUser(user)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-nl-surface-muted/50"
                   >
                     {user.avatarUrl ? (
                       <img
                         src={user.avatarUrl}
                         alt={user.username}
-                        className="h-8 w-8 rounded-full object-cover"
-                        width={32}
-                        height={32}
+                        className="h-9 w-9 rounded-full object-cover"
+                        width={36}
+                        height={36}
                       />
                     ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-nl-surface-strong text-xs text-nl-accent">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-nl-border bg-nl-surface text-xs font-semibold text-nl-accent">
                         {user.username.slice(0, 2).toUpperCase()}
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium text-nl-text">{user.username}</p>
+                      <p className="text-sm font-semibold text-nl-text">{user.username}</p>
                       <p className="text-xs text-nl-muted">{user.name}</p>
                     </div>
                   </button>
@@ -307,197 +250,62 @@ export const InviteModal: React.FC<InviteModalProps> = ({
             )}
           </div>
 
+          <p className="nl-helper">
+            O convite por username e o caminho mais rapido para quem ja esta no NossaLista.
+          </p>
+
           <button
             type="button"
             onClick={handleInviteByUsername}
             disabled={!selectedUser || inviting}
-            className="w-full min-h-[48px] rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 px-6 py-3 font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
+            className="nl-btn-primary mt-5 w-full"
           >
-            {inviting ? 'Convidando…' : 'Convidar'}
+            {inviting ? 'Convidando...' : 'Convidar por username'}
           </button>
-        </div>
+        </section>
 
-        {/* Seção Convidar por Link */}
-        <div className="space-y-4">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-accent">
-            Convidar por Link
-          </h3>
-
-          {/* Lista sendo compartilhada */}
-          <p className="text-sm text-nl-muted">
-            Compartilhar lista: <span className="font-medium text-nl-text">{listName}</span>
+        <section className="nl-card-soft p-5">
+          <p className="nl-label">Convidar por link</p>
+          <p className="text-sm leading-7 text-nl-muted">
+            Gere um link temporario para abrir a lista com rapidez, mesmo quando a pessoa ainda nao
+            esta no fluxo da sua equipe.
           </p>
 
-          {/* Error message */}
           {error && (
-            <div className="rounded-xl border border-nl-danger/30 bg-nl-danger/10 p-3" role="alert">
-              <p className="text-nl-danger text-sm">{error}</p>
+            <div className="nl-alert mt-4" role="alert">
+              {error}
             </div>
           )}
 
-          {/* Link display area (quando gerado) */}
           {inviteData && (
-            <div className="space-y-3">
-              {/* Link em área de display */}
-              <div className="rounded-xl border border-nl-border bg-nl-surface/65 px-4 py-3">
-                <p className="mb-1 text-xs text-nl-muted">Link de convite:</p>
-                <p className="break-all font-mono text-sm text-nl-text">{inviteData.invite_link}</p>
-              </div>
-
-              {/* Tempo de expiração */}
-              <p className="flex items-center gap-1 text-xs text-nl-muted">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Expira em 24 horas
+            <div className="mt-4 rounded-[1.2rem] border border-nl-border bg-nl-surface p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-muted">
+                Link ativo
               </p>
+              <p className="mt-2 break-all font-mono text-sm text-nl-text">{inviteData.invite_link}</p>
+              <p className="mt-3 text-xs text-nl-muted">Expira em 24 horas.</p>
             </div>
           )}
 
-          {/* Botão de ação */}
           {!inviteData ? (
-            // Estado 1: Gerar Link
-            <button
-              onClick={handleGenerateLink}
-              disabled={generating}
-              className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {generating ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Gerando…
-                </>
-              ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                    />
-                  </svg>
-                  Gerar Link
-                </>
-              )}
+            <button onClick={handleGenerateLink} disabled={generating} className="nl-btn-secondary mt-5 w-full">
+              {generating ? 'Gerando...' : 'Gerar Link'}
             </button>
           ) : copied ? (
-            // Estado 3: Copiado!
-            <button
-              disabled
-              className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl bg-nl-primary px-6 py-3 font-semibold text-white"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+            <button disabled className="nl-btn-secondary mt-5 w-full">
               Copiado!
             </button>
           ) : (
-            // Estado 2: Copiar Link
-            <button
-              onClick={handleCopyLink}
-              disabled={copying}
-              className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {copying ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Copiando…
-                </>
-              ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  Copiar Link
-                </>
-              )}
+            <button onClick={handleCopyLink} disabled={copying} className="nl-btn-primary mt-5 w-full">
+              {copying ? 'Copiando...' : 'Copiar Link'}
             </button>
           )}
 
-          {/* Dica */}
-          <p className="text-center text-xs text-nl-muted">
+          <p className="mt-4 text-center text-xs text-nl-muted">
             Qualquer pessoa com o link pode visualizar a lista por 24 horas.
           </p>
-        </div>
+        </section>
       </div>
-    </div>
+    </ModalShell>
   )
 }

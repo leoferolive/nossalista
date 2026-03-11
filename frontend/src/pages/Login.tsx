@@ -14,10 +14,6 @@ interface LoginResponse {
   token: string
 }
 
-/**
- * Página de Login
- * Permite autenticação com email/senha ou Google OAuth2
- */
 export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -45,13 +41,11 @@ export default function Login() {
     return `/forgot-password?redirect=${encodeURIComponent(redirectPath)}`
   }, [redirectPath])
 
-  // Salvar redirect parameter no sessionStorage se presente
   useEffect(() => {
-    const redirectPath = searchParams.get('redirect')
     if (redirectPath) {
       sessionStorage.setItem('postLoginRedirect', redirectPath)
     }
-  }, [searchParams])
+  }, [redirectPath])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,11 +67,10 @@ export default function Login() {
         onboardingCompletedAt: data.onboardingCompletedAt ?? null,
       })
 
-      // Verificar se há redirect pendente
-      const redirectPath = sessionStorage.getItem('postLoginRedirect')
-      if (redirectPath) {
+      const nextRedirect = sessionStorage.getItem('postLoginRedirect')
+      if (nextRedirect) {
         sessionStorage.removeItem('postLoginRedirect')
-        navigate(redirectPath)
+        navigate(nextRedirect)
       } else {
         navigate('/home')
       }
@@ -89,10 +82,9 @@ export default function Login() {
   }
 
   const handleGoogleLogin = () => {
-    // Salvar invite code no sessionStorage se o redirect apontar para uma página de join
-    const redirectPath = searchParams.get('redirect')
-    if (redirectPath?.startsWith('/join/')) {
-      const inviteCode = redirectPath.slice('/join/'.length)
+    const redirect = searchParams.get('redirect')
+    if (redirect?.startsWith('/join/')) {
+      const inviteCode = redirect.slice('/join/'.length)
       if (inviteCode) {
         sessionStorage.setItem('pendingInviteCode', inviteCode)
       }
@@ -104,55 +96,40 @@ export default function Login() {
   return (
     <AuthLayout
       badge="Login"
-      title="Entre na Sua Conta"
-      description="Continue suas listas em segundos com login por email ou Google."
+      title="Voltar Para Sua Lista"
+      description="Entre com email ou Google e retome convites, checklists e listas compartilhadas sem perder o ritmo."
       footer={
-        <div className="rounded-2xl border border-nl-border bg-nl-surface-strong p-4 text-sm text-nl-muted">
+        <div className="rounded-[1.4rem] border border-nl-border bg-nl-surface-muted/50 p-4 text-sm text-nl-muted">
           Nao tem conta ainda?{' '}
-          <Link
-            className="font-semibold text-nl-accent underline decoration-nl-accent/50 underline-offset-4 hover:text-nl-accent-strong"
-            to={registerHref}
-          >
+          <Link className="font-semibold text-nl-accent" to={registerHref}>
             Criar conta
           </Link>
         </div>
       }
     >
       {registered && (
-        <div
-          className="mb-5 rounded-2xl border border-nl-primary/30 bg-nl-primary/10 px-4 py-3 text-sm text-nl-text"
-          role="status"
-          aria-live="polite"
-        >
+        <div className="mb-5 rounded-[1.2rem] border border-nl-primary/30 bg-nl-primary/10 px-4 py-3 text-sm text-nl-text">
           Conta criada com sucesso. Agora e so entrar para continuar.
         </div>
       )}
 
       {error && (
-        <div
-          className="mb-5 rounded-2xl border border-nl-danger/30 bg-nl-danger/10 px-4 py-3 text-sm text-nl-text"
-          role="alert"
-          aria-live="polite"
-        >
+        <div className="nl-alert mb-5" role="alert" aria-live="polite">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="nl-auth-grid">
         <div>
-          <label
-            htmlFor="email"
-            className="mb-1.5 block font-sans text-sm font-medium text-nl-text"
-          >
+          <label htmlFor="email" className="nl-label">
             Email
           </label>
           <input
             type="email"
             id="email"
-            name="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 font-sans text-nl-text transition-colors placeholder:text-nl-muted/60 focus:border-nl-border-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+            className="nl-input"
             autoComplete="email"
             inputMode="email"
             spellCheck={false}
@@ -161,52 +138,35 @@ export default function Login() {
         </div>
 
         <div>
-          <div className="mb-1.5 flex items-center justify-between gap-3">
-            <label htmlFor="password" className="block font-sans text-sm font-medium text-nl-text">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <label htmlFor="password" className="nl-label mb-0">
               Senha
             </label>
-            <Link
-              to={forgotPasswordHref}
-              className="font-sans text-sm font-medium text-nl-muted underline decoration-nl-accent/50 underline-offset-4 hover:text-nl-text"
-            >
+            <Link to={forgotPasswordHref} className="text-sm font-semibold text-nl-accent">
               Esqueci minha senha
             </Link>
           </div>
           <input
             type="password"
             id="password"
-            name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 font-sans text-nl-text transition-colors placeholder:text-nl-muted/60 focus:border-nl-border-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+            className="nl-input"
             autoComplete="current-password"
             required
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-2xl bg-gradient-to-r from-nl-accent to-nl-accent-strong px-5 py-3.5 font-sans text-sm font-semibold text-nl-text shadow-earthen transition-transform hover:-translate-y-0.5 hover:shadow-earthen-strong focus-visible:ring-2 focus-visible:ring-nl-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Entrando…' : 'Entrar'}
+        <button type="submit" disabled={loading} className="nl-btn-primary w-full">
+          {loading ? 'Entrando...' : 'Entrar'}
         </button>
       </form>
 
-      <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-nl-border" />
-        <span className="font-sans text-xs font-semibold uppercase tracking-[0.24em] text-nl-muted">
-          ou
-        </span>
-        <div className="h-px flex-1 bg-nl-border" />
-      </div>
+      <div className="mt-6 nl-or">ou</div>
 
-      <button
-        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-nl-border bg-nl-surface-strong px-5 py-3.5 font-sans text-sm font-semibold text-nl-text transition-colors hover:border-nl-border-strong hover:bg-nl-surface focus-visible:ring-2 focus-visible:ring-nl-accent/30"
-        onClick={handleGoogleLogin}
-      >
+      <button onClick={handleGoogleLogin} className="nl-btn-secondary mt-6 w-full">
         <span
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-nl-surface text-xs font-bold text-nl-accent"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-nl-border bg-nl-surface text-xs font-bold text-nl-accent"
           aria-hidden="true"
         >
           G
@@ -214,12 +174,9 @@ export default function Login() {
         Continuar com Google
       </button>
 
-      <div className="mt-5 font-sans text-sm text-nl-muted">
+      <div className="mt-5 text-sm text-nl-muted">
         Quer entrar com email e ainda nao criou conta?{' '}
-        <Link
-          className="font-semibold text-nl-accent underline decoration-nl-accent/50 underline-offset-4 hover:text-nl-accent-strong"
-          to={registerHref}
-        >
+        <Link className="font-semibold text-nl-accent" to={registerHref}>
           Criar conta
         </Link>
       </div>
