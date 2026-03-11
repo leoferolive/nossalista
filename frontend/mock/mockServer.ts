@@ -154,9 +154,28 @@ const state = {
   activities: new Map<string, MockActivity[]>([
     [
       shoppingListId,
-      [{ id: 'activity-1', type: 'ITEM_CHECKED', actorName: 'Leo Oliveira', itemName: 'Tomate sweet grape', createdAt: now() }],
+      [
+        {
+          id: 'activity-1',
+          type: 'ITEM_CHECKED',
+          actorName: 'Leo Oliveira',
+          itemName: 'Tomate sweet grape',
+          createdAt: now(),
+        },
+      ],
     ],
-    [tasksListId, [{ id: 'activity-2', type: 'ITEM_ADDED', actorName: 'Leo Oliveira', itemName: 'Separar presentes', createdAt: now() }]],
+    [
+      tasksListId,
+      [
+        {
+          id: 'activity-2',
+          type: 'ITEM_ADDED',
+          actorName: 'Leo Oliveira',
+          itemName: 'Separar presentes',
+          createdAt: now(),
+        },
+      ],
+    ],
   ]),
 }
 
@@ -359,7 +378,10 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
     if (pathname === '/api/users/search' && method === 'GET') {
       const query = (url.searchParams.get('query') ?? '').toLowerCase()
       const results = [...state.users.values()]
-        .filter((user) => user.username.toLowerCase().includes(query) || user.name.toLowerCase().includes(query))
+        .filter(
+          (user) =>
+            user.username.toLowerCase().includes(query) || user.name.toLowerCase().includes(query)
+        )
         .map((user) => ({ username: user.username, name: user.name, avatarUrl: user.avatarUrl }))
       json(res, 200, results)
       return
@@ -611,16 +633,16 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
         return
       }
       const body = (await readJsonBody(req)) as { username?: string }
-      const invitedUser =
-        [...state.users.values()].find((user) => user.username === body.username) ??
-        {
-          id: mockId('user'),
-          username: body.username ?? `guest-${state.users.size + 1}`,
-          email: `${body.username ?? 'guest'}@test.com`,
-          name: body.username ?? 'Convidado',
-          avatarUrl: null,
-          onboardingCompletedAt: null,
-        }
+      const invitedUser = [...state.users.values()].find(
+        (user) => user.username === body.username
+      ) ?? {
+        id: mockId('user'),
+        username: body.username ?? `guest-${state.users.size + 1}`,
+        email: `${body.username ?? 'guest'}@test.com`,
+        name: body.username ?? 'Convidado',
+        avatarUrl: null,
+        onboardingCompletedAt: null,
+      }
       state.users.set(invitedUser.id, invitedUser)
       if (!list.memberIds.includes(invitedUser.id)) {
         list.memberIds.push(invitedUser.id)
@@ -640,7 +662,12 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
         content: activities.map((activity) => ({
           id: activity.id,
           eventType: activity.type,
-          actor: { id: demoUser.id, username: demoUser.username, name: activity.actorName, avatarUrl: null },
+          actor: {
+            id: demoUser.id,
+            username: demoUser.username,
+            name: activity.actorName,
+            avatarUrl: null,
+          },
           itemName: activity.itemName ?? null,
           createdAt: activity.createdAt,
         })),
@@ -654,7 +681,9 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
 
     const joinMatch = pathname.match(/^\/api\/lists\/join\/([^/]+)$/)
     if (joinMatch) {
-      const list = [...state.lists.values()].find((candidate) => candidate.inviteCode === joinMatch[1])
+      const list = [...state.lists.values()].find(
+        (candidate) => candidate.inviteCode === joinMatch[1]
+      )
       if (!list) {
         notFound(res)
         return

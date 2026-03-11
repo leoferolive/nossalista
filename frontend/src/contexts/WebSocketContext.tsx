@@ -320,22 +320,25 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     pendingSubscriptionsRef.current.delete(key)
   }, [])
 
-  const send = useCallback((destination: string, body: unknown) => {
-    if (isMockMode) {
-      return
-    }
+  const send = useCallback(
+    (destination: string, body: unknown) => {
+      if (isMockMode) {
+        return
+      }
 
-    const client = clientRef.current
-    if (!client?.connected) {
-      console.warn('[WebSocket] Tentativa de send sem conexão ativa')
-      return
-    }
+      const client = clientRef.current
+      if (!client?.connected) {
+        console.warn('[WebSocket] Tentativa de send sem conexão ativa')
+        return
+      }
 
-    client.publish({
-      destination,
-      body: JSON.stringify(body),
-    })
-  }, [isMockMode])
+      client.publish({
+        destination,
+        body: JSON.stringify(body),
+      })
+    },
+    [isMockMode]
+  )
 
   return (
     <WebSocketContext.Provider

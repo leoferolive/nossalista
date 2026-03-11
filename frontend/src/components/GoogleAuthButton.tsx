@@ -6,12 +6,7 @@ interface GoogleAuthButtonProps {
 
 function GoogleLogo() {
   return (
-    <svg
-      className="h-5 w-5 shrink-0"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-    >
+    <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path
         fill="#4285F4"
         d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12.24v4.29h6.31a5.41 5.41 0 0 1-2.34 3.55v2.95h3.79c2.22-2.04 3.49-5.04 3.49-8.52Z"

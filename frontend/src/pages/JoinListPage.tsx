@@ -363,7 +363,11 @@ export function JoinListPage() {
           <p className="text-center text-sm text-nl-muted mb-3">
             Entre para participar desta lista
           </p>
-          <GoogleAuthButton onClick={handleGoogleLogin} label="Entrar com Google" className="w-full" />
+          <GoogleAuthButton
+            onClick={handleGoogleLogin}
+            label="Entrar com Google"
+            className="w-full"
+          />
           <button
             onClick={handleEmailLogin}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-nl-border bg-nl-surface-strong px-4 py-3 font-medium text-nl-muted transition-colors hover:bg-nl-surface-strong"

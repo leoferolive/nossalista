@@ -185,7 +185,9 @@ test('landing mobile nao deve ter overflow horizontal', async ({ browser }) => {
   await page.goto('/')
   await page.waitForLoadState('networkidle')
 
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth
+  )
   expect(overflow).toBeLessThanOrEqual(0)
 
   await context.close()
