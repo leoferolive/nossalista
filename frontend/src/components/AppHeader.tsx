@@ -38,7 +38,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const location = useLocation()
   const { user, logout } = useAuth()
   const { startReplay } = useOnboarding()
-  const { permissionState, pushEnabled, availability, enablePush, disablePush } = usePushNotifications()
+  const { permissionState, pushEnabled, availability, enablePush, disablePush } =
+    usePushNotifications()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -254,35 +255,35 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     {permissionState !== 'unsupported' &&
                       availability !== 'server-not-configured' &&
                       !pushEnabled && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMenuOpen(false)
-                          enablePush()
-                        }}
-                        className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
-                        role="menuitem"
-                      >
-                        Ativar notificações push
-                        <span aria-hidden="true">🔔</span>
-                      </button>
-                    )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false)
+                            enablePush()
+                          }}
+                          className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
+                          role="menuitem"
+                        >
+                          Ativar notificações push
+                          <span aria-hidden="true">🔔</span>
+                        </button>
+                      )}
                     {permissionState !== 'unsupported' &&
                       availability !== 'server-not-configured' &&
                       pushEnabled && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMenuOpen(false)
-                          disablePush()
-                        }}
-                        className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
-                        role="menuitem"
-                      >
-                        Desativar notificações push
-                        <span aria-hidden="true">🔕</span>
-                      </button>
-                    )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false)
+                            disablePush()
+                          }}
+                          className="flex w-full items-center justify-between rounded-xl px-4 py-3 font-sans text-sm font-medium text-nl-text transition-colors hover:bg-nl-surface-strong"
+                          role="menuitem"
+                        >
+                          Desativar notificações push
+                          <span aria-hidden="true">🔕</span>
+                        </button>
+                      )}
                     <button
                       type="button"
                       onClick={handleLogout}

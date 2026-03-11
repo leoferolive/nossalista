@@ -48,7 +48,8 @@ const mockEnablePush = vi.fn()
 const mockDisablePush = vi.fn()
 let mockPermissionState: string = 'default'
 let mockPushEnabled = false
-let mockAvailability: 'available' | 'unsupported' | 'server-not-configured' | 'checking' = 'available'
+let mockAvailability: 'available' | 'unsupported' | 'server-not-configured' | 'checking' =
+  'available'
 
 vi.mock('../hooks/usePushNotifications', () => ({
   usePushNotifications: () => ({
