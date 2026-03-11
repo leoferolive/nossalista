@@ -123,7 +123,7 @@ export function JoinListPage() {
    */
   const handleEmailLogin = () => {
     saveInviteCodeForRedirect()
-    navigate(`/login?redirect=${encodeURIComponent(`/join/${inviteCode}`)}`)
+    navigate('/?auth=login')
   }
 
   // Loading state (initial load or joining)

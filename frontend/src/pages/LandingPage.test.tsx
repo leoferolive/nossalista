@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { LandingPage } from './LandingPage'
 import { ThemeProvider } from '../contexts/ThemeContext'
 
@@ -16,8 +16,20 @@ vi.mock('react-router-dom', async () => {
 })
 
 vi.mock('../components/LoginModal', () => ({
-  LoginModal: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="login-modal">
+  LoginModal: ({
+    onClose,
+    initialEmail,
+    showRegisteredMessage,
+  }: {
+    onClose: () => void
+    initialEmail?: string
+    showRegisteredMessage?: boolean
+  }) => (
+    <div
+      data-testid="login-modal"
+      data-email={initialEmail ?? ''}
+      data-registered={showRegisteredMessage ? '1' : '0'}
+    >
       <button onClick={onClose}>Fechar modal</button>
     </div>
   ),
@@ -31,11 +43,17 @@ vi.mock('../components/RegisterModal', () => ({
   ),
 }))
 
-function renderLanding() {
+function LocationProbe() {
+  const location = useLocation()
+  return <p data-testid="location-search">{location.search}</p>
+}
+
+function renderLanding(initialEntries: string[] = ['/']) {
   return render(
     <ThemeProvider>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>
         <LandingPage />
+        <LocationProbe />
       </MemoryRouter>
     </ThemeProvider>
   )
@@ -73,6 +91,7 @@ describe('LandingPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Fechar cadastro' }))
     expect(screen.queryByTestId('register-modal')).not.toBeInTheDocument()
+    expect(screen.getByTestId('location-search')).toHaveTextContent('')
   })
 
   it('renderiza elementos de valor na landing', () => {
@@ -81,5 +100,14 @@ describe('LandingPage', () => {
     expect(screen.getByText('Sync instantaneo')).toBeInTheDocument()
     expect(screen.getByText('Convite por link ou username')).toBeInTheDocument()
     expect(screen.getByText('Compras, tarefas e desejos')).toBeInTheDocument()
+  })
+
+  it('abre login via query string e repassa estado de cadastro concluido', () => {
+    renderLanding(['/?auth=login&registered=1&email=leo%40test.com'])
+
+    const loginModal = screen.getByTestId('login-modal')
+    expect(loginModal).toBeInTheDocument()
+    expect(loginModal).toHaveAttribute('data-registered', '1')
+    expect(loginModal).toHaveAttribute('data-email', 'leo@test.com')
   })
 })

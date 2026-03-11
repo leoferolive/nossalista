@@ -511,6 +511,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+  max-width: 100%;
   padding: 0.22rem;
   border-radius: 999px;
   border: 1px solid var(--nl-border);
@@ -877,6 +878,19 @@ textarea {
   .nl-modal-panel {
     padding: 1rem;
     border-radius: 1.4rem;
+  }
+}
+
+@media (width <= 480px) {
+  .nl-theme-toggle {
+    gap: 0.2rem;
+    padding: 0.2rem;
+  }
+
+  .nl-theme-toggle button {
+    padding: 0.42rem 0.58rem;
+    gap: 0.35rem;
+    font-size: 0.76rem;
   }
 }
 

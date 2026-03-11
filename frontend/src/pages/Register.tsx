@@ -26,7 +26,7 @@ export const Register: React.FC = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const loginHref = useMemo(() => buildLink('/login', redirectPath), [redirectPath])
+  const loginHref = '/?auth=login'
   const forgotPasswordHref = useMemo(
     () => buildLink('/forgot-password', redirectPath),
     [redirectPath]
@@ -71,15 +71,16 @@ export const Register: React.FC = () => {
         password: formData.password,
       })
 
-      const nextSearchParams = new URLSearchParams()
-      nextSearchParams.set('registered', '1')
-      nextSearchParams.set('email', normalizedEmail)
-
-      if (redirectPath) {
-        nextSearchParams.set('redirect', redirectPath)
+      if (redirectPath?.startsWith('/join/')) {
+        const inviteCode = redirectPath.slice('/join/'.length)
+        if (inviteCode) {
+          sessionStorage.setItem('pendingInviteCode', inviteCode)
+        }
       }
 
-      navigate(`/login?${nextSearchParams.toString()}`, { replace: true })
+      navigate(`/?auth=login&registered=1&email=${encodeURIComponent(normalizedEmail)}`, {
+        replace: true,
+      })
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : 'Nao foi possivel criar sua conta.'

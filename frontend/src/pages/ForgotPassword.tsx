@@ -2,18 +2,10 @@ import React from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 
-function buildLoginHref(redirectPath: string | null) {
-  if (!redirectPath) {
-    return '/login'
-  }
-
-  return `/login?redirect=${encodeURIComponent(redirectPath)}`
-}
-
 export const ForgotPassword: React.FC = () => {
   const [searchParams] = useSearchParams()
   const redirectPath = searchParams.get('redirect')
-  const loginHref = buildLoginHref(redirectPath)
+  const loginHref = '/?auth=login'
 
   return (
     <AuthLayout

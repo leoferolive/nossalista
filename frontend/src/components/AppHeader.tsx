@@ -77,7 +77,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   const handleLogout = () => {
     logout()
-    navigate('/login', { replace: true })
+    navigate('/', { replace: true })
   }
 
   return (

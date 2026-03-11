@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { LoginModal } from './LoginModal'
 
@@ -19,6 +19,10 @@ vi.mock('../api/client', () => ({
   default: { post: vi.fn() },
 }))
 
+vi.mock('../api/listsApi', () => ({
+  listsApi: { joinList: vi.fn() },
+}))
+
 function renderModal(onClose = vi.fn()) {
   return render(
     <MemoryRouter>
@@ -30,6 +34,7 @@ function renderModal(onClose = vi.fn()) {
 describe('LoginModal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
   })
 
   it('renderiza campos de email e senha e botão de entrar', () => {
@@ -81,5 +86,73 @@ describe('LoginModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
 
     expect(await screen.findByText('Email ou senha inválidos')).toBeInTheDocument()
+  })
+
+  it('prefill de email e mensagem de cadastro concluido', () => {
+    render(
+      <MemoryRouter>
+        <LoginModal onClose={vi.fn()} initialEmail="leo@test.com" showRegisteredMessage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByDisplayValue('leo@test.com')).toBeInTheDocument()
+    expect(screen.getByText(/Conta criada com sucesso/i)).toBeInTheDocument()
+  })
+
+  it('entra na lista automaticamente quando existe invite pendente', async () => {
+    const onClose = vi.fn()
+    const client = await import('../api/client')
+    const { listsApi } = await import('../api/listsApi')
+    vi.mocked(client.default.post).mockResolvedValueOnce({
+      data: {
+        id: 'user-1',
+        username: 'leo',
+        email: 'leo@test.com',
+        name: 'Leo',
+        avatarUrl: null,
+        onboardingCompletedAt: null,
+        token: 'token',
+      },
+    })
+    vi.mocked(listsApi.joinList).mockResolvedValueOnce({
+      id: 'list-joined',
+      name: 'Mercado da Semana',
+      type_slug: 'compras',
+      type_name: 'Compras',
+      role: 'MEMBER',
+      message: 'Entrou!',
+      created: true,
+      list: {
+        id: 'list-joined',
+        name: 'Mercado da Semana',
+        type: { id: 1, name: 'Compras', slug: 'compras' },
+        owner: { id: 'user-2', username: 'ana', name: 'Ana', avatarUrl: null },
+        inviteCode: 'MOCKSHOP',
+        isOwner: false,
+        itemsCount: 0,
+        createdAt: '2026-03-11T00:00:00.000Z',
+        updatedAt: '2026-03-11T00:00:00.000Z',
+      },
+    })
+    sessionStorage.setItem('pendingInviteCode', 'INVITE-123')
+
+    renderModal(onClose)
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'leo@test.com' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: '123456' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    await waitFor(() => {
+      expect(listsApi.joinList).toHaveBeenCalledWith('INVITE-123')
+    })
+
+    expect(onClose).not.toHaveBeenCalled()
+    expect(mockNavigate).toHaveBeenCalledWith('/lists/list-joined', {
+      state: {
+        toastMessage: 'Entrou!',
+        toastType: 'success',
+      },
+    })
+    expect(sessionStorage.getItem('pendingInviteCode')).toBeNull()
   })
 })

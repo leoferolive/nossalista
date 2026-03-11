@@ -68,7 +68,7 @@ export function RegisterModal({ onClose, onSwitchToLogin }: RegisterModalProps) 
         password: formData.password,
       })
 
-      navigate(`/login?registered=1&email=${encodeURIComponent(normalizedEmail)}`, {
+      navigate(`/?auth=login&registered=1&email=${encodeURIComponent(normalizedEmail)}`, {
         replace: true,
       })
       onClose()
@@ -195,7 +195,7 @@ export function RegisterModal({ onClose, onSwitchToLogin }: RegisterModalProps) 
             Entrar agora
           </button>
         ) : (
-          <Link to="/login" onClick={onClose} className="font-semibold text-nl-accent">
+          <Link to="/?auth=login" onClick={onClose} className="font-semibold text-nl-accent">
             Entrar agora
           </Link>
         )}

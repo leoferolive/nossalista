@@ -36,18 +36,18 @@ client.interceptors.request.use(
 
 /**
  * Interceptor para tratamento de erros de resposta
- * Redireciona para /login quando token é inválido ou expirado
+ * Redireciona para / quando token é inválido ou expirado
  */
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Se 401 Unauthorized, limpar token e redirecionar para login
+    // Se 401 Unauthorized, limpar token e redirecionar para landing
     if (error.response?.status === 401 && !error.config?.preserveSessionOnUnauthorized) {
       clearStoredSession()
 
-      // Redirecionar para login (evita redirecionamento se já estiver na página de login)
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+      // Evita redirecionamento redundante se já estiver na landing.
+      if (window.location.pathname !== '/') {
+        window.location.href = '/'
       }
     }
 

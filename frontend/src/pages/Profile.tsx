@@ -85,7 +85,7 @@ export const Profile: React.FC = () => {
       await usersApi.logout()
       logout()
       showToast('Até logo!', 'info')
-      navigate('/login', { replace: true })
+      navigate('/', { replace: true })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer logout'
       showToast(message, 'error')

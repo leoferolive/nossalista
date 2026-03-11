@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import client from '../api/client'
+import { listsApi } from '../api/listsApi'
+import { ApiError } from '../types/ApiError'
 import { ModalShell } from './ModalShell'
 import { GoogleAuthButton } from './GoogleAuthButton'
 
@@ -18,15 +20,26 @@ interface LoginResponse {
 interface Props {
   onClose: () => void
   onSwitchToRegister?: () => void
+  showRegisteredMessage?: boolean
+  initialEmail?: string
 }
 
-export function LoginModal({ onClose, onSwitchToRegister }: Props) {
+export function LoginModal({
+  onClose,
+  onSwitchToRegister,
+  showRegisteredMessage = false,
+  initialEmail = '',
+}: Props) {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setEmail(initialEmail)
+  }, [initialEmail])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,7 +56,35 @@ export function LoginModal({ onClose, onSwitchToRegister }: Props) {
         avatarUrl: data.avatarUrl,
         onboardingCompletedAt: data.onboardingCompletedAt ?? null,
       })
-      onClose()
+
+      const pendingInviteCode = sessionStorage.getItem('pendingInviteCode')
+      if (pendingInviteCode) {
+        try {
+          const joinResponse = await listsApi.joinList(pendingInviteCode)
+          sessionStorage.removeItem('pendingInviteCode')
+          navigate(`/lists/${joinResponse.id}`, {
+            state: {
+              toastMessage: joinResponse.message,
+              toastType: 'success',
+            },
+          })
+          return
+        } catch (joinError) {
+          sessionStorage.removeItem('pendingInviteCode')
+          const toastMessage =
+            joinError instanceof ApiError && joinError.status === 410
+              ? 'Link de convite expirou. Peça um novo link.'
+              : 'Erro ao entrar na lista. Tente novamente.'
+          navigate('/home', {
+            state: {
+              toastMessage,
+              toastType: 'error',
+            },
+          })
+          return
+        }
+      }
+
       navigate('/home')
     } catch {
       setError('Email ou senha inválidos')
@@ -63,6 +104,12 @@ export function LoginModal({ onClose, onSwitchToRegister }: Props) {
       description="Acesse suas listas em segundos e continue do ponto em que o grupo parou."
       onClose={onClose}
     >
+      {showRegisteredMessage && (
+        <div className="mb-5 rounded-[1.2rem] border border-nl-primary/30 bg-nl-primary/10 px-4 py-3 text-sm text-nl-text">
+          Conta criada com sucesso. Agora e so entrar.
+        </div>
+      )}
+
       {error && (
         <div className="nl-alert mb-5" role="alert" aria-live="polite">
           {error}

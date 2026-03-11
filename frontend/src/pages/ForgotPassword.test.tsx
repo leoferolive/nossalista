@@ -20,7 +20,7 @@ describe('ForgotPassword page', () => {
     expect(
       screen
         .getAllByRole('link', { name: 'Voltar para login' })
-        .every((link) => link.getAttribute('href') === '/login?redirect=%2Fjoin%2Fabc123')
+        .every((link) => link.getAttribute('href') === '/?auth=login')
     ).toBe(true)
   })
 })

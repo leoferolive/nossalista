@@ -81,7 +81,7 @@ describe('RegisterModal', () => {
       })
     })
 
-    expect(mockNavigate).toHaveBeenCalledWith('/login?registered=1&email=leo%40test.com', {
+    expect(mockNavigate).toHaveBeenCalledWith('/?auth=login&registered=1&email=leo%40test.com', {
       replace: true,
     })
     expect(onClose).toHaveBeenCalledTimes(1)

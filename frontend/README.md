@@ -30,7 +30,7 @@ npm run dev:mock
 - `npm run dev:mock`: inicia o frontend com API mock em memoria
 - `npm run test`: executa testes com Vitest
 - `npm run test:coverage`: executa testes com cobertura (threshold >= 80%)
-- `npm run test:e2e`: executa smoke E2E com Playwright
+- `npm run test:e2e`: executa cenarios E2E com Playwright (smoke, auth/redirect e onboarding)
 - `npm run lint`: executa lint
 - `npm run stylelint`: valida CSS
 - `npm run typecheck`: executa `tsc --noEmit`
@@ -69,6 +69,12 @@ npm run dev:mock
   - CTA principal abre cadastro
   - CTA secundario abre login
   - Nao reutilizar o mesmo modal para os dois CTAs
+- Fluxo de auth da landing:
+  - Usuario deslogado em rota protegida sempre volta para `/`
+  - `/login` e rota legada e redireciona para `/?auth=login`
+  - Abertura de modal por URL: `/?auth=login|register`
+  - Pos-cadastro: `/?auth=login&registered=1&email=...` (prefill + mensagem de sucesso)
+  - Convite pendente usa `sessionStorage.pendingInviteCode` e tenta auto-join apos login por email
 - Evitar depender do estilo padrao do navegador para `input`, `button` ou `dialog`; o padrao oficial deve vir dos tokens/classes do projeto
 
 ## Onboarding Guiado (Primeiro Login)

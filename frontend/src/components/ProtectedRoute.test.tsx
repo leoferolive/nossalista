@@ -38,7 +38,7 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Validando Sessão…')).toBeInTheDocument()
   })
 
-  it('redireciona para login preservando o redirect quando nao autenticado', () => {
+  it('redireciona para a landing quando nao autenticado', () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false,
       isBootstrapping: false,
@@ -55,12 +55,12 @@ describe('ProtectedRoute', () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/login" element={<div>Tela de login</div>} />
+          <Route path="/" element={<div>Landing</div>} />
         </Routes>
       </MemoryRouter>
     )
 
-    expect(screen.getByText('Tela de login')).toBeInTheDocument()
+    expect(screen.getByText('Landing')).toBeInTheDocument()
   })
 
   it('renderiza o conteudo quando autenticado', () => {

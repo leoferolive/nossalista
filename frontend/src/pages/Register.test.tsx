@@ -26,6 +26,7 @@ describe('Register page', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     vi.mocked(authApi.register).mockReset()
+    sessionStorage.clear()
   })
 
   const renderRegister = (initialEntry: string) =>
@@ -39,7 +40,7 @@ describe('Register page', () => {
       </ThemeProvider>
     )
 
-  it('envia cadastro e redireciona para login preservando redirect', async () => {
+  it('envia cadastro e redireciona para landing com login aberto', async () => {
     const user = userEvent.setup()
     vi.mocked(authApi.register).mockResolvedValue({
       id: 'user-1',
@@ -69,10 +70,10 @@ describe('Register page', () => {
       })
     })
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      '/login?registered=1&email=leo%40test.com&redirect=%2Fjoin%2Fcode-1',
-      { replace: true }
-    )
+    expect(mockNavigate).toHaveBeenCalledWith('/?auth=login&registered=1&email=leo%40test.com', {
+      replace: true,
+    })
+    expect(sessionStorage.getItem('pendingInviteCode')).toBe('code-1')
   })
 
   it('bloqueia envio quando as senhas nao conferem', async () => {

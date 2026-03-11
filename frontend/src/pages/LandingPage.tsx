@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { LoginModal } from '../components/LoginModal'
 import { RegisterModal } from '../components/RegisterModal'
@@ -16,13 +16,52 @@ const highlights = [
 export function LandingPage() {
   const { isAuthenticated, isBootstrapping } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [activeModal, setActiveModal] = useState<AuthModal>(null)
+  const authQuery = searchParams.get('auth')
+  const registeredQuery = searchParams.get('registered') === '1'
+  const emailQuery = searchParams.get('email') ?? ''
 
   useEffect(() => {
-    if (!isBootstrapping && isAuthenticated) {
+    const hasPendingInviteCode = sessionStorage.getItem('pendingInviteCode')
+
+    if (!isBootstrapping && isAuthenticated && !authQuery && !hasPendingInviteCode) {
       navigate('/home', { replace: true })
     }
-  }, [isAuthenticated, isBootstrapping, navigate])
+  }, [authQuery, isAuthenticated, isBootstrapping, navigate])
+
+  useEffect(() => {
+    if (authQuery === 'login' || authQuery === 'register') {
+      setActiveModal(authQuery)
+      return
+    }
+
+    setActiveModal(null)
+  }, [authQuery])
+
+  const updateAuthSearch = (
+    modal: AuthModal,
+    options?: { registered?: boolean; email?: string | null }
+  ) => {
+    const nextSearchParams = new URLSearchParams(searchParams)
+    nextSearchParams.delete('auth')
+    nextSearchParams.delete('registered')
+    nextSearchParams.delete('email')
+
+    if (modal) {
+      nextSearchParams.set('auth', modal)
+    }
+
+    if (options?.registered) {
+      nextSearchParams.set('registered', '1')
+    }
+
+    if (options?.email) {
+      nextSearchParams.set('email', options.email)
+    }
+
+    setSearchParams(nextSearchParams, { replace: true })
+  }
 
   if (isBootstrapping) {
     return (
@@ -35,14 +74,14 @@ export function LandingPage() {
   return (
     <div className="nl-page flex items-center">
       <div className="nl-container w-full max-w-6xl">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
             <p className="font-display text-3xl font-semibold text-nl-text">
               Nossa<span className="nl-gradient-text">Lista</span>
             </p>
             <p className="mt-2 text-sm text-nl-muted">Listas vivas para organizar junto.</p>
           </div>
-          <ThemeToggle />
+          <ThemeToggle className="ml-auto" />
         </div>
 
         <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_27rem]">
@@ -59,13 +98,13 @@ export function LandingPage() {
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <button
-                onClick={() => setActiveModal('register')}
+                onClick={() => updateAuthSearch('register')}
                 className="nl-btn-primary min-w-[12.5rem] px-7"
               >
                 Criar conta gratis
               </button>
               <button
-                onClick={() => setActiveModal('login')}
+                onClick={() => updateAuthSearch('login')}
                 className="nl-btn-secondary min-w-[10.5rem] px-6"
               >
                 Ja tenho conta
@@ -137,15 +176,17 @@ export function LandingPage() {
 
       {activeModal === 'login' && (
         <LoginModal
-          onClose={() => setActiveModal(null)}
-          onSwitchToRegister={() => setActiveModal('register')}
+          onClose={() => updateAuthSearch(null)}
+          onSwitchToRegister={() => updateAuthSearch('register')}
+          showRegisteredMessage={registeredQuery}
+          initialEmail={emailQuery}
         />
       )}
 
       {activeModal === 'register' && (
         <RegisterModal
-          onClose={() => setActiveModal(null)}
-          onSwitchToLogin={() => setActiveModal('login')}
+          onClose={() => updateAuthSearch(null)}
+          onSwitchToLogin={() => updateAuthSearch('login')}
         />
       )}
     </div>
