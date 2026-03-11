@@ -57,6 +57,21 @@ describe('LoginModal', () => {
     expect(screen.getByRole('link', { name: 'Criar conta' })).toBeInTheDocument()
   })
 
+  it('usa callback de troca para cadastro quando onSwitchToRegister for informado', () => {
+    const onSwitchToRegister = vi.fn()
+
+    render(
+      <MemoryRouter>
+        <LoginModal onClose={vi.fn()} onSwitchToRegister={onSwitchToRegister} />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir cadastro' }))
+
+    expect(onSwitchToRegister).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('link', { name: 'Criar conta' })).not.toBeInTheDocument()
+  })
+
   it('chama onClose ao clicar no botão fechar', () => {
     const onClose = vi.fn()
     renderModal(onClose)
