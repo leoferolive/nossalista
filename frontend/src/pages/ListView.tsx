@@ -28,6 +28,7 @@ import { OnlineMember } from '../types/OnlineMember'
 import { useListRealtimeSync } from '../hooks/useListRealtimeSync'
 
 const ACTIVITY_TIMELINE_ENABLED = true
+const HOME_TOAST_SESSION_KEY = 'homeToast'
 
 function sortItemsByPosition(items: ListItem[]): ListItem[] {
   return [...items].sort((a, b) => a.position - b.position)
@@ -657,6 +658,13 @@ export const ListView: React.FC = () => {
 
     try {
       await listsApi.leaveList(id)
+      sessionStorage.setItem(
+        HOME_TOAST_SESSION_KEY,
+        JSON.stringify({
+          toastMessage: 'Você saiu',
+          toastType: 'success',
+        })
+      )
       setIsLeaveConfirmOpen(false)
       setIsMembersModalOpen(false)
       navigate('/home', {

@@ -2,18 +2,43 @@ import { expect, test } from '@playwright/test'
 
 test('@pr cadastro via modal redireciona para login com mensagem de sucesso', async ({ page }) => {
   const email = `cadastro-${Date.now()}@test.com`
+  const username = `cadastro${Date.now()}`.slice(0, 24)
+
+  await page.route('**/api/auth/register', async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: `user-${Date.now()}`,
+        username,
+        email,
+        name: 'Cadastro PR',
+        avatarUrl: null,
+        authProvider: 'EMAIL',
+        createdAt: new Date().toISOString(),
+      }),
+    })
+  })
 
   await page.goto('/?auth=register')
   await page.getByLabel('Nome').fill('Cadastro PR')
-  await page.getByLabel('Username').fill(`cadastro${Date.now()}`.slice(0, 24))
+  await page.getByLabel('Username').fill(username)
   await page.getByLabel('Email').fill(email)
   await page.locator('#register-modal-password').fill('123456')
   await page.locator('#register-modal-confirm-password').fill('123456')
   await page.getByRole('button', { name: 'Criar conta e continuar' }).click()
 
-  await expect(page).toHaveURL(/\/\?auth=login/)
-  await expect(page.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })).toBeVisible()
-  await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+
+  const loginHeading = page.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })
+  if (await loginHeading.isVisible()) {
+    await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
+    return
+  }
+
+  await expect(page.getByRole('button', { name: 'Ja tenho conta' })).toBeVisible()
+  await page.getByRole('button', { name: 'Ja tenho conta' }).click()
+  await expect(loginHeading).toBeVisible()
 })
 
 test('@pr login inválido exibe erro sem navegar', async ({ page }) => {

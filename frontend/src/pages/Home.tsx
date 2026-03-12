@@ -8,6 +8,8 @@ import { AppHeader } from '../components/AppHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { useOnboarding } from '../contexts/OnboardingContext'
 
+const HOME_TOAST_SESSION_KEY = 'homeToast'
+
 /**
  * Página Home - Exemplo de integração com CreateListModal
  * AC4: Toast, modal fecha, redirecionamento (ou refetch)
@@ -36,9 +38,30 @@ export const Home: React.FC = () => {
       toastMessage?: string
       toastType?: 'success' | 'error' | 'info'
     } | null
+
     if (state?.toastMessage) {
       showToast(state.toastMessage, state.toastType ?? 'info')
       window.history.replaceState({}, '')
+      sessionStorage.removeItem(HOME_TOAST_SESSION_KEY)
+      return
+    }
+
+    const storedToast = sessionStorage.getItem(HOME_TOAST_SESSION_KEY)
+    if (!storedToast) {
+      return
+    }
+
+    try {
+      const parsedToast = JSON.parse(storedToast) as {
+        toastMessage?: string
+        toastType?: 'success' | 'error' | 'info'
+      }
+
+      if (parsedToast.toastMessage) {
+        showToast(parsedToast.toastMessage, parsedToast.toastType ?? 'info')
+      }
+    } finally {
+      sessionStorage.removeItem(HOME_TOAST_SESSION_KEY)
     }
   }, [location.state, showToast])
 
