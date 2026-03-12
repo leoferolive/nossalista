@@ -30,7 +30,9 @@ npm run dev:mock
 - `npm run dev:mock`: inicia o frontend com API mock em memoria
 - `npm run test`: executa testes com Vitest
 - `npm run test:coverage`: executa testes com cobertura (threshold >= 80%)
-- `npm run test:e2e`: executa cenarios E2E com Playwright (smoke, auth/redirect e onboarding)
+- `npm run test:e2e`: executa todos os cenarios E2E com Playwright
+- `npm run test:e2e:pr`: executa apenas cenarios `@pr` (deterministic/mockado, gate bloqueante de PR)
+- `npm run test:e2e:fullstack`: executa apenas cenarios `@fullstack` (frontend + backend reais)
 - `npm run lint`: executa lint
 - `npm run stylelint`: valida CSS
 - `npm run typecheck`: executa `tsc --noEmit`
@@ -54,6 +56,7 @@ npm run dev:mock
 - O menu da conta exibe status explicito de push (`ativado`, `desativado`, `nao suportado` ou `indisponivel no ambiente`).
 - Push depende de VAPID configurado no backend (`VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY`).
 - Em ambiente de desenvolvimento, o Service Worker/PWA fica habilitado para validar fluxo de push localmente.
+- O dropdown do menu da conta no desktop deve renderizar sem clipping no card do header (padrao via `nl-card-unclipped` no `AppHeader`).
 
 ## Sistema visual
 
@@ -104,6 +107,7 @@ npm run dev:mock
 - O spotlight recalcula automaticamente quando o alvo entra no DOM apos o passo iniciar (ex.: modal de criacao), evitando overlay opaco sem destaque.
 - Todos os passos mantem acao `Pular`; no passo de criacao, `Proximo` fica desabilitado ate a lista ser criada.
 - Em mobile, o painel do tutorial fica menor e mais leve, para nao competir com o entendimento inicial da tela.
+- O overlay do onboarding segue os tokens globais `Fresh Lists` (`nl-*`) para manter paridade visual entre `light` e `dark` e evitar paleta legado.
 
 ## Shell autenticado
 
@@ -135,11 +139,13 @@ npm run typecheck
 npm run test:coverage
 npm run build
 npm run bundle:check
-npm run test:e2e
+npm run test:e2e:pr
+npm run test:e2e:fullstack
 ```
 
 ## Gates de CI (PR)
 
 - Coverage minima do frontend: 80% para linhas, branches, funcoes e statements.
 - Build e runtime smoke com `vite build` + `vite preview`.
-- Smoke E2E obrigatorio com Playwright.
+- Suite E2E `@pr` obrigatoria com Playwright.
+- Suite `@fullstack` roda separadamente no workflow `frontend-e2e-fullstack.yml` (cron diario + disparo manual).

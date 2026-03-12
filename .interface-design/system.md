@@ -75,3 +75,4 @@
 | `Landing stays intentionally minimal while the product remains utility-first.` | `Public acquisition and daily product use need different information density.`  | `2026-03-10` |
 | `Coral drives action and teal signals progress/status.`                        | `The pairing feels vivid and collaborative without becoming childish.`          | `2026-03-10` |
 | `Authenticated mobile navigation now uses compact headers and bottom sheets.`  | `Mobile needed content-first hierarchy and menus that never overflow sideways.` | `2026-03-11` |
+| `Guided onboarding and account menus must reuse global nl tokens and surfaces.` | `Avoids visual drift and keeps readability parity in both themes.`             | `2026-03-12` |

@@ -106,8 +106,10 @@ describe('OnboardingTourOverlay', () => {
 
     await waitFor(() => {
       const hiddenLayers = Array.from(container.querySelectorAll('[aria-hidden="true"]'))
-      const fallbackLayer = hiddenLayers.find((layer) =>
-        layer.className.includes('absolute inset-0 bg-[rgba(8,6,4,0.78)]')
+      const fallbackLayer = hiddenLayers.find(
+        (layer) =>
+          layer.className.includes('absolute inset-0') &&
+          layer.className.includes('bg-[rgba(7,11,16,0.72)]')
       )
       expect(fallbackLayer).toBeInTheDocument()
     })
@@ -128,8 +130,10 @@ describe('OnboardingTourOverlay', () => {
 
     await waitFor(() => {
       const hiddenLayers = Array.from(container.querySelectorAll('[aria-hidden="true"]'))
-      const fallbackLayer = hiddenLayers.find((layer) =>
-        layer.className.includes('absolute inset-0 bg-[rgba(8,6,4,0.78)]')
+      const fallbackLayer = hiddenLayers.find(
+        (layer) =>
+          layer.className.includes('absolute inset-0') &&
+          layer.className.includes('bg-[rgba(7,11,16,0.72)]')
       )
       expect(fallbackLayer).toBeInTheDocument()
     })

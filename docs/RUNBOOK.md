@@ -57,8 +57,13 @@ npm run typecheck
 npm run test:coverage
 npm run build
 npm run bundle:check
-npm run test:e2e
+npm run test:e2e:pr
+npm run test:e2e:fullstack
 ```
+
+Observacoes E2E:
+- Suite de PR usa tag `@pr` e modo deterministic/mockado.
+- Suite full-stack usa tag `@fullstack` e precisa do backend ativo em `http://127.0.0.1:8080`.
 
 ## Seguranca e compliance (local)
 
@@ -98,6 +103,7 @@ Regras operacionais:
 - `deploy-branch-dev.yml`: `ref` obrigatorio (sem default)
 - `deploy-on-tag.yml`: valida formato de tag estavel e alinhamento entre `tag` e `ref`
 - `deploy-prod.yml`: aceita apenas tag estavel existente no repositorio
+- `frontend-e2e-fullstack.yml`: executa E2E navegador↔backend diariamente (`06:00 UTC`, equivalente a `03:00 America/Sao_Paulo`) e tambem manualmente via `workflow_dispatch`
 - `deploy-environment.yml` aplica o manifesto e depois executa `kubectl set image`, entao `latest` e `:dev` nao sao mais fonte de verdade do que ficou implantado
 - `tag` = tag da imagem implantada; `ref` = ref do checkout usado para build
 - ao final de cada workflow de deploy, consultar a aba **Summary** do GitHub Actions para ver `Tag version deployada`, imagem, SHA e ambiente efetivos
