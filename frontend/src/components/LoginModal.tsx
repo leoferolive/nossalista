@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import client from '../api/client'
 import { listsApi } from '../api/listsApi'
@@ -31,15 +31,39 @@ export function LoginModal({
   initialEmail = '',
 }: Props) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { login } = useAuth()
+  const redirectPath = searchParams.get('redirect')
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const registerHref = useMemo(() => {
+    if (!redirectPath) {
+      return '/register'
+    }
+
+    return `/register?redirect=${encodeURIComponent(redirectPath)}`
+  }, [redirectPath])
+
+  const forgotPasswordHref = useMemo(() => {
+    if (!redirectPath) {
+      return '/forgot-password'
+    }
+
+    return `/forgot-password?redirect=${encodeURIComponent(redirectPath)}`
+  }, [redirectPath])
+
   useEffect(() => {
     setEmail(initialEmail)
   }, [initialEmail])
+
+  useEffect(() => {
+    if (redirectPath) {
+      sessionStorage.setItem('postLoginRedirect', redirectPath)
+    }
+  }, [redirectPath])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,7 +109,13 @@ export function LoginModal({
         }
       }
 
-      navigate('/home')
+      const nextRedirect = sessionStorage.getItem('postLoginRedirect')
+      if (nextRedirect) {
+        sessionStorage.removeItem('postLoginRedirect')
+        navigate(nextRedirect)
+      } else {
+        navigate('/home')
+      }
     } catch {
       setError('Email ou senha inválidos')
     } finally {
@@ -139,7 +169,7 @@ export function LoginModal({
               Senha
             </label>
             <Link
-              to="/forgot-password"
+              to={forgotPasswordHref}
               onClick={onClose}
               className="text-sm font-semibold text-nl-accent"
             >
@@ -177,7 +207,7 @@ export function LoginModal({
             Abrir cadastro
           </button>
         ) : (
-          <Link to="/register" onClick={onClose} className="font-semibold text-nl-accent">
+          <Link to={registerHref} onClick={onClose} className="font-semibold text-nl-accent">
             Criar conta
           </Link>
         )}
