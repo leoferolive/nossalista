@@ -45,7 +45,9 @@ async function openDeleteListAction(page: Parameters<typeof test>[0]['page']) {
     return
   }
 
-  const moreActions = page.getByRole('button', { name: /Mais( ações da lista| acoes da lista)?/i }).first()
+  const moreActions = page
+    .getByRole('button', { name: /Mais( ações da lista| acoes da lista)?/i })
+    .first()
   if (!(await moreActions.isVisible())) {
     await expect(directDeleteAction).toBeVisible({ timeout: 10000 })
     await directDeleteAction.click()
