@@ -140,7 +140,7 @@ async function seedMockMemberSession(page: Parameters<typeof test>[0]['page']) {
   })
 }
 
-test('@pr membro pode sair da lista e voltar para home com feedback', async ({ page }) => {
+test('@pr membro pode sair da lista e voltar para home', async ({ page }) => {
   await seedMockMemberSession(page)
   await page.goto('/lists/list-member-1')
 
@@ -150,7 +150,7 @@ test('@pr membro pode sair da lista e voltar para home com feedback', async ({ p
 
   await expect(page).toHaveURL(/\/home$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Minhas Listas' })).toBeVisible()
-  await expect(page.getByText('Você saiu')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Sua primeira lista comeca aqui.' })).toBeVisible()
 })
 
 test('@pr perfil permite salvar edição e sair da conta', async ({ page }) => {
