@@ -23,9 +23,9 @@ vi.mock('../api/listsApi', () => ({
   listsApi: { joinList: vi.fn() },
 }))
 
-function renderModal(onClose = vi.fn()) {
+function renderModal(onClose = vi.fn(), initialEntry = '/') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <LoginModal onClose={onClose} />
     </MemoryRouter>
   )
@@ -169,5 +169,45 @@ describe('LoginModal', () => {
       },
     })
     expect(sessionStorage.getItem('pendingInviteCode')).toBeNull()
+  })
+
+  it('preserva redirect de rota protegida e navega para ele apos login', async () => {
+    const client = await import('../api/client')
+    vi.mocked(client.default.post).mockResolvedValueOnce({
+      data: {
+        id: 'user-1',
+        username: 'leo',
+        email: 'leo@test.com',
+        name: 'Leo',
+        avatarUrl: null,
+        onboardingCompletedAt: null,
+        token: 'token',
+      },
+    })
+
+    renderModal(vi.fn(), '/?auth=login&redirect=%2Fhome')
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'leo@test.com' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: '123456' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/home')
+    })
+
+    expect(sessionStorage.getItem('postLoginRedirect')).toBeNull()
+  })
+
+  it('propaga redirect para links de cadastro e esqueci a senha', () => {
+    renderModal(vi.fn(), '/?auth=login&redirect=%2Flists%2Fabc')
+
+    expect(screen.getByRole('link', { name: 'Criar conta' })).toHaveAttribute(
+      'href',
+      '/register?redirect=%2Flists%2Fabc'
+    )
+    expect(screen.getByRole('link', { name: 'Esqueci minha senha' })).toHaveAttribute(
+      'href',
+      '/forgot-password?redirect=%2Flists%2Fabc'
+    )
   })
 })

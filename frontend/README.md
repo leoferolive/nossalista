@@ -87,9 +87,10 @@ npm run dev:mock
   - CTA secundario abre login
   - Nao reutilizar o mesmo modal para os dois CTAs
 - Fluxo de auth da landing:
-  - Usuario deslogado em rota protegida sempre volta para `/`
+  - Usuario deslogado em rota protegida volta para `/?auth=login&redirect=...`
   - `/login` e rota legada e redireciona para `/?auth=login`
   - Abertura de modal por URL: `/?auth=login|register`
+  - Login pela landing preserva `redirect` e retorna ao destino protegido apos autenticar
   - Pos-cadastro: `/?auth=login&registered=1&email=...` (prefill + mensagem de sucesso)
   - Convite pendente usa `sessionStorage.pendingInviteCode` e tenta auto-join apos login por email
 - Evitar depender do estilo padrao do navegador para `input`, `button` ou `dialog`; o padrao oficial deve vir dos tokens/classes do projeto
