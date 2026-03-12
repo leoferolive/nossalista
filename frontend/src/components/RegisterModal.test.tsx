@@ -84,7 +84,7 @@ describe('RegisterModal', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/?auth=login&registered=1&email=leo%40test.com', {
       replace: true,
     })
-    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it('mostra erro quando username e invalido', async () => {

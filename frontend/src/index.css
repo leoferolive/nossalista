@@ -199,6 +199,10 @@ textarea {
   overflow: hidden;
 }
 
+.nl-card-unclipped {
+  overflow: visible;
+}
+
 .nl-card::before {
   content: '';
   position: absolute;

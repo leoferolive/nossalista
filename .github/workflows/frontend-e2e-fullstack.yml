@@ -1,0 +1,75 @@
+name: Frontend E2E Fullstack
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-e2e-fullstack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: ./.github/actions/setup-node
+
+      - name: Setup Java
+        uses: ./.github/actions/setup-java
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Build backend
+        working-directory: backend
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -DskipTests package
+
+      - name: Run fullstack e2e suite
+        run: |
+          cd backend
+          java -jar target/*.jar --spring.profiles.active=ci --server.port=8080 > /tmp/backend-e2e.log 2>&1 &
+          BACKEND_PID=$!
+
+          cleanup() {
+            kill "$BACKEND_PID" || true
+          }
+          trap cleanup EXIT
+
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null
+
+          cd ../frontend
+          npm run test:e2e:fullstack
+
+      - name: Upload fullstack e2e artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-e2e-fullstack-artifacts
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            /tmp/backend-e2e.log
+

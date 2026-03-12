@@ -149,7 +149,7 @@ async function mockSession(page: Parameters<typeof test>[0]['page'], options: Se
   }
 }
 
-test('first login tutorial completa o fluxo e persiste conclusão', async ({ page }) => {
+test('@pr first login tutorial completa o fluxo e persiste conclusão', async ({ page }) => {
   const mocked = await mockSession(page, { onboardingCompletedAt: null })
 
   await page.goto('/home')
@@ -183,7 +183,7 @@ test('first login tutorial completa o fluxo e persiste conclusão', async ({ pag
   expect(mocked.getCompleteOnboardingCalls()).toBe(1)
 })
 
-test('skip no tutorial persiste conclusão sem repetir na sessão', async ({ page }) => {
+test('@pr skip no tutorial persiste conclusão sem repetir na sessão', async ({ page }) => {
   const mocked = await mockSession(page, { onboardingCompletedAt: null })
 
   await page.goto('/home')
@@ -195,14 +195,16 @@ test('skip no tutorial persiste conclusão sem repetir na sessão', async ({ pag
   expect(mocked.getCompleteOnboardingCalls()).toBe(1)
 })
 
-test('usuario com onboarding concluído pode reabrir pelo menu', async ({ page }) => {
+test('@pr usuario com onboarding concluído pode reabrir pelo menu', async ({ page }) => {
   await mockSession(page, { onboardingCompletedAt: '2026-03-10T10:00:00.000Z' })
 
   await page.goto('/home')
   await expect(page.getByText('Comece pela primeira lista')).not.toBeVisible()
 
   await page.getByRole('button', { name: 'Abrir menu da conta' }).click()
-  await page.getByRole('menuitem', { name: 'Ver tutorial' }).click()
+  const replayTutorial = page.getByRole('menuitem', { name: 'Ver tutorial' })
+  await replayTutorial.focus()
+  await replayTutorial.press('Enter')
 
   await expect(page.getByText('Comece pela primeira lista')).toBeVisible()
 })
