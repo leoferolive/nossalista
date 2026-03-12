@@ -30,14 +30,31 @@ test('@pr cadastro via modal redireciona para login com mensagem de sucesso', as
 
   await expect(page.getByRole('alert')).toHaveCount(0)
 
-  const loginHeading = page.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })
+  const loginDialog = page.getByRole('dialog', { name: 'Entrar no NossaLista' })
+  const loginHeading = loginDialog.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })
+  if (await loginDialog.isVisible()) {
+    await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
+    return
+  }
+
+  const registerDialog = page.getByRole('dialog', { name: 'Criar Conta' })
+  await expect(registerDialog).toBeVisible()
+
+  const switchToLoginButton = registerDialog.getByRole('button', { name: 'Entrar agora' })
+  if (await switchToLoginButton.isVisible()) {
+    await switchToLoginButton.click({ timeout: 3000 }).catch(() => {
+      // O modal pode ser desmontado exatamente no clique quando a URL já trocou para auth=login.
+    })
+  }
+
   if (await loginHeading.isVisible()) {
     await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
     return
   }
 
-  await expect(page.getByRole('button', { name: 'Ja tenho conta' })).toBeVisible()
-  await page.getByRole('button', { name: 'Ja tenho conta' }).click()
+  const openLoginButton = page.getByRole('button', { name: 'Ja tenho conta' })
+  await expect(openLoginButton).toBeVisible()
+  await openLoginButton.click()
   await expect(loginHeading).toBeVisible()
 })
 
