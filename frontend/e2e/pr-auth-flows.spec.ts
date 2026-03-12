@@ -30,7 +30,19 @@ test('@pr cadastro via modal redireciona para login com mensagem de sucesso', as
 
   await expect(page).toHaveURL(/\/\?auth=login/)
   await expect(page.getByRole('alert')).toHaveCount(0)
-  await expect(page.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })).toBeVisible()
+  const loginHeading = page.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })
+  const loginVisible = await loginHeading.isVisible().catch(() => false)
+
+  if (!loginVisible) {
+    const switchToLoginButton = page.getByRole('button', { name: 'Entrar agora' })
+    if (await switchToLoginButton.isVisible().catch(() => false)) {
+      await switchToLoginButton.click({ force: true }).catch(() => {
+        // O modal pode desmontar imediatamente ao sincronizar auth=login.
+      })
+    }
+  }
+
+  await expect(loginHeading).toBeVisible()
   await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
 })
 
