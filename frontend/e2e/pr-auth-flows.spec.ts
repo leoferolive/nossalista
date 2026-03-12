@@ -28,17 +28,10 @@ test('@pr cadastro via modal redireciona para login com mensagem de sucesso', as
   await page.locator('#register-modal-confirm-password').fill('123456')
   await page.getByRole('button', { name: 'Criar conta e continuar' }).click()
 
+  await expect(page).toHaveURL(/\/\?auth=login/)
   await expect(page.getByRole('alert')).toHaveCount(0)
-
-  const loginHeading = page.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })
-  if (await loginHeading.isVisible()) {
-    await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
-    return
-  }
-
-  await expect(page.getByRole('button', { name: 'Ja tenho conta' })).toBeVisible()
-  await page.getByRole('button', { name: 'Ja tenho conta' }).click()
-  await expect(loginHeading).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })).toBeVisible()
+  await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
 })
 
 test('@pr login inválido exibe erro sem navegar', async ({ page }) => {
