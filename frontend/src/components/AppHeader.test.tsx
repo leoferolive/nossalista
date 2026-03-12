@@ -7,6 +7,7 @@ import { AppHeader } from './AppHeader'
 const mockNavigate = vi.fn()
 const mockLogout = vi.fn()
 const mockStartReplay = vi.fn()
+let mockIsMobile = false
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
@@ -67,6 +68,10 @@ vi.mock('../hooks/usePushNotifications', () => ({
   }),
 }))
 
+vi.mock('../hooks/useIsMobile', () => ({
+  useIsMobile: () => mockIsMobile,
+}))
+
 describe('AppHeader', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
@@ -78,6 +83,7 @@ describe('AppHeader', () => {
     mockPushEnabled = false
     mockAvailability = 'available'
     mockAvatarUrl = null
+    mockIsMobile = false
   })
 
   it('abre o menu da conta e faz logout', async () => {
@@ -240,5 +246,86 @@ describe('AppHeader', () => {
 
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('usa sheet no mobile e renderiza ações extras da conta', async () => {
+    mockIsMobile = true
+    const user = userEvent.setup()
+    const mobileAction = vi.fn()
+
+    render(
+      <MemoryRouter>
+        <AppHeader
+          title="Minhas Listas"
+          subtitle="Organize seu dia."
+          accountActions={
+            <button type="button" onClick={mobileAction} className="nl-action-row">
+              Ação extra
+            </button>
+          }
+        />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.getByRole('dialog', { name: 'Conta' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Meu perfil' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Ação extra' }))
+    expect(mobileAction).toHaveBeenCalledTimes(1)
+  })
+
+  it('expande a ação principal e mantém ações secundárias navegáveis no mobile', async () => {
+    mockIsMobile = true
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader
+          title="Minhas Listas"
+          primaryAction={
+            <button type="button" className="cta-principal">
+              Nova lista
+            </button>
+          }
+          secondaryActions={[
+            <button key="history" type="button">
+              Histórico
+            </button>,
+            <button key="members" type="button">
+              Membros
+            </button>,
+          ]}
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('button', { name: 'Nova lista' })).toHaveClass('w-full')
+    expect(screen.getByRole('button', { name: 'Histórico' }).parentElement).toHaveClass(
+      'overflow-x-auto',
+      'pb-1'
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/home')
+  })
+
+  it('navega para o perfil pelo sheet mobile', async () => {
+    mockIsMobile = true
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    await user.click(screen.getByRole('button', { name: 'Meu perfil' }))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/profile')
   })
 })
