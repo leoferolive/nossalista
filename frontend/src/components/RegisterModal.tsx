@@ -71,7 +71,6 @@ export function RegisterModal({ onClose, onSwitchToLogin }: RegisterModalProps) 
       navigate(`/?auth=login&registered=1&email=${encodeURIComponent(normalizedEmail)}`, {
         replace: true,
       })
-      onClose()
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : 'Nao foi possivel criar sua conta.'

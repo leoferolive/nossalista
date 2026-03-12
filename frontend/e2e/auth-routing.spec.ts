@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('rotas protegidas deslogado redirecionam para landing', async ({ page }) => {
+test('@pr rotas protegidas deslogado redirecionam para landing', async ({ page }) => {
   await page.goto('/home')
   await expect(page).toHaveURL('http://127.0.0.1:4173/')
 
@@ -8,7 +8,7 @@ test('rotas protegidas deslogado redirecionam para landing', async ({ page }) =>
   await expect(page).toHaveURL('http://127.0.0.1:4173/')
 })
 
-test('rota /login legado redireciona para landing e preserva convite', async ({ page }) => {
+test('@pr rota /login legado redireciona para landing e preserva convite', async ({ page }) => {
   await page.goto('/login?redirect=%2Fjoin%2FMOCKSHOP')
   await expect(page).toHaveURL('http://127.0.0.1:4173/?auth=login')
 
@@ -16,7 +16,7 @@ test('rota /login legado redireciona para landing e preserva convite', async ({ 
   expect(pendingInviteCode).toBe('MOCKSHOP')
 })
 
-test('join deslogado abre login na landing e guarda inviteCode', async ({ page }) => {
+test('@pr join deslogado abre login na landing e guarda inviteCode', async ({ page }) => {
   const nowIso = () => new Date().toISOString()
 
   await page.route('**/api/lists/join/MOCKSHOP', async (route) => {
@@ -48,7 +48,7 @@ test('join deslogado abre login na landing e guarda inviteCode', async ({ page }
   await expect(page.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })).toBeVisible()
 })
 
-test('login por email com invite pendente entra automaticamente na lista', async ({ page }) => {
+test('@pr login por email com invite pendente entra automaticamente na lista', async ({ page }) => {
   const nowIso = () => new Date().toISOString()
   let joinRequestCount = 0
 
@@ -178,7 +178,7 @@ test('login por email com invite pendente entra automaticamente na lista', async
   expect(pendingInviteCode).toBeNull()
 })
 
-test('landing mobile nao deve ter overflow horizontal', async ({ browser }) => {
+test('@pr landing mobile nao deve ter overflow horizontal', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
   const page = await context.newPage()
 
