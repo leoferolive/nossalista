@@ -105,7 +105,21 @@ test('@pr dono consegue excluir lista e retornar para home', async ({ page }) =>
   await expect(page.getByRole('link', { name: `Abrir lista ${listName}` })).toBeVisible()
   await page.getByRole('link', { name: `Abrir lista ${listName}` }).click()
 
-  await page.getByRole('button', { name: 'Excluir' }).click()
+  const directDeleteAction = page.getByRole('button', { name: 'Excluir' })
+  if (await directDeleteAction.isVisible()) {
+    await directDeleteAction.click()
+  } else {
+    const moreActions = page.getByRole('button', { name: /Mais( ações da lista| acoes da lista)?/i })
+    if (await moreActions.isVisible()) {
+      await moreActions.click()
+    }
+
+    const deleteFromMenu = page
+      .getByRole('menuitem', { name: /Excluir lista|Excluir/i })
+      .or(page.getByRole('button', { name: /Excluir lista|Excluir/i }))
+      .first()
+    await deleteFromMenu.click()
+  }
   await page
     .getByRole('button', { name: /^Excluir$/ })
     .last()
