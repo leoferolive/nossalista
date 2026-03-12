@@ -257,7 +257,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }
 
   return (
-    <header className="nl-card nl-card-unclipped mb-5 p-4 sm:p-5">
+    <header className="nl-card nl-card-unclipped relative z-30 mb-5 p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {onBack ? (

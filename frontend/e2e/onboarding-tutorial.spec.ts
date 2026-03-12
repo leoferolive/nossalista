@@ -202,7 +202,9 @@ test('usuario com onboarding concluído pode reabrir pelo menu', async ({ page }
   await expect(page.getByText('Comece pela primeira lista')).not.toBeVisible()
 
   await page.getByRole('button', { name: 'Abrir menu da conta' }).click()
-  await page.getByRole('menuitem', { name: 'Ver tutorial' }).click()
+  const replayTutorial = page.getByRole('menuitem', { name: 'Ver tutorial' })
+  await replayTutorial.focus()
+  await replayTutorial.press('Enter')
 
   await expect(page.getByText('Comece pela primeira lista')).toBeVisible()
 })
