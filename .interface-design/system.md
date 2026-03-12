@@ -57,10 +57,21 @@
 - Border/focus treatment: `soft border + coral/teal ring`
 - Usage: `all auth, modal and settings inputs`
 
+### Authenticated Mobile Shell
+
+- Header model: `3-zone mobile shell`
+- Top row: `eyebrow + optional back + utility icons + account entry`
+- Action rule: `only one primary action visible in the header on mobile`
+- Secondary actions: `move to action strip or overflow sheet`
+- Menu pattern: `bottom sheet on mobile, dropdown on desktop`
+- Theme pattern: `stays visible on desktop header, moves into account sheet on mobile`
+- Usage: `home, profile, list detail and future authenticated product flows`
+
 ## Decisions
 
-| Decision                                                                       | Rationale                                                                      | Date         |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------ |
-| `Fresh Lists replaces paper tech editorial as the active identity.`            | `The product needed a lighter, happier and more legible brand expression.`     | `2026-03-10` |
-| `Landing stays intentionally minimal while the product remains utility-first.` | `Public acquisition and daily product use need different information density.` | `2026-03-10` |
-| `Coral drives action and teal signals progress/status.`                        | `The pairing feels vivid and collaborative without becoming childish.`         | `2026-03-10` |
+| Decision                                                                       | Rationale                                                                       | Date         |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- | ------------ |
+| `Fresh Lists replaces paper tech editorial as the active identity.`            | `The product needed a lighter, happier and more legible brand expression.`      | `2026-03-10` |
+| `Landing stays intentionally minimal while the product remains utility-first.` | `Public acquisition and daily product use need different information density.`  | `2026-03-10` |
+| `Coral drives action and teal signals progress/status.`                        | `The pairing feels vivid and collaborative without becoming childish.`          | `2026-03-10` |
+| `Authenticated mobile navigation now uses compact headers and bottom sheets.`  | `Mobile needed content-first hierarchy and menus that never overflow sideways.` | `2026-03-11` |

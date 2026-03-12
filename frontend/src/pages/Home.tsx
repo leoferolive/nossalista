@@ -94,7 +94,7 @@ export const Home: React.FC = () => {
           eyebrow="NossaLista"
           title="Minhas Listas"
           subtitle={`Tudo pronto para ${user?.displayName || user?.username}. Crie, compartilhe e encontre suas listas sem ruído.`}
-          actions={
+          primaryAction={
             <button
               onClick={() => setIsModalOpen(true)}
               data-tour="home-create-list"

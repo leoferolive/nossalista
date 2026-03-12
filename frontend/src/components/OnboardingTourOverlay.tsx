@@ -96,7 +96,10 @@ export function OnboardingTourOverlay({
 
       if (rect) {
         const target = document.querySelector<HTMLElement>(step.selector)
-        target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        target?.scrollIntoView({
+          block: isMobile ? 'nearest' : 'center',
+          behavior: isMobile ? 'auto' : 'smooth',
+        })
       }
     }
 
@@ -133,7 +136,7 @@ export function OnboardingTourOverlay({
       window.removeEventListener('resize', scheduleRecompute)
       window.removeEventListener('scroll', scheduleRecompute, true)
     }
-  }, [active, step])
+  }, [active, isMobile, step])
 
   useEffect(() => {
     if (!active || !panelRef.current) {
@@ -186,9 +189,9 @@ export function OnboardingTourOverlay({
 
     if (isMobile || !spotlightRect) {
       return {
-        left: 16,
-        right: 16,
-        bottom: 16,
+        left: 12,
+        right: 12,
+        bottom: 12,
       }
     }
 
@@ -230,7 +233,11 @@ export function OnboardingTourOverlay({
     <div className="pointer-events-none fixed inset-0 z-[80]" aria-live="polite">
       {spotlightRect ? (
         <div
-          className="absolute rounded-[22px] border border-amber-300/70 shadow-[0_0_0_9999px_rgba(8,6,4,0.76),0_0_0_3px_rgba(255,239,206,0.2)]"
+          className={`absolute rounded-[22px] border border-amber-300/70 ${
+            isMobile
+              ? 'shadow-[0_0_0_9999px_rgba(8,6,4,0.68),0_0_0_3px_rgba(255,239,206,0.16)]'
+              : 'shadow-[0_0_0_9999px_rgba(8,6,4,0.76),0_0_0_3px_rgba(255,239,206,0.2)]'
+          }`}
           style={{
             top: spotlightRect.top,
             left: spotlightRect.left,
@@ -240,13 +247,18 @@ export function OnboardingTourOverlay({
           aria-hidden="true"
         />
       ) : (
-        <div className="absolute inset-0 bg-[rgba(8,6,4,0.78)]" aria-hidden="true" />
+        <div
+          className={`absolute inset-0 ${isMobile ? 'bg-[rgba(8,6,4,0.68)]' : 'bg-[rgba(8,6,4,0.78)]'}`}
+          aria-hidden="true"
+        />
       )}
 
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="pointer-events-auto fixed rounded-3xl border border-amber-200/40 bg-gradient-to-br from-[#2f2016] via-[#281b13] to-[#1e1510] p-5 text-[#f7ecde] shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md"
+        className={`pointer-events-auto fixed rounded-3xl border border-amber-200/40 bg-gradient-to-br from-[#2f2016] via-[#281b13] to-[#1e1510] text-[#f7ecde] shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md ${
+          isMobile ? 'p-4' : 'p-5'
+        }`}
         style={panelStyle}
         role="dialog"
         aria-modal="true"
@@ -256,11 +268,27 @@ export function OnboardingTourOverlay({
           Tutorial rapido • passo {currentStepIndex + 1} de {totalSteps}
         </p>
 
-        <h3 className="mt-2 font-display text-2xl leading-tight text-[#fff6ea]">{step.title}</h3>
+        <h3
+          className={`mt-2 font-display leading-tight text-[#fff6ea] ${isMobile ? 'text-[1.85rem]' : 'text-2xl'}`}
+        >
+          {step.title}
+        </h3>
 
-        <p className="mt-2 font-sans text-sm leading-6 text-amber-50/90">{step.description}</p>
+        <p
+          className={`mt-2 font-sans text-amber-50/90 ${isMobile ? 'text-[0.92rem] leading-5' : 'text-sm leading-6'}`}
+        >
+          {step.description}
+        </p>
 
-        <div className="mt-5 flex items-center justify-between gap-3">
+        {isMobile ? (
+          <p className="mt-2 font-sans text-xs text-amber-100/75">
+            Pode pular agora e retomar depois pelo menu da conta.
+          </p>
+        ) : null}
+
+        <div
+          className={`mt-5 flex items-center gap-3 ${isMobile ? 'justify-end' : 'justify-between'}`}
+        >
           <button
             type="button"
             onClick={() => void onSkip()}

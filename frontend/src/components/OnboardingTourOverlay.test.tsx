@@ -282,9 +282,9 @@ describe('OnboardingTourOverlay', () => {
 
     const dialog = await screen.findByRole('dialog')
     expect(dialog).toHaveStyle({
-      left: '16px',
-      right: '16px',
-      bottom: '16px',
+      left: '12px',
+      right: '12px',
+      bottom: '12px',
     })
   })
 

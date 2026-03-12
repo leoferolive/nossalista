@@ -4,11 +4,13 @@ import { WebSocketStatus } from '../contexts/WebSocketContext'
 interface ConnectionStatusIndicatorProps {
   status: WebSocketStatus
   dataTour?: string
+  className?: string
 }
 
 export const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
   status,
   dataTour,
+  className,
 }) => {
   const styles: Record<WebSocketStatus, string> = {
     CONNECTED: 'text-emerald-700 bg-emerald-50 border-emerald-200',
@@ -33,7 +35,7 @@ export const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps>
 
   return (
     <div
-      className={`mb-3 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium shadow-sm ${styles[status]}`}
+      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium shadow-sm ${styles[status]} ${className ?? ''}`}
       data-tour={dataTour}
       role="status"
       aria-live="polite"
