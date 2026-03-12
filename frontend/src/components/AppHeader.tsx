@@ -141,7 +141,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </section>
         ) : (
           <div className="rounded-xl bg-nl-surface-strong px-4 py-3">
-            <p className={`font-sans text-xs font-semibold ${pushStatus.tone}`}>
+            <p className={`font-sans text-xs font-semibold leading-5 ${pushStatus.tone}`}>
               {pushStatus.label}
             </p>
           </div>
@@ -257,7 +257,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }
 
   return (
-    <header className="nl-card mb-5 overflow-visible p-4 sm:p-5">
+    <header className="nl-card nl-card-unclipped mb-5 p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {onBack ? (
@@ -311,7 +311,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {!isMobile ? <ThemeToggle /> : null}
           {user ? <NotificationBell /> : null}
 
-          <div className="relative" ref={menuRef}>
+          <div className="relative z-40" ref={menuRef}>
             <button
               type="button"
               onClick={() => setIsMenuOpen((prev) => !prev)}
@@ -368,7 +368,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
             {!isMobile && isMenuOpen ? (
               <div
-                className="absolute right-0 z-30 mt-2 w-[19rem] overflow-hidden rounded-3xl border border-nl-border bg-nl-surface p-3 shadow-earthen-strong"
+                className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-nl-border bg-nl-surface p-3 shadow-earthen-strong animate-fade-in"
                 role="menu"
               >
                 <div className="space-y-3">{renderMenuActions('desktop')}</div>

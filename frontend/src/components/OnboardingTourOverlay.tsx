@@ -233,10 +233,10 @@ export function OnboardingTourOverlay({
     <div className="pointer-events-none fixed inset-0 z-[80]" aria-live="polite">
       {spotlightRect ? (
         <div
-          className={`absolute rounded-[22px] border border-amber-300/70 ${
+          className={`absolute rounded-[22px] border border-nl-accent/75 ${
             isMobile
-              ? 'shadow-[0_0_0_9999px_rgba(8,6,4,0.68),0_0_0_3px_rgba(255,239,206,0.16)]'
-              : 'shadow-[0_0_0_9999px_rgba(8,6,4,0.76),0_0_0_3px_rgba(255,239,206,0.2)]'
+              ? 'shadow-[0_0_0_9999px_rgba(7,11,16,0.64),0_0_0_2px_rgba(255,141,107,0.3)]'
+              : 'shadow-[0_0_0_9999px_rgba(7,11,16,0.72),0_0_0_2px_rgba(255,141,107,0.35)]'
           }`}
           style={{
             top: spotlightRect.top,
@@ -248,7 +248,7 @@ export function OnboardingTourOverlay({
         />
       ) : (
         <div
-          className={`absolute inset-0 ${isMobile ? 'bg-[rgba(8,6,4,0.68)]' : 'bg-[rgba(8,6,4,0.78)]'}`}
+          className={`absolute inset-0 ${isMobile ? 'bg-[rgba(7,11,16,0.64)]' : 'bg-[rgba(7,11,16,0.72)]'}`}
           aria-hidden="true"
         />
       )}
@@ -256,7 +256,7 @@ export function OnboardingTourOverlay({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`pointer-events-auto fixed rounded-3xl border border-amber-200/40 bg-gradient-to-br from-[#2f2016] via-[#281b13] to-[#1e1510] text-[#f7ecde] shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md ${
+        className={`pointer-events-auto fixed rounded-3xl border border-nl-border-strong bg-[linear-gradient(145deg,color-mix(in_srgb,var(--nl-surface-strong)_96%,transparent),color-mix(in_srgb,var(--nl-surface)_90%,var(--nl-accent-soft)))] text-nl-text shadow-earthen-strong backdrop-blur-md ${
           isMobile ? 'p-4' : 'p-5'
         }`}
         style={panelStyle}
@@ -264,24 +264,24 @@ export function OnboardingTourOverlay({
         aria-modal="true"
         aria-label={`Tutorial - passo ${currentStepIndex + 1} de ${totalSteps}`}
       >
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-200/80">
+        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.28em] text-nl-accent">
           Tutorial rapido • passo {currentStepIndex + 1} de {totalSteps}
         </p>
 
         <h3
-          className={`mt-2 font-display leading-tight text-[#fff6ea] ${isMobile ? 'text-[1.85rem]' : 'text-2xl'}`}
+          className={`mt-2 font-display leading-tight text-nl-text ${isMobile ? 'text-[1.85rem]' : 'text-2xl'}`}
         >
           {step.title}
         </h3>
 
         <p
-          className={`mt-2 font-sans text-amber-50/90 ${isMobile ? 'text-[0.92rem] leading-5' : 'text-sm leading-6'}`}
+          className={`mt-2 font-sans text-nl-muted ${isMobile ? 'text-[0.92rem] leading-5' : 'text-sm leading-6'}`}
         >
           {step.description}
         </p>
 
         {isMobile ? (
-          <p className="mt-2 font-sans text-xs text-amber-100/75">
+          <p className="mt-2 font-sans text-xs text-nl-muted">
             Pode pular agora e retomar depois pelo menu da conta.
           </p>
         ) : null}
@@ -292,7 +292,7 @@ export function OnboardingTourOverlay({
           <button
             type="button"
             onClick={() => void onSkip()}
-            className="rounded-2xl border border-amber-200/35 px-4 py-2.5 font-sans text-xs font-semibold uppercase tracking-[0.16em] text-amber-100 transition-colors hover:bg-amber-50/10 focus-visible:ring-2 focus-visible:ring-amber-200/60"
+            className="rounded-2xl border border-nl-border px-4 py-2.5 font-sans text-xs font-semibold uppercase tracking-[0.16em] text-nl-muted transition-colors hover:border-nl-border-strong hover:bg-nl-surface-strong hover:text-nl-text focus-visible:ring-2 focus-visible:ring-nl-accent/50"
           >
             Pular
           </button>
@@ -301,14 +301,14 @@ export function OnboardingTourOverlay({
             type="button"
             disabled={!canAdvance}
             onClick={() => void onNext()}
-            className="rounded-2xl bg-gradient-to-r from-[#f3a45c] to-[#df7248] px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-[0.16em] text-[#2f1a10] shadow-[0_12px_30px_rgba(207,117,71,0.45)] transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-amber-100/70 disabled:cursor-not-allowed disabled:opacity-55"
+            className="rounded-2xl border border-transparent bg-gradient-to-r from-nl-accent to-nl-primary px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-[0.16em] text-[var(--nl-btn-text)] shadow-earthen transition-transform hover:-translate-y-0.5 hover:shadow-earthen-strong focus-visible:ring-2 focus-visible:ring-nl-accent/50 disabled:cursor-not-allowed disabled:opacity-55"
           >
             {isLastStep ? 'Concluir' : 'Próximo'}
           </button>
         </div>
 
         {isCreateStep && !canAdvance && (
-          <p className="mt-3 font-sans text-xs text-amber-100/80">
+          <p className="mt-3 font-sans text-xs text-nl-muted">
             Crie a lista para liberar o próximo passo.
           </p>
         )}
