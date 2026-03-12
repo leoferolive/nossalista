@@ -56,6 +56,7 @@ npm run dev:mock
 - O menu da conta exibe status explicito de push (`ativado`, `desativado`, `nao suportado` ou `indisponivel no ambiente`).
 - Push depende de VAPID configurado no backend (`VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY`).
 - Em ambiente de desenvolvimento, o Service Worker/PWA fica habilitado para validar fluxo de push localmente.
+- O dropdown do menu da conta no desktop deve renderizar sem clipping no card do header (padrao via `nl-card-unclipped` no `AppHeader`).
 
 ## Sistema visual
 
@@ -105,6 +106,7 @@ npm run dev:mock
 - O spotlight recalcula automaticamente quando o alvo entra no DOM apos o passo iniciar (ex.: modal de criacao), evitando overlay opaco sem destaque.
 - Todos os passos mantem acao `Pular`; no passo de criacao, `Proximo` fica desabilitado ate a lista ser criada.
 - Em mobile, o painel do tutorial fica menor e mais leve, para nao competir com o entendimento inicial da tela.
+- O overlay do onboarding segue os tokens globais `Fresh Lists` (`nl-*`) para manter paridade visual entre `light` e `dark` e evitar paleta legado.
 
 ## Shell autenticado
 
