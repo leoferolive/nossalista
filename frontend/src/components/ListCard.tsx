@@ -11,7 +11,7 @@ export function ListCard({ list }: ListCardProps) {
   return (
     <Link
       to={`/lists/${list.id}`}
-      className="nl-preview-card group flex min-h-[220px] flex-col justify-between transition-transform duration-200 hover:-translate-y-1"
+      className="nl-preview-card group flex min-h-[188px] flex-col justify-between transition-transform duration-200 hover:-translate-y-1"
       aria-label={`Abrir lista ${list.name}`}
     >
       <div>
@@ -27,7 +27,7 @@ export function ListCard({ list }: ListCardProps) {
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-nl-muted">
                 {list.type.name}
               </p>
-              <h3 className="mt-2 line-clamp-2 font-display text-2xl font-semibold text-nl-text">
+              <h3 className="mt-1 line-clamp-2 font-display text-[1.85rem] font-semibold leading-[1.02] text-nl-text sm:text-2xl">
                 {list.name}
               </h3>
               <p className="mt-2 text-sm text-nl-muted">
@@ -39,25 +39,27 @@ export function ListCard({ list }: ListCardProps) {
           <span className="nl-pill">{list.isOwner ? 'Minha' : 'Compartilhada'}</span>
         </div>
 
-        <div className="mt-6 space-y-3">
-          {Array.from({ length: Math.min(Math.max(list.itemsCount, 2), 3) }).map((_, index) => (
-            <div key={`${list.id}-${index}`} className="nl-checkline">
-              <span className="nl-check" data-done={index === 0 && list.itemsCount > 0}>
-                {index === 0 && list.itemsCount > 0 ? '✓' : ''}
-              </span>
-              <span className="text-sm text-nl-muted">
-                {index === 0
-                  ? `${list.itemsCount} ${list.itemsCount === 1 ? 'item pronto' : 'itens prontos'}`
-                  : index === 1
-                    ? 'Checklist compartilhado em um so lugar'
-                    : 'Atualizacoes simples e em tempo real'}
-              </span>
-            </div>
-          ))}
+        <div className="mt-5 space-y-2.5">
+          <div className="nl-checkline">
+            <span className="nl-check" data-done={list.itemsCount > 0}>
+              {list.itemsCount > 0 ? '✓' : ''}
+            </span>
+            <span className="text-sm text-nl-muted">
+              {list.itemsCount === 0
+                ? 'Sem itens ainda'
+                : `${list.itemsCount} ${list.itemsCount === 1 ? 'item pronto' : 'itens prontos'}`}
+            </span>
+          </div>
+          <div className="nl-checkline">
+            <span className="nl-check" aria-hidden="true" />
+            <span className="text-sm text-nl-muted">
+              {list.isOwner ? 'Convide pessoas quando estiver pronto' : 'Atualiza em tempo real'}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between border-t border-nl-border pt-4 text-sm text-nl-muted">
+      <div className="mt-5 flex items-center justify-between border-t border-nl-border pt-4 text-sm text-nl-muted">
         <span className="font-medium text-nl-text">Abrir lista</span>
         <span className="font-tabular">{list.itemsCount} itens</span>
       </div>

@@ -29,10 +29,10 @@ export const OnlineMembersBar: React.FC<OnlineMembersBarProps> = ({ members, cur
 
   return (
     <section
-      className="bg-nl-primary/10 border border-nl-border rounded-lg p-3 mb-4"
+      className="mb-4 rounded-2xl border border-nl-border bg-nl-primary/10 p-3.5"
       aria-label="Membros online"
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-medium text-nl-primary">
           {onlyCurrentUserOnline ? 'Apenas você online agora' : `Online agora: ${members.length}`}
         </p>

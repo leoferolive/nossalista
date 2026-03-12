@@ -17,6 +17,7 @@ import { ActivityTimeline } from '../components/ActivityTimeline'
 import { OnlineMembersBar } from '../components/OnlineMembersBar'
 import { ConnectionStatusIndicator } from '../components/ConnectionStatusIndicator'
 import { AppHeader } from '../components/AppHeader'
+import { ResponsiveActionMenu } from '../components/ResponsiveActionMenu'
 import { listsApi } from '../api/listsApi'
 import { useToast, Toast } from '../components/Toast'
 import { ApiError } from '../types/ApiError'
@@ -793,97 +794,101 @@ export const ListView: React.FC = () => {
             title={currentList.name}
             subtitle="Compartilhe progresso, acompanhe presenca em tempo real e mantenha tudo sincronizado."
             onBack={() => navigate(-1)}
-            actions={
-              <>
+            primaryAction={
+              currentList.isOwner ? (
                 <button
-                  onClick={handleOpenMembersModal}
-                  className="nl-btn-secondary"
-                  aria-label="Abrir membros"
+                  onClick={handleOpenInviteModal}
+                  data-tour="list-invite"
+                  className="nl-btn-primary"
+                  aria-label="Convidar para lista"
+                  title="Convidar para lista"
                 >
-                  <span aria-hidden="true">👥</span>
-                  <span>Membros</span>
-                  <span className="font-tabular rounded-full bg-nl-surface-strong px-2 py-0.5 text-xs text-nl-accent">
-                    {memberCountLabel}
-                  </span>
+                  <span aria-hidden="true">+</span>
+                  Convidar
                 </button>
-                {ACTIVITY_TIMELINE_ENABLED && (
-                  <button
-                    onClick={() => setIsActivityTimelineOpen(true)}
-                    className="nl-btn-secondary"
-                    aria-label="Ver atividades da lista"
-                    title="Histórico de atividades"
-                  >
-                    <span aria-hidden="true">📜</span>
-                    Historico
-                  </button>
-                )}
-                {currentList.isOwner && (
-                  <>
-                    <button
-                      onClick={handleOpenInviteModal}
-                      data-tour="list-invite"
-                      className="nl-btn-primary"
-                      aria-label="Convidar para lista"
-                      title="Convidar para lista"
-                    >
-                      <span aria-hidden="true">+</span>
-                      Convidar
-                    </button>
-                    <button
-                      onClick={handleOpenEditModal}
-                      className="nl-btn-secondary"
-                      aria-label="Editar nome da lista"
-                      title="Editar nome da lista"
-                    >
-                      Editar nome
-                    </button>
-                    <button
-                      onClick={handleOpenDeleteListModal}
-                      className="nl-btn-danger"
-                      aria-label="Excluir lista"
-                      title="Excluir lista"
-                    >
-                      Excluir
-                    </button>
-                  </>
-                )}
-              </>
+              ) : undefined
             }
           />
         </div>
 
-        {/* Info da lista: Tipo (emoji + nome), Dono (avatar + username) */}
-        <div className="nl-preview-card mb-6">
-          <div className="mb-3 flex items-center gap-3">
-            <span className="text-4xl" aria-hidden="true">
-              {typeEmoji}
+        <div className="mb-4 flex flex-wrap gap-3" data-tour="list-actions">
+          <button
+            onClick={handleOpenMembersModal}
+            className="nl-btn-secondary"
+            aria-label="Abrir membros"
+          >
+            <span aria-hidden="true">👥</span>
+            <span>Membros</span>
+            <span className="font-tabular rounded-full bg-nl-surface-strong px-2 py-0.5 text-xs text-nl-accent">
+              {memberCountLabel}
             </span>
-            <div>
-              <p className="font-semibold text-nl-text">{currentList.type.name}</p>
-              <p className="text-sm text-nl-muted">
-                Criada por <span className="font-medium">{currentList.owner.username}</span>
-              </p>
+          </button>
+
+          {ACTIVITY_TIMELINE_ENABLED && (
+            <button
+              onClick={() => setIsActivityTimelineOpen(true)}
+              className="nl-btn-secondary"
+              aria-label="Ver atividades da lista"
+              title="Histórico de atividades"
+            >
+              <span aria-hidden="true">📜</span>
+              Historico
+            </button>
+          )}
+
+          {currentList.isOwner && (
+            <ResponsiveActionMenu
+              triggerLabel="Mais ações da lista"
+              title="Mais ações da lista"
+              items={[
+                {
+                  label: 'Editar nome da lista',
+                  icon: '✎',
+                  onSelect: handleOpenEditModal,
+                },
+                {
+                  label: 'Excluir lista',
+                  icon: '⌫',
+                  tone: 'danger',
+                  onSelect: handleOpenDeleteListModal,
+                },
+              ]}
+            />
+          )}
+        </div>
+
+        {/* Info da lista: Tipo, dono, estado e contexto da sessão */}
+        <div className="nl-preview-card mb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl" aria-hidden="true">
+                {typeEmoji}
+              </span>
+              <div>
+                <p className="font-semibold text-nl-text">{currentList.type.name}</p>
+                <p className="text-sm text-nl-muted">
+                  Criada por <span className="font-medium">{currentList.owner.username}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {currentList.isOwner ? (
+                <span className="nl-pill">Voce e o dono</span>
+              ) : (
+                <span className="nl-pill">Lista compartilhada</span>
+              )}
+              <ConnectionStatusIndicator status={wsStatus} dataTour="list-realtime" />
             </div>
           </div>
 
-          {/* Badge de propriedade */}
-          <div className="mt-2 flex items-center gap-2">
-            {currentList.isOwner ? (
-              <span className="nl-pill">Voce e o dono</span>
-            ) : (
-              <span className="nl-pill">Lista compartilhada</span>
-            )}
-          </div>
-
           {recentInvitedUsers.length > 0 && (
-            <p className="mt-2 text-xs text-nl-primary">
+            <p className="mt-3 text-xs text-nl-primary">
               Convidados nesta sessao:{' '}
               {recentInvitedUsers.map((username) => `@${username}`).join(', ')}
             </p>
           )}
         </div>
-
-        <ConnectionStatusIndicator status={wsStatus} dataTour="list-realtime" />
 
         {hasPresenceSnapshot && onlineMembers.size > 0 && (
           <OnlineMembersBar members={sortedOnlineMembers} currentUserId={currentUser?.id ?? ''} />

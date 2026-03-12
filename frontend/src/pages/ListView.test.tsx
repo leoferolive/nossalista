@@ -120,6 +120,10 @@ describe('ListView - Delete Functionality', () => {
     })
   })
 
+  function openListOverflow() {
+    fireEvent.click(screen.getByLabelText('Mais ações da lista'))
+  }
+
   it('deve mostrar botão excluir apenas para dono da lista', () => {
     render(
       <BrowserRouter>
@@ -127,8 +131,7 @@ describe('ListView - Delete Functionality', () => {
       </BrowserRouter>
     )
 
-    const deleteButton = screen.getByLabelText('Excluir lista')
-    expect(deleteButton).toBeInTheDocument()
+    expect(screen.getByLabelText('Mais ações da lista')).toBeInTheDocument()
   })
 
   it('não deve mostrar botão excluir quando usuário não é dono', () => {
@@ -150,8 +153,7 @@ describe('ListView - Delete Functionality', () => {
       </BrowserRouter>
     )
 
-    const deleteButton = screen.queryByLabelText('Excluir lista')
-    expect(deleteButton).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Mais ações da lista')).not.toBeInTheDocument()
   })
 
   it('deve abrir modal ao clicar no botão excluir', () => {
@@ -161,8 +163,8 @@ describe('ListView - Delete Functionality', () => {
       </BrowserRouter>
     )
 
-    const deleteButton = screen.getByLabelText('Excluir lista')
-    fireEvent.click(deleteButton)
+    openListOverflow()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir lista' }))
 
     expect(screen.getByText('Excluir Lista?')).toBeInTheDocument()
   })
@@ -177,8 +179,8 @@ describe('ListView - Delete Functionality', () => {
     )
 
     // Abrir modal
-    const deleteButton = screen.getByLabelText('Excluir lista')
-    fireEvent.click(deleteButton)
+    openListOverflow()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir lista' }))
 
     // Confirmar exclusão
     const confirmButton = within(screen.getByRole('dialog')).getByRole('button', {
@@ -204,8 +206,8 @@ describe('ListView - Delete Functionality', () => {
     )
 
     // Abrir modal
-    const deleteButton = screen.getByLabelText('Excluir lista')
-    fireEvent.click(deleteButton)
+    openListOverflow()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir lista' }))
 
     // Confirmar exclusão
     const confirmButton = within(screen.getByRole('dialog')).getByRole('button', {
@@ -233,8 +235,8 @@ describe('ListView - Delete Functionality', () => {
     )
 
     // Abrir modal
-    const deleteButton = screen.getByLabelText('Excluir lista')
-    fireEvent.click(deleteButton)
+    openListOverflow()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir lista' }))
 
     // Confirmar exclusão
     const confirmButton = within(screen.getByRole('dialog')).getByRole('button', {
@@ -259,8 +261,8 @@ describe('ListView - Delete Functionality', () => {
     )
 
     // Abrir modal
-    const deleteButton = screen.getByLabelText('Excluir lista')
-    fireEvent.click(deleteButton)
+    openListOverflow()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir lista' }))
 
     // Confirmar exclusão
     const confirmButton = within(screen.getByRole('dialog')).getByRole('button', {
@@ -283,8 +285,9 @@ describe('ListView - Delete Functionality', () => {
       </BrowserRouter>
     )
 
-    const deleteButton = screen.getByLabelText('Excluir lista')
-    expect(deleteButton).toHaveClass('nl-btn-danger')
+    openListOverflow()
+    const deleteAction = screen.getByRole('menuitem', { name: 'Excluir lista' })
+    expect(deleteAction).toHaveClass('nl-action-row-danger')
   })
 
   it('deve abrir modal de membros e mostrar aviso para owner', async () => {

@@ -53,19 +53,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const providerLabel = authProvider === 'GOOGLE' ? 'Google' : 'Email & Senha'
 
   return (
-    <section className="nl-card p-6 sm:p-8" aria-label="Dados de perfil">
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+    <section className="nl-card p-5 sm:p-8" aria-label="Dados de perfil">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <div className="relative shrink-0">
           {(isEditing ? editedAvatarUrl : avatarUrl) ? (
             <img
               src={isEditing ? editedAvatarUrl : avatarUrl!}
               alt={username}
-              className="h-24 w-24 rounded-3xl border-4 border-nl-border object-cover shadow-md"
+              className="h-20 w-20 rounded-3xl border-4 border-nl-border object-cover shadow-md sm:h-24 sm:w-24"
               width={96}
               height={96}
             />
           ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-3xl border-4 border-nl-border bg-gradient-to-br from-orange-500 to-amber-500 text-4xl font-bold text-white shadow-md">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl border-4 border-nl-border bg-gradient-to-br from-orange-500 to-amber-500 text-3xl font-bold text-white shadow-md sm:h-24 sm:w-24 sm:text-4xl">
               {username.charAt(0).toUpperCase()}
             </div>
           )}
@@ -92,7 +92,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <button
               type="button"
               onClick={onEdit}
-              className="mt-4 inline-flex min-h-[44px] items-center rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+              className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:from-teal-800 hover:to-teal-700 focus-visible:ring-2 focus-visible:ring-nl-accent/30 sm:w-auto"
             >
               Editar Perfil
             </button>
@@ -119,30 +119,34 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       </div>
 
       {!isEditing && (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4">
           <div className="rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-accent">
               Username
             </p>
-            <p className="mt-1 truncate text-lg font-medium text-nl-text">@{username}</p>
+            <p className="mt-1 truncate text-base font-medium text-nl-text sm:text-lg">
+              @{username}
+            </p>
           </div>
           <div className="rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-accent">
               Email
             </p>
-            <p className="mt-1 truncate text-lg text-nl-text">{email}</p>
+            <p className="mt-1 truncate text-base text-nl-text sm:text-lg">{email}</p>
           </div>
           <div className="rounded-2xl border border-nl-border bg-nl-primary/10 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-primary">
               Nome
             </p>
-            <p className="mt-1 truncate text-lg text-nl-text">{name || 'Nao informado'}</p>
+            <p className="mt-1 truncate text-base text-nl-text sm:text-lg">
+              {name || 'Nao informado'}
+            </p>
           </div>
           <div className="rounded-2xl border border-nl-border bg-nl-primary/10 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nl-primary">
               Metodo de Acesso
             </p>
-            <p className="mt-1 text-lg text-nl-text">{providerLabel}</p>
+            <p className="mt-1 text-base text-nl-text sm:text-lg">{providerLabel}</p>
           </div>
         </div>
       )}

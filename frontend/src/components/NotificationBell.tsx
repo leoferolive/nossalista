@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNotificationContext } from '../contexts/NotificationContext'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { ResponsiveSheet } from './ResponsiveSheet'
 
 export function NotificationBell() {
   const { notifications, unreadCount, markAllRead, clearAll } = useNotificationContext()
+  const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -14,7 +17,7 @@ export function NotificationBell() {
   }
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || isMobile) return
 
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -32,7 +35,33 @@ export function NotificationBell() {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [isOpen])
+  }, [isMobile, isOpen])
+
+  const content =
+    notifications.length === 0 ? (
+      <p className="rounded-2xl border border-dashed border-nl-border bg-nl-surface-muted/50 p-4 text-center font-sans text-sm text-nl-muted">
+        Nenhuma notificação
+      </p>
+    ) : (
+      <ul className="space-y-2">
+        {notifications.map((notification) => (
+          <li
+            key={notification.id}
+            className="rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3"
+          >
+            <p className="font-sans text-sm text-nl-text">{notification.message}</p>
+            {notification.timestamp ? (
+              <p className="mt-1 font-sans text-xs text-nl-muted">
+                {new Date(notification.timestamp).toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    )
 
   return (
     <div className="relative" ref={containerRef}>
@@ -57,18 +86,36 @@ export function NotificationBell() {
           />
         </svg>
 
-        {unreadCount > 0 && (
+        {unreadCount > 0 ? (
           <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-nl-danger font-sans text-[10px] font-bold text-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
-        )}
+        ) : null}
       </button>
 
-      {isOpen && (
+      {isMobile ? (
+        <ResponsiveSheet
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Notificações"
+          description="Atualizações recentes da sua atividade compartilhada."
+          footer={
+            notifications.length > 0 ? (
+              <button type="button" onClick={clearAll} className="nl-btn-secondary w-full">
+                Limpar tudo
+              </button>
+            ) : null
+          }
+        >
+          {content}
+        </ResponsiveSheet>
+      ) : null}
+
+      {!isMobile && isOpen ? (
         <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-nl-border bg-nl-surface shadow-earthen-strong">
           <div className="flex items-center justify-between border-b border-nl-border px-4 py-3">
             <span className="font-sans text-sm font-semibold text-nl-text">Notificações</span>
-            {notifications.length > 0 && (
+            {notifications.length > 0 ? (
               <button
                 type="button"
                 onClick={clearAll}
@@ -76,30 +123,35 @@ export function NotificationBell() {
               >
                 Limpar tudo
               </button>
-            )}
+            ) : null}
           </div>
 
-          {notifications.length === 0 ? (
-            <p className="p-4 text-center font-sans text-sm text-nl-muted">Nenhuma notificação</p>
-          ) : (
-            <ul className="max-h-80 overflow-y-auto">
-              {notifications.map((n) => (
-                <li key={n.id} className="border-b border-nl-border px-4 py-3 last:border-b-0">
-                  <p className="font-sans text-sm text-nl-text">{n.message}</p>
-                  {n.timestamp && (
-                    <p className="mt-1 font-sans text-xs text-nl-muted">
-                      {new Date(n.timestamp).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="p-3">
+            {notifications.length === 0 ? (
+              <p className="p-4 text-center font-sans text-sm text-nl-muted">Nenhuma notificação</p>
+            ) : (
+              <ul className="max-h-80 space-y-2 overflow-y-auto">
+                {notifications.map((notification) => (
+                  <li
+                    key={notification.id}
+                    className="rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3"
+                  >
+                    <p className="font-sans text-sm text-nl-text">{notification.message}</p>
+                    {notification.timestamp ? (
+                      <p className="mt-1 font-sans text-xs text-nl-muted">
+                        {new Date(notification.timestamp).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

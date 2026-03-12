@@ -64,7 +64,13 @@ npm run dev:mock
 - Fonte de interface: `Plus Jakarta Sans`
 - Tokens globais vivem em `src/index.css` e cobrem `light` e `dark` com paridade de superficie, borda, foco, sombra e overlays
 - O switch de tema e parte do produto e deve aparecer nas telas publicas e na area autenticada principal
+- Em mobile autenticado, o switch de tema sai do topo e vai para o sheet da conta para reduzir ruído visual
 - A landing publica deve ficar mais leve que o produto autenticado: um hero, um preview principal e apoio curto
+- Headers autenticados no mobile seguem um shell compacto de 3 zonas:
+  - linha 1 com contexto e utilidades
+  - linha 2 com titulo/subtitulo
+  - linha 3 com no maximo uma acao primaria
+- Menus de conta, notificacoes e overflows operacionais usam `ResponsiveSheet` no mobile e dropdown apenas no desktop
 
 ## Padrao visual de formularios e modais
 
@@ -75,6 +81,7 @@ npm run dev:mock
   - Erro: `nl-alert` ou `nl-helper nl-helper-error`
   - Botoes: `nl-btn-primary`, `nl-btn-secondary`, `nl-btn-ghost`, `nl-btn-danger`
   - Estrutura de modal: `ModalShell`
+  - Estrutura de sheet/drawer mobile: `ResponsiveSheet`
 - Landing publica:
   - CTA principal abre cadastro
   - CTA secundario abre login
@@ -95,6 +102,15 @@ npm run dev:mock
 - O usuario pode reabrir o fluxo completo a qualquer momento pelo menu da conta em `Ver tutorial`.
 - O spotlight recalcula automaticamente quando o alvo entra no DOM apos o passo iniciar (ex.: modal de criacao), evitando overlay opaco sem destaque.
 - Todos os passos mantem acao `Pular`; no passo de criacao, `Proximo` fica desabilitado ate a lista ser criada.
+- Em mobile, o painel do tutorial fica menor e mais leve, para nao competir com o entendimento inicial da tela.
+
+## Shell autenticado
+
+- `AppHeader` agora expõe slots semanticos (`primaryAction`, `secondaryActions`, `accountActions`) em vez de um bloco generico de acoes.
+- `Home` prioriza primeira dobra com titulo, CTA principal e inicio dos cards.
+- `ListView` separa acao primaria (`Convidar`) das acoes secundarias (`Membros`, `Historico`) e move acoes destrutivas para overflow.
+- `NotificationBell` e menu da conta usam sheets no mobile para evitar popovers cortados.
+- `ListCard` foi encurtado para mostrar status e entrada com menos texto repetitivo.
 
 ## Estrutura principal
 

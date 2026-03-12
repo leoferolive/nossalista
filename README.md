@@ -17,6 +17,7 @@ Status atual:
 - Backend e frontend implementados no monorepo
 - Onboarding guiado no primeiro login (com replay manual no menu da conta)
 - Rebranding global do frontend com linguagem `Fresh Lists`, paridade light/dark e switch de tema exposto na UI
+- Shell autenticado mobile refeito com headers compactos, sheets para conta/notificacoes e acoes de lista reorganizadas
 - Landing page publica com CTAs separados para cadastro e login em modais distintos
 - Fluxo deslogado centralizado na landing (`/`), com `/login` mantido apenas como redirecionamento legado para `/?auth=login`
 - CI ativo para frontend e backend
@@ -110,6 +111,10 @@ npm run dev:mock
   - CTA secundario abre login
 - A landing publica deve permanecer minimalista: hero curto, preview principal unico e apoio enxuto
 - Modais e formularios principais seguem o mesmo padrao de textbox, label, helper text, feedback e hierarquia de botoes
+- A area autenticada mobile agora prioriza conteudo acima da dobra:
+  - headers compactos
+  - menu da conta e notificacoes em bottom sheet
+  - acoes secundarias em overflow quando necessario
 - Rotas protegidas com usuario deslogado redirecionam para `/` (nao mais para `/login?redirect=...`)
 - Contrato de URL para orquestrar auth na landing:
   - `/?auth=login|register`
