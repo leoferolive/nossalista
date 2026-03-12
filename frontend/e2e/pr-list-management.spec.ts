@@ -106,7 +106,10 @@ test('@pr dono consegue excluir lista e retornar para home', async ({ page }) =>
   await page.getByRole('link', { name: `Abrir lista ${listName}` }).click()
 
   await page.getByRole('button', { name: 'Excluir' }).click()
-  await page.getByRole('button', { name: /^Excluir$/ }).last().click()
+  await page
+    .getByRole('button', { name: /^Excluir$/ })
+    .last()
+    .click()
 
   await expect(page).toHaveURL(/\/home$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Minhas Listas' })).toBeVisible()

@@ -26,7 +26,9 @@ export async function registerFromLanding(page: Page, user: FullstackUser) {
   await page.getByLabel('Senha').fill(user.password)
   await page.getByLabel('Confirmar senha').fill(user.password)
   await page.getByRole('button', { name: 'Criar conta e continuar' }).click()
-  await expect(page).toHaveURL(new RegExp(`/\\?auth=login&registered=1&email=${encodeURIComponent(user.email)}`))
+  await expect(page).toHaveURL(
+    new RegExp(`/\\?auth=login&registered=1&email=${encodeURIComponent(user.email)}`)
+  )
 }
 
 export async function loginFromLanding(page: Page, user: FullstackUser) {
@@ -52,4 +54,3 @@ export async function skipOnboardingIfVisible(page: Page) {
     await skipButton.click()
   }
 }
-

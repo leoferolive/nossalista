@@ -48,7 +48,9 @@ test('@fullstack CRUD básico de item persiste após reload', async ({ page }) =
   await page.reload()
   await expect(page.getByRole('button', { name: editedName })).toBeVisible()
   await expect(
-    page.locator('[data-testid^="list-item-"]', { hasText: editedName }).locator('[role="checkbox"]')
+    page
+      .locator('[data-testid^="list-item-"]', { hasText: editedName })
+      .locator('[role="checkbox"]')
   ).toHaveAttribute('aria-checked', 'true')
 
   const editedRow = page.locator('[data-testid^="list-item-"]', { hasText: editedName }).first()

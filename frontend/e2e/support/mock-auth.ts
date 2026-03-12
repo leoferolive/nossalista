@@ -28,4 +28,3 @@ export async function seedMockAuthSession(page: Page, user: MockAuthUser = defau
     { seededUser: user }
   )
 }
-

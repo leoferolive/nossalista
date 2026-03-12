@@ -36,7 +36,9 @@ test('@pr login inválido exibe erro sem navegar', async ({ page }) => {
 
 test('@pr join por convite inexistente mostra tela 404', async ({ page }) => {
   await page.goto('/join/INVITE-INEXISTENTE')
-  await expect(page.getByRole('heading', { level: 1, name: 'Convite não encontrado' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Convite não encontrado' })
+  ).toBeVisible()
 })
 
 test('@pr join por convite expirado mostra tela 410', async ({ page }) => {
@@ -49,5 +51,7 @@ test('@pr join por convite expirado mostra tela 410', async ({ page }) => {
   })
 
   await page.goto('/join/EXPIRED-CODE')
-  await expect(page.getByRole('heading', { level: 1, name: 'Link de convite expirado' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Link de convite expirado' })
+  ).toBeVisible()
 })
