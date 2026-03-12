@@ -39,3 +39,10 @@
 
 - **Decisao:** tutorial guiado no primeiro login com persistencia por conta (`users.onboarding_completed_at`), endpoint idempotente de conclusao e replay manual no menu da conta.
 - **Motivo:** reduzir friccao para novos usuarios sem repetir onboarding em todos os acessos/dispositivos.
+
+## D-009 Estrategia E2E em duas camadas
+
+- **Decisao:** separar E2E Playwright em duas suites com tags:
+  - `@pr`: deterministic/mockado, bloqueante no PR.
+  - `@fullstack`: navegador + backend real, execucao noturna e manual.
+- **Motivo:** elevar cobertura de fluxo critico sem estourar tempo de feedback no PR.

@@ -30,7 +30,9 @@ npm run dev:mock
 - `npm run dev:mock`: inicia o frontend com API mock em memoria
 - `npm run test`: executa testes com Vitest
 - `npm run test:coverage`: executa testes com cobertura (threshold >= 80%)
-- `npm run test:e2e`: executa cenarios E2E com Playwright (smoke, auth/redirect e onboarding)
+- `npm run test:e2e`: executa todos os cenarios E2E com Playwright
+- `npm run test:e2e:pr`: executa apenas cenarios `@pr` (deterministic/mockado, gate bloqueante de PR)
+- `npm run test:e2e:fullstack`: executa apenas cenarios `@fullstack` (frontend + backend reais)
 - `npm run lint`: executa lint
 - `npm run stylelint`: valida CSS
 - `npm run typecheck`: executa `tsc --noEmit`
@@ -118,11 +120,13 @@ npm run typecheck
 npm run test:coverage
 npm run build
 npm run bundle:check
-npm run test:e2e
+npm run test:e2e:pr
+npm run test:e2e:fullstack
 ```
 
 ## Gates de CI (PR)
 
 - Coverage minima do frontend: 80% para linhas, branches, funcoes e statements.
 - Build e runtime smoke com `vite build` + `vite preview`.
-- Smoke E2E obrigatorio com Playwright.
+- Suite E2E `@pr` obrigatoria com Playwright.
+- Suite `@fullstack` roda separadamente no workflow `frontend-e2e-fullstack.yml` (cron diario + disparo manual).

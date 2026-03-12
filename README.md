@@ -126,7 +126,8 @@ npm run typecheck
 npm run test:coverage
 npm run build
 npm run bundle:check
-npm run test:e2e
+npm run test:e2e:pr
+npm run test:e2e:fullstack
 ```
 
 ### Backend
@@ -143,10 +144,11 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
 
 ## Gates de PR (bloqueantes)
 
-- Frontend: ESLint, Prettier, Stylelint, TypeScript (`tsc --noEmit`), Vitest com coverage >= 80%, build, bundle budget e smoke E2E com Playwright.
+- Frontend: ESLint, Prettier, Stylelint, TypeScript (`tsc --noEmit`), Vitest com coverage >= 80%, build, bundle budget e suite E2E Playwright `@pr` bloqueante.
 - Backend: `verify` com Checkstyle, PMD, SpotBugs, ArchUnit, JaCoCo (>= 80% linhas e >= 75% branches), build e suite de regressao.
 - Seguranca e compliance: EditorConfig check, gitleaks, semgrep, npm audit (high+), licencas e OWASP Dependency-Check.
 - Smoke backend: subida do jar com profile `ci` e validacao de `/actuator/health`.
+- Full-stack E2E: workflow `frontend-e2e-fullstack.yml` roda diariamente (06:00 UTC / 03:00 America/Sao_Paulo) e tambem via `workflow_dispatch`.
 
 ## Deploy
 

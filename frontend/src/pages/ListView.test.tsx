@@ -385,7 +385,7 @@ describe('ListView - Delete Functionality', () => {
 
     await waitFor(() => {
       expect(listsApi.leaveList).toHaveBeenCalledWith('test-list-id')
-      expect(mockNavigate).toHaveBeenCalledWith('/', {
+      expect(mockNavigate).toHaveBeenCalledWith('/home', {
         state: {
           toastMessage: 'Você saiu',
           toastType: 'success',

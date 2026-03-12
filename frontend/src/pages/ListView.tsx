@@ -658,7 +658,7 @@ export const ListView: React.FC = () => {
       await listsApi.leaveList(id)
       setIsLeaveConfirmOpen(false)
       setIsMembersModalOpen(false)
-      navigate('/', {
+      navigate('/home', {
         state: {
           toastMessage: 'Você saiu',
           toastType: 'success',

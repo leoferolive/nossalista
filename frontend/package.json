@@ -18,7 +18,9 @@
     "preview:smoke": "vite preview --host 127.0.0.1 --port 4173",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:pr": "playwright test --grep @pr",
+    "test:e2e:fullstack": "E2E_MODE=fullstack playwright test --grep @fullstack"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",

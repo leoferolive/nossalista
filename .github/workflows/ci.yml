@@ -134,9 +134,18 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Frontend e2e smoke
+      - name: Frontend e2e PR suite
         working-directory: frontend
-        run: npm run test:e2e
+        run: npm run test:e2e:pr
+
+      - name: Upload frontend e2e artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-e2e-artifacts
+          path: |
+            frontend/playwright-report
+            frontend/test-results
 
   backend-quality:
     needs: changes
