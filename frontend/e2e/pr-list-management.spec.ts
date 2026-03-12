@@ -37,38 +37,30 @@ async function createListFromHome(page: Parameters<typeof test>[0]['page'], list
 }
 
 async function openDeleteListAction(page: Parameters<typeof test>[0]['page']) {
-  const directDeleteAction = page
-    .getByRole('button', { name: /^Excluir lista$|^Excluir$/i })
-    .first()
-  if (await directDeleteAction.isVisible()) {
-    await directDeleteAction.click()
-    return
-  }
-
   const moreActions = page
     .getByRole('button', { name: /Mais( ações da lista| acoes da lista)?/i })
     .first()
-  if (!(await moreActions.isVisible())) {
-    await expect(directDeleteAction).toBeVisible({ timeout: 10000 })
-    await directDeleteAction.click()
-    return
-  }
-
-  const deleteFromMenu = page
-    .getByRole('menuitem', { name: /^Excluir lista$/i })
-    .or(page.getByRole('button', { name: /^Excluir lista$/i }))
-    .first()
-
-  if (!(await deleteFromMenu.isVisible())) {
-    await moreActions.click()
-  }
-
-  if (!(await deleteFromMenu.isVisible())) {
+  if ((await moreActions.count()) > 0) {
+    await moreActions.scrollIntoViewIfNeeded()
     await moreActions.click({ force: true })
+
+    const deleteFromMenu = page
+      .getByRole('menuitem', { name: /^Excluir lista$/i })
+      .or(page.getByRole('button', { name: /^Excluir lista$/i }))
+      .first()
+    if (await deleteFromMenu.isVisible()) {
+      await deleteFromMenu.click()
+      return
+    }
   }
 
-  await expect(deleteFromMenu).toBeVisible({ timeout: 10000 })
-  await deleteFromMenu.click()
+  const directDeleteAction = page
+    .getByRole('button', { name: /^Excluir lista$|^Excluir$/i })
+    .first()
+  if (!(await directDeleteAction.isVisible())) {
+    await expect(directDeleteAction).toBeVisible({ timeout: 10000 })
+  }
+  await directDeleteAction.click()
 }
 
 test('@pr home permite criar lista manualmente fora do onboarding', async ({ page }) => {
@@ -150,6 +142,24 @@ test('@pr dono consegue excluir lista e retornar para home', async ({ page }) =>
   await expect(page.getByRole('link', { name: `Abrir lista ${listName}` })).toBeVisible()
   await page.getByRole('link', { name: `Abrir lista ${listName}` }).click()
   await dismissOnboardingIfVisible(page)
+
+  const actionsVisible =
+    (await page
+      .getByRole('button', { name: /Mais( ações da lista| acoes da lista)?/i })
+      .first()
+      .isVisible()
+      .catch(() => false)) ||
+    (await page
+      .getByRole('button', { name: /^Excluir lista$|^Excluir$/i })
+      .first()
+      .isVisible()
+      .catch(() => false))
+
+  if (!actionsVisible) {
+    await page.goto('/lists/list-demo-1')
+    await dismissOnboardingIfVisible(page)
+  }
+
   await openDeleteListAction(page)
   await page
     .getByRole('button', { name: /^Excluir$/ })

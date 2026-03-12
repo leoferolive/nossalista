@@ -169,7 +169,7 @@ test('@pr perfil permite salvar edição e sair da conta', async ({ page }) => {
   await page.getByRole('button', { name: 'Abrir menu da conta' }).click()
   await page.getByRole('menuitem', { name: 'Sair' }).click()
 
-  await expect(page).toHaveURL('/')
+  await expect(page).toHaveURL('http://127.0.0.1:4173/?auth=login&redirect=%2Fprofile')
   const token = await page.evaluate(() => localStorage.getItem('authToken'))
   expect(token).toBeNull()
 })

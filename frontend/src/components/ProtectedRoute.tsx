@@ -1,9 +1,10 @@
 import React from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isBootstrapping } = useAuth()
+  const location = useLocation()
 
   if (isBootstrapping) {
     return (
@@ -14,7 +15,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />
+    const redirectPath = `${location.pathname}${location.search}${location.hash}`
+    const searchParams = new URLSearchParams({ auth: 'login', redirect: redirectPath })
+    return <Navigate to={`/?${searchParams.toString()}`} replace />
   }
 
   return <>{children}</>

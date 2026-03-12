@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { ProtectedRoute } from './ProtectedRoute'
 
 const mockUseAuth = vi.fn()
@@ -8,6 +8,11 @@ const mockUseAuth = vi.fn()
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
 }))
+
+function LocationProbe() {
+  const location = useLocation()
+  return <div>{`${location.pathname}${location.search}`}</div>
+}
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
@@ -38,7 +43,7 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Validando Sessão…')).toBeInTheDocument()
   })
 
-  it('redireciona para a landing quando nao autenticado', () => {
+  it('redireciona para a landing com login aberto e redirect preservado quando nao autenticado', () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false,
       isBootstrapping: false,
@@ -55,12 +60,22 @@ describe('ProtectedRoute', () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<div>Landing</div>} />
+          <Route
+            path="/"
+            element={
+              <div>
+                Landing:
+                <LocationProbe />
+              </div>
+            }
+          />
         </Routes>
       </MemoryRouter>
     )
 
-    expect(screen.getByText('Landing')).toBeInTheDocument()
+    expect(
+      screen.getByText('/?auth=login&redirect=%2Flists%2F123%3Ftab%3Ditems')
+    ).toBeInTheDocument()
   })
 
   it('renderiza o conteudo quando autenticado', () => {

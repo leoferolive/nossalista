@@ -2,10 +2,10 @@ import { expect, test } from '@playwright/test'
 
 test('@pr rotas protegidas deslogado redirecionam para landing', async ({ page }) => {
   await page.goto('/home')
-  await expect(page).toHaveURL('http://127.0.0.1:4173/')
+  await expect(page).toHaveURL('http://127.0.0.1:4173/?auth=login&redirect=%2Fhome')
 
   await page.goto('/lists/list-demo-1')
-  await expect(page).toHaveURL('http://127.0.0.1:4173/')
+  await expect(page).toHaveURL('http://127.0.0.1:4173/?auth=login&redirect=%2Flists%2Flist-demo-1')
 })
 
 test('@pr rota /login legado redireciona para landing e preserva convite', async ({ page }) => {

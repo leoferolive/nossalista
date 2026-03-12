@@ -28,34 +28,22 @@ test('@pr cadastro via modal redireciona para login com mensagem de sucesso', as
   await page.locator('#register-modal-confirm-password').fill('123456')
   await page.getByRole('button', { name: 'Criar conta e continuar' }).click()
 
+  await expect(page).toHaveURL(/\/\?auth=login/)
   await expect(page.getByRole('alert')).toHaveCount(0)
+  const loginHeading = page.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })
+  const loginVisible = await loginHeading.isVisible().catch(() => false)
 
-  const loginDialog = page.getByRole('dialog', { name: 'Entrar no NossaLista' })
-  const loginHeading = loginDialog.getByRole('heading', { level: 2, name: 'Entrar no NossaLista' })
-  if (await loginDialog.isVisible()) {
-    await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
-    return
+  if (!loginVisible) {
+    const switchToLoginButton = page.getByRole('button', { name: 'Entrar agora' })
+    if (await switchToLoginButton.isVisible().catch(() => false)) {
+      await switchToLoginButton.click({ force: true }).catch(() => {
+        // O modal pode desmontar imediatamente ao sincronizar auth=login.
+      })
+    }
   }
 
-  const registerDialog = page.getByRole('dialog', { name: 'Criar Conta' })
-  await expect(registerDialog).toBeVisible()
-
-  const switchToLoginButton = registerDialog.getByRole('button', { name: 'Entrar agora' })
-  if (await switchToLoginButton.isVisible()) {
-    await switchToLoginButton.click({ timeout: 3000 }).catch(() => {
-      // O modal pode ser desmontado exatamente no clique quando a URL já trocou para auth=login.
-    })
-  }
-
-  if (await loginHeading.isVisible()) {
-    await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
-    return
-  }
-
-  const openLoginButton = page.getByRole('button', { name: 'Ja tenho conta' })
-  await expect(openLoginButton).toBeVisible()
-  await openLoginButton.click()
   await expect(loginHeading).toBeVisible()
+  await expect(page.getByText('Conta criada com sucesso. Agora e so entrar.')).toBeVisible()
 })
 
 test('@pr login inválido exibe erro sem navegar', async ({ page }) => {
