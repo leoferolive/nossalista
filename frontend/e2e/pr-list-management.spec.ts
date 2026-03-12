@@ -37,30 +37,37 @@ async function createListFromHome(page: Parameters<typeof test>[0]['page'], list
 }
 
 async function openDeleteListAction(page: Parameters<typeof test>[0]['page']) {
-  const directDelete = page.getByRole('button', { name: /^Excluir$/ })
-  if (await directDelete.isVisible()) {
-    await directDelete.click()
+  const directDeleteAction = page
+    .getByRole('button', { name: /^Excluir lista$|^Excluir$/i })
+    .first()
+  if (await directDeleteAction.isVisible()) {
+    await directDeleteAction.click()
     return
   }
 
-  const directDeleteList = page.getByRole('button', { name: 'Excluir lista' })
-  if (await directDeleteList.isVisible()) {
-    await directDeleteList.click()
+  const moreActions = page
+    .getByRole('button', { name: /Mais( ações da lista| acoes da lista)?/i })
+    .first()
+  if (!(await moreActions.isVisible())) {
+    await expect(directDeleteAction).toBeVisible({ timeout: 10000 })
+    await directDeleteAction.click()
     return
-  }
-
-  const moreActions = page.getByRole('button', {
-    name: /Mais( ações da lista| acoes da lista)?/i,
-  })
-  if (await moreActions.isVisible()) {
-    await moreActions.click()
   }
 
   const deleteFromMenu = page
-    .getByRole('menuitem', { name: /Excluir lista|Excluir/i })
-    .or(page.getByRole('button', { name: /Excluir lista|Excluir/i }))
+    .getByRole('menuitem', { name: /^Excluir lista$/i })
+    .or(page.getByRole('button', { name: /^Excluir lista$/i }))
     .first()
-  await expect(deleteFromMenu).toBeVisible()
+
+  if (!(await deleteFromMenu.isVisible())) {
+    await moreActions.click()
+  }
+
+  if (!(await deleteFromMenu.isVisible())) {
+    await moreActions.click({ force: true })
+  }
+
+  await expect(deleteFromMenu).toBeVisible({ timeout: 10000 })
   await deleteFromMenu.click()
 }
 
