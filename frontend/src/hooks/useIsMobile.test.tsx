@@ -33,9 +33,11 @@ describe('useIsMobile', () => {
       configurable: true,
       value: vi.fn().mockImplementation(() => ({
         matches: true,
-        addEventListener: vi.fn((_event: string, listener: (event: MediaQueryListEvent) => void) => {
-          changeListener = listener
-        }),
+        addEventListener: vi.fn(
+          (_event: string, listener: (event: MediaQueryListEvent) => void) => {
+            changeListener = listener
+          }
+        ),
         removeEventListener,
       })),
     })
