@@ -109,7 +109,9 @@ test('@pr dono consegue excluir lista e retornar para home', async ({ page }) =>
   if (await directDeleteAction.isVisible()) {
     await directDeleteAction.click()
   } else {
-    const moreActions = page.getByRole('button', { name: /Mais( ações da lista| acoes da lista)?/i })
+    const moreActions = page.getByRole('button', {
+      name: /Mais( ações da lista| acoes da lista)?/i,
+    })
     if (await moreActions.isVisible()) {
       await moreActions.click()
     }
