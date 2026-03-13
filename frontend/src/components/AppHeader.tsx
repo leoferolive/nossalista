@@ -257,7 +257,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }
 
   return (
-    <header className="nl-card nl-card-unclipped relative z-30 mb-5 p-4 sm:p-5">
+    <header className="nl-card nl-card-unclipped relative z-30 mb-4 p-3 sm:mb-5 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {onBack ? (
@@ -379,17 +379,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       </div>
 
       {isMobile ? (
-        <div className="mt-4 min-w-0">
-          <h1 className="font-display text-[2.35rem] font-bold leading-[0.98] tracking-tight text-nl-text">
+        <div className="mt-3 min-w-0">
+          <h1 className="font-display text-[1.95rem] font-bold leading-[1.02] tracking-tight text-nl-text">
             {title}
           </h1>
-          {subtitle ? <p className="mt-2 text-sm leading-6 text-nl-muted">{subtitle}</p> : null}
+          {subtitle ? (
+            <p className="mt-1 line-clamp-1 text-xs leading-5 text-nl-muted">{subtitle}</p>
+          ) : null}
         </div>
       ) : null}
 
       {primaryAction || secondaryActions ? (
         <div
-          className={`mt-4 flex gap-3 ${isMobile ? 'flex-col' : 'flex-wrap items-center justify-between'}`}
+          className={`mt-3 flex gap-2.5 ${isMobile ? 'flex-col' : 'flex-wrap items-center justify-between'}`}
         >
           {primaryAction ? (
             <div className={isMobile ? 'w-full' : ''}>

@@ -846,10 +846,10 @@ export const ListView: React.FC = () => {
           />
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-3" data-tour="list-actions">
+        <div className="mb-3 flex flex-wrap gap-2" data-tour="list-actions">
           <button
             onClick={handleOpenMembersModal}
-            className="nl-btn-secondary"
+            className="nl-btn-secondary min-h-[44px] rounded-xl px-3 py-2 text-sm"
             aria-label="Abrir membros"
           >
             <span aria-hidden="true">👥</span>
@@ -881,7 +881,7 @@ export const ListView: React.FC = () => {
         </div>
 
         {/* Info da lista: Tipo, dono, estado e contexto da sessão */}
-        <div className="nl-preview-card mb-4">
+        <div className="nl-preview-card mb-3">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-3">
               <span className="text-4xl" aria-hidden="true">
@@ -895,7 +895,7 @@ export const ListView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {currentList.isOwner ? (
                 <span className="nl-pill">Você é o dono</span>
               ) : (
@@ -918,8 +918,8 @@ export const ListView: React.FC = () => {
         )}
 
         {/* Seção "Itens": Título + lista de itens */}
-        <div className="nl-card p-5 shadow-sm">
-          <h2 className="mb-4 font-display text-2xl font-semibold text-nl-text">
+        <div className="nl-card p-4 shadow-sm sm:p-5">
+          <h2 className="mb-3 font-display text-xl font-semibold text-nl-text sm:mb-4 sm:text-2xl">
             Itens ({items.length})
           </h2>
 
@@ -990,7 +990,7 @@ export const ListView: React.FC = () => {
           )}
 
           {/* Formulário para adicionar item */}
-          <form onSubmit={handleAddItem} className="mt-4" data-tour="list-add-item">
+          <form onSubmit={handleAddItem} className="mt-3 sm:mt-4" data-tour="list-add-item">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -1006,7 +1006,7 @@ export const ListView: React.FC = () => {
               <button
                 type="submit"
                 disabled={addingItem || !newItemName.trim()}
-                className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 font-medium text-white transition-colors hover:from-orange-600 hover:to-amber-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="nl-btn-primary min-h-[44px] min-w-[44px] rounded-xl px-3 py-2 sm:px-5"
                 title="Adicionar item"
               >
                 <svg
@@ -1023,9 +1023,7 @@ export const ListView: React.FC = () => {
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-                <span className="hidden sm:inline">
-                  {addingItem ? 'Adicionando…' : 'Adicionar'}
-                </span>
+                <span className="text-sm">{addingItem ? 'Adicionando…' : 'Adicionar'}</span>
               </button>
             </div>
           </form>

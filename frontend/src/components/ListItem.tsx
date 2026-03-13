@@ -23,6 +23,23 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
     const [menuOpen, setMenuOpen] = useState(false)
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
 
+    const openMenu = useCallback(() => {
+      const element = document.getElementById(`list-item-${item.id}`)
+      if (element) {
+        const rect = element.getBoundingClientRect()
+        setMenuPosition({
+          x: rect.left + rect.width / 2 - 60,
+          y: rect.top + rect.height / 2,
+        })
+      } else {
+        setMenuPosition({
+          x: window.innerWidth / 2 - 60,
+          y: window.innerHeight / 2,
+        })
+      }
+      setMenuOpen(true)
+    }, [item.id])
+
     const handleCheckboxClick = (e: React.MouseEvent) => {
       e.stopPropagation()
       onToggle(item.id)
@@ -34,27 +51,12 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
 
     // Handler para long-press
     const handleLongPress = useCallback(() => {
-      // Calcular posição do menu (centro do item)
-      const element = document.getElementById(`list-item-${item.id}`)
-      if (element) {
-        const rect = element.getBoundingClientRect()
-        setMenuPosition({
-          x: rect.left + rect.width / 2 - 60, // Centro - metade da largura do menu
-          y: rect.top + rect.height / 2,
-        })
-      } else {
-        // Fallback: usar posição do mouse ou centro da tela
-        setMenuPosition({
-          x: window.innerWidth / 2 - 60,
-          y: window.innerHeight / 2,
-        })
-      }
-      setMenuOpen(true)
-    }, [item.id])
+      openMenu()
+    }, [openMenu])
 
     const longPressProps = useLongPress({
       onLongPress: handleLongPress,
-      delay: 1000, // 1 segundo
+      delay: 550, // Mais responsivo no mobile
     })
 
     // Formatar data para exibição (pt-BR)
@@ -160,6 +162,18 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
               )}
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              openMenu()
+            }}
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-nl-border bg-nl-surface-strong text-nl-muted transition-colors hover:border-nl-border-strong hover:text-nl-text focus-visible:ring-2 focus-visible:ring-nl-accent/40"
+            aria-label="Mais ações do item"
+          >
+            •••
+          </button>
 
           {/* Criador (avatar + username) */}
           <div className="flex items-center gap-2 font-sans text-sm text-nl-muted">

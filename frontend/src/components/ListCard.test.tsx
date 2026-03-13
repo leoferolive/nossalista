@@ -119,7 +119,8 @@ describe('ListCard', () => {
     )
 
     const card = screen.getByRole('link', { name: /abrir lista minha lista de teste/i })
-    expect(card).toHaveClass('min-h-[188px]') // NFR-A4: Touch target
+    expect(card).toHaveClass('min-h-[152px]') // Variante mobile compact
+    expect(card).toHaveClass('sm:min-h-[188px]') // Mantém densidade desktop
   })
 
   it('deve manter texto de apoio para toque no rodapé', () => {

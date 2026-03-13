@@ -74,6 +74,7 @@
 - Menu pattern: `bottom sheet on mobile, dropdown on desktop`
 - Theme pattern: `stays visible on desktop header, moves into account sheet on mobile`
 - Usage: `home, profile, list detail and future authenticated product flows`
+- Density mode: `mobile compact (reduced header/card/sheet/action-row heights while preserving 44px tap targets)`
 
 ## Decisions
 
@@ -87,3 +88,4 @@
 | `Informational states must not reuse interactive checkbox affordances.`         | `Prevents false affordance and keeps interaction semantics trustworthy.`        | `2026-03-12` |
 | `Home list cards now follow a strict 3-zone mobile pattern.`                   | `Improves scanability, touch clarity and consistent hierarchy on small screens.` | `2026-03-12` |
 | `Product microcopy follows PT-BR diacritics and AA-oriented badge contrast.`   | `Improves readability and avoids perceived quality regressions in mobile use.` | `2026-03-12` |
+| `Mobile compact mode is the default for list-heavy authenticated screens.` | `List and action-heavy flows need less vertical friction without changing identity.` | `2026-03-13` |
