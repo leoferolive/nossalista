@@ -49,6 +49,14 @@
 - Background: `clean elevated surface`
 - Usage: `main product containers and hero shells`
 
+### Home List Card (Mobile First)
+
+- Structure: `3 zones (header, informative body, footer affordance)`
+- Touch model: `entire card is the primary touch target`
+- Informative indicators: `never reuse interactive checkbox visuals`
+- Title behavior: `allow up to 2 lines before truncation`
+- Usage: `home list discovery and quick entry`
+
 ### Input Default
 
 - Height: `52px`
@@ -76,3 +84,6 @@
 | `Coral drives action and teal signals progress/status.`                        | `The pairing feels vivid and collaborative without becoming childish.`          | `2026-03-10` |
 | `Authenticated mobile navigation now uses compact headers and bottom sheets.`  | `Mobile needed content-first hierarchy and menus that never overflow sideways.` | `2026-03-11` |
 | `Guided onboarding and account menus must reuse global nl tokens and surfaces.` | `Avoids visual drift and keeps readability parity in both themes.`             | `2026-03-12` |
+| `Informational states must not reuse interactive checkbox affordances.`         | `Prevents false affordance and keeps interaction semantics trustworthy.`        | `2026-03-12` |
+| `Home list cards now follow a strict 3-zone mobile pattern.`                   | `Improves scanability, touch clarity and consistent hierarchy on small screens.` | `2026-03-12` |
+| `Product microcopy follows PT-BR diacritics and AA-oriented badge contrast.`   | `Improves readability and avoids perceived quality regressions in mobile use.` | `2026-03-12` |

@@ -75,7 +75,7 @@ describe('ListCard', () => {
       </BrowserRouter>
     )
 
-    expect(screen.getByText('5 itens')).toBeInTheDocument()
+    expect(screen.getAllByText('5 itens').length).toBeGreaterThan(0)
   })
 
   it('deve renderizar "1 item" quando itemsCount é 1 (singular)', () => {
@@ -85,7 +85,17 @@ describe('ListCard', () => {
       </BrowserRouter>
     )
 
-    expect(screen.getByText('1 item pronto')).toBeInTheDocument()
+    expect(screen.getByText('1 item')).toBeInTheDocument()
+  })
+
+  it('não deve renderizar checkboxes decorativos no card da home', () => {
+    const { container } = render(
+      <BrowserRouter>
+        <ListCard list={mockList} />
+      </BrowserRouter>
+    )
+
+    expect(container.querySelector('.nl-check')).not.toBeInTheDocument()
   })
 
   it('deve apontar para /lists/{id}', () => {
@@ -110,6 +120,16 @@ describe('ListCard', () => {
 
     const card = screen.getByRole('link', { name: /abrir lista minha lista de teste/i })
     expect(card).toHaveClass('min-h-[188px]') // NFR-A4: Touch target
+  })
+
+  it('deve manter texto de apoio para toque no rodapé', () => {
+    render(
+      <BrowserRouter>
+        <ListCard list={mockList} />
+      </BrowserRouter>
+    )
+
+    expect(screen.getByText('Toque para abrir')).toBeInTheDocument()
   })
 
   it('deve renderizar emoji correto para tipo Tarefas', () => {

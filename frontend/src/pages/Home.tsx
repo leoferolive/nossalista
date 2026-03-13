@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { CreateListModal } from '../components/CreateListModal'
 import { Toast, useToast } from '../components/Toast'
@@ -16,6 +16,8 @@ const HOME_TOAST_SESSION_KEY = 'homeToast'
  */
 export const Home: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const { createList, lists, fetchLists, loading, error, clearError } = useLists()
   const { toasts, showToast, removeToast } = useToast()
   const location = useLocation()
@@ -80,6 +82,27 @@ export const Home: React.FC = () => {
     setIsModalOpen(true)
     acknowledgeCreateListModalRequest()
   }, [acknowledgeCreateListModalRequest, requestOpenCreateListModal])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim())
+    }, 250)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [searchTerm])
+
+  const filteredLists = useMemo(() => {
+    if (!debouncedSearchTerm) {
+      return lists
+    }
+
+    const query = debouncedSearchTerm.toLocaleLowerCase('pt-BR')
+    return lists.filter((list) => {
+      const name = list.name.toLocaleLowerCase('pt-BR')
+      const typeName = list.type.name.toLocaleLowerCase('pt-BR')
+      return name.includes(query) || typeName.includes(query)
+    })
+  }, [debouncedSearchTerm, lists])
 
   const handleCreateList = async (request: { name: string; typeId: number }) => {
     const newList = await createList(request)
@@ -175,7 +198,39 @@ export const Home: React.FC = () => {
                 </button>
               </div>
             ) : (
-              lists.map((list) => <ListCard key={list.id} list={list} />)
+              <>
+                <div className="col-span-full">
+                  <label htmlFor="home-list-search" className="sr-only">
+                    Buscar listas
+                  </label>
+                  <div className="nl-card-soft flex items-center gap-3 px-4 py-3">
+                    <span aria-hidden="true" className="text-lg text-nl-muted">
+                      🔎
+                    </span>
+                    <input
+                      id="home-list-search"
+                      type="search"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      className="w-full border-0 bg-transparent text-sm text-nl-text placeholder:text-nl-muted focus:outline-none"
+                      placeholder="Buscar por nome ou tipo da lista"
+                    />
+                  </div>
+                </div>
+
+                {filteredLists.length > 0 ? (
+                  filteredLists.map((list) => <ListCard key={list.id} list={list} />)
+                ) : (
+                  <div className="nl-card col-span-full px-6 py-12 text-center">
+                    <p className="font-sans text-base font-semibold text-nl-text">
+                      Nenhuma lista encontrada
+                    </p>
+                    <p className="mt-2 text-sm text-nl-muted">
+                      Tente outro nome ou tipo para continuar.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

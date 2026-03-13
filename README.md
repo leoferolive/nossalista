@@ -115,6 +115,7 @@ npm run dev:mock
   - headers compactos
   - menu da conta e notificacoes em bottom sheet
   - acoes secundarias em overflow quando necessario
+  - cards da Home com alvo de toque primario no card inteiro, busca local por nome/tipo e estados informativos sem checkbox decorativo
 - Rotas protegidas com usuario deslogado redirecionam para `/` (nao mais para `/login?redirect=...`)
 - Contrato de URL para orquestrar auth na landing:
   - `/?auth=login|register`

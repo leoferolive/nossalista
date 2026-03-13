@@ -134,7 +134,7 @@ describe('ListView - Delete Functionality', () => {
     expect(screen.getByLabelText('Mais ações da lista')).toBeInTheDocument()
   })
 
-  it('não deve mostrar botão excluir quando usuário não é dono', () => {
+  it('deve mostrar menu de ações para membro sem ações de dono', () => {
     ;(useLists as any).mockReturnValue({
       currentList: { ...mockList, isOwner: false },
       loadingList: false,
@@ -153,7 +153,10 @@ describe('ListView - Delete Functionality', () => {
       </BrowserRouter>
     )
 
-    expect(screen.queryByLabelText('Mais ações da lista')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Mais ações da lista')).toBeInTheDocument()
+    openListOverflow()
+    expect(screen.getByRole('menuitem', { name: 'Sair da lista' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Excluir lista' })).not.toBeInTheDocument()
   })
 
   it('deve abrir modal ao clicar no botão excluir', () => {
