@@ -18,14 +18,14 @@ export function ListCard({ list }: ListCardProps) {
   return (
     <Link
       to={`/lists/${list.id}`}
-      className="nl-preview-card group flex min-h-[188px] flex-col justify-between transition-transform duration-200 hover:-translate-y-1"
+      className="nl-preview-card group flex min-h-[152px] flex-col justify-between transition-transform duration-200 hover:-translate-y-1 sm:min-h-[188px]"
       aria-label={`Abrir lista ${list.name}`}
     >
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <span
-              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-nl-border bg-nl-surface-strong text-2xl transition-transform duration-200 group-hover:scale-110"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-nl-border bg-nl-surface-strong text-xl transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12 sm:rounded-2xl sm:text-2xl"
               aria-hidden="true"
             >
               {typeEmoji}
@@ -34,7 +34,7 @@ export function ListCard({ list }: ListCardProps) {
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-nl-muted">
                 {list.type.name}
               </p>
-              <h3 className="mt-1 line-clamp-2 font-display text-[1.85rem] font-semibold leading-[1.02] text-nl-text sm:text-2xl">
+              <h3 className="mt-0.5 line-clamp-2 font-display text-[1.5rem] font-semibold leading-[1.05] text-nl-text sm:mt-1 sm:text-2xl">
                 {list.name}
               </h3>
               <p className="mt-2 text-sm text-nl-muted">

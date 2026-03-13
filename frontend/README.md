@@ -120,9 +120,11 @@ npm run dev:mock
 - `ListView` separa acao primaria (`Convidar`) das acoes secundarias (`Membros`, `Histórico`) e move acoes destrutivas para overflow.
 - Em `ListView`, as acoes de dono podem aparecer inline (larguras maiores) ou dentro do overflow (`Mais`) em layouts compactos; testes E2E devem cobrir ambos os caminhos.
 - Em `ListView`, membros tambem possuem overflow de acoes com opcoes permitidas por papel (ex.: `Sair da lista`).
+- Em mobile, o topo autenticado e os sheets usam escala compacta (titulo menor, subtitulo truncado, paddings reduzidos e action rows mais baixas) para diminuir scroll e friccao de navegacao.
 - Feedbacks de navegacao entre telas (ex.: saida de lista) usam `location.state` com fallback em `sessionStorage` para evitar perda do toast em transicoes rapidas.
 - `NotificationBell` e menu da conta usam sheets no mobile para evitar popovers cortados.
-- `ListCard` foi encurtado para mostrar status e entrada com menos texto repetitivo.
+- `ListCard` usa variante `mobile compact` (altura menor, tipografia ajustada e menos linhas auxiliares), preservando a versao mais editorial no desktop.
+- `ListItem` manteve long-press, mas ganhou acao explicita de overflow (`•••`) e tempo de long-press menor para reduzir esforco no celular.
 
 ## Estrutura principal
 

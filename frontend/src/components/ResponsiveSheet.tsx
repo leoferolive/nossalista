@@ -110,8 +110,10 @@ export function ResponsiveSheet({
         <div className="nl-sheet-header">
           <div className="min-w-0">
             <p className="nl-kicker">Menu</p>
-            <h2 className="mt-2 font-display text-2xl font-semibold text-nl-text">{title}</h2>
-            {description && <p className="mt-2 text-sm leading-6 text-nl-muted">{description}</p>}
+            <h2 className="mt-1.5 font-display text-xl font-semibold text-nl-text">{title}</h2>
+            {description ? (
+              <p className="mt-1.5 text-xs leading-5 text-nl-muted">{description}</p>
+            ) : null}
           </div>
 
           <button
