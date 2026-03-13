@@ -610,6 +610,12 @@ export const ListView: React.FC = () => {
     }
   }
 
+  const handleOpenLeaveFromActions = () => {
+    void handleOpenMembersModal().finally(() => {
+      setIsLeaveConfirmOpen(true)
+    })
+  }
+
   const handleCloseMembersModal = () => {
     if (leavingList || removingMemberId) {
       return
@@ -792,15 +798,36 @@ export const ListView: React.FC = () => {
 
   const memberCountLabel = memberCount === null ? '--' : String(memberCount)
   const sortedOnlineMembers = sortOnlineMembers(Array.from(onlineMembers.values()), currentUser?.id)
+  const overflowActions = currentList.isOwner
+    ? [
+        {
+          label: 'Editar nome da lista',
+          icon: '✎',
+          onSelect: handleOpenEditModal,
+        },
+        {
+          label: 'Excluir lista',
+          icon: '⌫',
+          tone: 'danger' as const,
+          onSelect: handleOpenDeleteListModal,
+        },
+      ]
+    : [
+        {
+          label: 'Sair da lista',
+          icon: '↗',
+          tone: 'danger' as const,
+          onSelect: handleOpenLeaveFromActions,
+        },
+      ]
 
   return (
     <div className="nl-page">
       <div className="nl-container max-w-4xl">
         <div data-tour="list-header">
           <AppHeader
-            eyebrow="Lista Viva"
             title={currentList.name}
-            subtitle="Compartilhe progresso, acompanhe presenca em tempo real e mantenha tudo sincronizado."
+            subtitle="Compartilhe progresso, acompanhe presença em tempo real e mantenha tudo sincronizado."
             onBack={() => navigate(-1)}
             primaryAction={
               currentList.isOwner ? (
@@ -840,27 +867,15 @@ export const ListView: React.FC = () => {
               title="Histórico de atividades"
             >
               <span aria-hidden="true">📜</span>
-              Historico
+              Histórico
             </button>
           )}
 
-          {currentList.isOwner && (
+          {overflowActions.length > 0 && (
             <ResponsiveActionMenu
               triggerLabel="Mais ações da lista"
               title="Mais ações da lista"
-              items={[
-                {
-                  label: 'Editar nome da lista',
-                  icon: '✎',
-                  onSelect: handleOpenEditModal,
-                },
-                {
-                  label: 'Excluir lista',
-                  icon: '⌫',
-                  tone: 'danger',
-                  onSelect: handleOpenDeleteListModal,
-                },
-              ]}
+              items={overflowActions}
             />
           )}
         </div>
@@ -882,7 +897,7 @@ export const ListView: React.FC = () => {
 
             <div className="flex flex-wrap gap-2">
               {currentList.isOwner ? (
-                <span className="nl-pill">Voce e o dono</span>
+                <span className="nl-pill">Você é o dono</span>
               ) : (
                 <span className="nl-pill">Lista compartilhada</span>
               )}
@@ -892,7 +907,7 @@ export const ListView: React.FC = () => {
 
           {recentInvitedUsers.length > 0 && (
             <p className="mt-3 text-xs text-nl-primary">
-              Convidados nesta sessao:{' '}
+              Convidados nesta sessão:{' '}
               {recentInvitedUsers.map((username) => `@${username}`).join(', ')}
             </p>
           )}

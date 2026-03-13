@@ -131,7 +131,7 @@ test('@pr convite por username atualiza resumo de convidados na lista', async ({
   await page.getByRole('button', { name: /leo/i }).first().click()
   await page.getByRole('button', { name: 'Convidar por username' }).click()
 
-  await expect(page.getByText('Convidados nesta sessao: @leo')).toBeVisible()
+  await expect(page.getByText('Convidados nesta sessão: @leo')).toBeVisible()
 })
 
 test('@pr dono consegue excluir lista e retornar para home', async ({ page }) => {

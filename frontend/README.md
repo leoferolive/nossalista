@@ -74,6 +74,10 @@ npm run dev:mock
   - linha 2 com titulo/subtitulo
   - linha 3 com no maximo uma acao primaria
 - Menus de conta, notificacoes e overflows operacionais usam `ResponsiveSheet` no mobile e dropdown apenas no desktop
+- Home mobile inclui busca local (debounce) por nome e tipo da lista, sem chamadas extras de API
+- Cards de lista na Home seguem padrao de 3 zonas (cabecalho, estado informativo, rodape) e o card inteiro e o alvo primario de toque
+- Indicadores informativos nunca devem reutilizar visuais de controles interativos (ex.: checkbox decorativo)
+- Microcopy em portugues deve manter acentuacao PT-BR consistente (`você`, `Histórico`, `sessão`)
 
 ## Padrao visual de formularios e modais
 
@@ -113,8 +117,9 @@ npm run dev:mock
 
 - `AppHeader` agora expõe slots semanticos (`primaryAction`, `secondaryActions`, `accountActions`) em vez de um bloco generico de acoes.
 - `Home` prioriza primeira dobra com titulo, CTA principal e inicio dos cards.
-- `ListView` separa acao primaria (`Convidar`) das acoes secundarias (`Membros`, `Historico`) e move acoes destrutivas para overflow.
+- `ListView` separa acao primaria (`Convidar`) das acoes secundarias (`Membros`, `Histórico`) e move acoes destrutivas para overflow.
 - Em `ListView`, as acoes de dono podem aparecer inline (larguras maiores) ou dentro do overflow (`Mais`) em layouts compactos; testes E2E devem cobrir ambos os caminhos.
+- Em `ListView`, membros tambem possuem overflow de acoes com opcoes permitidas por papel (ex.: `Sair da lista`).
 - Feedbacks de navegacao entre telas (ex.: saida de lista) usam `location.state` com fallback em `sessionStorage` para evitar perda do toast em transicoes rapidas.
 - `NotificationBell` e menu da conta usam sheets no mobile para evitar popovers cortados.
 - `ListCard` foi encurtado para mostrar status e entrada com menos texto repetitivo.
