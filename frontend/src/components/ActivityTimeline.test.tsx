@@ -125,8 +125,8 @@ describe('ActivityTimeline', () => {
   it('deve mostrar o indicador de carregamento e ocultar botão quando loading é true', () => {
     renderTimeline({ loading: true })
     expect(screen.queryByText('Carregar mais atividades')).not.toBeInTheDocument()
-    // Verifica presença do spinner pelo classe animate-spin
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument()
+    // Verifica presença do spinner pelo classe nl-spinner-sm
+    expect(document.querySelector('.nl-spinner-sm')).toBeInTheDocument()
   })
 
   it('deve chamar onClose ao clicar no botão fechar', () => {

@@ -136,7 +136,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                 >
                   {/* Avatar */}
                   <div className="flex-shrink-0">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-sm font-medium text-white">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-nl-accent to-nl-primary text-sm font-medium text-white">
                       {(activity.userName || activity.userId).charAt(0).toUpperCase()}
                     </div>
                   </div>
@@ -181,7 +181,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
         {/* Loading indicator */}
         {loading && (
           <div className="flex justify-center py-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-nl-accent"></div>
+            <div className="nl-spinner-sm"></div>
           </div>
         )}
 

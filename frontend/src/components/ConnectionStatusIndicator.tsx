@@ -13,17 +13,17 @@ export const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps>
   className,
 }) => {
   const styles: Record<WebSocketStatus, string> = {
-    CONNECTED: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    CONNECTED: 'text-nl-primary bg-nl-primary/10 border-nl-primary/30',
     CONNECTING: 'text-nl-primary bg-nl-primary/10 border-nl-primary/30',
-    RECONNECTING: 'text-amber-700 bg-amber-50 border-amber-200',
+    RECONNECTING: 'text-nl-accent bg-nl-accent/10 border-nl-accent/30',
     DISCONNECTED: 'text-nl-danger bg-nl-danger/10 border-nl-danger/30',
   }
 
   const dots: Record<WebSocketStatus, string> = {
-    CONNECTED: 'bg-emerald-500',
+    CONNECTED: 'bg-nl-primary',
     CONNECTING: 'bg-nl-primary animate-pulse',
-    RECONNECTING: 'bg-amber-400 animate-pulse',
-    DISCONNECTED: 'bg-nl-danger/100',
+    RECONNECTING: 'bg-nl-accent animate-pulse',
+    DISCONNECTED: 'bg-nl-danger',
   }
 
   const labels: Record<WebSocketStatus, string> = {
@@ -35,7 +35,7 @@ export const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps>
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium shadow-sm ${styles[status]} ${className ?? ''}`}
+      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium shadow-earthen ${styles[status]} ${className ?? ''}`}
       data-tour={dataTour}
       role="status"
       aria-live="polite"

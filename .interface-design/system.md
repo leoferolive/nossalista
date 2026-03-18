@@ -76,6 +76,32 @@
 - Usage: `home, profile, list detail and future authenticated product flows`
 - Density mode: `mobile compact (reduced header/card/sheet/action-row heights while preserving 44px tap targets)`
 
+### Loading Indicators
+
+- Spinner: `nl-spinner` (3rem), `nl-spinner-sm` (1.25rem), `nl-spinner-lg` (4rem)
+- Colors: `coral (top) + teal (right)`, breathing scale animation
+- Usage: `replaces generic animate-spin rounded-full border spinners`
+
+### Skeleton Loading
+
+- Class: `nl-skeleton`
+- Shimmer: `warm gradient sweep (surface-strong → accent 8% → surface-strong), 1.8s`
+- Usage: `replaces animate-pulse bg-nl-surface-strong skeletons`
+
+### Toast Notifications
+
+- Container: `nl-card-soft + shadow-earthen`
+- Icons: `SVG (checkmark-circle, x-circle, info-circle)`
+- Stacking: `top: calc(1rem + index * 4.5rem)`
+- Z-index: `z-[70]` (above sheets at z-60)
+- Exit: `fade-out animation before unmount`
+
+### Icon System
+
+- Interactive icons: `SVG inline only — never text characters`
+- Data-driven emoji: `keep (🛒 ✅ 🎁 📝 for list types)`
+- Buttons with gradients: `always use nl-btn-* classes, never raw Tailwind gradients`
+
 ## Decisions
 
 | Decision                                                                       | Rationale                                                                       | Date         |
@@ -89,3 +115,8 @@
 | `Home list cards now follow a strict 3-zone mobile pattern.`                   | `Improves scanability, touch clarity and consistent hierarchy on small screens.` | `2026-03-12` |
 | `Product microcopy follows PT-BR diacritics and AA-oriented badge contrast.`   | `Improves readability and avoids perceived quality regressions in mobile use.` | `2026-03-12` |
 | `Mobile compact mode is the default for list-heavy authenticated screens.` | `List and action-heavy flows need less vertical friction without changing identity.` | `2026-03-13` |
+| `Loading indicators use nl-spinner; skeletons use nl-skeleton shimmer.` | `Generic Tailwind spinners and pulse skeletons lacked brand identity.` | `2026-03-18` |
+| `Toasts use nl-card-soft, SVG icons, stacking, and z-[70].` | `Text icons and flat colors made toasts look AI-generated.` | `2026-03-18` |
+| `Interactive icons are SVG inline; text characters (✎ ⌫ ↗ ↺ ⌂ •) replaced.` | `Text characters render inconsistently and lack visual control.` | `2026-03-18` |
+| `Raw Tailwind gradients (orange/amber/red) replaced by nl-btn-* classes.` | `Prevents color drift and ensures theme parity in dark mode.` | `2026-03-18` |
+| `Google button uses CSS variables for full theme parity.` | `Hardcoded #fff and #1f1f1f created a jarring white rectangle in dark mode.` | `2026-03-18` |

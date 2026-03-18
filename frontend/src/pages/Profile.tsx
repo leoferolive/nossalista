@@ -96,10 +96,7 @@ export const Profile: React.FC = () => {
   if (loading) {
     return (
       <div className="nl-page flex items-center justify-center p-8">
-        <div
-          className="h-12 w-12 animate-spin rounded-full border-b-2 border-nl-accent"
-          aria-label="Carregando perfil"
-        />
+        <div className="nl-spinner" role="status" aria-label="Carregando perfil" />
       </div>
     )
   }
@@ -150,7 +147,7 @@ export const Profile: React.FC = () => {
           <button
             onClick={handleLogout}
             disabled={updating}
-            className="w-full min-h-[48px] rounded-2xl bg-gradient-to-r from-red-600 to-red-500 px-4 py-3 font-semibold text-white transition-colors hover:from-red-700 hover:to-red-600 focus-visible:ring-2 focus-visible:ring-nl-danger/40 disabled:bg-nl-danger/50 disabled:opacity-50"
+            className="nl-btn-danger w-full"
             aria-label="Sair da conta"
           >
             {updating ? 'Saindo…' : 'Sair da Conta'}
@@ -158,12 +155,13 @@ export const Profile: React.FC = () => {
         </div>
 
         {/* Toasts */}
-        {toasts.map((toast) => (
+        {toasts.map((toast, i) => (
           <Toast
             key={toast.id}
             message={toast.message}
             type={toast.type}
             onClose={() => removeToast(toast.id)}
+            index={i}
           />
         ))}
       </div>

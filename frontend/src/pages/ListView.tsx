@@ -718,28 +718,28 @@ export const ListView: React.FC = () => {
         <div className="nl-container max-w-4xl">
           {/* Skeleton Header */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="h-10 w-10 animate-pulse rounded-xl bg-nl-surface-strong" />
-            <div className="h-8 w-64 animate-pulse rounded-xl bg-nl-surface-strong" />
+            <div className="h-10 w-10 nl-skeleton rounded-xl" />
+            <div className="h-8 w-64 nl-skeleton rounded-xl" />
           </div>
 
           {/* Skeleton Info Card */}
           <div className="nl-card mb-6 p-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 animate-pulse rounded-full bg-nl-surface-strong" />
+              <div className="h-12 w-12 nl-skeleton rounded-full" />
               <div className="flex-1">
-                <div className="mb-2 h-5 w-32 animate-pulse rounded bg-nl-surface-strong" />
-                <div className="h-4 w-48 animate-pulse rounded bg-nl-surface-strong" />
+                <div className="mb-2 h-5 w-32 nl-skeleton" />
+                <div className="h-4 w-48 nl-skeleton" />
               </div>
             </div>
           </div>
 
           {/* Skeleton Items Section */}
           <div className="nl-card p-4">
-            <div className="mb-4 h-6 w-32 animate-pulse rounded bg-nl-surface-strong" />
+            <div className="mb-4 h-6 w-32 nl-skeleton" />
             <div className="space-y-3">
-              <div className="h-16 w-full animate-pulse rounded bg-nl-surface-strong" />
-              <div className="h-16 w-full animate-pulse rounded bg-nl-surface-strong" />
-              <div className="h-16 w-full animate-pulse rounded bg-nl-surface-strong" />
+              <div className="h-16 w-full nl-skeleton" />
+              <div className="h-16 w-full nl-skeleton" />
+              <div className="h-16 w-full nl-skeleton" />
             </div>
           </div>
         </div>
@@ -755,12 +755,9 @@ export const ListView: React.FC = () => {
     return (
       <div className="nl-page">
         <div className="nl-container max-w-4xl">
-          <div className="nl-card mt-12 border border-nl-danger/30 bg-nl-danger/10 p-8 text-center">
+          <div className="nl-alert mt-12 p-8 text-center">
             <p className="text-nl-danger font-semibold mb-4 text-lg">{errorList}</p>
-            <Link
-              to="/"
-              className="inline-flex rounded-xl bg-nl-danger px-6 py-2 font-medium text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
-            >
+            <Link to="/" className="nl-btn-danger">
               Voltar para Home
             </Link>
           </div>
@@ -774,14 +771,14 @@ export const ListView: React.FC = () => {
     return (
       <div className="nl-page">
         <div className="nl-container max-w-4xl">
-          <div className="nl-card mt-12 border border-nl-danger/30 bg-nl-danger/10 p-8 text-center">
+          <div className="nl-alert mt-12 p-8 text-center">
             <p className="text-nl-danger font-semibold mb-4 text-lg">{errorList}</p>
             <button
               onClick={() => {
                 clearListError()
                 if (id) fetchListById(id)
               }}
-              className="rounded-xl bg-nl-danger px-6 py-2 font-medium text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
+              className="nl-btn-danger"
             >
               Tentar Novamente
             </button>
@@ -802,12 +799,12 @@ export const ListView: React.FC = () => {
     ? [
         {
           label: 'Editar nome da lista',
-          icon: '✎',
+          icon: <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" /></svg>,
           onSelect: handleOpenEditModal,
         },
         {
           label: 'Excluir lista',
-          icon: '⌫',
+          icon: <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" /></svg>,
           tone: 'danger' as const,
           onSelect: handleOpenDeleteListModal,
         },
@@ -815,7 +812,7 @@ export const ListView: React.FC = () => {
     : [
         {
           label: 'Sair da lista',
-          icon: '↗',
+          icon: <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.03-2.03a.75.75 0 011.06 0l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H8a.75.75 0 010-1.5h5.5l-2.22-2.22a.75.75 0 010-1.06z" clipRule="evenodd" /></svg>,
           tone: 'danger' as const,
           onSelect: handleOpenLeaveFromActions,
         },
@@ -854,7 +851,7 @@ export const ListView: React.FC = () => {
           >
             <span aria-hidden="true">👥</span>
             <span>Membros</span>
-            <span className="font-tabular rounded-full bg-nl-surface-strong px-2 py-0.5 text-xs text-nl-accent">
+            <span className="font-tabular rounded-full bg-nl-surface-strong px-2 py-1 text-xs text-nl-accent">
               {memberCountLabel}
             </span>
           </button>
@@ -895,7 +892,7 @@ export const ListView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {currentList.isOwner ? (
                 <span className="nl-pill">Você é o dono</span>
               ) : (
@@ -918,7 +915,7 @@ export const ListView: React.FC = () => {
         )}
 
         {/* Seção "Itens": Título + lista de itens */}
-        <div className="nl-card p-4 shadow-sm sm:p-5">
+        <div className="nl-card p-4 shadow-earthen sm:p-5">
           <h2 className="mb-3 font-display text-xl font-semibold text-nl-text sm:mb-4 sm:text-2xl">
             Itens ({items.length})
           </h2>
@@ -926,15 +923,15 @@ export const ListView: React.FC = () => {
           {/* Loading state para itens */}
           {loadingItems && (
             <div className="space-y-3">
-              <div className="h-16 w-full rounded bg-nl-surface-strong animate-pulse" />
-              <div className="h-16 w-full rounded bg-nl-surface-strong animate-pulse" />
-              <div className="h-16 w-full rounded bg-nl-surface-strong animate-pulse" />
+              <div className="h-16 w-full nl-skeleton" />
+              <div className="h-16 w-full nl-skeleton" />
+              <div className="h-16 w-full nl-skeleton" />
             </div>
           )}
 
           {/* Error state para itens */}
           {errorItems && !loadingItems && (
-            <div className="rounded-2xl border border-nl-danger/30 bg-nl-danger/10 p-4 text-center">
+            <div className="nl-alert p-4 text-center">
               <p className="text-nl-danger mb-2">{errorItems}</p>
               <button
                 onClick={() => {
@@ -969,23 +966,29 @@ export const ListView: React.FC = () => {
 
           {/* Estado vazio */}
           {!loadingItems && !errorItems && items.length === 0 && (
-            <div className="py-12 text-center text-nl-muted">
+            <div className="nl-preview-card py-10 text-center">
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-16 w-16 mx-auto mb-4 text-nl-muted/50"
+                className="mx-auto mb-4 h-16 w-16"
+                viewBox="0 0 64 64"
                 fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+                aria-hidden="true"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
+                {/* Notepad body */}
+                <rect x="14" y="8" width="36" height="48" rx="6" fill="var(--nl-surface-strong)" stroke="var(--nl-border)" strokeWidth="1.5" />
+                {/* Paper lines */}
+                <line x1="22" y1="22" x2="42" y2="22" stroke="var(--nl-paper-line)" strokeWidth="1.5" />
+                <line x1="22" y1="30" x2="42" y2="30" stroke="var(--nl-paper-line)" strokeWidth="1.5" />
+                <line x1="22" y1="38" x2="36" y2="38" stroke="var(--nl-paper-line)" strokeWidth="1.5" />
+                {/* Pencil */}
+                <line x1="44" y1="44" x2="52" y2="36" stroke="var(--nl-accent)" strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="52" y1="36" x2="54" y2="34" stroke="var(--nl-primary)" strokeWidth="2" strokeLinecap="round" />
               </svg>
-              <p className="mb-2 text-lg">Esta lista ainda não tem itens.</p>
-              <p className="text-sm">Adicione o primeiro!</p>
+              <p className="mb-1 font-display text-lg font-semibold text-nl-text">
+                Pronta para os primeiros itens
+              </p>
+              <p className="text-sm text-nl-muted">
+                Adicione algo e veja a lista ganhar vida.
+              </p>
             </div>
           )}
 
@@ -998,7 +1001,7 @@ export const ListView: React.FC = () => {
                 onChange={(e) => setNewItemName(e.target.value)}
                 placeholder="Adicionar novo item…"
                 disabled={addingItem}
-                className="flex-1 rounded-2xl border border-nl-border bg-nl-surface-strong px-4 py-3 text-nl-text placeholder:text-nl-muted/70 caret-nl-accent focus:border-nl-accent focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:bg-nl-surface"
+                className="nl-input flex-1 caret-nl-accent disabled:cursor-not-allowed disabled:bg-nl-surface"
                 maxLength={200}
                 name="newItem"
                 autoComplete="off"
@@ -1120,12 +1123,13 @@ export const ListView: React.FC = () => {
       )}
 
       {/* Toasts */}
-      {toasts.map((toast) => (
+      {toasts.map((toast, i) => (
         <Toast
           key={toast.id}
           message={toast.message}
           type={toast.type}
           onClose={() => removeToast(toast.id)}
+          index={i}
         />
       ))}
     </div>

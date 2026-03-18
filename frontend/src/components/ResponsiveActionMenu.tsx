@@ -75,7 +75,11 @@ export function ResponsiveActionMenu({ triggerLabel, title, items }: ResponsiveA
         className="nl-btn-secondary"
         aria-label={triggerLabel}
       >
-        <span aria-hidden="true">•••</span>
+        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <circle cx="10" cy="4" r="1.5" />
+          <circle cx="10" cy="10" r="1.5" />
+          <circle cx="10" cy="16" r="1.5" />
+        </svg>
         <span>Mais</span>
       </button>
 
