@@ -177,10 +177,7 @@ export function JoinListPage() {
             <div className="text-6xl mb-4">🔗</div>
             <h1 className="text-2xl font-bold text-nl-text mb-2">Convite não encontrado</h1>
             <p className="text-nl-muted mb-6">Este link pode ter sido desativado ou não existe.</p>
-            <Link
-              to="/"
-              className="nl-btn-primary"
-            >
+            <Link to="/" className="nl-btn-primary">
               Ir para página inicial
             </Link>
           </div>
@@ -208,10 +205,7 @@ export function JoinListPage() {
             <p className="text-nl-muted mb-6">
               Este link de convite expirou. Peça um novo link ao dono da lista.
             </p>
-            <Link
-              to="/"
-              className="nl-btn-primary"
-            >
+            <Link to="/" className="nl-btn-primary">
               Ir para página inicial
             </Link>
           </div>
@@ -237,10 +231,7 @@ export function JoinListPage() {
             <div className="text-6xl mb-4">⚠️</div>
             <h1 className="text-2xl font-bold text-nl-text mb-2">Erro ao carregar lista</h1>
             <p className="text-nl-muted mb-6">{errorMessage}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="nl-btn-primary"
-            >
+            <button onClick={() => window.location.reload()} className="nl-btn-primary">
               Tentar novamente
             </button>
           </div>

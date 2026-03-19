@@ -197,9 +197,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
             onClick={handleSave}
             disabled={!canSave}
             className={`min-h-[44px] min-w-[44px] rounded-xl px-4 py-2 font-medium transition-colors ${
-              canSave
-                ? 'nl-btn-primary'
-                : 'cursor-not-allowed bg-nl-surface-strong text-white'
+              canSave ? 'nl-btn-primary' : 'cursor-not-allowed bg-nl-surface-strong text-white'
             }`}
           >
             {isSaving ? (

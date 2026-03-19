@@ -799,12 +799,24 @@ export const ListView: React.FC = () => {
     ? [
         {
           label: 'Editar nome da lista',
-          icon: <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" /></svg>,
+          icon: (
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+            </svg>
+          ),
           onSelect: handleOpenEditModal,
         },
         {
           label: 'Excluir lista',
-          icon: <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" /></svg>,
+          icon: (
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z"
+                clipRule="evenodd"
+              />
+            </svg>
+          ),
           tone: 'danger' as const,
           onSelect: handleOpenDeleteListModal,
         },
@@ -812,7 +824,15 @@ export const ListView: React.FC = () => {
     : [
         {
           label: 'Sair da lista',
-          icon: <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.03-2.03a.75.75 0 011.06 0l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H8a.75.75 0 010-1.5h5.5l-2.22-2.22a.75.75 0 010-1.06z" clipRule="evenodd" /></svg>,
+          icon: (
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.03-2.03a.75.75 0 011.06 0l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H8a.75.75 0 010-1.5h5.5l-2.22-2.22a.75.75 0 010-1.06z"
+                clipRule="evenodd"
+              />
+            </svg>
+          ),
           tone: 'danger' as const,
           onSelect: handleOpenLeaveFromActions,
         },
@@ -974,21 +994,65 @@ export const ListView: React.FC = () => {
                 aria-hidden="true"
               >
                 {/* Notepad body */}
-                <rect x="14" y="8" width="36" height="48" rx="6" fill="var(--nl-surface-strong)" stroke="var(--nl-border)" strokeWidth="1.5" />
+                <rect
+                  x="14"
+                  y="8"
+                  width="36"
+                  height="48"
+                  rx="6"
+                  fill="var(--nl-surface-strong)"
+                  stroke="var(--nl-border)"
+                  strokeWidth="1.5"
+                />
                 {/* Paper lines */}
-                <line x1="22" y1="22" x2="42" y2="22" stroke="var(--nl-paper-line)" strokeWidth="1.5" />
-                <line x1="22" y1="30" x2="42" y2="30" stroke="var(--nl-paper-line)" strokeWidth="1.5" />
-                <line x1="22" y1="38" x2="36" y2="38" stroke="var(--nl-paper-line)" strokeWidth="1.5" />
+                <line
+                  x1="22"
+                  y1="22"
+                  x2="42"
+                  y2="22"
+                  stroke="var(--nl-paper-line)"
+                  strokeWidth="1.5"
+                />
+                <line
+                  x1="22"
+                  y1="30"
+                  x2="42"
+                  y2="30"
+                  stroke="var(--nl-paper-line)"
+                  strokeWidth="1.5"
+                />
+                <line
+                  x1="22"
+                  y1="38"
+                  x2="36"
+                  y2="38"
+                  stroke="var(--nl-paper-line)"
+                  strokeWidth="1.5"
+                />
                 {/* Pencil */}
-                <line x1="44" y1="44" x2="52" y2="36" stroke="var(--nl-accent)" strokeWidth="2.5" strokeLinecap="round" />
-                <line x1="52" y1="36" x2="54" y2="34" stroke="var(--nl-primary)" strokeWidth="2" strokeLinecap="round" />
+                <line
+                  x1="44"
+                  y1="44"
+                  x2="52"
+                  y2="36"
+                  stroke="var(--nl-accent)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <line
+                  x1="52"
+                  y1="36"
+                  x2="54"
+                  y2="34"
+                  stroke="var(--nl-primary)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
               <p className="mb-1 font-display text-lg font-semibold text-nl-text">
                 Pronta para os primeiros itens
               </p>
-              <p className="text-sm text-nl-muted">
-                Adicione algo e veja a lista ganhar vida.
-              </p>
+              <p className="text-sm text-nl-muted">Adicione algo e veja a lista ganhar vida.</p>
             </div>
           )}
 
