@@ -141,16 +141,16 @@ export function JoinListPage() {
         <main className="max-w-lg mx-auto p-4">
           {joining ? (
             <div className="text-center py-12">
-              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-nl-accent" />
+              <div className="nl-spinner mx-auto mb-4" />
               <p className="text-nl-muted">Entrando na lista…</p>
             </div>
           ) : (
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded mb-4 w-2/3" />
-              <div className="h-4 bg-gray-200 rounded mb-6 w-1/2" />
+            <div>
+              <div className="h-8 nl-skeleton mb-4 w-2/3" />
+              <div className="h-4 nl-skeleton mb-6 w-1/2" />
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-14 bg-gray-100 rounded-lg" />
+                  <div key={i} className="h-14 nl-skeleton" />
                 ))}
               </div>
             </div>
@@ -177,10 +177,7 @@ export function JoinListPage() {
             <div className="text-6xl mb-4">🔗</div>
             <h1 className="text-2xl font-bold text-nl-text mb-2">Convite não encontrado</h1>
             <p className="text-nl-muted mb-6">Este link pode ter sido desativado ou não existe.</p>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
-            >
+            <Link to="/" className="nl-btn-primary">
               Ir para página inicial
             </Link>
           </div>
@@ -208,10 +205,7 @@ export function JoinListPage() {
             <p className="text-nl-muted mb-6">
               Este link de convite expirou. Peça um novo link ao dono da lista.
             </p>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
-            >
+            <Link to="/" className="nl-btn-primary">
               Ir para página inicial
             </Link>
           </div>
@@ -237,10 +231,7 @@ export function JoinListPage() {
             <div className="text-6xl mb-4">⚠️</div>
             <h1 className="text-2xl font-bold text-nl-text mb-2">Erro ao carregar lista</h1>
             <p className="text-nl-muted mb-6">{errorMessage}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-3 text-white transition-colors hover:from-orange-600 hover:to-amber-600"
-            >
+            <button onClick={() => window.location.reload()} className="nl-btn-primary">
               Tentar novamente
             </button>
           </div>
@@ -317,7 +308,7 @@ export function JoinListPage() {
         )}
 
         {/* Lista de itens */}
-        <div className="nl-card rounded-xl border shadow-sm">
+        <div className="nl-card rounded-xl border shadow-earthen">
           <div className="rounded-t-xl border-b bg-nl-surface-strong px-4 py-3">
             <h2 className="font-medium text-nl-muted">Itens ({listData.items.length})</h2>
           </div>

@@ -4,7 +4,7 @@ function App() {
   const [count, setCount] = useState(0)
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+    <div className="min-h-screen bg-nl-bg flex items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-nl-text mb-4">NossaLista</h1>
         <p className="text-nl-muted mb-4">Listas compartilhadas em tempo real</p>

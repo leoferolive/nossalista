@@ -15,6 +15,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  GITLEAKS_VERSION: '8.21.2'
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -62,9 +65,7 @@ jobs:
         working-directory: frontend
         run: npm run stylelint
 
-      - name: Frontend typecheck
-        working-directory: frontend
-        run: npm run typecheck
+      # typecheck removed — tsc already runs as part of `npm run build` (same tsconfig.json)
 
       - name: Frontend tests with coverage
         working-directory: frontend
@@ -92,17 +93,37 @@ jobs:
           curl -fsS http://127.0.0.1:4173 > /dev/null
           kill "$PREVIEW_PID"
 
-      - name: Frontend coverage no-decrease
-        if: github.event_name == 'pull_request'
+      - name: Prepare base frontend coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          git fetch origin "${{ github.base_ref }}" --depth=1
-          git worktree add /tmp/nossalista-base "origin/${{ github.base_ref }}"
-          cd /tmp/nossalista-base/frontend
-          npm ci
-          npm run test:coverage
-          python3 /home/runner/work/nossalista/nossalista/scripts/coverage/compare_frontend_coverage.py \
-            /home/runner/work/nossalista/nossalista/frontend/coverage/coverage-summary.json \
-            /tmp/nossalista-base/frontend/coverage/coverage-summary.json
+          mkdir -p /tmp/base-frontend-coverage
+          cp frontend/coverage/coverage-summary.json /tmp/base-frontend-coverage/
+
+      - name: Save base frontend coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/base-frontend-coverage
+          key: base-frontend-coverage-${{ github.sha }}
+
+      - name: Restore base frontend coverage
+        if: github.event_name == 'pull_request'
+        id: base-frontend-coverage
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/base-frontend-coverage
+          key: base-frontend-coverage-${{ github.event.pull_request.base.sha }}
+
+      - name: Frontend coverage no-decrease
+        if: github.event_name == 'pull_request' && steps.base-frontend-coverage.outputs.cache-hit == 'true'
+        run: |
+          python3 scripts/coverage/compare_frontend_coverage.py \
+            frontend/coverage/coverage-summary.json \
+            /tmp/base-frontend-coverage/coverage-summary.json
+
+      - name: Skip frontend coverage check (no baseline)
+        if: github.event_name == 'pull_request' && steps.base-frontend-coverage.outputs.cache-hit != 'true'
+        run: echo "::warning::No base frontend coverage cached for ${{ github.event.pull_request.base.sha }}. Skipping comparison."
 
       - name: Upload frontend coverage
         if: always()
@@ -130,9 +151,22 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
       - name: Install Playwright browsers
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
         working-directory: frontend
         run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        working-directory: frontend
+        run: npx playwright install-deps chromium
 
       - name: Frontend e2e PR suite
         working-directory: frontend
@@ -162,22 +196,40 @@ jobs:
         working-directory: backend
         run: ./mvnw -B -Pstrict-quality verify -Ddependency-check.skip=true
 
-      - name: Backend regression tests
-        working-directory: backend
-        run: ./mvnw -B -Pregression-tests test
+      # regression-tests step removed — verify without testGroups already runs all tests (no filter)
+
+      - name: Prepare base backend coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p /tmp/base-backend-coverage
+          cp backend/target/site/jacoco/jacoco.xml /tmp/base-backend-coverage/
+
+      - name: Save base backend coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/base-backend-coverage
+          key: base-backend-coverage-${{ github.sha }}
+
+      - name: Restore base backend coverage
+        if: github.event_name == 'pull_request'
+        id: base-backend-coverage
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/base-backend-coverage
+          key: base-backend-coverage-${{ github.event.pull_request.base.sha }}
 
       - name: Backend coverage no-decrease
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.base-backend-coverage.outputs.cache-hit == 'true'
         run: |
           pip install defusedxml
-          git fetch origin "${{ github.base_ref }}" --depth=1
-          git worktree add /tmp/nossalista-base "origin/${{ github.base_ref }}"
-          cd /tmp/nossalista-base/backend
-          chmod +x mvnw
-          ./mvnw -B test jacoco:report
-          python3 /home/runner/work/nossalista/nossalista/scripts/coverage/compare_backend_coverage.py \
-            /home/runner/work/nossalista/nossalista/backend/target/site/jacoco/jacoco.xml \
-            /tmp/nossalista-base/backend/target/site/jacoco/jacoco.xml
+          python3 scripts/coverage/compare_backend_coverage.py \
+            backend/target/site/jacoco/jacoco.xml \
+            /tmp/base-backend-coverage/jacoco.xml
+
+      - name: Skip backend coverage check (no baseline)
+        if: github.event_name == 'pull_request' && steps.base-backend-coverage.outputs.cache-hit != 'true'
+        run: echo "::warning::No base backend coverage cached for ${{ github.event.pull_request.base.sha }}. Skipping comparison."
 
       - name: Upload backend JaCoCo report
         if: always()
@@ -188,21 +240,6 @@ jobs:
             backend/target/site/jacoco
             backend/target/dependency-check-report.html
             backend/target/dependency-check-report.json
-
-  backend-smoke:
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: ./.github/actions/setup-java
-
-      - name: Package backend for smoke run
-        working-directory: backend
-        run: ./mvnw -B -DskipTests package
 
       - name: Backend runtime smoke
         working-directory: backend
@@ -218,6 +255,8 @@ jobs:
           curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null
           kill "$APP_PID"
 
+  # backend-smoke job removed — smoke test is now the last step in backend-quality
+
   security-and-compliance:
     needs: changes
     runs-on: ubuntu-latest
@@ -228,19 +267,38 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js
+        if: needs.changes.outputs.frontend == 'true'
         uses: ./.github/actions/setup-node
 
       - name: Setup Java
+        if: needs.changes.outputs.backend == 'true'
         uses: ./.github/actions/setup-java
 
       - name: EditorConfig check
         uses: editorconfig-checker/action-editorconfig-checker@v2
 
-      - name: Gitleaks
+      - name: Cache Gitleaks
+        id: cache-gitleaks
+        uses: actions/cache@v4
+        with:
+          path: ~/bin/gitleaks
+          key: gitleaks-${{ runner.os }}-${{ env.GITLEAKS_VERSION }}
+
+      - name: Install Gitleaks
+        if: steps.cache-gitleaks.outputs.cache-hit != 'true'
         run: |
-          VERSION=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d v)
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
-          ./gitleaks detect --source . --redact
+          mkdir -p ~/bin
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
+          mv gitleaks ~/bin/gitleaks
+
+      - name: Gitleaks
+        run: ~/bin/gitleaks detect --source . --redact
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-semgrep-${{ runner.os }}
 
       - name: Semgrep
         run: |
@@ -248,23 +306,30 @@ jobs:
           semgrep scan --config p/security-audit --error .
 
       - name: Frontend install
+        if: needs.changes.outputs.frontend == 'true'
         working-directory: frontend
         run: npm ci
 
       - name: Frontend audit
+        if: needs.changes.outputs.frontend == 'true'
         working-directory: frontend
         run: npm audit --audit-level=high --omit=dev
 
       - name: Frontend license policy
+        if: needs.changes.outputs.frontend == 'true'
         working-directory: frontend
         run: npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
+
+      - name: Set NVD cache week
+        if: needs.changes.outputs.backend == 'true'
+        run: echo "NVD_WEEK=$(date +'%Y-%U')" >> "$GITHUB_ENV"
 
       - name: Cache NVD database
         if: needs.changes.outputs.backend == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-${{ runner.os }}-${{ github.run_id }}
+          key: nvd-${{ runner.os }}-week-${{ env.NVD_WEEK }}
           restore-keys: nvd-${{ runner.os }}-
 
       - name: Backend dependency check

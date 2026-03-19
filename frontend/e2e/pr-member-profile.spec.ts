@@ -151,7 +151,7 @@ test('@pr membro pode sair da lista e voltar para home', async ({ page }) => {
   await expect(page).toHaveURL(/\/home$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Minhas Listas' })).toBeVisible()
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Sua primeira lista comeca aqui.' })
+    page.getByRole('heading', { level: 2, name: 'Sua primeira lista começa aqui.' })
   ).toBeVisible()
 })
 

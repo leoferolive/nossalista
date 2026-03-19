@@ -216,7 +216,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="min-h-[44px] rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className="nl-btn-primary min-h-[44px] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? 'Salvando…' : 'Salvar'}
           </button>

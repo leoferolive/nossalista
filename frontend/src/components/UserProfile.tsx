@@ -65,7 +65,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               height={96}
             />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl border-4 border-nl-border bg-gradient-to-br from-orange-500 to-amber-500 text-3xl font-bold text-white shadow-md sm:h-24 sm:w-24 sm:text-4xl">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl border-4 border-nl-border bg-gradient-to-br from-nl-accent to-nl-primary text-3xl font-bold text-white shadow-md sm:h-24 sm:w-24 sm:text-4xl">
               {username.charAt(0).toUpperCase()}
             </div>
           )}
@@ -74,7 +74,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <button
               type="button"
               onClick={onEdit}
-              className="absolute -bottom-1 -right-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-2xl border border-nl-border bg-nl-surface-strong text-nl-muted shadow-sm transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
+              className="absolute -bottom-1 -right-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-2xl border border-nl-border bg-nl-surface-strong text-nl-muted shadow-earthen transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
               aria-label="Editar perfil"
             >
               ✎
@@ -109,7 +109,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="inline-flex min-h-[44px] items-center rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:from-orange-600 hover:to-amber-600 focus-visible:ring-2 focus-visible:ring-nl-accent/30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="nl-btn-primary min-h-[44px] text-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving ? 'Salvando…' : 'Salvar Alteracoes'}
               </button>

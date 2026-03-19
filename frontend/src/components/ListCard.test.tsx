@@ -123,14 +123,14 @@ describe('ListCard', () => {
     expect(card).toHaveClass('sm:min-h-[188px]') // Mantém densidade desktop
   })
 
-  it('deve manter texto de apoio para toque no rodapé', () => {
-    render(
+  it('deve renderizar chevron de navegação no rodapé', () => {
+    const { container } = render(
       <BrowserRouter>
         <ListCard list={mockList} />
       </BrowserRouter>
     )
 
-    expect(screen.getByText('Toque para abrir')).toBeInTheDocument()
+    expect(container.querySelector('svg[aria-hidden="true"]')).toBeInTheDocument()
   })
 
   it('deve renderizar emoji correto para tipo Tarefas', () => {

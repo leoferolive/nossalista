@@ -155,16 +155,13 @@ export const Home: React.FC = () => {
         {/* Loading State */}
         {loading && (
           <div className="nl-card flex items-center justify-center py-12">
-            <div
-              className="h-12 w-12 animate-spin rounded-full border-b-2 border-nl-accent"
-              aria-label="Carregando listas"
-            />
+            <div className="nl-spinner" role="status" aria-label="Carregando listas" />
           </div>
         )}
 
         {/* Error State */}
         {error && !loading && (
-          <div className="nl-card col-span-full py-12 text-center">
+          <div className="nl-alert col-span-full py-12 text-center">
             <p className="mb-4 font-sans text-lg text-nl-danger">{error}</p>
             <button
               onClick={() => {
@@ -182,15 +179,15 @@ export const Home: React.FC = () => {
         {!loading && !error && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {lists.length === 0 ? (
-              <div className="nl-card col-span-full px-6 py-16 text-center">
+              <div className="nl-preview-card col-span-full px-6 py-16 text-center">
                 <p className="mb-2 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-nl-accent">
                   Comece Agora
                 </p>
                 <h2 className="font-display text-3xl font-semibold text-nl-text">
-                  Sua primeira lista comeca aqui.
+                  Sua primeira lista começa aqui.
                 </h2>
                 <p className="mb-5 mt-3 font-sans text-lg text-nl-muted">
-                  Voce ainda nao tem listas. Crie a primeira e compartilhe em segundos.
+                  Você ainda não tem listas. Crie a primeira e compartilhe em segundos.
                 </p>
                 <button onClick={() => setIsModalOpen(true)} className="nl-btn-primary">
                   <span aria-hidden="true">+</span>
@@ -204,9 +201,18 @@ export const Home: React.FC = () => {
                     Buscar listas
                   </label>
                   <div className="nl-card-soft flex items-center gap-3 px-4 py-3">
-                    <span aria-hidden="true" className="text-lg text-nl-muted">
-                      🔎
-                    </span>
+                    <svg
+                      className="h-5 w-5 text-nl-muted"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     <input
                       id="home-list-search"
                       type="search"
@@ -244,13 +250,14 @@ export const Home: React.FC = () => {
         />
 
         {/* Toasts */}
-        {toasts.map((toast) => (
+        {toasts.map((toast, i) => (
           <Toast
             key={toast.id}
             message={toast.message}
             type={toast.type}
             duration={3000}
             onClose={() => removeToast(toast.id)}
+            index={i}
           />
         ))}
       </div>

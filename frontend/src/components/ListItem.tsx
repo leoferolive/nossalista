@@ -120,7 +120,7 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
             <div className="mt-1 flex flex-wrap items-center gap-2 font-sans text-sm text-nl-muted">
               {/* Quantity (Compras) */}
               {item.quantity !== null && item.quantity !== undefined && (
-                <span className="rounded border border-nl-accent/20 bg-nl-accent/10 px-2 py-0.5 text-xs font-medium text-nl-accent">
+                <span className="rounded border border-nl-accent/20 bg-nl-accent/10 px-2 py-1 text-xs font-medium text-nl-accent">
                   {item.quantity}x
                 </span>
               )}
@@ -172,7 +172,11 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
             className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-nl-border bg-nl-surface-strong text-nl-muted transition-colors hover:border-nl-border-strong hover:text-nl-text focus-visible:ring-2 focus-visible:ring-nl-accent/40"
             aria-label="Mais ações do item"
           >
-            •••
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <circle cx="10" cy="4" r="1.5" />
+              <circle cx="10" cy="10" r="1.5" />
+              <circle cx="10" cy="16" r="1.5" />
+            </svg>
           </button>
 
           {/* Criador (avatar + username) */}

@@ -61,7 +61,7 @@ export function ItemOptionsMenu({
       {/* Menu dropdown */}
       <div
         ref={menuRef}
-        className="fixed z-50 glass-card rounded-lg shadow-lg p-2 min-w-[120px] animate-fade-in"
+        className="fixed z-50 nl-card-soft rounded-2xl shadow-earthen-strong p-2 min-w-[120px] animate-fade-in"
         style={{ top: adjustedY, left: adjustedX }}
         data-testid="item-options-menu"
       >
@@ -70,7 +70,7 @@ export function ItemOptionsMenu({
             onEdit()
             onClose()
           }}
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg transition-colors text-nl-muted"
+          className="nl-action-row w-full text-left"
           data-testid="item-option-edit"
         >
           Editar
