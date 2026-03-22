@@ -1,9 +1,9 @@
 cors:
-  allowed-origins: http://localhost:5173,http://localhost:8080,http://127.0.0.1:4173
+  allowed-origins: http://localhost:5173,http://localhost:8080
 
 spring:
   datasource:
-    url: jdbc:h2:mem:ci;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    url: jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
@@ -17,8 +17,8 @@ spring:
     baseline-on-migrate: true
 
 jwt:
-  secret: ci-secret-key-minimum-32-characters-for-hmac-sha256-algorithm
+  secret: test-secret-key-minimum-32-characters-for-hmac-sha256-algorithm
   expiration: 3600000
 
 frontend:
-  url: http://127.0.0.1:4173
+  url: http://localhost:5173

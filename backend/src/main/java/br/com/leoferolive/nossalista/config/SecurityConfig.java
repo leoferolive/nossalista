@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.config;
 
 import br.com.leoferolive.nossalista.auth.OAuth2SuccessHandler;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -21,6 +22,9 @@ import java.util.Arrays;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Value("${cors.allowed-origins}")
+    private String[] allowedOrigins;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2SuccessHandler oauth2SuccessHandler;
@@ -93,13 +97,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Origens permitidas
-        configuration.setAllowedOrigins(Arrays.asList(
-                "https://nossalista.leoferolive.com.br",  // Produção
-                "http://nossalista.home",                  // Dev K8s
-                "http://localhost:5173",                   // Desenvolvimento (Vite)
-                "http://localhost:8080"                    // Desenvolvimento (container)
-        ));
+        // Origens permitidas (configuradas por profile em application*.yml)
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
 
         // Métodos HTTP permitidos
         configuration.setAllowedMethods(Arrays.asList(

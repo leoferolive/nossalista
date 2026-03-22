@@ -187,6 +187,6 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public List<User> searchByUsername(String query) {
-        return userRepository.findByUsernameContainingIgnoreCase(query);
+        return userRepository.findTop20ByUsernameContainingIgnoreCase(query);
     }
 }
