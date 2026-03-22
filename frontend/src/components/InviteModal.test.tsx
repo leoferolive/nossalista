@@ -25,7 +25,7 @@ describe('InviteModal - convite por username', () => {
       { username: 'leo', name: 'Leo Oliveira', avatarUrl: null },
     ])
     mockOnInviteByUsername.mockResolvedValue({
-      invited_username: 'leo',
+      invitedUsername: 'leo',
       message: 'leo adicionado!',
     })
   })

@@ -6,13 +6,13 @@ import java.util.UUID;
 public record ListMemberResponse(
     UserSummaryResponse user,
     String role,
-    LocalDateTime joined_at
+    LocalDateTime joinedAt
 ) {
     public record UserSummaryResponse(
         UUID id,
         String username,
         String name,
-        String avatar_url
+        String avatarUrl
     ) {
     }
 }

@@ -99,7 +99,7 @@ class MemberServiceTest {
 
         InviteByUsernameResponse response = memberService.inviteByUsername(testList.getId(), owner.getId(), "pedro");
 
-        assertThat(response.invited_username()).isEqualTo("pedro");
+        assertThat(response.invitedUsername()).isEqualTo("pedro");
         assertThat(response.message()).isEqualTo("pedro adicionado!");
         verify(listMemberRepository).save(any(ListMember.class));
         verify(activityLogService).logMemberInvitedByUsername(testList, targetUser, owner);

@@ -10,20 +10,20 @@ describe('MembersModal', () => {
         id: 'user-1',
         username: 'owneruser',
         name: 'Owner User',
-        avatar_url: 'http://example.com/owner.png',
+        avatarUrl: 'http://example.com/owner.png',
       },
       role: 'OWNER',
-      joined_at: '2026-02-20T10:00:00Z',
+      joinedAt: '2026-02-20T10:00:00Z',
     },
     {
       user: {
         id: 'user-2',
         username: 'memberuser',
         name: 'Member User',
-        avatar_url: null,
+        avatarUrl: null,
       },
       role: 'MEMBER',
-      joined_at: '2026-02-21T10:00:00Z',
+      joinedAt: '2026-02-21T10:00:00Z',
     },
   ]
 

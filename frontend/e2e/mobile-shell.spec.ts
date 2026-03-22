@@ -110,9 +110,9 @@ test('shell autenticado mobile usa sheets e reduz ruido no topo', async ({ brows
     if (path === '/api/lists/list-demo-1/members' && method === 'GET') {
       return json(200, [
         {
-          user: { id: 'user-demo', username: 'leo', name: 'Leo Oliveira', avatar_url: null },
+          user: { id: 'user-demo', username: 'leo', name: 'Leo Oliveira', avatarUrl: null },
           role: 'OWNER',
-          joined_at: nowIso(),
+          joinedAt: nowIso(),
         },
       ])
     }
@@ -123,9 +123,9 @@ test('shell autenticado mobile usa sheets e reduz ruido no topo', async ({ brows
 
     if (path === '/api/lists/list-demo-1/invite-link' && method === 'POST') {
       return json(200, {
-        invite_code: 'MOCKSHOP',
-        invite_link: 'http://127.0.0.1:4173/join/MOCKSHOP',
-        expires_at: nowIso(),
+        inviteCode: 'MOCKSHOP',
+        inviteLink: 'http://127.0.0.1:4173/join/MOCKSHOP',
+        expiresAt: nowIso(),
       })
     }
 

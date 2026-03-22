@@ -107,14 +107,14 @@ async function seedMockMemberSession(page: Parameters<typeof test>[0]['page']) {
     if (path === '/api/lists/list-member-1/members' && method === 'GET') {
       return json(200, [
         {
-          user: { id: 'user-owner', username: 'owner', name: 'Owner', avatar_url: null },
+          user: { id: 'user-owner', username: 'owner', name: 'Owner', avatarUrl: null },
           role: 'OWNER',
-          joined_at: nowIso(),
+          joinedAt: nowIso(),
         },
         {
-          user: { id: 'user-member', username: 'membro', name: 'Usuário Membro', avatar_url: null },
+          user: { id: 'user-member', username: 'membro', name: 'Usuário Membro', avatarUrl: null },
           role: 'MEMBER',
-          joined_at: nowIso(),
+          joinedAt: nowIso(),
         },
       ])
     }
@@ -130,9 +130,9 @@ async function seedMockMemberSession(page: Parameters<typeof test>[0]['page']) {
 
     if (path === '/api/lists/list-member-1/invite-link' && method === 'POST') {
       return json(200, {
-        invite_code: 'MOCKMEMBER',
-        invite_link: 'http://localhost:4173/join/MOCKMEMBER',
-        expires_at: nowIso(),
+        inviteCode: 'MOCKMEMBER',
+        inviteLink: 'http://localhost:4173/join/MOCKMEMBER',
+        expiresAt: nowIso(),
       })
     }
 

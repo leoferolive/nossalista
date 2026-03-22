@@ -100,11 +100,11 @@ class ListJoinControllerIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.name").value("Mercado Semanal"))
             .andExpect(jsonPath("$.mode").value("READ_ONLY"))
-            .andExpect(jsonPath("$.invite_code").value(VALID_INVITE_CODE))
-            .andExpect(jsonPath("$.type_slug").value("compras"))
-            .andExpect(jsonPath("$.type_name").value("Compras"))
-            .andExpect(jsonPath("$.owner_username").value("mariana"))
-            .andExpect(jsonPath("$.owner_name").value("Mariana Silva"));
+            .andExpect(jsonPath("$.inviteCode").value(VALID_INVITE_CODE))
+            .andExpect(jsonPath("$.typeSlug").value("compras"))
+            .andExpect(jsonPath("$.typeName").value("Compras"))
+            .andExpect(jsonPath("$.ownerUsername").value("mariana"))
+            .andExpect(jsonPath("$.ownerName").value("Mariana Silva"));
     }
 
     @Test
@@ -201,7 +201,7 @@ class ListJoinControllerIntegrationTest {
     void shouldReturnExpiresAtInCorrectFormat() throws Exception {
         mockMvc.perform(get("/api/lists/join/" + VALID_INVITE_CODE))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.expires_at").exists());
+            .andExpect(jsonPath("$.expiresAt").exists());
     }
 
     private ListItem createListItem(String name, int position, int quantity) {
@@ -249,7 +249,7 @@ class ListJoinControllerIntegrationTest {
             .andExpect(jsonPath("$.name").value("Mercado Semanal"))
             .andExpect(jsonPath("$.role").value("MEMBER"))
             .andExpect(jsonPath("$.message").value("Bem-vindo à lista Mercado Semanal!"))
-            .andExpect(jsonPath("$.type_slug").value("compras"))
+            .andExpect(jsonPath("$.typeSlug").value("compras"))
             .andExpect(jsonPath("$.list").exists());
     }
 

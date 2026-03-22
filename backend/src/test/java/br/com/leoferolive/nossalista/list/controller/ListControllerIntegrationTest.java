@@ -1077,16 +1077,16 @@ class ListControllerIntegrationTest {
             // Act & Assert
             MvcResult result = mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.invite_code").exists())
-                    .andExpect(jsonPath("$.invite_code").isString())
-                    .andExpect(jsonPath("$.invite_link").exists())
-                    .andExpect(jsonPath("$.invite_link").value(org.hamcrest.Matchers.containsString("/join/")))
-                    .andExpect(jsonPath("$.expires_at").exists())
+                    .andExpect(jsonPath("$.inviteCode").exists())
+                    .andExpect(jsonPath("$.inviteCode").isString())
+                    .andExpect(jsonPath("$.inviteLink").exists())
+                    .andExpect(jsonPath("$.inviteLink").value(org.hamcrest.Matchers.containsString("/join/")))
+                    .andExpect(jsonPath("$.expiresAt").exists())
                     .andReturn();
 
             // Verificar que o link foi salvo no banco
             String responseJson = result.getResponse().getContentAsString();
-            String inviteCode = objectMapper.readTree(responseJson).get("invite_code").asText();
+            String inviteCode = objectMapper.readTree(responseJson).get("inviteCode").asText();
 
             List updatedList = listRepository.findById(createdList.getId()).orElseThrow();
             assertEquals(inviteCode, updatedList.getInviteCode());
@@ -1161,7 +1161,7 @@ class ListControllerIntegrationTest {
                     .andReturn();
 
             String firstCode = objectMapper.readTree(firstResult.getResponse().getContentAsString())
-                    .get("invite_code").asText();
+                    .get("inviteCode").asText();
 
             // Act - gerar novamente
             MvcResult secondResult = mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))
@@ -1170,7 +1170,7 @@ class ListControllerIntegrationTest {
 
             // Assert - código deve ser o mesmo
             String secondCode = objectMapper.readTree(secondResult.getResponse().getContentAsString())
-                    .get("invite_code").asText();
+                    .get("inviteCode").asText();
 
             assertEquals(firstCode, secondCode, "Deve reutilizar o mesmo código quando ainda válido");
         }

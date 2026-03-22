@@ -107,7 +107,7 @@ class MemberControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"pedro\"}"))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.invited_username").value("pedro"))
+            .andExpect(jsonPath("$.invitedUsername").value("pedro"))
             .andExpect(jsonPath("$.message").value("pedro adicionado!"));
     }
 
@@ -121,7 +121,7 @@ class MemberControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"pedro\"}"))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.invited_username").value("pedro"))
+            .andExpect(jsonPath("$.invitedUsername").value("pedro"))
             .andExpect(jsonPath("$.message").value("pedro adicionado!"));
     }
 

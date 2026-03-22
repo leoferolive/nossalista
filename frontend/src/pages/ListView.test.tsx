@@ -296,9 +296,9 @@ describe('ListView - Delete Functionality', () => {
   it('deve abrir modal de membros e mostrar aviso para owner', async () => {
     ;(listsApi.getListMembers as any).mockResolvedValue([
       {
-        user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+        user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatarUrl: null },
         role: 'OWNER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
     ])
 
@@ -328,14 +328,14 @@ describe('ListView - Delete Functionality', () => {
     })
     ;(listsApi.getListMembers as any).mockResolvedValue([
       {
-        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatar_url: null },
+        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatarUrl: null },
         role: 'OWNER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
       {
-        user: { id: 'member-id', username: 'member', name: 'Member', avatar_url: null },
+        user: { id: 'member-id', username: 'member', name: 'Member', avatarUrl: null },
         role: 'MEMBER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
     ])
 
@@ -364,14 +364,14 @@ describe('ListView - Delete Functionality', () => {
     })
     ;(listsApi.getListMembers as any).mockResolvedValue([
       {
-        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatar_url: null },
+        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatarUrl: null },
         role: 'OWNER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
       {
-        user: { id: 'member-id', username: 'member', name: 'Member', avatar_url: null },
+        user: { id: 'member-id', username: 'member', name: 'Member', avatarUrl: null },
         role: 'MEMBER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
     ])
     ;(listsApi.leaveList as any).mockResolvedValue(undefined)
@@ -405,28 +405,28 @@ describe('ListView - Delete Functionality', () => {
     ;(listsApi.getListMembers as any)
       .mockResolvedValueOnce([
         {
-          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatarUrl: null },
           role: 'OWNER',
-          joined_at: new Date().toISOString(),
+          joinedAt: new Date().toISOString(),
         },
       ])
       .mockResolvedValueOnce([
         {
-          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatarUrl: null },
           role: 'OWNER',
-          joined_at: new Date().toISOString(),
+          joinedAt: new Date().toISOString(),
         },
         {
-          user: { id: 'invited-id', username: 'leo', name: 'Leo Oliveira', avatar_url: null },
+          user: { id: 'invited-id', username: 'leo', name: 'Leo Oliveira', avatarUrl: null },
           role: 'MEMBER',
-          joined_at: new Date().toISOString(),
+          joinedAt: new Date().toISOString(),
         },
       ])
     ;(listsApi.searchUsers as any).mockResolvedValue([
       { username: 'leo', name: 'Leo Oliveira', avatarUrl: null },
     ])
     ;(listsApi.inviteByUsername as any).mockResolvedValue({
-      invited_username: 'leo',
+      invitedUsername: 'leo',
       message: 'leo adicionado!',
     })
 

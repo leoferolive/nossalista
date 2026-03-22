@@ -132,8 +132,8 @@ describe('LoginModal', () => {
     vi.mocked(listsApi.joinList).mockResolvedValueOnce({
       id: 'list-joined',
       name: 'Mercado da Semana',
-      type_slug: 'compras',
-      type_name: 'Compras',
+      typeSlug: 'compras',
+      typeName: 'Compras',
       role: 'MEMBER',
       message: 'Entrou!',
       created: true,

@@ -98,9 +98,9 @@ export const MembersModal: React.FC<MembersModalProps> = ({
               <div key={member.user.id}>
                 <div className="flex items-center gap-3 rounded-xl border border-nl-border bg-nl-surface/40 p-2.5">
                   {/* Avatar */}
-                  {member.user.avatar_url ? (
+                  {member.user.avatarUrl ? (
                     <img
-                      src={member.user.avatar_url}
+                      src={member.user.avatarUrl}
                       alt={member.user.username}
                       className="h-10 w-10 rounded-full object-cover"
                       width={40}

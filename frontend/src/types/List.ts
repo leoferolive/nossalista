@@ -61,9 +61,9 @@ export interface CreateListRequest {
  * Resposta da API ao gerar link de convite
  */
 export interface InviteLinkResponse {
-  invite_code: string
-  invite_link: string
-  expires_at: string
+  inviteCode: string
+  inviteLink: string
+  expiresAt: string
 }
 
 /**
@@ -74,7 +74,7 @@ export interface JoinListItem {
   name: string
   checked: boolean
   quantity: number | null
-  due_date: string | null
+  dueDate: string | null
   url: string | null
   position: number
 }
@@ -85,14 +85,14 @@ export interface JoinListItem {
 export interface JoinListResponse {
   id: string
   name: string
-  type_slug: string
-  type_name: string
-  owner_username: string
-  owner_name: string
-  owner_avatar_url: string | null
+  typeSlug: string
+  typeName: string
+  ownerUsername: string
+  ownerName: string
+  ownerAvatarUrl: string | null
   items: JoinListItem[]
-  invite_code: string
-  expires_at: string
+  inviteCode: string
+  expiresAt: string
   mode: 'READ_ONLY'
 }
 
@@ -103,8 +103,8 @@ export interface JoinListResponse {
 export interface ListJoinedResponse {
   id: string
   name: string
-  type_slug: string
-  type_name: string
+  typeSlug: string
+  typeName: string
   role: 'OWNER' | 'MEMBER'
   message: string
   created: boolean
@@ -118,7 +118,7 @@ export interface UserSearchResult {
 }
 
 export interface InviteByUsernameResponse {
-  invited_username: string
+  invitedUsername: string
   message: string
 }
 
@@ -126,13 +126,13 @@ export interface ListMemberUser {
   id: string
   username: string
   name: string
-  avatar_url: string | null
+  avatarUrl: string | null
 }
 
 export interface ListMemberResponse {
   user: ListMemberUser
   role: 'OWNER' | 'MEMBER'
-  joined_at: string
+  joinedAt: string
 }
 
 /**

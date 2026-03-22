@@ -86,9 +86,9 @@ export function JoinListPage() {
    * Calcula se o link expira em breve (< 5 minutos)
    */
   const isExpiringSoon = (): boolean => {
-    if (!listData?.expires_at) return false
+    if (!listData?.expiresAt) return false
     const now = new Date()
-    const expiresAt = new Date(listData.expires_at)
+    const expiresAt = new Date(listData.expiresAt)
     const minutesRemaining = Math.floor((expiresAt.getTime() - now.getTime()) / 60000)
     return minutesRemaining >= 0 && minutesRemaining < 5
   }
@@ -276,11 +276,11 @@ export function JoinListPage() {
         {/* Lista info */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-nl-text mb-1 flex items-center gap-2">
-            <span>{getTypeEmoji(listData.type_slug)}</span>
+            <span>{getTypeEmoji(listData.typeSlug)}</span>
             {listData.name}
           </h1>
           <p className="text-nl-muted text-sm">
-            {listData.type_name} • por @{listData.owner_username}
+            {listData.typeName} • por @{listData.ownerUsername}
           </p>
         </div>
 
