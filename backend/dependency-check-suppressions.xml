@@ -26,4 +26,13 @@ DOMPurify CVE inside swagger-ui bundle JS — same as above.
         <packageUrl regex="true">^pkg:javascript/DOMPurify@.*$</packageUrl>
         <cve>CVE-2026-0540</cve>
     </suppress>
+    <suppress>
+        <notes><![CDATA[
+CVEs in npm transitive dependencies detected via stale backend/package-lock.json.
+This file is a residual artifact — the backend is Java/Maven only.
+Suppress until the file is removed from the repository.
+        ]]></notes>
+        <filePath regex="true">.*package-lock\.json.*</filePath>
+        <vulnerabilityName regex="true">^(CVE|GHSA)-.*$</vulnerabilityName>
+    </suppress>
 </suppressions>
