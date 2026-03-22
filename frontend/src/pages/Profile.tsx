@@ -7,6 +7,9 @@ import { ApiError } from '../types/ApiError'
 import { useAuth } from '../contexts/AuthContext'
 import { AppHeader } from '../components/AppHeader'
 
+// Note: usersApi is still imported for getProfile/updateProfile.
+// The logout API call is now handled by AuthContext.logout().
+
 /**
  * Página de Perfil do Usuário
  * FR4: Usuário pode acessar seu próprio perfil
@@ -80,16 +83,10 @@ export const Profile: React.FC = () => {
     [showToast]
   )
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await usersApi.logout()
-      logout()
-      showToast('Até logo!', 'info')
-      navigate('/', { replace: true })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao fazer logout'
-      showToast(message, 'error')
-    }
+  const handleLogout = useCallback(() => {
+    logout()
+    showToast('Até logo!', 'info')
+    navigate('/', { replace: true })
   }, [logout, navigate, showToast])
 
   // Loading state

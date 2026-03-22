@@ -133,18 +133,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
         </div>
 
-        {isMobile ? (
-          <section className="nl-section-stack">
-            <p className="nl-label mb-2">Preferências</p>
-            <ThemeToggle className="w-full justify-between" fullWidth />
-            <p className={`mt-3 text-sm ${pushStatus.tone}`}>{pushStatus.label}</p>
-          </section>
-        ) : (
+        {isDesktop ? (
           <div className="rounded-xl bg-nl-surface-strong px-4 py-3">
             <p className={`font-sans text-xs font-semibold leading-5 ${pushStatus.tone}`}>
               {pushStatus.label}
             </p>
           </div>
+        ) : (
+          <section className="nl-section-stack">
+            <p className="nl-label mb-2">Preferências</p>
+            <ThemeToggle className="w-full justify-between" fullWidth />
+            <p className={`mt-3 text-sm ${pushStatus.tone}`}>{pushStatus.label}</p>
+          </section>
         )}
 
         <section className="nl-section-stack">

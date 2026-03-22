@@ -17,13 +17,13 @@ export function DeleteConfirmModal({
   onConfirm,
   onCancel,
 }: DeleteConfirmModalProps) {
-  const confirmButtonRef = useRef<HTMLButtonElement>(null)
+  const cancelButtonRef = useRef<HTMLButtonElement>(null)
 
-  // Focar no botão de confirmar quando abrir
+  // Focar no botão de cancelar quando abrir (safer default)
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
-        confirmButtonRef.current?.focus()
+        cancelButtonRef.current?.focus()
       }, 100)
     }
   }, [isOpen])
@@ -70,6 +70,7 @@ export function DeleteConfirmModal({
 
         <div className="flex gap-2 justify-end">
           <button
+            ref={cancelButtonRef}
             onClick={onCancel}
             className="min-h-[44px] rounded-xl border border-nl-border px-4 py-2 text-nl-muted transition-colors hover:bg-nl-surface-strong focus-visible:ring-2 focus-visible:ring-nl-accent/30"
             data-testid="delete-cancel-button"
@@ -77,7 +78,6 @@ export function DeleteConfirmModal({
             Cancelar
           </button>
           <button
-            ref={confirmButtonRef}
             onClick={onConfirm}
             className="min-h-[44px] rounded-xl bg-nl-danger px-4 py-2 text-white transition-colors hover:bg-nl-danger/80 focus-visible:ring-2 focus-visible:ring-nl-danger/40"
             data-testid="delete-confirm-button"

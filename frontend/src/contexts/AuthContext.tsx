@@ -7,6 +7,7 @@ import {
   persistAuthSession,
   StoredUser,
 } from '../auth/session'
+import { usersApi } from '../api/usersApi'
 
 interface CurrentUserResponse {
   id: string
@@ -32,18 +33,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => getStoredUser())
+  const [token, setToken] = useState<string | null>(() => getStoredAuthToken())
   const [isBootstrapping, setIsBootstrapping] = useState(true)
 
   useEffect(() => {
     const bootstrapSession = async () => {
-      const token = getStoredAuthToken()
+      const storedToken = getStoredAuthToken()
       const savedUser = getStoredUser()
 
-      if (!token) {
+      if (!storedToken) {
         if (savedUser) {
           clearStoredSession()
           setUser(null)
         }
+        setToken(null)
         setIsBootstrapping(false)
         return
       }
@@ -58,10 +61,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatarUrl: data.avatarUrl ?? null,
           onboardingCompletedAt: data.onboardingCompletedAt ?? null,
         }
-        persistAuthSession(token, normalizedUser)
+        persistAuthSession(storedToken, normalizedUser)
+        setToken(storedToken)
         setUser(normalizedUser)
       } catch {
         clearStoredSession()
+        setToken(null)
         setUser(null)
       } finally {
         setIsBootstrapping(false)
@@ -71,10 +76,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void bootstrapSession()
   }, [])
 
-  const isAuthenticated = !!user && !!getStoredAuthToken()
+  const isAuthenticated = !!user && !!token
 
-  const login = useCallback((token: string, userData: User) => {
-    persistAuthSession(token, userData)
+  const login = useCallback((newToken: string, userData: User) => {
+    persistAuthSession(newToken, userData)
+    setToken(newToken)
     setUser(userData)
     setIsBootstrapping(false)
   }, [])
@@ -100,7 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
+    // Fire-and-forget: call backend logout but don't block on errors
+    usersApi.logout().catch(() => {})
     clearStoredSession()
+    setToken(null)
     setUser(null)
     setIsBootstrapping(false)
   }, [])
