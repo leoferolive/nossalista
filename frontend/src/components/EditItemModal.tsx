@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ListItem } from '../types/Item'
 import { useToast } from './Toast'
 
@@ -35,20 +35,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   })
   const [url, setUrl] = useState(item.url || '')
   const [isSaving, setIsSaving] = useState(false)
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { showToast } = useToast()
-
-  const clearDebounceTimer = useCallback(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
-      debounceTimerRef.current = null
-    }
-  }, [])
 
   // Preencher campos com valores atuais ao abrir
   useEffect(() => {
     if (isOpen && item) {
-      clearDebounceTimer()
       setName(item.name)
       setQuantity(item.quantity ?? 1)
       if (item.dueDate) {
@@ -64,13 +55,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       }
       setUrl(item.url || '')
     }
-  }, [isOpen, item, clearDebounceTimer])
-
-  useEffect(() => {
-    return () => {
-      clearDebounceTimer()
-    }
-  }, [clearDebounceTimer])
+  }, [isOpen, item])
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -82,32 +67,27 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       name: name.trim(),
     }
 
-    if (listType === 'SHOPPING') {
+    if (listType === 'compras') {
       request.quantity = quantity
-    } else if (listType === 'TASK') {
+    } else if (listType === 'tarefas') {
       if (dueDate) request.dueDate = new Date(dueDate).toISOString()
-    } else if (listType === 'WISHLIST') {
+    } else if (listType === 'wishlist') {
       request.url = url.trim()
     }
 
-    clearDebounceTimer()
-    debounceTimerRef.current = setTimeout(async () => {
-      setIsSaving(true)
-      try {
-        await onSave(item.id, request)
-        onClose()
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erro ao atualizar'
-        showToast(message, 'error')
-      } finally {
-        setIsSaving(false)
-        debounceTimerRef.current = null
-      }
-    }, 500)
+    setIsSaving(true)
+    try {
+      await onSave(item.id, request)
+      onClose()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar'
+      showToast(message, 'error')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleClose = () => {
-    clearDebounceTimer()
     setIsSaving(false)
     onClose()
   }
@@ -145,7 +125,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
         </div>
 
         {/* Campos específicos por tipo */}
-        {listType === 'SHOPPING' && (
+        {listType === 'compras' && (
           <div className="mb-4">
             <label
               htmlFor="edit-item-quantity"
@@ -166,7 +146,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           </div>
         )}
 
-        {listType === 'TASK' && (
+        {listType === 'tarefas' && (
           <div className="mb-4">
             <label
               htmlFor="edit-item-due-date"
@@ -185,7 +165,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           </div>
         )}
 
-        {listType === 'WISHLIST' && (
+        {listType === 'wishlist' && (
           <div className="mb-4">
             <label htmlFor="edit-item-url" className="mb-1 block text-sm font-medium text-nl-muted">
               URL/Link

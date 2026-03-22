@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { listsApi } from '../api/listsApi'
 import { JoinListResponse, JoinListItem, LIST_TYPES } from '../types/List'
@@ -24,10 +24,12 @@ export function JoinListPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [listData, setListData] = useState<JoinListResponse | null>(null)
   const [joining, setJoining] = useState(false)
+  const joiningRef = useRef(false)
 
   // Se o usuário já está autenticado e a lista carregou, entrar automaticamente
   useEffect(() => {
-    if (isAuthenticated && inviteCode && listData && !loading && !error && !joining) {
+    if (isAuthenticated && inviteCode && listData && !loading && !error && !joiningRef.current) {
+      joiningRef.current = true
       setJoining(true)
       listsApi
         .joinList(inviteCode)
@@ -46,10 +48,11 @@ export function JoinListPage() {
             setError('generic')
             setErrorMessage(err instanceof Error ? err.message : 'Erro ao entrar na lista')
           }
+          joiningRef.current = false
           setJoining(false)
         })
     }
-  }, [isAuthenticated, inviteCode, listData, loading, error, joining, navigate])
+  }, [isAuthenticated, inviteCode, listData, loading, error, navigate])
 
   useEffect(() => {
     async function loadList() {
@@ -340,7 +343,7 @@ export function JoinListPage() {
                   >
                     {item.name}
                   </span>
-                  {item.quantity && <span className="text-sm text-nl-muted">×{item.quantity}</span>}
+                  {item.quantity != null && <span className="text-sm text-nl-muted">×{item.quantity}</span>}
                 </li>
               ))}
             </ul>

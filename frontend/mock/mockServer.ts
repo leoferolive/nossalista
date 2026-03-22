@@ -256,7 +256,11 @@ async function readJsonBody(req: Connect.IncomingMessage) {
     return {}
   }
 
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  } catch {
+    return {}
+  }
 }
 
 function toJoinListResponse(list: MockList) {
@@ -376,7 +380,7 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
     }
 
     if (pathname === '/api/users/search' && method === 'GET') {
-      const query = (url.searchParams.get('query') ?? '').toLowerCase()
+      const query = (url.searchParams.get('q') ?? '').toLowerCase()
       const results = [...state.users.values()]
         .filter(
           (user) =>

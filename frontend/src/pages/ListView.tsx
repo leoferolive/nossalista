@@ -28,7 +28,6 @@ import { OnlineMember } from '../types/OnlineMember'
 import { useListRealtimeSync } from '../hooks/useListRealtimeSync'
 
 const ACTIVITY_TIMELINE_ENABLED = true
-const HOME_TOAST_SESSION_KEY = 'homeToast'
 
 function sortItemsByPosition(items: ListItem[]): ListItem[] {
   return [...items].sort((a, b) => a.position - b.position)
@@ -664,13 +663,6 @@ export const ListView: React.FC = () => {
 
     try {
       await listsApi.leaveList(id)
-      sessionStorage.setItem(
-        HOME_TOAST_SESSION_KEY,
-        JSON.stringify({
-          toastMessage: 'Você saiu',
-          toastType: 'success',
-        })
-      )
       setIsLeaveConfirmOpen(false)
       setIsMembersModalOpen(false)
       navigate('/home', {
@@ -845,7 +837,7 @@ export const ListView: React.FC = () => {
           <AppHeader
             title={currentList.name}
             subtitle="Compartilhe progresso, acompanhe presença em tempo real e mantenha tudo sincronizado."
-            onBack={() => navigate(-1)}
+            onBack={() => navigate('/home')}
             primaryAction={
               currentList.isOwner ? (
                 <button
@@ -1119,7 +1111,7 @@ export const ListView: React.FC = () => {
       {editingItem && (
         <EditItemModal
           item={editingItem}
-          listType={String(currentList.type.id)}
+          listType={currentList.type.slug}
           isOpen={isEditItemModalOpen}
           onClose={() => {
             setIsEditItemModalOpen(false)
