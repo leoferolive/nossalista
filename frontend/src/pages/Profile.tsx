@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UserProfile } from '../components/UserProfile'
 import { useToast } from '../contexts/ToastContext'
@@ -32,6 +32,9 @@ export const Profile: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [updating, setUpdating] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const deleteDialogRef = useRef<HTMLDialogElement>(null)
 
   // Carregar dados do perfil ao montar
   useEffect(() => {
@@ -89,6 +92,35 @@ export const Profile: React.FC = () => {
     showToast('Até logo!', 'info')
     navigate('/', { replace: true })
   }, [logout, navigate, showToast])
+
+  const handleOpenDeleteConfirm = useCallback(() => {
+    setShowDeleteConfirm(true)
+    // Use requestAnimationFrame to ensure dialog is in DOM before calling showModal
+    requestAnimationFrame(() => {
+      deleteDialogRef.current?.showModal()
+    })
+  }, [])
+
+  const handleCloseDeleteConfirm = useCallback(() => {
+    deleteDialogRef.current?.close()
+    setShowDeleteConfirm(false)
+  }, [])
+
+  const handleDeleteAccount = useCallback(async () => {
+    setDeleting(true)
+    try {
+      await usersApi.deleteAccount()
+      handleCloseDeleteConfirm()
+      logout()
+      showToast('Conta excluída com sucesso.', 'info')
+      navigate('/', { replace: true })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao excluir conta. Tente novamente.'
+      showToast(message, 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }, [logout, navigate, showToast, handleCloseDeleteConfirm])
 
   // Loading state
   if (loading) {
@@ -151,6 +183,56 @@ export const Profile: React.FC = () => {
             {updating ? 'Saindo…' : 'Sair da Conta'}
           </button>
         </div>
+
+        {/* Excluir Conta */}
+        <div className="mt-6 border-t border-nl-border pt-6">
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-nl-danger">
+            Zona de Perigo
+          </h3>
+          <p className="mb-4 text-sm text-nl-muted">
+            Ao excluir sua conta, todas as suas listas, itens e dados serão removidos permanentemente.
+          </p>
+          <button
+            onClick={handleOpenDeleteConfirm}
+            disabled={deleting}
+            className="w-full rounded-xl border-2 border-nl-danger bg-transparent px-6 py-2 font-medium text-nl-danger transition-colors hover:bg-nl-danger hover:text-white focus-visible:ring-2 focus-visible:ring-nl-danger/40"
+            aria-label="Excluir conta permanentemente"
+          >
+            Excluir Minha Conta
+          </button>
+        </div>
+
+        {/* Modal de confirmação de exclusão */}
+        {showDeleteConfirm && (
+          <dialog
+            ref={deleteDialogRef}
+            className="nl-card fixed inset-0 m-auto max-w-md rounded-2xl p-6 backdrop:bg-black/50"
+            onClose={handleCloseDeleteConfirm}
+          >
+            <h2 className="mb-2 text-lg font-bold text-nl-danger">Excluir conta</h2>
+            <p className="mb-6 text-sm text-nl-muted">
+              Tem certeza? Esta ação é irreversível. Todas as suas listas, itens e dados serão
+              permanentemente removidos.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCloseDeleteConfirm}
+                disabled={deleting}
+                className="nl-btn flex-1"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="nl-btn-danger flex-1"
+                aria-label="Confirmar exclusão da conta"
+              >
+                {deleting ? 'Excluindo…' : 'Sim, excluir'}
+              </button>
+            </div>
+          </dialog>
+        )}
 
         {/* Toasts */}
         {toasts.map((toast, i) => (

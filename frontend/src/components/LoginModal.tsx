@@ -21,6 +21,7 @@ interface Props {
   onClose: () => void
   onSwitchToRegister?: () => void
   showRegisteredMessage?: boolean
+  showResetMessage?: boolean
   initialEmail?: string
 }
 
@@ -28,6 +29,7 @@ export function LoginModal({
   onClose,
   onSwitchToRegister,
   showRegisteredMessage = false,
+  showResetMessage = false,
   initialEmail = '',
 }: Props) {
   const navigate = useNavigate()
@@ -137,6 +139,12 @@ export function LoginModal({
       {showRegisteredMessage && (
         <div className="mb-5 rounded-[1.2rem] border border-nl-primary/30 bg-nl-primary/10 px-4 py-3 text-sm text-nl-text">
           Conta criada com sucesso. Agora e so entrar.
+        </div>
+      )}
+
+      {showResetMessage && (
+        <div className="mb-5 rounded-[1.2rem] border border-nl-primary/30 bg-nl-primary/10 px-4 py-3 text-sm text-nl-text">
+          Senha redefinida com sucesso. Faca login com sua nova senha.
         </div>
       )}
 

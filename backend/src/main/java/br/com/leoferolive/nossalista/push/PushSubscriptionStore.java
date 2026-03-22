@@ -39,6 +39,10 @@ public class PushSubscriptionStore {
         });
     }
 
+    public void removeAll(UUID userId) {
+        store.remove(userId);
+    }
+
     public List<PushSubscription> findByUserId(UUID userId) {
         List<PushSubscription> result = store.get(userId);
         return result != null ? List.copyOf(result) : List.of();

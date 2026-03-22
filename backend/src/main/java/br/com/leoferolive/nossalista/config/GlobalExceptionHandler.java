@@ -2,6 +2,7 @@ package br.com.leoferolive.nossalista.config;
 
 import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
+import br.com.leoferolive.nossalista.auth.exception.InvalidResetTokenException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
@@ -97,6 +98,26 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
+    /**
+     * Trata exceção de token de reset de senha inválido ou expirado
+     * Retorna 400 Bad Request com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidResetToken(
+        InvalidResetTokenException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/invalid-reset-token"));
+        problem.setTitle("Token de reset inválido");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.badRequest().body(problem);
     }
 
     /**

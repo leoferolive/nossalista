@@ -6,6 +6,7 @@ import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.dto.UpdateProfileRequest;
 import br.com.leoferolive.nossalista.user.dto.UserProfileResponse;
 import br.com.leoferolive.nossalista.user.dto.UserSearchResponse;
+import br.com.leoferolive.nossalista.user.service.AccountDeletionService;
 import br.com.leoferolive.nossalista.user.service.UserService;
 import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,10 +39,13 @@ public class UserController {
 
     private final UserService userService;
     private final UserMapper userMapper;
+    private final AccountDeletionService accountDeletionService;
 
-    public UserController(UserService userService, UserMapper userMapper) {
+    public UserController(UserService userService, UserMapper userMapper,
+                          AccountDeletionService accountDeletionService) {
         this.userService = userService;
         this.userMapper = userMapper;
+        this.accountDeletionService = accountDeletionService;
     }
 
     /**
@@ -137,6 +142,28 @@ public class UserController {
     public ResponseEntity<Void> completeOnboarding() {
         User currentUser = getCurrentAuthenticatedUser();
         userService.markOnboardingCompleted(currentUser.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Exclui permanentemente a conta do usuário autenticado (LGPD compliance).
+     * Remove todas as listas, membros, itens, activity logs e push subscriptions.
+     *
+     * @return 204 No Content
+     */
+    @DeleteMapping("/me")
+    @Operation(
+        summary = "Excluir conta do usuário autenticado",
+        description = "Remove permanentemente a conta e todos os dados associados (listas, itens, membros, logs). Ação irreversível."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Conta excluída com sucesso"),
+        @ApiResponse(responseCode = "401", description = "Não autenticado - Token JWT ausente, inválido ou expirado",
+            content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
+    })
+    public ResponseEntity<Void> deleteAccount() {
+        User currentUser = getCurrentAuthenticatedUser();
+        accountDeletionService.deleteAccount(currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 

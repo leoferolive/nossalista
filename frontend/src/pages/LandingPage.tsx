@@ -20,6 +20,7 @@ export function LandingPage() {
   const [activeModal, setActiveModal] = useState<AuthModal>(null)
   const authQuery = searchParams.get('auth')
   const registeredQuery = searchParams.get('registered') === '1'
+  const resetQuery = searchParams.get('reset') === '1'
   const emailQuery = searchParams.get('email') ?? ''
 
   useEffect(() => {
@@ -179,6 +180,7 @@ export function LandingPage() {
           onClose={() => updateAuthSearch(null)}
           onSwitchToRegister={() => updateAuthSearch('register')}
           showRegisteredMessage={registeredQuery}
+          showResetMessage={resetQuery}
           initialEmail={emailQuery}
         />
       )}

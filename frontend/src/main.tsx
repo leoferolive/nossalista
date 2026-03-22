@@ -18,6 +18,7 @@ import { Profile } from './pages/Profile.tsx'
 import { LegacyLoginRedirect } from './pages/LegacyLoginRedirect.tsx'
 import { Register } from './pages/Register.tsx'
 import { ForgotPassword } from './pages/ForgotPassword.tsx'
+import { ResetPassword } from './pages/ResetPassword.tsx'
 import { ProtectedRoute } from './components/ProtectedRoute.tsx'
 import './index.css'
 
@@ -52,6 +53,7 @@ function AppRoutes() {
       <Route path="/login" element={<LegacyLoginRedirect />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         path="/home"

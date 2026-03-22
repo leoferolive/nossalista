@@ -180,6 +180,21 @@ public class UserService {
     }
 
     /**
+     * Atualiza a senha de um usuário
+     *
+     * @param userId          ID do usuário
+     * @param encodedPassword nova senha já criptografada
+     * @throws UserNotFoundException se usuário não existe
+     */
+    @Transactional
+    public void updatePassword(UUID userId, String encodedPassword) {
+        User user = findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
+    }
+
+    /**
      * Busca usuários por username (case-insensitive e parcial)
      *
      * @param query termo de busca

@@ -75,4 +75,17 @@ export const usersApi = {
       handleApiError(error)
     }
   },
+
+  /**
+   * Exclui permanentemente a conta do usuário autenticado (LGPD).
+   * Remove todas as listas, itens, membros e dados associados.
+   * @returns Promise void
+   */
+  async deleteAccount(): Promise<void> {
+    try {
+      await client.delete('/api/users/me')
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
 }
