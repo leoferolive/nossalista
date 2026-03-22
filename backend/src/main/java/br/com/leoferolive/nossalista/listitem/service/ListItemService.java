@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -454,7 +453,7 @@ public class ListItemService {
      * Publica mensagem broadcast no tópico WebSocket da lista
      */
     private void broadcastItemEvent(String type, ListItemResponseDTO dto, User actor, UUID listId, Long revision) {
-        eventPublisher.publishItemsEvent(listId, type, dto, actor, revision);
+        eventPublisher.publishEvent(listId, type, dto, actor, revision);
     }
 
     private void broadcastLayoutUpdatedEvent(UUID listId, java.util.List<ListItem> reorderedItems, User actor, Long revision) {
@@ -462,11 +461,10 @@ public class ListItemService {
             .map(item -> new ListLayoutUpdatedPayload.ItemPositionPayload(item.getId().toString(), item.getPosition()))
             .collect(Collectors.toList());
 
-        eventPublisher.publishItemsEvent(listId, "LIST_LAYOUT_UPDATED", new ListLayoutUpdatedPayload(positions), actor, revision);
+        eventPublisher.publishEvent(listId, "LIST_LAYOUT_UPDATED", new ListLayoutUpdatedPayload(positions), actor, revision);
     }
 
     private Long touchListRevision(List list) {
-        list.setUpdatedAt(LocalDateTime.now());
         List savedList = listRepository.save(list);
         return savedList.getUpdatedAt().toInstant(ZoneOffset.UTC).toEpochMilli();
     }

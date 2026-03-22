@@ -232,7 +232,7 @@ public class ListService {
         // @PreUpdate vai atualizar o updatedAt automaticamente
         List savedList = listRepository.save(list);
 
-        eventPublisher.publishItemsEvent(
+        eventPublisher.publishEvent(
             listId, "LIST_NAME_UPDATED",
             new ListNameUpdatedPayload(listId.toString(), oldName, trimmedName),
             savedList.getOwner(), null

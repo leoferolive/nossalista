@@ -193,7 +193,7 @@ public class ListJoinService {
                 user.getName(), user.getAvatarUrl(),
                 list.getId().toString(), list.getName()
             );
-            eventPublisher.publishItemsEvent(list.getId(), "MEMBER_JOINED", joinedPayload, user, null);
+            eventPublisher.publishEvent(list.getId(), "MEMBER_JOINED", joinedPayload, user, null);
             notificationService.notifyListMembers(list.getId(), user.getId(), "MEMBER_JOINED", joinedPayload, user);
 
             return buildListJoinedResponse(list, MemberRole.MEMBER,

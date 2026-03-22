@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.push;
 
 import br.com.leoferolive.nossalista.websocket.PresenceService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.martijndwars.webpush.PushService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,7 @@ class PushNotificationServiceTest {
     @Mock
     private PushService pushService;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private PushNotificationService service;
     private final UUID userId = UUID.randomUUID();
     private final PushNotificationPayload payload = new PushNotificationPayload(
@@ -42,7 +44,7 @@ class PushNotificationServiceTest {
     @BeforeEach
     void setUp() {
         when(vapidConfig.isConfigured()).thenReturn(false);
-        service = new PushNotificationService(subscriptionStore, presenceService, vapidConfig);
+        service = new PushNotificationService(subscriptionStore, presenceService, vapidConfig, objectMapper);
     }
 
     private void injectMockPushService() throws Exception {
@@ -90,7 +92,7 @@ class PushNotificationServiceTest {
         realConfig.setPrivateKey("invalid-private-key");
         realConfig.setSubject("mailto:test@test.com");
 
-        PushNotificationService svc = new PushNotificationService(subscriptionStore, presenceService, realConfig);
+        PushNotificationService svc = new PushNotificationService(subscriptionStore, presenceService, realConfig, objectMapper);
         svc.sendToUser(userId, payload);
 
         verify(subscriptionStore, never()).findByUserId(userId);

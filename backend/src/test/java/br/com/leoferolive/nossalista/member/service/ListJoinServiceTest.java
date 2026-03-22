@@ -400,7 +400,7 @@ class ListJoinServiceTest {
         // Assert
         ArgumentCaptor<MemberJoinedPayload> payloadCaptor =
             ArgumentCaptor.forClass(MemberJoinedPayload.class);
-        verify(eventPublisher).publishItemsEvent(
+        verify(eventPublisher).publishEvent(
             eq(testList.getId()), eq("MEMBER_JOINED"), payloadCaptor.capture(), eq(testUser), isNull()
         );
 

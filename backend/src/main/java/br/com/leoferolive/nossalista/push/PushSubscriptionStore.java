@@ -2,11 +2,11 @@ package br.com.leoferolive.nossalista.push;
 
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
 public class PushSubscriptionStore {
@@ -17,7 +17,7 @@ public class PushSubscriptionStore {
 
     public void add(UUID userId, PushSubscription subscription) {
         store.compute(userId, (id, existing) -> {
-            List<PushSubscription> list = existing != null ? existing : new ArrayList<>();
+            List<PushSubscription> list = existing != null ? existing : new CopyOnWriteArrayList<>();
 
             // Evitar duplicatas pelo endpoint
             list.removeIf(s -> s.endpoint().equals(subscription.endpoint()));
@@ -26,7 +26,7 @@ public class PushSubscriptionStore {
 
             // Manter apenas as MAX_PER_USER mais recentes (remover as mais antigas)
             if (list.size() > MAX_PER_USER) {
-                return new ArrayList<>(list.subList(list.size() - MAX_PER_USER, list.size()));
+                return new CopyOnWriteArrayList<>(list.subList(list.size() - MAX_PER_USER, list.size()));
             }
             return list;
         });

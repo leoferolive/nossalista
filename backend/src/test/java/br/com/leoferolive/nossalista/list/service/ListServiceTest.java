@@ -513,7 +513,7 @@ class ListServiceTest {
             // Assert
             ArgumentCaptor<ListNameUpdatedPayload> payloadCaptor =
                 ArgumentCaptor.forClass(ListNameUpdatedPayload.class);
-            verify(eventPublisher).publishItemsEvent(
+            verify(eventPublisher).publishEvent(
                 eq(listId), eq("LIST_NAME_UPDATED"), payloadCaptor.capture(), eq(testUser), isNull()
             );
 
