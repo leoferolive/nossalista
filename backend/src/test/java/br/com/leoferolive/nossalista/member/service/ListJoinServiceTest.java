@@ -224,9 +224,9 @@ class ListJoinServiceTest {
         JoinListResponse response = listJoinService.getListByInviteCode(VALID_INVITE_CODE);
 
         // Assert
-        assertThat(response.owner_username()).isEqualTo("mariana");
-        assertThat(response.owner_name()).isEqualTo("Mariana Silva");
-        assertThat(response.owner_avatar_url()).isEqualTo("https://example.com/avatar.jpg");
+        assertThat(response.ownerUsername()).isEqualTo("mariana");
+        assertThat(response.ownerName()).isEqualTo("Mariana Silva");
+        assertThat(response.ownerAvatarUrl()).isEqualTo("https://example.com/avatar.jpg");
     }
 
     @Test
@@ -242,8 +242,8 @@ class ListJoinServiceTest {
         JoinListResponse response = listJoinService.getListByInviteCode(VALID_INVITE_CODE);
 
         // Assert
-        assertThat(response.type_slug()).isEqualTo("compras");
-        assertThat(response.type_name()).isEqualTo("Compras");
+        assertThat(response.typeSlug()).isEqualTo("compras");
+        assertThat(response.typeName()).isEqualTo("Compras");
     }
 
     @Test
@@ -312,7 +312,7 @@ class ListJoinServiceTest {
         assertThat(response.name()).isEqualTo("Mercado Semanal");
         assertThat(response.role()).isEqualTo("MEMBER");
         assertThat(response.message()).isEqualTo("Bem-vindo à lista Mercado Semanal!");
-        assertThat(response.type_slug()).isEqualTo("compras");
+        assertThat(response.typeSlug()).isEqualTo("compras");
         assertThat(response.created()).isTrue();
         assertThat(response.list()).isNotNull();
         // Verificar que o membro foi de fato persistido
@@ -400,7 +400,7 @@ class ListJoinServiceTest {
         // Assert
         ArgumentCaptor<MemberJoinedPayload> payloadCaptor =
             ArgumentCaptor.forClass(MemberJoinedPayload.class);
-        verify(eventPublisher).publishItemsEvent(
+        verify(eventPublisher).publishEvent(
             eq(testList.getId()), eq("MEMBER_JOINED"), payloadCaptor.capture(), eq(testUser), isNull()
         );
 

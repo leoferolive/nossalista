@@ -15,8 +15,8 @@ import java.util.UUID;
  *
  * @param id          ID único da lista
  * @param name        Nome da lista
- * @param type_slug   Slug do tipo da lista (snake_case)
- * @param type_name   Nome do tipo da lista (snake_case)
+ * @param typeSlug    Slug do tipo da lista
+ * @param typeName    Nome do tipo da lista
  * @param role        Papel do usuário na lista: "OWNER" ou "MEMBER"
  * @param message     Mensagem amigável para o usuário (ex: "Bem-vindo à lista X!")
  * @param created     true quando novo membro criado (201 Created), false quando já existia (200 OK)
@@ -25,8 +25,8 @@ import java.util.UUID;
 public record ListJoinedResponse(
     UUID id,
     String name,
-    String type_slug,
-    String type_name,
+    String typeSlug,
+    String typeName,
     String role,
     String message,
     boolean created,

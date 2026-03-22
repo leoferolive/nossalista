@@ -1,13 +1,16 @@
 package br.com.leoferolive.nossalista.auth.controller;
 
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.auth.dto.ForgotPasswordRequest;
 import br.com.leoferolive.nossalista.auth.dto.LoginRequest;
 import br.com.leoferolive.nossalista.auth.dto.LoginResponse;
 import br.com.leoferolive.nossalista.auth.dto.RegisterRequest;
 import br.com.leoferolive.nossalista.auth.dto.RegisterResponse;
+import br.com.leoferolive.nossalista.auth.dto.ResetPasswordRequest;
 import br.com.leoferolive.nossalista.auth.dto.UserMapper;
 import br.com.leoferolive.nossalista.auth.service.AuthService;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
+import br.com.leoferolive.nossalista.auth.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -36,11 +39,14 @@ public class AuthController {
     private final AuthService authService;
     private final JwtService jwtService;
     private final UserMapper userMapper;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService, JwtService jwtService, UserMapper userMapper) {
+    public AuthController(AuthService authService, JwtService jwtService,
+                          UserMapper userMapper, PasswordResetService passwordResetService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
+        this.passwordResetService = passwordResetService;
     }
 
     /**
@@ -116,5 +122,46 @@ public class AuthController {
     public void initiateGoogleLogin(HttpServletResponse response) throws IOException {
         // Spring Security intercepta /oauth2/authorization/google e inicia fluxo OAuth2
         response.sendRedirect("/oauth2/authorization/google");
+    }
+
+    /**
+     * Solicita reset de senha via email.
+     * Sempre retorna 200 para prevenir enumeração de emails.
+     *
+     * @param request dados com email do usuário
+     * @return 200 OK sempre (independente de email existir ou não)
+     */
+    @PostMapping("/forgot-password")
+    @Operation(
+        summary = "Solicitar reset de senha",
+        description = "Envia link de reset de senha para o email informado. Sempre retorna 200 para prevenir enumeração de emails."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Requisição processada (não confirma existência do email)"),
+        @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
+    })
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestReset(request.email());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Redefine a senha usando um token válido
+     *
+     * @param request dados com token e nova senha
+     * @return 200 OK se senha redefinida com sucesso
+     */
+    @PostMapping("/reset-password")
+    @Operation(
+        summary = "Redefinir senha",
+        description = "Redefine a senha do usuário usando um token de reset válido e não expirado."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Senha redefinida com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou dados inválidos")
+    })
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok().build();
     }
 }

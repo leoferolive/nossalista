@@ -45,4 +45,24 @@ export const authApi = {
       throw new Error(extractProblemMessage(error, 'Nao foi possivel criar sua conta agora.'))
     }
   },
+
+  async forgotPassword(email: string): Promise<void> {
+    await client.post('/api/auth/forgot-password', { email })
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    try {
+      await client.post('/api/auth/reset-password', { token, newPassword })
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>
+
+      if (axiosError.response?.status === 400) {
+        throw new Error(
+          extractProblemMessage(error, 'Token invalido ou expirado. Solicite um novo link.')
+        )
+      }
+
+      throw new Error(extractProblemMessage(error, 'Nao foi possivel redefinir sua senha agora.'))
+    }
+  },
 }

@@ -8,6 +8,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.security.Security;
 import java.util.List;
@@ -27,16 +29,19 @@ public class PushNotificationService {
     private final PushSubscriptionStore subscriptionStore;
     private final PresenceService presenceService;
     private final VapidConfig vapidConfig;
+    private final JsonMapper jsonMapper;
     private PushService pushService;
 
     public PushNotificationService(
         PushSubscriptionStore subscriptionStore,
         PresenceService presenceService,
-        VapidConfig vapidConfig
+        VapidConfig vapidConfig,
+        JsonMapper jsonMapper
     ) {
         this.subscriptionStore = subscriptionStore;
         this.presenceService = presenceService;
         this.vapidConfig = vapidConfig;
+        this.jsonMapper = jsonMapper;
         this.pushService = buildPushService();
     }
 
@@ -91,21 +96,12 @@ public class PushNotificationService {
     }
 
     private String serialize(PushNotificationPayload payload) {
-        return String.format(
-            "{\"title\":\"%s\",\"body\":\"%s\",\"icon\":\"%s\",\"tag\":\"%s\",\"url\":\"%s\"}",
-            escape(payload.title()),
-            escape(payload.body()),
-            escape(payload.icon()),
-            escape(payload.tag()),
-            escape(payload.url())
-        );
-    }
-
-    private String escape(String value) {
-        if (value == null) {
-            return "";
+        try {
+            return jsonMapper.writeValueAsString(payload);
+        } catch (JacksonException e) {
+            log.error("Falha ao serializar push notification payload: {}", e.getMessage());
+            throw new RuntimeException("Falha ao serializar push notification payload", e);
         }
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private boolean isGoneError(Exception e) {

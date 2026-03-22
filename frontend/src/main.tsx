@@ -7,6 +7,7 @@ import { OnboardingProvider } from './contexts/OnboardingContext.tsx'
 import { WebSocketProvider } from './contexts/WebSocketContext.tsx'
 import { NotificationProvider } from './contexts/NotificationContext.tsx'
 import { ThemeProvider } from './contexts/ThemeContext.tsx'
+import { ToastProvider } from './contexts/ToastContext.tsx'
 import { WebSocketConnectionManager } from './components/WebSocketConnectionManager.tsx'
 import { AuthCallback } from './pages/AuthCallback.tsx'
 import { Home } from './pages/Home.tsx'
@@ -17,6 +18,7 @@ import { Profile } from './pages/Profile.tsx'
 import { LegacyLoginRedirect } from './pages/LegacyLoginRedirect.tsx'
 import { Register } from './pages/Register.tsx'
 import { ForgotPassword } from './pages/ForgotPassword.tsx'
+import { ResetPassword } from './pages/ResetPassword.tsx'
 import { ProtectedRoute } from './components/ProtectedRoute.tsx'
 import './index.css'
 
@@ -29,7 +31,11 @@ if (typeof browserGlobal.global === 'undefined') {
   browserGlobal.global = globalThis
 }
 
-registerSW({ immediate: true })
+try {
+  registerSW({ immediate: true })
+} catch {
+  // Service worker registration failed — app continues without SW
+}
 
 function NotificationWrapper({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
@@ -47,6 +53,7 @@ function AppRoutes() {
       <Route path="/login" element={<LegacyLoginRedirect />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         path="/home"
@@ -83,16 +90,18 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
       <BrowserRouter>
-        <AuthProvider>
-          <OnboardingProvider>
-            <WebSocketProvider>
-              <WebSocketConnectionManager />
-              <NotificationWrapper>
-                <AppRoutes />
-              </NotificationWrapper>
-            </WebSocketProvider>
-          </OnboardingProvider>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <OnboardingProvider>
+              <WebSocketProvider>
+                <WebSocketConnectionManager />
+                <NotificationWrapper>
+                  <AppRoutes />
+                </NotificationWrapper>
+              </WebSocketProvider>
+            </OnboardingProvider>
+          </AuthProvider>
+        </ToastProvider>
       </BrowserRouter>
     </ThemeProvider>
   </React.StrictMode>

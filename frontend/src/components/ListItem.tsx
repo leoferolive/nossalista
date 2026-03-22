@@ -3,6 +3,35 @@ import { ListItemProps } from '../types/Item'
 import { useLongPress } from '../hooks/useLongPress'
 import { ItemOptionsMenu } from './ItemOptionsMenu'
 
+const ALLOWED_AVATAR_DOMAINS = [
+  'lh3.googleusercontent.com',
+  'googleusercontent.com',
+  'gravatar.com',
+]
+
+function isSafeAvatarUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'https:') return false
+    return ALLOWED_AVATAR_DOMAINS.some(
+      (d) => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`)
+    )
+  } catch {
+    return false
+  }
+}
+
+function getInitialsAvatar(name: string): string {
+  const initial = (name || '?').charAt(0).toUpperCase()
+  return `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+      <rect width="40" height="40" rx="20" fill="%23667085"/>
+      <text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="system-ui">${initial}</text>
+    </svg>`
+  )}`
+}
+
 /**
  * Componente de item de lista
  * AC: Renderiza checkbox customizado, nome, campos extras, criador
@@ -183,8 +212,9 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
           <div className="flex items-center gap-2 font-sans text-sm text-nl-muted">
             <img
               src={
-                item.createdBy.avatarUrl ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=382b1f&color=d4845a`
+                isSafeAvatarUrl(item.createdBy.avatarUrl)
+                  ? item.createdBy.avatarUrl!
+                  : getInitialsAvatar(item.createdBy.username)
               }
               alt={item.createdBy.username}
               className="h-6 w-6 rounded-full bg-nl-surface-strong"
@@ -193,7 +223,7 @@ export const ListItemComponent: React.FC<ListItemProps> = React.memo(
               onError={(e) => {
                 const target = e.target as HTMLImageElement
                 target.onerror = null
-                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.createdBy.username)}&size=24&background=382b1f&color=d4845a`
+                target.src = getInitialsAvatar(item.createdBy.username)
               }}
             />
             <span className="hidden sm:inline truncate max-w-[100px]">

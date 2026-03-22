@@ -5,6 +5,7 @@ import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsExcepti
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.exception.UserNotFoundException;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,12 +32,12 @@ public class UserService {
      *
      * @param email email do usuário
      * @return usuário encontrado
-     * @throws RuntimeException se usuário não existe
+     * @throws UserNotFoundException se usuário não existe
      */
     @Transactional(readOnly = true)
     public User findByEmail(String email) {
         return userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + email));
+            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + email));
     }
 
     /**
@@ -55,12 +56,12 @@ public class UserService {
      *
      * @param username username do usuário
      * @return usuário encontrado
-     * @throws RuntimeException se usuário não existe
+     * @throws UserNotFoundException se usuário não existe
      */
     @Transactional(readOnly = true)
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + username));
+            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + username));
     }
 
     /**
@@ -140,12 +141,12 @@ public class UserService {
      * @param name       novo nome (opcional)
      * @param avatarUrl  novo avatar (opcional)
      * @return usuário atualizado
-     * @throws RuntimeException se usuário não existe
+     * @throws UserNotFoundException se usuário não existe
      */
     @Transactional
     public User updateProfile(UUID userId, String name, String avatarUrl) {
         User user = findById(userId)
-            .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + userId));
+            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
 
         // Atualizar apenas campos permitidos
         if (name != null) {
@@ -168,7 +169,7 @@ public class UserService {
     @Transactional
     public User markOnboardingCompleted(UUID userId) {
         User user = findById(userId)
-            .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + userId));
+            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
 
         if (user.getOnboardingCompletedAt() == null) {
             user.setOnboardingCompletedAt(LocalDateTime.now());
@@ -179,6 +180,21 @@ public class UserService {
     }
 
     /**
+     * Atualiza a senha de um usuário
+     *
+     * @param userId          ID do usuário
+     * @param encodedPassword nova senha já criptografada
+     * @throws UserNotFoundException se usuário não existe
+     */
+    @Transactional
+    public void updatePassword(UUID userId, String encodedPassword) {
+        User user = findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
+    }
+
+    /**
      * Busca usuários por username (case-insensitive e parcial)
      *
      * @param query termo de busca
@@ -186,6 +202,6 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public List<User> searchByUsername(String query) {
-        return userRepository.findByUsernameContainingIgnoreCase(query);
+        return userRepository.findTop20ByUsernameContainingIgnoreCase(query);
     }
 }

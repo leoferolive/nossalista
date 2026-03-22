@@ -15,11 +15,11 @@ public class WebSocketEventPublisher {
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
-    public void publishItemsEvent(UUID listId, String type, Object payload, User actor) {
-        publishItemsEvent(listId, type, payload, actor, null);
+    public void publishEvent(UUID listId, String type, Object payload, User actor) {
+        publishEvent(listId, type, payload, actor, null);
     }
 
-    public void publishItemsEvent(UUID listId, String type, Object payload, User actor, Long revision) {
+    public void publishEvent(UUID listId, String type, Object payload, User actor, Long revision) {
         publishListEvent(listId, "items", type, payload, actor, revision);
     }
 

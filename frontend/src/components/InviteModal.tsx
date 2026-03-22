@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { InviteLinkResponse, InviteByUsernameResponse, UserSearchResult } from '../types/List'
-import { useToast } from './Toast'
+import { useToast } from '../contexts/ToastContext'
 import { ModalShell } from './ModalShell'
 
 interface InviteModalProps {
@@ -58,10 +58,10 @@ export const InviteModal: React.FC<InviteModalProps> = ({
 
     try {
       if (navigator.clipboard) {
-        await navigator.clipboard.writeText(inviteData.invite_link)
+        await navigator.clipboard.writeText(inviteData.inviteLink)
       } else {
         const textarea = document.createElement('textarea')
-        textarea.value = inviteData.invite_link
+        textarea.value = inviteData.inviteLink
         textarea.style.position = 'fixed'
         textarea.style.left = '-999999px'
         document.body.appendChild(textarea)
@@ -283,7 +283,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
                 Link ativo
               </p>
               <p className="mt-2 break-all font-mono text-sm text-nl-text">
-                {inviteData.invite_link}
+                {inviteData.inviteLink}
               </p>
               <p className="mt-3 text-xs text-nl-muted">Expira em 24 horas.</p>
             </div>

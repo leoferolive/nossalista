@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
+import { GoogleAuthButton } from '../components/GoogleAuthButton'
 import { authApi } from '../api/authApi'
 
 function buildLink(path: string, redirectPath: string | null) {
@@ -37,6 +38,17 @@ export const Register: React.FC = () => {
       ...prev,
       [field]: field === 'username' ? value.toLowerCase() : value,
     }))
+  }
+
+  const handleGoogleRegister = () => {
+    if (redirectPath?.startsWith('/join/')) {
+      const inviteCode = redirectPath.slice('/join/'.length)
+      if (inviteCode) {
+        sessionStorage.setItem('pendingInviteCode', inviteCode)
+      }
+    }
+
+    window.location.href = `${window.location.origin}/api/auth/google`
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -204,6 +216,12 @@ export const Register: React.FC = () => {
           {loading ? 'Criando conta...' : 'Criar conta'}
         </button>
       </form>
+
+      <GoogleAuthButton
+        label="Cadastrar com Google"
+        onClick={handleGoogleRegister}
+        className="mt-6 w-full"
+      />
 
       <div className="mt-5 text-sm text-nl-muted">
         Quer revisar as opcoes de acesso?{' '}

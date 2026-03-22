@@ -256,7 +256,11 @@ async function readJsonBody(req: Connect.IncomingMessage) {
     return {}
   }
 
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  } catch {
+    return {}
+  }
 }
 
 function toJoinListResponse(list: MockList) {
@@ -264,22 +268,22 @@ function toJoinListResponse(list: MockList) {
   return {
     id: list.id,
     name: list.name,
-    type_slug: getType(list.typeId).slug,
-    type_name: getType(list.typeId).name,
-    owner_username: owner.username,
-    owner_name: owner.name,
-    owner_avatar_url: owner.avatarUrl,
+    typeSlug: getType(list.typeId).slug,
+    typeName: getType(list.typeId).name,
+    ownerUsername: owner.username,
+    ownerName: owner.name,
+    ownerAvatarUrl: owner.avatarUrl,
     items: (state.items.get(list.id) ?? []).map((item) => ({
       id: item.id,
       name: item.name,
       checked: item.checked,
       quantity: item.quantity,
-      due_date: item.dueDate,
+      dueDate: item.dueDate,
       url: item.url,
       position: item.position,
     })),
-    invite_code: list.inviteCode,
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    inviteCode: list.inviteCode,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     mode: 'READ_ONLY' as const,
   }
 }
@@ -376,7 +380,7 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
     }
 
     if (pathname === '/api/users/search' && method === 'GET') {
-      const query = (url.searchParams.get('query') ?? '').toLowerCase()
+      const query = (url.searchParams.get('q') ?? '').toLowerCase()
       const results = [...state.users.values()]
         .filter(
           (user) =>
@@ -571,10 +575,10 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
               id: user.id,
               username: user.username,
               name: user.name,
-              avatar_url: user.avatarUrl,
+              avatarUrl: user.avatarUrl,
             },
             role: memberId === list.ownerId ? 'OWNER' : 'MEMBER',
-            joined_at: list.createdAt,
+            joinedAt: list.createdAt,
           }
         })
       )
@@ -617,9 +621,9 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
         return
       }
       json(res, 200, {
-        invite_code: list.inviteCode,
-        invite_link: `http://localhost:5173/join/${list.inviteCode}`,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        inviteCode: list.inviteCode,
+        inviteLink: `http://localhost:5173/join/${list.inviteCode}`,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
       return
     }
@@ -649,7 +653,7 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
       }
       state.lists.set(list.id, list)
       json(res, 200, {
-        invited_username: invitedUser.username,
+        invitedUsername: invitedUser.username,
         message: `${invitedUser.username} adicionado!`,
       })
       return
@@ -702,8 +706,8 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
         json(res, 201, {
           id: list.id,
           name: list.name,
-          type_slug: getType(list.typeId).slug,
-          type_name: getType(list.typeId).name,
+          typeSlug: getType(list.typeId).slug,
+          typeName: getType(list.typeId).name,
           role: 'MEMBER',
           message: 'Voce entrou na lista.',
           created: true,

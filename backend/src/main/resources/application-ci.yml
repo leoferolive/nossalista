@@ -1,3 +1,6 @@
+cors:
+  allowed-origins: http://localhost:5173,http://localhost:8080,http://127.0.0.1:4173
+
 spring:
   datasource:
     url: jdbc:h2:mem:ci;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH

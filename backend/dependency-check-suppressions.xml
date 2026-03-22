@@ -10,4 +10,29 @@ supported dependency matrix.
         <packageUrl regex="true">^pkg:maven/tools\.jackson\.core/jackson-(core|databind)@3\.0\.4$</packageUrl>
         <cve>CVE-2026-29062</cve>
     </suppress>
+    <suppress>
+        <notes><![CDATA[
+DOMPurify CVEs inside swagger-ui bundle JS — not directly exploitable
+in our server-side context. Swagger UI is dev/internal tooling only.
+Suppress until springdoc ships updated swagger-ui with DOMPurify >= 3.2.7.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:javascript/DOMPurify@.*$</packageUrl>
+        <cve>CVE-2025-15599</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+DOMPurify CVE inside swagger-ui bundle JS — same as above.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:javascript/DOMPurify@.*$</packageUrl>
+        <cve>CVE-2026-0540</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+CVEs in npm transitive dependencies detected via stale backend/package-lock.json.
+This file is a residual artifact — the backend is Java/Maven only.
+Suppress until the file is removed from the repository.
+        ]]></notes>
+        <filePath regex="true">.*package-lock\.json.*</filePath>
+        <vulnerabilityName regex="true">^(CVE|GHSA)-.*$</vulnerabilityName>
+    </suppress>
 </suppressions>

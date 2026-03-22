@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.JoinListResponse;
 import br.com.leoferolive.nossalista.list.dto.ListResponse;
+import br.com.leoferolive.nossalista.list.util.ListTypeMapper;
 import br.com.leoferolive.nossalista.list.exception.InviteExpiredException;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
@@ -87,26 +88,8 @@ public class ListJoinService {
     }
 
     private JoinListResponse mapToJoinListResponse(List list, java.util.List<ListItem> items) {
-        // Defensive: get type info from entity or fallback to getType() method
-        String typeSlug;
-        String typeName;
-        if (list.getTypeEntity() != null) {
-            typeSlug = list.getTypeEntity().getSlug();
-            typeName = list.getTypeEntity().getName();
-        } else {
-            // Fallback: use getType() which has embedded fallback logic
-            var listType = list.getType();
-            typeSlug = listType.getSlug();
-            // Capitalize first letter for name
-            typeName = listType.name().charAt(0) + listType.name().substring(1).toLowerCase();
-            // Fix special cases
-            typeName = switch (listType) {
-                case SHOPPING -> "Compras";
-                case TASK -> "Tarefas";
-                case WISHLIST -> "Wishlist";
-                case GENERIC -> "Genérica";
-            };
-        }
+        String typeSlug = ListTypeMapper.resolveSlug(list.getTypeEntity(), list.getTypeId());
+        String typeName = ListTypeMapper.resolveName(list.getTypeEntity(), list.getTypeId());
 
         return new JoinListResponse(
             list.getId(),
@@ -193,7 +176,7 @@ public class ListJoinService {
                 user.getName(), user.getAvatarUrl(),
                 list.getId().toString(), list.getName()
             );
-            eventPublisher.publishItemsEvent(list.getId(), "MEMBER_JOINED", joinedPayload, user, null);
+            eventPublisher.publishEvent(list.getId(), "MEMBER_JOINED", joinedPayload, user, null);
             notificationService.notifyListMembers(list.getId(), user.getId(), "MEMBER_JOINED", joinedPayload, user);
 
             return buildListJoinedResponse(list, MemberRole.MEMBER,
@@ -213,30 +196,12 @@ public class ListJoinService {
      * Constrói o response de join com dados completos da lista.
      */
     private ListJoinedResponse buildListJoinedResponse(List list, MemberRole role, String message, boolean created) {
-        // Defensive: get type info from entity
-        String typeSlug;
-        String typeName;
-        if (list.getTypeEntity() != null) {
-            typeSlug = list.getTypeEntity().getSlug();
-            typeName = list.getTypeEntity().getName();
-        } else {
-            typeSlug = switch (list.getType()) {
-                case SHOPPING -> "compras";
-                case TASK -> "tarefas";
-                case WISHLIST -> "wishlist";
-                case GENERIC -> "generica";
-            };
-            typeName = switch (list.getType()) {
-                case SHOPPING -> "Compras";
-                case TASK -> "Tarefas";
-                case WISHLIST -> "Wishlist";
-                case GENERIC -> "Genérica";
-            };
-        }
+        String typeSlug = ListTypeMapper.resolveSlug(list.getTypeEntity(), list.getTypeId());
+        String typeName = ListTypeMapper.resolveName(list.getTypeEntity(), list.getTypeId());
 
         // Construir ListResponse completo
         ListResponse.TypeResponse typeResponse = new ListResponse.TypeResponse(
-            list.getTypeEntity() != null ? list.getTypeEntity().getId() : list.getType().ordinal() + 1,
+            ListTypeMapper.resolveId(list.getTypeEntity(), list.getTypeId()),
             typeName,
             typeSlug
         );

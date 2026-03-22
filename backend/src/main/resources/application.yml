@@ -33,6 +33,9 @@ spring:
             user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
             user-name-attribute: sub
 
+cors:
+  allowed-origins: https://nossalista.leoferolive.com.br
+
 server:
   port: 8080
   error:

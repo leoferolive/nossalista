@@ -5,15 +5,13 @@ import { ActivityLog } from '../types/ActivityLog'
 
 // Mock do hook useToast
 const mockShowToast = vi.fn()
-vi.mock('./Toast', async () => {
-  const actual = await vi.importActual<typeof import('./Toast')>('./Toast')
-  return {
-    ...actual,
-    useToast: () => ({
-      showToast: mockShowToast,
-    }),
-  }
-})
+vi.mock('../contexts/ToastContext', () => ({
+  useToast: () => ({
+    showToast: mockShowToast,
+    toasts: [],
+    removeToast: vi.fn(),
+  }),
+}))
 
 describe('ActivityTimeline', () => {
   const mockActivities: ActivityLog[] = [

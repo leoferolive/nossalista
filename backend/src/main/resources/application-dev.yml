@@ -1,3 +1,6 @@
+cors:
+  allowed-origins: https://nossalista.leoferolive.com.br,http://nossalista.home,http://localhost:5173,http://localhost:8080
+
 spring:
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/nossalista_dev}

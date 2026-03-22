@@ -136,7 +136,7 @@ public class MemberService {
             removedUser.getId().toString(), removedUser.getUsername(),
             listId.toString(), list.getName(), "REMOVED"
         );
-        eventPublisher.publishItemsEvent(listId, "MEMBER_REMOVED", removedPayload, removedUser, null);
+        eventPublisher.publishEvent(listId, "MEMBER_REMOVED", removedPayload, removedUser, null);
         notificationService.notifyListMembers(listId, removedUser.getId(), "MEMBER_REMOVED", removedPayload, removedUser);
     }
 
@@ -157,7 +157,7 @@ public class MemberService {
             leavingUser.getId().toString(), leavingUser.getUsername(),
             listId.toString(), list.getName(), "LEFT"
         );
-        eventPublisher.publishItemsEvent(listId, "MEMBER_LEFT", leftPayload, leavingUser, null);
+        eventPublisher.publishEvent(listId, "MEMBER_LEFT", leftPayload, leavingUser, null);
         notificationService.notifyListMembers(listId, leavingUser.getId(), "MEMBER_LEFT", leftPayload, leavingUser);
     }
 

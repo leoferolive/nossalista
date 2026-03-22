@@ -1,7 +1,6 @@
 import client, { preserveSessionOnUnauthorizedConfig } from './client'
 import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item'
-import { ProblemDetail } from '../types/ProblemDetail'
-import { AxiosError } from 'axios'
+import { handleApiError } from './handleApiError'
 
 /**
  * API para gerenciamento de itens de lista
@@ -11,7 +10,7 @@ export const itemsApi = {
    * Busca todos os itens de uma lista
    * @param listId - UUID da lista
    * @returns Promise com array de itens ordenados por position
-   * @throws Error com mensagem específica baseada no status HTTP
+   * @throws ApiError com status code e mensagem extraida do ProblemDetail
    */
   async getItemsByListId(listId: string): Promise<ListItem[]> {
     try {
@@ -21,24 +20,7 @@ export const itemsApi = {
       )
       return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
-
-      if (axiosError.response) {
-        const status = axiosError.response.status
-        const problemDetail = axiosError.response.data
-
-        if (status === 404) {
-          throw new Error('Lista não encontrada')
-        } else if (status === 403) {
-          throw new Error('Você não tem permissão para ver os itens desta lista')
-        } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.')
-        } else {
-          throw new Error(problemDetail?.detail || 'Erro ao carregar itens. Tente novamente.')
-        }
-      }
-
-      throw new Error('Erro de conexão. Verifique sua internet.')
+      handleApiError(error)
     }
   },
 
@@ -47,7 +29,7 @@ export const itemsApi = {
    * @param listId - UUID da lista
    * @param request - Dados do item (name, quantity, dueDate, url, notes)
    * @returns Promise com o item criado
-   * @throws Error com mensagem específica baseada no status HTTP
+   * @throws ApiError com status code e mensagem extraida do ProblemDetail
    */
   async addItem(listId: string, request: CreateItemRequest): Promise<ListItem> {
     try {
@@ -58,26 +40,7 @@ export const itemsApi = {
       )
       return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
-
-      if (axiosError.response) {
-        const status = axiosError.response.status
-        const problemDetail = axiosError.response.data
-
-        if (status === 400) {
-          throw new Error(problemDetail?.detail || 'Dados inválidos. Verifique os campos.')
-        } else if (status === 403) {
-          throw new Error('Você não tem permissão para adicionar itens nesta lista')
-        } else if (status === 404) {
-          throw new Error('Lista não encontrada')
-        } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.')
-        } else {
-          throw new Error(problemDetail?.detail || 'Erro ao adicionar item. Tente novamente.')
-        }
-      }
-
-      throw new Error('Erro de conexão. Verifique sua internet.')
+      handleApiError(error)
     }
   },
 
@@ -86,7 +49,7 @@ export const itemsApi = {
    * @param listId - UUID da lista
    * @param itemId - UUID do item
    * @returns Promise com o item atualizado
-   * @throws Error com mensagem específica baseada no status HTTP
+   * @throws ApiError com status code e mensagem extraida do ProblemDetail
    */
   async toggleItemCheck(listId: string, itemId: string): Promise<ListItem> {
     try {
@@ -97,24 +60,7 @@ export const itemsApi = {
       )
       return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
-
-      if (axiosError.response) {
-        const status = axiosError.response.status
-        const problemDetail = axiosError.response.data
-
-        if (status === 404) {
-          throw new Error('Item não encontrado')
-        } else if (status === 403) {
-          throw new Error('Você não tem permissão para modificar itens desta lista')
-        } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.')
-        } else {
-          throw new Error(problemDetail?.detail || 'Erro ao atualizar item. Tente novamente.')
-        }
-      }
-
-      throw new Error('Erro de conexão. Verifique sua internet.')
+      handleApiError(error)
     }
   },
 
@@ -124,7 +70,7 @@ export const itemsApi = {
    * @param itemId - UUID do item
    * @param request - Dados para atualizar (name, quantity, dueDate, url)
    * @returns Promise com o item atualizado
-   * @throws Error com mensagem específica baseada no status HTTP
+   * @throws ApiError com status code e mensagem extraida do ProblemDetail
    */
   async updateItem(listId: string, itemId: string, request: UpdateItemRequest): Promise<ListItem> {
     try {
@@ -135,26 +81,7 @@ export const itemsApi = {
       )
       return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
-
-      if (axiosError.response) {
-        const status = axiosError.response.status
-        const problemDetail = axiosError.response.data
-
-        if (status === 400) {
-          throw new Error(problemDetail?.detail || 'Campos inválidos para este tipo de lista')
-        } else if (status === 403) {
-          throw new Error('Você não tem permissão para editar itens desta lista')
-        } else if (status === 404) {
-          throw new Error('Item não encontrado')
-        } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.')
-        } else {
-          throw new Error(problemDetail?.detail || 'Erro ao atualizar item. Tente novamente.')
-        }
-      }
-
-      throw new Error('Erro de conexão. Verifique sua internet.')
+      handleApiError(error)
     }
   },
 
@@ -163,7 +90,7 @@ export const itemsApi = {
    * @param listId - UUID da lista
    * @param itemId - UUID do item
    * @returns Promise<void> (204 No Content)
-   * @throws Error com mensagem específica baseada no status HTTP
+   * @throws ApiError com status code e mensagem extraida do ProblemDetail
    */
   async deleteItem(listId: string, itemId: string): Promise<void> {
     try {
@@ -172,24 +99,7 @@ export const itemsApi = {
         preserveSessionOnUnauthorizedConfig
       )
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
-
-      if (axiosError.response) {
-        const status = axiosError.response.status
-        const problemDetail = axiosError.response.data
-
-        if (status === 403) {
-          throw new Error('Você não tem permissão para remover itens desta lista')
-        } else if (status === 404) {
-          throw new Error('Item não encontrado')
-        } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.')
-        } else {
-          throw new Error(problemDetail?.detail || 'Erro ao remover item. Tente novamente.')
-        }
-      }
-
-      throw new Error('Erro de conexão. Verifique sua internet.')
+      handleApiError(error)
     }
   },
 }

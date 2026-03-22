@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react'
 import { listsApi } from '../api/listsApi'
 import { ListResponse, CreateListRequest } from '../types/List'
-import { ProblemDetail } from '../types/ProblemDetail'
-import { AxiosError } from 'axios'
+import { ApiError } from '../types/ApiError'
 
 interface UseListsReturn {
   // List states (for lists grid)
@@ -14,6 +13,7 @@ interface UseListsReturn {
   currentList: ListResponse | null
   loadingList: boolean
   errorList: string | null
+  errorListStatus: number | null
 
   // Update state
   updatingList: boolean
@@ -44,6 +44,7 @@ export const useLists = (): UseListsReturn => {
   const [currentList, setCurrentList] = useState<ListResponse | null>(null)
   const [loadingList, setLoadingList] = useState(false)
   const [errorList, setErrorList] = useState<string | null>(null)
+  const [errorListStatus, setErrorListStatus] = useState<number | null>(null)
 
   // Update state
   const [updatingList, setUpdatingList] = useState(false)
@@ -62,9 +63,8 @@ export const useLists = (): UseListsReturn => {
       const data = await listsApi.getAllLists()
       setLists(data)
     } catch (err) {
-      const axiosError = err as AxiosError<ProblemDetail>
       const message =
-        axiosError.response?.data?.detail || 'Erro ao carregar listas. Tente novamente.'
+        err instanceof Error ? err.message : 'Erro ao carregar listas. Tente novamente.'
       setError(message)
     } finally {
       setLoading(false)
@@ -78,15 +78,18 @@ export const useLists = (): UseListsReturn => {
   const fetchListById = useCallback(async (id: string) => {
     setLoadingList(true)
     setErrorList(null)
+    setErrorListStatus(null)
     setCurrentList(null)
 
     try {
       const data = await listsApi.getListById(id)
       setCurrentList(data)
     } catch (err) {
-      // listsApi.getListById já fornece mensagens específicas por status code
       const message = err instanceof Error ? err.message : 'Erro desconhecido ao carregar lista'
       setErrorList(message)
+      if (err instanceof ApiError) {
+        setErrorListStatus(err.status)
+      }
     } finally {
       setLoadingList(false)
     }
@@ -104,10 +107,9 @@ export const useLists = (): UseListsReturn => {
       setLists((prev) => [newList, ...prev])
       return newList
     } catch (err) {
-      const axiosError = err as AxiosError<ProblemDetail>
-      const message = axiosError.response?.data?.detail || 'Erro ao criar lista. Tente novamente.'
+      const message = err instanceof Error ? err.message : 'Erro ao criar lista. Tente novamente.'
       setError(message)
-      throw new Error(message)
+      throw err instanceof ApiError ? err : new ApiError(message, 0)
     } finally {
       setLoading(false)
     }
@@ -130,7 +132,7 @@ export const useLists = (): UseListsReturn => {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao atualizar lista'
       setErrorList(message)
-      throw new Error(message)
+      throw err instanceof ApiError ? err : new ApiError(message, 0)
     } finally {
       setUpdatingList(false)
     }
@@ -156,7 +158,7 @@ export const useLists = (): UseListsReturn => {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Erro ao excluir lista'
         setErrorList(message)
-        throw new Error(message)
+        throw err instanceof ApiError ? err : new ApiError(message, 0)
       } finally {
         setDeletingList(false)
       }
@@ -176,6 +178,7 @@ export const useLists = (): UseListsReturn => {
    */
   const clearListError = useCallback(() => {
     setErrorList(null)
+    setErrorListStatus(null)
   }, [])
 
   return {
@@ -185,6 +188,7 @@ export const useLists = (): UseListsReturn => {
     currentList,
     loadingList,
     errorList,
+    errorListStatus,
     updatingList,
     deletingList,
     fetchLists,
