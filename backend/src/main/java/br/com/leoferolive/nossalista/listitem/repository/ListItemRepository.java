@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,4 +57,13 @@ public interface ListItemRepository extends JpaRepository<ListItem, UUID> {
      * @return Lista de itens com position > referência, ordenados por position ASC
      */
     List<ListItem> findByListIdAndPositionGreaterThanOrderByPositionAsc(UUID listId, Integer position);
+
+    /**
+     * Conta itens agrupados por lista em uma única query (evita N+1).
+     *
+     * @param listIds coleção de IDs de listas
+     * @return lista de Object[] onde [0] = UUID (listId), [1] = Long (count)
+     */
+    @Query("SELECT li.list.id, COUNT(li) FROM list_items li WHERE li.list.id IN :listIds GROUP BY li.list.id")
+    List<Object[]> countByListIds(@Param("listIds") Collection<UUID> listIds);
 }
