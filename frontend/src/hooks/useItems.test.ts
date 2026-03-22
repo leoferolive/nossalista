@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useItems } from './useItems'
 import { itemsApi } from '../api/itemsApi'
@@ -140,14 +140,9 @@ describe('useItems - deleteItem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.useFakeTimers()
   })
 
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  it('deve aguardar 200ms (animação fade-out) antes de remover do estado', async () => {
+  it('deve remover item do estado após sucesso da API', async () => {
     // Mock fetchItems para carregar items inicialmente
     vi.mocked(itemsApi.getItemsByListId).mockResolvedValue([mockItem])
 
@@ -166,13 +161,10 @@ describe('useItems - deleteItem', () => {
 
     // Chamar deleteItem e aguardar completion
     await act(async () => {
-      const promise = result.current.deleteItem('list-1', 'item-1')
-      // Avançar timers para permitir o setTimeout completar
-      await vi.runAllTimersAsync()
-      await promise
+      await result.current.deleteItem('list-1', 'item-1')
     })
 
-    // Item deve ter sido removido após animação
+    // Item deve ter sido removido
     expect(result.current.items).toHaveLength(0)
     expect(result.current.deletingItemId).toBeNull()
   })
@@ -188,9 +180,7 @@ describe('useItems - deleteItem', () => {
     })
 
     await act(async () => {
-      const promise = result.current.deleteItem('list-1', 'item-1')
-      await vi.runAllTimersAsync()
-      await promise
+      await result.current.deleteItem('list-1', 'item-1')
     })
 
     // Verificar que API foi chamada com parâmetros corretos
@@ -213,7 +203,6 @@ describe('useItems - deleteItem', () => {
     await act(async () => {
       try {
         await result.current.deleteItem('list-1', 'item-1')
-        await vi.runAllTimersAsync()
       } catch (e) {
         errorCaught = true
       }

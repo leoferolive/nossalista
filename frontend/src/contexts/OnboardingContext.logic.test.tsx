@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { OnboardingProvider, useOnboarding } from './OnboardingContext'
+import { ToastProvider } from './ToastContext'
 
 const mockMarkOnboardingCompleted = vi.fn()
 const mockCompleteOnboarding = vi.fn()
@@ -111,13 +112,15 @@ function ContextProbe() {
 function renderWithRouter(initialPath: string) {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <OnboardingProvider>
-        <ContextProbe />
-        <Routes>
-          <Route path="/home" element={<div>Home</div>} />
-          <Route path="/lists/:id" element={<div>List</div>} />
-        </Routes>
-      </OnboardingProvider>
+      <ToastProvider>
+        <OnboardingProvider>
+          <ContextProbe />
+          <Routes>
+            <Route path="/home" element={<div>Home</div>} />
+            <Route path="/lists/:id" element={<div>List</div>} />
+          </Routes>
+        </OnboardingProvider>
+      </ToastProvider>
     </MemoryRouter>
   )
 }

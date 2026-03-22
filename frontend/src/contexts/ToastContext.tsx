@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from 'react'
+import { Toast } from '../components/Toast'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -31,6 +32,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toasts, showToast, removeToast }}>
       {children}
+      {toasts.map((toast, i) => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+          index={i}
+        />
+      ))}
     </ToastContext.Provider>
   )
 }

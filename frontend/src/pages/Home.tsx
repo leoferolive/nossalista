@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { CreateListModal } from '../components/CreateListModal'
 import { useToast } from '../contexts/ToastContext'
-import { Toast } from '../components/Toast'
 import { useLists } from '../hooks/useLists'
 import { ListCard } from '../components/ListCard'
 import { AppHeader } from '../components/AppHeader'
@@ -20,7 +19,7 @@ export const Home: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const { createList, lists, fetchLists, loading, error, clearError } = useLists()
-  const { toasts, showToast, removeToast } = useToast()
+  const { showToast } = useToast()
   const location = useLocation()
   const { user } = useAuth()
   const {
@@ -249,18 +248,6 @@ export const Home: React.FC = () => {
           onSuccess={handleSuccess}
           onSubmit={handleCreateList}
         />
-
-        {/* Toasts */}
-        {toasts.map((toast, i) => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            duration={3000}
-            onClose={() => removeToast(toast.id)}
-            index={i}
-          />
-        ))}
       </div>
     </div>
   )

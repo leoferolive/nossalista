@@ -20,7 +20,6 @@ import { AppHeader } from '../components/AppHeader'
 import { ResponsiveActionMenu } from '../components/ResponsiveActionMenu'
 import { listsApi } from '../api/listsApi'
 import { useToast } from '../contexts/ToastContext'
-import { Toast } from '../components/Toast'
 import { ApiError } from '../types/ApiError'
 import { ListItem } from '../types/Item'
 import { ListMemberResponse } from '../types/List'
@@ -68,7 +67,7 @@ export const ListView: React.FC = () => {
     deleteList,
     clearListError,
   } = useLists()
-  const { toasts, showToast, removeToast } = useToast()
+  const { showToast } = useToast()
 
   // Exibir toast passado via navigation state (ex: boas-vindas após join via convite)
   useEffect(() => {
@@ -1179,17 +1178,6 @@ export const ListView: React.FC = () => {
           onLoadMore={loadMoreActivities}
         />
       )}
-
-      {/* Toasts */}
-      {toasts.map((toast, i) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-          index={i}
-        />
-      ))}
     </div>
   )
 }

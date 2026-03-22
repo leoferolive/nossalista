@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { Home } from './Home'
 import { ThemeProvider } from '../contexts/ThemeContext'
+import { ToastProvider } from '../contexts/ToastContext'
 
 const mockFetchLists = vi.fn()
 const mockCreateList = vi.fn()
@@ -81,9 +82,11 @@ describe('Home search', () => {
   const renderHome = () =>
     render(
       <ThemeProvider>
-        <MemoryRouter>
-          <Home />
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter>
+            <Home />
+          </MemoryRouter>
+        </ToastProvider>
       </ThemeProvider>
     )
 

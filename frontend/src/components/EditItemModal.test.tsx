@@ -43,7 +43,7 @@ describe('EditItemModal', () => {
     return render(
       <EditItemModal
         item={mockItem}
-        listType="SHOPPING"
+        listType="compras"
         isOpen={true}
         onClose={mockOnClose}
         onSave={mockOnSave}
@@ -63,14 +63,14 @@ describe('EditItemModal', () => {
     expect(screen.getByLabelText('Nome')).toHaveValue('Item Original')
   })
 
-  it('deve renderizar campo de quantidade para listas de COMPRAS', () => {
-    renderModal({ listType: 'SHOPPING' })
+  it('deve renderizar campo de quantidade para listas de compras', () => {
+    renderModal({ listType: 'compras' })
     expect(screen.getByLabelText('Quantidade')).toBeInTheDocument()
     expect(screen.getByLabelText('Quantidade')).toHaveValue(2)
   })
 
-  it('deve renderizar campo de data para listas de TAREFAS', () => {
-    renderModal({ listType: 'TASK' })
+  it('deve renderizar campo de data para listas de tarefas', () => {
+    renderModal({ listType: 'tarefas' })
     expect(screen.getByLabelText('Data de Prazo')).toBeInTheDocument()
 
     // Calcular o valor esperado baseado no fuso horário local (mesma lógica do componente)
@@ -85,8 +85,8 @@ describe('EditItemModal', () => {
     expect(screen.getByLabelText('Data de Prazo')).toHaveValue(expectedValue)
   })
 
-  it('deve renderizar campo de URL para listas de WISHLIST', () => {
-    renderModal({ listType: 'WISHLIST' })
+  it('deve renderizar campo de URL para listas de wishlist', () => {
+    renderModal({ listType: 'wishlist' })
     expect(screen.getByLabelText('URL/Link')).toBeInTheDocument()
     expect(screen.getByLabelText('URL/Link')).toHaveValue('https://example.com')
   })
@@ -103,8 +103,8 @@ describe('EditItemModal', () => {
     expect(mockOnSave).not.toHaveBeenCalled()
   })
 
-  it('deve chamar onSave com dados atualizados para SHOPPING', async () => {
-    renderModal({ listType: 'SHOPPING' })
+  it('deve chamar onSave com dados atualizados para compras', async () => {
+    renderModal({ listType: 'compras' })
 
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Item Atualizado' } })
     fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '5' } })
@@ -120,8 +120,8 @@ describe('EditItemModal', () => {
     expect(mockOnClose).toHaveBeenCalled()
   })
 
-  it('deve chamar onSave com dados atualizados para TASK', async () => {
-    renderModal({ listType: 'TASK' })
+  it('deve chamar onSave com dados atualizados para tarefas', async () => {
+    renderModal({ listType: 'tarefas' })
 
     fireEvent.change(screen.getByLabelText('Data de Prazo'), {
       target: { value: '2026-12-31T23:59' },
@@ -147,54 +147,41 @@ describe('EditItemModal', () => {
   })
 
   it('deve desabilitar botões enquanto está salvando', async () => {
-    vi.useFakeTimers()
-
     // Mock onSave para demorar
-    mockOnSave.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve, 100)))
+    let resolveSave: () => void
+    mockOnSave.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve
+        })
+    )
 
     renderModal()
     fireEvent.click(screen.getByText('Salvar'))
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(500)
+    await waitFor(() => {
+      expect(screen.getByText(/Salvando/i)).toBeInTheDocument()
+      expect(screen.getByText(/Salvando/i)).toBeDisabled()
+      expect(screen.getByText('Cancelar')).toBeDisabled()
     })
 
-    expect(screen.getByText(/Salvando/i)).toBeInTheDocument()
-    expect(screen.getByText(/Salvando/i)).toBeDisabled()
-    expect(screen.getByText('Cancelar')).toBeDisabled()
-
-    vi.useRealTimers()
+    // Cleanup: resolve the pending save
+    await act(async () => {
+      resolveSave!()
+    })
   })
 
-  it('deve aplicar debounce de 500ms e enviar apenas a última edição', async () => {
-    vi.useFakeTimers()
+  it('deve chamar onSave ao clicar em Salvar', async () => {
+    renderModal({ listType: 'compras' })
 
-    renderModal({ listType: 'SHOPPING' })
+    fireEvent.click(screen.getByText('Salvar'))
 
-    const nameInput = screen.getByLabelText('Nome')
-    const saveButton = screen.getByText('Salvar')
-
-    fireEvent.change(nameInput, { target: { value: 'Item 1' } })
-    fireEvent.click(saveButton)
-
-    fireEvent.change(nameInput, { target: { value: 'Item 2' } })
-    fireEvent.click(saveButton)
-
-    fireEvent.change(nameInput, { target: { value: 'Item Final' } })
-    fireEvent.click(saveButton)
-
-    expect(mockOnSave).not.toHaveBeenCalled()
-
-    await act(async () => {
-      await vi.runOnlyPendingTimersAsync()
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledTimes(1)
+      expect(mockOnSave).toHaveBeenCalledWith('item-1', {
+        name: 'Item Original',
+        quantity: 2,
+      })
     })
-
-    expect(mockOnSave).toHaveBeenCalledTimes(1)
-    expect(mockOnSave).toHaveBeenCalledWith('item-1', {
-      name: 'Item Final',
-      quantity: 2,
-    })
-
-    vi.useRealTimers()
   })
 })

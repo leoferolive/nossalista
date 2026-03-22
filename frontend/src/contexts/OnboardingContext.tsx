@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { usersApi } from '../api/usersApi'
 import { useAuth } from './AuthContext'
 import { useToast } from './ToastContext'
-import { Toast } from '../components/Toast'
 import { OnboardingTourOverlay } from '../components/OnboardingTourOverlay'
 
 export type OnboardingStepId =
@@ -110,7 +109,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const navigate = useNavigate()
   const location = useLocation()
   const { user, isAuthenticated, markOnboardingCompleted } = useAuth()
-  const { toasts, showToast, removeToast } = useToast()
+  const { showToast } = useToast()
   const autoStartAttemptedRef = useRef(false)
 
   const [tourState, setTourState] = useState<TourState>({
@@ -323,15 +322,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         onNext={handleNext}
         onSkip={handleSkip}
       />
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          duration={3200}
-          onClose={() => removeToast(toast.id)}
-        />
-      ))}
     </OnboardingContext.Provider>
   )
 }

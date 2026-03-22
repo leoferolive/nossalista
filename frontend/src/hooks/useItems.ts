@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import { itemsApi } from '../api/itemsApi'
 import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item'
 
@@ -26,7 +26,8 @@ interface UseItemsReturn {
  * Hook para gerenciar estado de itens de uma lista
  */
 export const useItems = (): UseItemsReturn => {
-  const [items, setItems] = useState<ListItem[]>([])
+  const [items, setItemsState] = useState<ListItem[]>([])
+  const itemsRef = useRef<ListItem[]>(items)
   const [loadingItems, setLoadingItems] = useState(false)
   const [errorItems, setErrorItems] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState(false)
@@ -34,23 +35,38 @@ export const useItems = (): UseItemsReturn => {
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null)
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null)
 
+  // Wrapper that keeps the ref in sync with state
+  const setItems: React.Dispatch<React.SetStateAction<ListItem[]>> = useCallback(
+    (action: React.SetStateAction<ListItem[]>) => {
+      setItemsState((prev) => {
+        const next = typeof action === 'function' ? action(prev) : action
+        itemsRef.current = next
+        return next
+      })
+    },
+    []
+  )
+
   /**
    * Busca todos os itens de uma lista
    */
-  const fetchItems = useCallback(async (listId: string) => {
-    setLoadingItems(true)
-    setErrorItems(null)
+  const fetchItems = useCallback(
+    async (listId: string) => {
+      setLoadingItems(true)
+      setErrorItems(null)
 
-    try {
-      const data = await itemsApi.getItemsByListId(listId)
-      setItems(data)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao carregar itens'
-      setErrorItems(message)
-    } finally {
-      setLoadingItems(false)
-    }
-  }, [])
+      try {
+        const data = await itemsApi.getItemsByListId(listId)
+        setItems(data)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao carregar itens'
+        setErrorItems(message)
+      } finally {
+        setLoadingItems(false)
+      }
+    },
+    [setItems]
+  )
 
   /**
    * Adiciona um novo item à lista
@@ -74,47 +90,51 @@ export const useItems = (): UseItemsReturn => {
         setAddingItem(false)
       }
     },
-    []
+    [setItems]
   )
 
   /**
    * Marca/desmarca um item como concluído (toggle)
    * Implementa optimistic update: atualiza UI imediatamente e reverte em caso de erro
    */
-  const toggleItem = useCallback(async (listId: string, itemId: string): Promise<ListItem> => {
-    setTogglingItemId(itemId)
-    setErrorItems(null)
+  const toggleItem = useCallback(
+    async (listId: string, itemId: string): Promise<ListItem> => {
+      setTogglingItemId(itemId)
+      setErrorItems(null)
 
-    // Capture original checked state via functional updater to avoid stale closure
-    let originalChecked: boolean | undefined
-    setItems((prev) => {
-      const item = prev.find((i) => i.id === itemId)
-      if (!item) return prev
-      originalChecked = item.checked
-      return prev.map((i) => (i.id === itemId ? { ...i, checked: !item.checked } : i))
-    })
+      // Read current items synchronously via ref
+      const currentItem = itemsRef.current.find((i) => i.id === itemId)
 
-    if (originalChecked === undefined) {
-      setTogglingItemId(null)
-      throw new Error('Item não encontrado')
-    }
+      if (!currentItem) {
+        setTogglingItemId(null)
+        throw new Error('Item não encontrado')
+      }
 
-    try {
-      // Fazer request para backend
-      const updated = await itemsApi.toggleItemCheck(listId, itemId)
-      return updated
-    } catch (err) {
-      // Reverter em caso de erro
+      const originalChecked = currentItem.checked
+
+      // Optimistic update
       setItems((prev) =>
-        prev.map((i) => (i.id === itemId ? { ...i, checked: originalChecked! } : i))
+        prev.map((i) => (i.id === itemId ? { ...i, checked: !originalChecked } : i))
       )
-      const message = err instanceof Error ? err.message : 'Erro ao atualizar item'
-      setErrorItems(message)
-      throw new Error(message)
-    } finally {
-      setTogglingItemId(null)
-    }
-  }, [])
+
+      try {
+        // Fazer request para backend
+        const updated = await itemsApi.toggleItemCheck(listId, itemId)
+        return updated
+      } catch (err) {
+        // Reverter em caso de erro
+        setItems((prev) =>
+          prev.map((i) => (i.id === itemId ? { ...i, checked: originalChecked } : i))
+        )
+        const message = err instanceof Error ? err.message : 'Erro ao atualizar item'
+        setErrorItems(message)
+        throw new Error(message)
+      } finally {
+        setTogglingItemId(null)
+      }
+    },
+    [setItems]
+  )
 
   /**
    * Atualiza um item existente
@@ -125,14 +145,19 @@ export const useItems = (): UseItemsReturn => {
       setUpdatingItemId(itemId)
       setErrorItems(null)
 
-      // Capture original item via functional updater to avoid stale closure
-      let originalItem: ListItem | undefined
-      setItems((prev) => {
-        const item = prev.find((i) => i.id === itemId)
-        if (!item) return prev
-        originalItem = { ...item }
-        // Optimistic update: merge inteligente - apenas atualiza campos fornecidos
-        return prev.map((i) =>
+      // Read current item synchronously via ref
+      const currentItem = itemsRef.current.find((i) => i.id === itemId)
+
+      if (!currentItem) {
+        setUpdatingItemId(null)
+        throw new Error('Item não encontrado')
+      }
+
+      const originalItem = { ...currentItem }
+
+      // Optimistic update: merge inteligente - apenas atualiza campos fornecidos
+      setItems((prev) =>
+        prev.map((i) =>
           i.id === itemId
             ? {
                 ...i,
@@ -143,20 +168,14 @@ export const useItems = (): UseItemsReturn => {
               }
             : i
         )
-      })
-
-      if (!originalItem) {
-        setUpdatingItemId(null)
-        throw new Error('Item não encontrado')
-      }
+      )
 
       try {
         const updated = await itemsApi.updateItem(listId, itemId, request)
         return updated
       } catch (err) {
         // Reverter em caso de erro
-        const rollbackItem = originalItem
-        setItems((prev) => prev.map((i) => (i.id === itemId ? rollbackItem : i)))
+        setItems((prev) => prev.map((i) => (i.id === itemId ? originalItem : i)))
         const message = err instanceof Error ? err.message : 'Erro ao atualizar item'
         setErrorItems(message)
         throw new Error(message)
@@ -164,44 +183,43 @@ export const useItems = (): UseItemsReturn => {
         setUpdatingItemId(null)
       }
     },
-    []
+    [setItems]
   )
 
   /**
    * Remove um item da lista
    * Animation delay should be handled by the component, not the data hook
    */
-  const deleteItem = useCallback(async (listId: string, itemId: string): Promise<void> => {
-    setDeletingItemId(itemId)
-    setErrorItems(null)
+  const deleteItem = useCallback(
+    async (listId: string, itemId: string): Promise<void> => {
+      setDeletingItemId(itemId)
+      setErrorItems(null)
 
-    // Check item exists via functional updater to avoid stale closure
-    let itemExists = false
-    setItems((prev) => {
-      itemExists = prev.some((i) => i.id === itemId)
-      return prev
-    })
+      // Check item exists synchronously via ref
+      const itemExists = itemsRef.current.some((i) => i.id === itemId)
 
-    if (!itemExists) {
-      setDeletingItemId(null)
-      throw new Error('Item não encontrado')
-    }
+      if (!itemExists) {
+        setDeletingItemId(null)
+        throw new Error('Item não encontrado')
+      }
 
-    try {
-      // Fazer request para backend
-      await itemsApi.deleteItem(listId, itemId)
+      try {
+        // Fazer request para backend
+        await itemsApi.deleteItem(listId, itemId)
 
-      // Remover do estado local
-      setItems((prev) => prev.filter((i) => i.id !== itemId))
-    } catch (err) {
-      // Em caso de erro, não remove do estado
-      const message = err instanceof Error ? err.message : 'Erro ao remover item'
-      setErrorItems(message)
-      throw new Error(message)
-    } finally {
-      setDeletingItemId(null)
-    }
-  }, [])
+        // Remover do estado local
+        setItems((prev) => prev.filter((i) => i.id !== itemId))
+      } catch (err) {
+        // Em caso de erro, não remove do estado
+        const message = err instanceof Error ? err.message : 'Erro ao remover item'
+        setErrorItems(message)
+        throw new Error(message)
+      } finally {
+        setDeletingItemId(null)
+      }
+    },
+    [setItems]
+  )
 
   /**
    * Limpa o erro de itens

@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UserProfile } from '../components/UserProfile'
 import { useToast } from '../contexts/ToastContext'
-import { Toast } from '../components/Toast'
 import { usersApi } from '../api/usersApi'
 import { ApiError } from '../types/ApiError'
 import { useAuth } from '../contexts/AuthContext'
@@ -18,7 +17,7 @@ import { AppHeader } from '../components/AppHeader'
  */
 export const Profile: React.FC = () => {
   const navigate = useNavigate()
-  const { toasts, showToast, removeToast } = useToast()
+  const { showToast } = useToast()
   const { logout } = useAuth()
 
   const [userData, setUserData] = useState({
@@ -234,17 +233,6 @@ export const Profile: React.FC = () => {
             </div>
           </dialog>
         )}
-
-        {/* Toasts */}
-        {toasts.map((toast, i) => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            onClose={() => removeToast(toast.id)}
-            index={i}
-          />
-        ))}
       </div>
     </div>
   )
