@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ListItem } from '../types/Item'
-import { useToast } from './Toast'
+import { useToast } from '../contexts/ToastContext'
 
 interface EditItemModalProps {
   item: ListItem

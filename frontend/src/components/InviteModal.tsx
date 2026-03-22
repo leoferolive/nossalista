@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { InviteLinkResponse, InviteByUsernameResponse, UserSearchResult } from '../types/List'
-import { useToast } from './Toast'
+import { useToast } from '../contexts/ToastContext'
 import { ModalShell } from './ModalShell'
 
 interface InviteModalProps {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useToast } from './Toast'
+import { useToast } from '../contexts/ToastContext'
 
 export interface UserProfileProps {
   username: string

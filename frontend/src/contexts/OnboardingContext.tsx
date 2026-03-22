@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigate } from 'react-router-dom'
 import { usersApi } from '../api/usersApi'
 import { useAuth } from './AuthContext'
-import { Toast, useToast } from '../components/Toast'
+import { useToast } from './ToastContext'
+import { Toast } from '../components/Toast'
 import { OnboardingTourOverlay } from '../components/OnboardingTourOverlay'
 
 export type OnboardingStepId =

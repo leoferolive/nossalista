@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { ListView } from './ListView'
 import { useLists } from '../hooks/useLists'
 import { useItems } from '../hooks/useItems'
-import { useToast } from '../components/Toast'
+import { useToast } from '../contexts/ToastContext'
 import { useWebSocketContext } from '../contexts/WebSocketContext'
 import { useAuth } from '../contexts/AuthContext'
 import { ListResponse } from '../types/List'
@@ -21,7 +21,7 @@ afterEach(() => {
 // Mock hooks
 vi.mock('../hooks/useLists')
 vi.mock('../hooks/useItems')
-vi.mock('../components/Toast')
+vi.mock('../contexts/ToastContext')
 vi.mock('../contexts/WebSocketContext')
 vi.mock('../contexts/AuthContext')
 vi.mock('../contexts/ThemeContext', () => ({

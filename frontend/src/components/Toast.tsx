@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
+import type { ToastType } from '../contexts/ToastContext'
 
-export type ToastType = 'success' | 'error' | 'info'
+export type { ToastType }
 
 interface ToastProps {
   message: string
@@ -38,12 +39,22 @@ const icons: Record<ToastType, React.ReactNode> = {
       />
     </svg>
   ),
+  warning: (
+    <svg className="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+        clipRule="evenodd"
+      />
+    </svg>
+  ),
 }
 
 const toastStyles: Record<ToastType, string> = {
   success: 'text-nl-primary',
   error: 'text-nl-danger',
   info: 'text-nl-primary',
+  warning: 'text-amber-500',
 }
 
 /**
@@ -106,30 +117,3 @@ export const Toast: React.FC<ToastProps> = ({
   )
 }
 
-/**
- * Hook para gerenciar toasts
- */
-interface ToastState {
-  message: string
-  type: ToastType
-  id: string
-}
-
-export const useToast = () => {
-  const [toasts, setToasts] = React.useState<ToastState[]>([])
-
-  const showToast = React.useCallback((message: string, type: ToastType = 'info') => {
-    const id = crypto.randomUUID()
-    setToasts((prev) => [...prev, { message, type, id }])
-  }, [])
-
-  const removeToast = React.useCallback((id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id))
-  }, [])
-
-  return {
-    toasts,
-    showToast,
-    removeToast,
-  }
-}

@@ -7,6 +7,7 @@ import { OnboardingProvider } from './contexts/OnboardingContext.tsx'
 import { WebSocketProvider } from './contexts/WebSocketContext.tsx'
 import { NotificationProvider } from './contexts/NotificationContext.tsx'
 import { ThemeProvider } from './contexts/ThemeContext.tsx'
+import { ToastProvider } from './contexts/ToastContext.tsx'
 import { WebSocketConnectionManager } from './components/WebSocketConnectionManager.tsx'
 import { AuthCallback } from './pages/AuthCallback.tsx'
 import { Home } from './pages/Home.tsx'
@@ -29,7 +30,11 @@ if (typeof browserGlobal.global === 'undefined') {
   browserGlobal.global = globalThis
 }
 
-registerSW({ immediate: true })
+try {
+  registerSW({ immediate: true })
+} catch {
+  // Service worker registration failed — app continues without SW
+}
 
 function NotificationWrapper({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
@@ -83,16 +88,18 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
       <BrowserRouter>
-        <AuthProvider>
-          <OnboardingProvider>
-            <WebSocketProvider>
-              <WebSocketConnectionManager />
-              <NotificationWrapper>
-                <AppRoutes />
-              </NotificationWrapper>
-            </WebSocketProvider>
-          </OnboardingProvider>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <OnboardingProvider>
+              <WebSocketProvider>
+                <WebSocketConnectionManager />
+                <NotificationWrapper>
+                  <AppRoutes />
+                </NotificationWrapper>
+              </WebSocketProvider>
+            </OnboardingProvider>
+          </AuthProvider>
+        </ToastProvider>
       </BrowserRouter>
     </ThemeProvider>
   </React.StrictMode>

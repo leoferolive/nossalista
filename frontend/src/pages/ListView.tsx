@@ -19,7 +19,8 @@ import { ConnectionStatusIndicator } from '../components/ConnectionStatusIndicat
 import { AppHeader } from '../components/AppHeader'
 import { ResponsiveActionMenu } from '../components/ResponsiveActionMenu'
 import { listsApi } from '../api/listsApi'
-import { useToast, Toast } from '../components/Toast'
+import { useToast } from '../contexts/ToastContext'
+import { Toast } from '../components/Toast'
 import { ApiError } from '../types/ApiError'
 import { ListItem } from '../types/Item'
 import { ListMemberResponse } from '../types/List'
@@ -59,6 +60,7 @@ export const ListView: React.FC = () => {
     currentList,
     loadingList,
     errorList,
+    errorListStatus,
     updatingList,
     deletingList,
     fetchListById,
@@ -740,8 +742,8 @@ export const ListView: React.FC = () => {
   }
 
   // Error state - 404 ou 403 (não encontrada ou sem permissão)
-  const isNotFound = errorList?.includes('não encontrada')
-  const isForbidden = errorList?.includes('permissão')
+  const isNotFound = errorListStatus === 404
+  const isForbidden = errorListStatus === 403
 
   if (errorList && (isNotFound || isForbidden)) {
     return (
