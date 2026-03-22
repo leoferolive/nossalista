@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.user.controller;
 
 import br.com.leoferolive.nossalista.auth.dto.UserMapper;
+import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.dto.UpdateProfileRequest;
 import br.com.leoferolive.nossalista.user.dto.UserProfileResponse;
@@ -165,10 +166,10 @@ public class UserController {
     ) {
         // Validar query
         if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException("Query parameter 'q' é obrigatório");
+            throw new InvalidInputException("Query parameter 'q' é obrigatório");
         }
         if (query.length() < 2) {
-            throw new IllegalArgumentException("Query deve ter no mínimo 2 caracteres");
+            throw new InvalidInputException("Query deve ter no mínimo 2 caracteres");
         }
 
         // Buscar usuários

@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.list.service;
 
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
+import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.dto.ListStateResponse;
@@ -220,10 +221,10 @@ public class ListService {
         // Validar nome após trim (CRÍTICO: @Size valida antes do trim)
         String trimmedName = request.name().trim();
         if (trimmedName.length() < 3) {
-            throw new IllegalArgumentException("Nome da lista deve ter pelo menos 3 caracteres");
+            throw new InvalidInputException("Nome da lista deve ter pelo menos 3 caracteres");
         }
         if (trimmedName.length() > 100) {
-            throw new IllegalArgumentException("Nome da lista deve ter no máximo 100 caracteres");
+            throw new InvalidInputException("Nome da lista deve ter no máximo 100 caracteres");
         }
 
         String oldName = list.getName();

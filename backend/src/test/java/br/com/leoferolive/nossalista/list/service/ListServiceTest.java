@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.list.service;
 
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
+import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.dto.ListStateResponse;
@@ -462,15 +463,15 @@ class ListServiceTest {
         }
 
         @Test
-        @DisplayName("Deve lançar IllegalArgumentException quando nome pós-trim tem menos de 3 caracteres")
+        @DisplayName("Deve lançar InvalidInputException quando nome pós-trim tem menos de 3 caracteres")
         void shouldThrowExceptionWhenTrimmedNameTooShort() {
             // Arrange
             UpdateListNameRequest request = new UpdateListNameRequest("  AB  "); // 4 chars original, 2 pós-trim
             when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
 
             // Act & Assert
-            IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+            InvalidInputException exception = assertThrows(
+                InvalidInputException.class,
                 () -> listService.updateListName(listId, testUser.getId(), request)
             );
 
@@ -480,7 +481,7 @@ class ListServiceTest {
         }
 
         @Test
-        @DisplayName("Deve lançar IllegalArgumentException quando nome pós-trim tem mais de 100 caracteres")
+        @DisplayName("Deve lançar InvalidInputException quando nome pós-trim tem mais de 100 caracteres")
         void shouldThrowExceptionWhenTrimmedNameTooLong() {
             // Arrange - 102 chars com espaços, 101 pós-trim
             String longName = " " + "A".repeat(101) + " ";
@@ -488,8 +489,8 @@ class ListServiceTest {
             when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
 
             // Act & Assert
-            IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+            InvalidInputException exception = assertThrows(
+                InvalidInputException.class,
                 () -> listService.updateListName(listId, testUser.getId(), request)
             );
 

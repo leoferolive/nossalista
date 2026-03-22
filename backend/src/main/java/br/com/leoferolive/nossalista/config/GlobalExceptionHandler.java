@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
+import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
 import br.com.leoferolive.nossalista.common.exception.ValidationException;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
@@ -14,7 +15,10 @@ import br.com.leoferolive.nossalista.member.exception.MemberNotFoundException;
 import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteException;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
+import br.com.leoferolive.nossalista.user.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +35,8 @@ import java.util.Map;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * Trata exceção de email já existente
@@ -141,12 +147,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Trata exceção de argumento ilegal (validação manual)
+     * Trata exceção de input inválido (validação manual)
      * Retorna 400 Bad Request com RFC 7807 Problem Details
      */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ProblemDetail> handleIllegalArgument(
-        IllegalArgumentException ex,
+    @ExceptionHandler(InvalidInputException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidInput(
+        InvalidInputException ex,
         HttpServletRequest request
     ) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
@@ -347,5 +353,41 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
+    /**
+     * Trata exceção de usuário não encontrado
+     * Retorna 404 Not Found com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleUserNotFound(
+        UserNotFoundException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.NOT_FOUND,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/user-not-found"));
+        problem.setTitle("Usuário Não Encontrado");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
+    }
+
+    /**
+     * Catch-all para exceções não tratadas
+     * Retorna 500 Internal Server Error com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> handleUnexpectedException(Exception ex) {
+        log.error("Unexpected error", ex);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Erro interno do servidor"
+        );
+        problemDetail.setTitle("Internal Server Error");
+        problemDetail.setType(URI.create("https://api.nossalista.com/errors/internal-server-error"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
     }
 }
