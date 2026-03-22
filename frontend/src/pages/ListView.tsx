@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useLists } from '../hooks/useLists'
 import { useItems } from '../hooks/useItems'
 import { useActivities } from '../hooks/useActivities'
-import { useWebSocket } from '../hooks/useWebSocket'
+import { useWebSocketContext } from '../contexts/WebSocketContext'
 import { useAuth } from '../contexts/AuthContext'
 import { LIST_TYPES } from '../types/List'
 import { EditListNameModal } from '../components/EditListNameModal'
@@ -54,7 +54,7 @@ export const ListView: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user: currentUser } = useAuth()
-  const { status: wsStatus, subscribe, unsubscribe, send } = useWebSocket()
+  const { status: wsStatus, subscribe, unsubscribe, send } = useWebSocketContext()
   const {
     currentList,
     loadingList,

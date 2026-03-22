@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useRef, useCallback } from 'react'
 import { Client, StompSubscription } from '@stomp/stompjs'
 import { createStompClient, getListTopic, WebSocketChannel } from '../api/websocket'
+import { getStoredAuthToken } from '../auth/session'
 
 export type WebSocketStatus = 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'RECONNECTING'
 
@@ -34,6 +35,8 @@ type WebSocketAction =
   | { type: 'CONNECTED' }
   | { type: 'DISCONNECTED' }
   | { type: 'RECONNECTING' }
+
+const MAX_RECONNECT_ATTEMPTS = 30
 
 export function getBackoffDelay(attempt: number): number {
   if (attempt === 0) return 0
@@ -131,7 +134,15 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    const token = localStorage.getItem('authToken')
+    if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.warn(
+        `[WebSocket] Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`
+      )
+      dispatch({ type: 'DISCONNECTED' })
+      return
+    }
+
+    const token = getStoredAuthToken()
     if (!token) {
       dispatch({ type: 'DISCONNECTED' })
       return
@@ -249,7 +260,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const token = localStorage.getItem('authToken')
+      const token = getStoredAuthToken()
       if (!token) {
         console.warn('[WebSocket] Tentativa de connect sem token de autenticação')
         return

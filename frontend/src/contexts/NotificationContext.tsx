@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
+import { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react'
 import { useWebSocketContext } from './WebSocketContext'
 import { getUserNotificationsTopic } from '../api/websocket'
 import type {
@@ -159,12 +159,18 @@ export function NotificationProvider({ children, userId }: NotificationProviderP
   const markAllRead = useCallback(() => dispatch({ type: 'MARK_ALL_READ' }), [])
   const clearAll = useCallback(() => dispatch({ type: 'CLEAR_ALL' }), [])
 
-  const unreadCount = state.notifications.filter((n) => !n.read).length
+  const unreadCount = useMemo(
+    () => state.notifications.filter((n) => !n.read).length,
+    [state.notifications]
+  )
+
+  const contextValue = useMemo(
+    () => ({ notifications: state.notifications, unreadCount, markAllRead, clearAll }),
+    [state.notifications, unreadCount, markAllRead, clearAll]
+  )
 
   return (
-    <NotificationCtx.Provider
-      value={{ notifications: state.notifications, unreadCount, markAllRead, clearAll }}
-    >
+    <NotificationCtx.Provider value={contextValue}>
       {children}
     </NotificationCtx.Provider>
   )

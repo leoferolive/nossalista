@@ -86,18 +86,19 @@ export const useItems = (): UseItemsReturn => {
       setTogglingItemId(itemId)
       setErrorItems(null)
 
-      // Encontrar item atual e seu estado
-      const item = items.find((i) => i.id === itemId)
-      if (!item) {
+      // Capture original checked state via functional updater to avoid stale closure
+      let originalChecked: boolean | undefined
+      setItems((prev) => {
+        const item = prev.find((i) => i.id === itemId)
+        if (!item) return prev
+        originalChecked = item.checked
+        return prev.map((i) => (i.id === itemId ? { ...i, checked: !item.checked } : i))
+      })
+
+      if (originalChecked === undefined) {
         setTogglingItemId(null)
         throw new Error('Item não encontrado')
       }
-
-      const originalChecked = item.checked
-      const newChecked = !originalChecked
-
-      // Optimistic update: atualizar estado local imediatamente
-      setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, checked: newChecked } : i)))
 
       try {
         // Fazer request para backend
@@ -106,7 +107,7 @@ export const useItems = (): UseItemsReturn => {
       } catch (err) {
         // Reverter em caso de erro
         setItems((prev) =>
-          prev.map((i) => (i.id === itemId ? { ...i, checked: originalChecked } : i))
+          prev.map((i) => (i.id === itemId ? { ...i, checked: originalChecked! } : i))
         )
         const message = err instanceof Error ? err.message : 'Erro ao atualizar item'
         setErrorItems(message)
@@ -115,7 +116,7 @@ export const useItems = (): UseItemsReturn => {
         setTogglingItemId(null)
       }
     },
-    [items]
+    []
   )
 
   /**
@@ -127,19 +128,14 @@ export const useItems = (): UseItemsReturn => {
       setUpdatingItemId(itemId)
       setErrorItems(null)
 
-      // Encontrar item atual e seu estado
-      const item = items.find((i) => i.id === itemId)
-      if (!item) {
-        setUpdatingItemId(null)
-        throw new Error('Item não encontrado')
-      }
-
-      // Backup do estado original para rollback
-      const originalItem = { ...item }
-
-      // Optimistic update: merge inteligente - apenas atualiza campos fornecidos
-      setItems((prev) =>
-        prev.map((i) =>
+      // Capture original item via functional updater to avoid stale closure
+      let originalItem: ListItem | undefined
+      setItems((prev) => {
+        const item = prev.find((i) => i.id === itemId)
+        if (!item) return prev
+        originalItem = { ...item }
+        // Optimistic update: merge inteligente - apenas atualiza campos fornecidos
+        return prev.map((i) =>
           i.id === itemId
             ? {
                 ...i,
@@ -150,14 +146,20 @@ export const useItems = (): UseItemsReturn => {
               }
             : i
         )
-      )
+      })
+
+      if (!originalItem) {
+        setUpdatingItemId(null)
+        throw new Error('Item não encontrado')
+      }
 
       try {
         const updated = await itemsApi.updateItem(listId, itemId, request)
         return updated
       } catch (err) {
         // Reverter em caso de erro
-        setItems((prev) => prev.map((i) => (i.id === itemId ? originalItem : i)))
+        const rollbackItem = originalItem
+        setItems((prev) => prev.map((i) => (i.id === itemId ? rollbackItem : i)))
         const message = err instanceof Error ? err.message : 'Erro ao atualizar item'
         setErrorItems(message)
         throw new Error(message)
@@ -165,22 +167,26 @@ export const useItems = (): UseItemsReturn => {
         setUpdatingItemId(null)
       }
     },
-    [items]
+    []
   )
 
   /**
    * Remove um item da lista
-   * AC Story 3.6: Fade-out animation (200ms) before removing
-   * Aguarda animação CSS completar antes de remover do estado
+   * Animation delay should be handled by the component, not the data hook
    */
   const deleteItem = useCallback(
     async (listId: string, itemId: string): Promise<void> => {
       setDeletingItemId(itemId)
       setErrorItems(null)
 
-      // Encontrar item atual
-      const item = items.find((i) => i.id === itemId)
-      if (!item) {
+      // Check item exists via functional updater to avoid stale closure
+      let itemExists = false
+      setItems((prev) => {
+        itemExists = prev.some((i) => i.id === itemId)
+        return prev
+      })
+
+      if (!itemExists) {
         setDeletingItemId(null)
         throw new Error('Item não encontrado')
       }
@@ -189,10 +195,7 @@ export const useItems = (): UseItemsReturn => {
         // Fazer request para backend
         await itemsApi.deleteItem(listId, itemId)
 
-        // Aguardar 200ms para animação fade-out completar
-        await new Promise((resolve) => setTimeout(resolve, 200))
-
-        // Remover do estado local após animação
+        // Remover do estado local
         setItems((prev) => prev.filter((i) => i.id !== itemId))
       } catch (err) {
         // Em caso de erro, não remove do estado
@@ -203,7 +206,7 @@ export const useItems = (): UseItemsReturn => {
         setDeletingItemId(null)
       }
     },
-    [items]
+    []
   )
 
   /**

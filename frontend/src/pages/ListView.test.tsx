@@ -5,7 +5,7 @@ import { ListView } from './ListView'
 import { useLists } from '../hooks/useLists'
 import { useItems } from '../hooks/useItems'
 import { useToast } from '../components/Toast'
-import { useWebSocket } from '../hooks/useWebSocket'
+import { useWebSocketContext } from '../contexts/WebSocketContext'
 import { useAuth } from '../contexts/AuthContext'
 import { ListResponse } from '../types/List'
 import { ListItem } from '../types/Item'
@@ -22,7 +22,7 @@ afterEach(() => {
 vi.mock('../hooks/useLists')
 vi.mock('../hooks/useItems')
 vi.mock('../components/Toast')
-vi.mock('../hooks/useWebSocket')
+vi.mock('../contexts/WebSocketContext')
 vi.mock('../contexts/AuthContext')
 vi.mock('../contexts/ThemeContext', () => ({
   useTheme: () => ({ theme: 'light', toggleTheme: vi.fn(), setTheme: vi.fn() }),
@@ -99,7 +99,7 @@ describe('ListView - Delete Functionality', () => {
       deleteItem: vi.fn(),
       clearItemsError: vi.fn(),
     })
-    ;(useWebSocket as any).mockReturnValue({
+    ;(useWebSocketContext as any).mockReturnValue({
       status: 'DISCONNECTED',
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -565,7 +565,7 @@ describe('ListView - WebSocket Integration', () => {
       login: vi.fn(),
       logout: vi.fn(),
     })
-    ;(useWebSocket as any).mockReturnValue({
+    ;(useWebSocketContext as any).mockReturnValue({
       status: 'CONNECTED',
       connect: mockConnect,
       disconnect: mockDisconnect,
@@ -1251,7 +1251,7 @@ describe('ListView - Reconnection UX', () => {
   it('deve recarregar itens na transicao RECONNECTING -> CONNECTED', async () => {
     let wsStatus: 'RECONNECTING' | 'CONNECTED' = 'RECONNECTING'
 
-    ;(useWebSocket as any).mockImplementation(() => ({
+    ;(useWebSocketContext as any).mockImplementation(() => ({
       status: wsStatus,
       connect: mockConnect,
       disconnect: mockDisconnect,
@@ -1297,7 +1297,7 @@ describe('ListView - Reconnection UX', () => {
         capturedHandler = handler
       }
     )
-    ;(useWebSocket as any).mockImplementation(() => ({
+    ;(useWebSocketContext as any).mockImplementation(() => ({
       status: wsStatus,
       connect: mockConnect,
       disconnect: mockDisconnect,
@@ -1368,7 +1368,7 @@ describe('ListView - Reconnection UX', () => {
   })
 
   it('deve renderizar ConnectionStatusIndicator com status correto', () => {
-    ;(useWebSocket as any).mockReturnValue({
+    ;(useWebSocketContext as any).mockReturnValue({
       status: 'RECONNECTING',
       connect: mockConnect,
       disconnect: mockDisconnect,

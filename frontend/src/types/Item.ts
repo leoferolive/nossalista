@@ -39,9 +39,9 @@ export interface CreateItemRequest {
  */
 export interface UpdateItemRequest {
   name: string
-  quantity?: number
-  dueDate?: string
-  url?: string
+  quantity?: number | null
+  dueDate?: string | null
+  url?: string | null
 }
 
 /**
