@@ -17,9 +17,7 @@ describe('ForgotPassword page', () => {
     )
 
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /enviar link de redefinicao/i })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /enviar link de redefinicao/i })).toBeInTheDocument()
     expect(screen.getAllByText(/voltar para login/i).length).toBeGreaterThanOrEqual(1)
   })
 })

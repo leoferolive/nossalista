@@ -169,11 +169,7 @@ export function NotificationProvider({ children, userId }: NotificationProviderP
     [state.notifications, unreadCount, markAllRead, clearAll]
   )
 
-  return (
-    <NotificationCtx.Provider value={contextValue}>
-      {children}
-    </NotificationCtx.Provider>
-  )
+  return <NotificationCtx.Provider value={contextValue}>{children}</NotificationCtx.Provider>
 }
 
 export function useNotificationContext(): NotificationContextType {

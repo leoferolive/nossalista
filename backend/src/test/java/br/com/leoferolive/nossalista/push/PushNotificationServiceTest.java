@@ -1,7 +1,6 @@
 package br.com.leoferolive.nossalista.push;
 
 import br.com.leoferolive.nossalista.websocket.PresenceService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.martijndwars.webpush.PushService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -34,7 +34,7 @@ class PushNotificationServiceTest {
     @Mock
     private PushService pushService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper jsonMapper = JsonMapper.builder().build();
     private PushNotificationService service;
     private final UUID userId = UUID.randomUUID();
     private final PushNotificationPayload payload = new PushNotificationPayload(
@@ -44,7 +44,7 @@ class PushNotificationServiceTest {
     @BeforeEach
     void setUp() {
         when(vapidConfig.isConfigured()).thenReturn(false);
-        service = new PushNotificationService(subscriptionStore, presenceService, vapidConfig, objectMapper);
+        service = new PushNotificationService(subscriptionStore, presenceService, vapidConfig, jsonMapper);
     }
 
     private void injectMockPushService() throws Exception {
@@ -92,7 +92,7 @@ class PushNotificationServiceTest {
         realConfig.setPrivateKey("invalid-private-key");
         realConfig.setSubject("mailto:test@test.com");
 
-        PushNotificationService svc = new PushNotificationService(subscriptionStore, presenceService, realConfig, objectMapper);
+        PushNotificationService svc = new PushNotificationService(subscriptionStore, presenceService, realConfig, jsonMapper);
         svc.sendToUser(userId, payload);
 
         verify(subscriptionStore, never()).findByUserId(userId);

@@ -190,7 +190,8 @@ export const Profile: React.FC = () => {
             Zona de Perigo
           </h3>
           <p className="mb-4 text-sm text-nl-muted">
-            Ao excluir sua conta, todas as suas listas, itens e dados serão removidos permanentemente.
+            Ao excluir sua conta, todas as suas listas, itens e dados serão removidos
+            permanentemente.
           </p>
           <button
             onClick={handleOpenDeleteConfirm}

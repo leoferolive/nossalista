@@ -62,9 +62,7 @@ export const authApi = {
         )
       }
 
-      throw new Error(
-        extractProblemMessage(error, 'Nao foi possivel redefinir sua senha agora.')
-      )
+      throw new Error(extractProblemMessage(error, 'Nao foi possivel redefinir sua senha agora.'))
     }
   },
 }

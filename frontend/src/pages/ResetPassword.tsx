@@ -31,8 +31,8 @@ export const ResetPassword: React.FC = () => {
         <div className="space-y-4">
           <div className="nl-card-soft p-5">
             <p className="text-sm leading-7 text-nl-muted">
-              O token de redefinicao nao foi encontrado na URL. Solicite um novo link de
-              redefinicao de senha.
+              O token de redefinicao nao foi encontrado na URL. Solicite um novo link de redefinicao
+              de senha.
             </p>
           </div>
           <Link to="/forgot-password" className="nl-btn-primary block w-full text-center">
@@ -64,9 +64,7 @@ export const ResetPassword: React.FC = () => {
       navigate('/?auth=login&reset=1', { replace: true })
     } catch (submitError) {
       const message =
-        submitError instanceof Error
-          ? submitError.message
-          : 'Nao foi possivel redefinir sua senha.'
+        submitError instanceof Error ? submitError.message : 'Nao foi possivel redefinir sua senha.'
       setError(message)
     } finally {
       setLoading(false)

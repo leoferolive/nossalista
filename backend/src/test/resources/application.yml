@@ -37,12 +37,20 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 
+cors:
+  allowed-origins: http://localhost:5173,http://localhost:8080
+
 jwt:
   secret: test-secret-key-minimum-32-characters-for-hmac-sha256-algorithm-testing
   expiration: 604800000  # 7 dias em milissegundos
 
 frontend:
   url: http://localhost:5173
+
+vapid:
+  public-key: ""
+  private-key: ""
+  subject: mailto:test@example.com
 
 logging:
   level:

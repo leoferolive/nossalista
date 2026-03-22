@@ -63,7 +63,8 @@ export const useLists = (): UseListsReturn => {
       const data = await listsApi.getAllLists()
       setLists(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao carregar listas. Tente novamente.'
+      const message =
+        err instanceof Error ? err.message : 'Erro ao carregar listas. Tente novamente.'
       setError(message)
     } finally {
       setLoading(false)

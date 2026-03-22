@@ -343,7 +343,9 @@ export function JoinListPage() {
                   >
                     {item.name}
                   </span>
-                  {item.quantity != null && <span className="text-sm text-nl-muted">×{item.quantity}</span>}
+                  {item.quantity != null && (
+                    <span className="text-sm text-nl-muted">×{item.quantity}</span>
+                  )}
                 </li>
               ))}
             </ul>

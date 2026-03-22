@@ -1,8 +1,6 @@
 package br.com.leoferolive.nossalista.push;
 
 import br.com.leoferolive.nossalista.websocket.PresenceService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import nl.martijndwars.webpush.Subscription;
@@ -10,6 +8,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.security.Security;
 import java.util.List;
@@ -29,19 +29,19 @@ public class PushNotificationService {
     private final PushSubscriptionStore subscriptionStore;
     private final PresenceService presenceService;
     private final VapidConfig vapidConfig;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private PushService pushService;
 
     public PushNotificationService(
         PushSubscriptionStore subscriptionStore,
         PresenceService presenceService,
         VapidConfig vapidConfig,
-        ObjectMapper objectMapper
+        JsonMapper jsonMapper
     ) {
         this.subscriptionStore = subscriptionStore;
         this.presenceService = presenceService;
         this.vapidConfig = vapidConfig;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
         this.pushService = buildPushService();
     }
 
@@ -97,8 +97,8 @@ public class PushNotificationService {
 
     private String serialize(PushNotificationPayload payload) {
         try {
-            return objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException e) {
+            return jsonMapper.writeValueAsString(payload);
+        } catch (JacksonException e) {
             log.error("Falha ao serializar push notification payload: {}", e.getMessage());
             throw new RuntimeException("Falha ao serializar push notification payload", e);
         }
