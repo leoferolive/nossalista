@@ -112,18 +112,18 @@ export const Toast: React.FC<ToastProps> = ({
 interface ToastState {
   message: string
   type: ToastType
-  id: number
+  id: string
 }
 
 export const useToast = () => {
   const [toasts, setToasts] = React.useState<ToastState[]>([])
 
   const showToast = React.useCallback((message: string, type: ToastType = 'info') => {
-    const id = Date.now()
+    const id = crypto.randomUUID()
     setToasts((prev) => [...prev, { message, type, id }])
   }, [])
 
-  const removeToast = React.useCallback((id: number) => {
+  const removeToast = React.useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }, [])
 
