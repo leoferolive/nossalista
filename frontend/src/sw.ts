@@ -7,7 +7,12 @@ cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
 
 self.addEventListener('push', (event) => {
-  const data = event.data?.json() ?? {}
+  let data: { title?: string; body?: string; icon?: string; tag?: string; url?: string } = {}
+  try {
+    data = event.data?.json() ?? {}
+  } catch {
+    data = { title: 'NossaLista', body: 'Nova notificação' }
+  }
   event.waitUntil(
     self.registration.showNotification(data.title ?? 'NossaLista', {
       body: data.body,
