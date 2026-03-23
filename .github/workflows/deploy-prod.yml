@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   validate-tag:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     steps:
       - name: Validar formato da tag estável
         run: |
@@ -36,7 +36,7 @@ jobs:
 
   approve:
     needs: validate-tag
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     environment: production
     steps:
       - name: Aguardando aprovação manual
@@ -54,7 +54,7 @@ jobs:
   summary:
     needs: [validate-tag, approve, deploy]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     steps:
       - name: Resumo do workflow
         run: |
