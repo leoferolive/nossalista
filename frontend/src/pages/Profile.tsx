@@ -123,7 +123,7 @@ export const Profile: React.FC = () => {
     <div className="nl-page">
       <div className="nl-container max-w-2xl">
         <AppHeader
-          eyebrow="Conta Viva"
+          eyebrow="NossaLista"
           title="Meu Perfil"
           subtitle="Atualize seu nome, avatar e preferencia de acesso sem perder o ritmo das listas."
           onBack={() => navigate(-1)}

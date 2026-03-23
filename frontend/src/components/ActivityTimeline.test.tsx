@@ -96,11 +96,14 @@ describe('ActivityTimeline', () => {
     expect(screen.getByText('Nenhuma atividade ainda')).toBeInTheDocument()
   })
 
-  it('deve formatar o tempo relativo', () => {
+  it('deve formatar o tempo relativo e agrupar por data', () => {
     renderTimeline()
+    // Tempo relativo para entradas recentes
     expect(screen.getByText('agora mesmo')).toBeInTheDocument()
     expect(screen.getByText('há 1h')).toBeInTheDocument()
-    expect(screen.getByText('ontem')).toBeInTheDocument()
+    // Agrupamento por data: "Hoje" e "Ontem" como headers de grupo
+    expect(screen.getByText('Hoje')).toBeInTheDocument()
+    expect(screen.getByText('Ontem')).toBeInTheDocument()
   })
 
   it('deve alternar a exibição de detalhes quando disponível', () => {

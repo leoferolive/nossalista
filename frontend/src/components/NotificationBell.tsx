@@ -39,9 +39,12 @@ export function NotificationBell() {
 
   const content =
     notifications.length === 0 ? (
-      <p className="rounded-2xl border border-dashed border-nl-border bg-nl-surface-muted/50 p-4 text-center font-sans text-sm text-nl-muted">
-        Nenhuma notificação
-      </p>
+      <div className="rounded-2xl border border-dashed border-nl-border bg-nl-surface-muted/50 p-4 text-center">
+        <p className="font-sans text-sm text-nl-muted">Nenhuma notificação</p>
+        <p className="mt-1 font-sans text-xs text-nl-muted/70">
+          Você será notificado quando membros alterarem suas listas.
+        </p>
+      </div>
     ) : (
       <ul className="space-y-2">
         {notifications.map((notification) => (
@@ -128,7 +131,12 @@ export function NotificationBell() {
 
           <div className="p-3">
             {notifications.length === 0 ? (
-              <p className="p-4 text-center font-sans text-sm text-nl-muted">Nenhuma notificação</p>
+              <div className="p-4 text-center">
+                <p className="font-sans text-sm text-nl-muted">Nenhuma notificação</p>
+                <p className="mt-1 font-sans text-xs text-nl-muted/70">
+                  Você será notificado quando membros alterarem suas listas.
+                </p>
+              </div>
             ) : (
               <ul className="max-h-80 space-y-2 overflow-y-auto">
                 {notifications.map((notification) => (

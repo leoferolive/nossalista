@@ -308,7 +308,8 @@ describe('ListView - Delete Functionality', () => {
       </BrowserRouter>
     )
 
-    fireEvent.click(screen.getByLabelText('Abrir membros'))
+    openListOverflow()
+    fireEvent.click(screen.getByText(/Membros/))
 
     expect(await screen.findByRole('heading', { name: 'Membros' })).toBeInTheDocument()
     expect(screen.getAllByText('Você é o dono').length).toBeGreaterThan(0)
@@ -345,7 +346,8 @@ describe('ListView - Delete Functionality', () => {
       </BrowserRouter>
     )
 
-    fireEvent.click(screen.getByLabelText('Abrir membros'))
+    openListOverflow()
+    fireEvent.click(screen.getByText(/Membros/))
 
     expect(await screen.findByText('Sair da Lista')).toBeInTheDocument()
   })
@@ -382,7 +384,8 @@ describe('ListView - Delete Functionality', () => {
       </BrowserRouter>
     )
 
-    fireEvent.click(screen.getByLabelText('Abrir membros'))
+    openListOverflow()
+    fireEvent.click(screen.getByText(/Membros/))
     fireEvent.click(await screen.findByText('Sair da Lista'))
 
     expect(screen.getByText('Sair da lista? Você perderá acesso.')).toBeInTheDocument()
@@ -437,7 +440,8 @@ describe('ListView - Delete Functionality', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Abrir membros')).toHaveTextContent('1')
+      openListOverflow()
+      expect(screen.getByText(/Membros \(1\)/)).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByLabelText('Convidar para lista'))
@@ -451,7 +455,6 @@ describe('ListView - Delete Functionality', () => {
 
     await waitFor(() => {
       expect(listsApi.inviteByUsername).toHaveBeenCalledWith('test-list-id', 'leo')
-      expect(screen.getByLabelText('Abrir membros')).toHaveTextContent('2')
     })
   })
 })

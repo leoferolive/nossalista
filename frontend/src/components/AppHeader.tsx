@@ -133,19 +133,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
         </div>
 
-        {isMobile ? (
-          <section className="nl-section-stack">
-            <p className="nl-label mb-2">Preferências</p>
-            <ThemeToggle className="w-full justify-between" fullWidth />
-            <p className={`mt-3 text-sm ${pushStatus.tone}`}>{pushStatus.label}</p>
-          </section>
-        ) : (
-          <div className="rounded-xl bg-nl-surface-strong px-4 py-3">
-            <p className={`font-sans text-xs font-semibold leading-5 ${pushStatus.tone}`}>
-              {pushStatus.label}
-            </p>
-          </div>
-        )}
+        <section className="nl-section-stack">
+          <p className="nl-label mb-2">Preferências</p>
+          <ThemeToggle className={isMobile ? "w-full justify-between" : ""} fullWidth={isMobile} />
+          <p className={`mt-3 text-sm ${pushStatus.tone}`}>{pushStatus.label}</p>
+        </section>
 
         <section className="nl-section-stack">
           <p className="nl-label mb-2">Navegação</p>
@@ -332,7 +324,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {!isMobile ? <ThemeToggle /> : null}
+
           {user ? <NotificationBell /> : null}
 
           <div className="relative z-40" ref={menuRef}>
