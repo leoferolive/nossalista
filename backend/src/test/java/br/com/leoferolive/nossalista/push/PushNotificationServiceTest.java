@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -33,6 +34,7 @@ class PushNotificationServiceTest {
     @Mock
     private PushService pushService;
 
+    private final JsonMapper jsonMapper = JsonMapper.builder().build();
     private PushNotificationService service;
     private final UUID userId = UUID.randomUUID();
     private final PushNotificationPayload payload = new PushNotificationPayload(
@@ -42,7 +44,7 @@ class PushNotificationServiceTest {
     @BeforeEach
     void setUp() {
         when(vapidConfig.isConfigured()).thenReturn(false);
-        service = new PushNotificationService(subscriptionStore, presenceService, vapidConfig);
+        service = new PushNotificationService(subscriptionStore, presenceService, vapidConfig, jsonMapper);
     }
 
     private void injectMockPushService() throws Exception {
@@ -90,7 +92,7 @@ class PushNotificationServiceTest {
         realConfig.setPrivateKey("invalid-private-key");
         realConfig.setSubject("mailto:test@test.com");
 
-        PushNotificationService svc = new PushNotificationService(subscriptionStore, presenceService, realConfig);
+        PushNotificationService svc = new PushNotificationService(subscriptionStore, presenceService, realConfig, jsonMapper);
         svc.sendToUser(userId, payload);
 
         verify(subscriptionStore, never()).findByUserId(userId);

@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import br.com.leoferolive.nossalista.list.util.ListTypeMapper;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -82,22 +83,8 @@ public class List {
      * @return o ListType correspondente ao typeId
      */
     public ListType getType() {
-        if (typeEntity != null) {
-            return ListType.fromSlug(typeEntity.getSlug());
-        }
-        // Fallback se typeEntity não carregado
-        switch (typeId) {
-            case 1:
-                return ListType.SHOPPING;
-            case 2:
-                return ListType.TASK;
-            case 3:
-                return ListType.WISHLIST;
-            case 4:
-                return ListType.GENERIC;
-            default:
-                throw new IllegalStateException("Invalid typeId: " + typeId);
-        }
+        String slug = ListTypeMapper.resolveSlug(typeEntity, typeId);
+        return ListType.fromSlug(slug);
     }
 
     // Getters and Setters

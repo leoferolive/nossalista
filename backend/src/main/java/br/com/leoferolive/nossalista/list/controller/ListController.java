@@ -10,6 +10,7 @@ import br.com.leoferolive.nossalista.list.dto.ListStateResponse;
 import br.com.leoferolive.nossalista.list.dto.InviteLinkResponse;
 import br.com.leoferolive.nossalista.list.domain.List;
 import br.com.leoferolive.nossalista.list.service.ListService;
+import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -35,7 +36,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * REST controller para gerenciamento de listas
@@ -48,14 +51,17 @@ public class ListController {
 
     private final ListService listService;
     private final ListMapper listMapper;
+    private final ListItemRepository listItemRepository;
     private final ActivityLogService activityLogService;
 
     @Value("${frontend.url}")
     private String frontendBaseUrl;
 
-    public ListController(ListService listService, ListMapper listMapper, ActivityLogService activityLogService) {
+    public ListController(ListService listService, ListMapper listMapper,
+                          ListItemRepository listItemRepository, ActivityLogService activityLogService) {
         this.listService = listService;
         this.listMapper = listMapper;
+        this.listItemRepository = listItemRepository;
         this.activityLogService = activityLogService;
     }
 
@@ -93,8 +99,8 @@ public class ListController {
             @Valid @RequestBody CreateListRequest request,
             @AuthenticationPrincipal User owner) {
         List list = listService.createList(request, owner);
-        // Usa toListResponse(list) sem currentUserId - mapper usa owner.getId() automaticamente
-        return listMapper.toListResponse(list);
+        // Newly created list always has 0 items
+        return listMapper.toListResponse(list, 0);
     }
 
     /**
@@ -124,8 +130,23 @@ public class ListController {
     public java.util.List<ListResponse> getAllLists(@AuthenticationPrincipal User authenticatedUser) {
         // Passa currentUserId explicitamente para calcular isOwner corretamente
         // (usuário autenticado pode não ser owner em listas compartilhadas)
-        return listService.getAllListsForUser(authenticatedUser.getId()).stream()
-                .map(list -> listMapper.toListResponse(list, authenticatedUser.getId()))
+        java.util.List<List> lists = listService.getAllListsForUser(authenticatedUser.getId());
+
+        // Batch count query to avoid N+1
+        java.util.List<UUID> listIds = lists.stream().map(List::getId).toList();
+        Map<UUID, Integer> countsMap = listIds.isEmpty()
+            ? Map.of()
+            : listItemRepository.countByListIds(listIds).stream()
+                .collect(Collectors.toMap(
+                    row -> (UUID) row[0],
+                    row -> ((Long) row[1]).intValue()
+                ));
+
+        return lists.stream()
+                .map(list -> listMapper.toListResponse(
+                    list,
+                    authenticatedUser.getId(),
+                    countsMap.getOrDefault(list.getId(), 0)))
                 .toList();
     }
 
@@ -168,8 +189,8 @@ public class ListController {
             @PathVariable UUID id,
             @AuthenticationPrincipal User authenticatedUser) {
         List list = listService.getListById(id, authenticatedUser.getId());
-        // Passa currentUserId explicitamente para calcular isOwner corretamente
-        return listMapper.toListResponse(list, authenticatedUser.getId());
+        int itemsCount = listItemRepository.countByListId(list.getId()).intValue();
+        return listMapper.toListResponse(list, authenticatedUser.getId(), itemsCount);
     }
 
     @GetMapping("/{id}/state")
@@ -286,7 +307,8 @@ public class ListController {
             @Valid @RequestBody UpdateListNameRequest request,
             @AuthenticationPrincipal User authenticatedUser) {
         List list = listService.updateListName(id, authenticatedUser.getId(), request);
-        return listMapper.toListResponse(list, authenticatedUser.getId());
+        int itemsCount = listItemRepository.countByListId(list.getId()).intValue();
+        return listMapper.toListResponse(list, authenticatedUser.getId(), itemsCount);
     }
 
     /**

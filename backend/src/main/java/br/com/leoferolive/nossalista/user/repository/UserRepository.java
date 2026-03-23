@@ -55,4 +55,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return Lista de usuários que contêm o termo no username
      */
     List<User> findByUsernameContainingIgnoreCase(String query);
+
+    /**
+     * Busca usuários por username (case-insensitive e parcial) com limite de 20 resultados
+     *
+     * @param username termo de busca
+     * @return Lista de até 20 usuários que contêm o termo no username
+     */
+    List<User> findTop20ByUsernameContainingIgnoreCase(String username);
 }

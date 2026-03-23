@@ -72,6 +72,4 @@ public interface ListRepository extends JpaRepository<List, UUID> {
            "JOIN FETCH l.typeEntity t " +
            "WHERE l.id = :listId")
     Optional<List> findByIdWithDetails(@Param("listId") UUID listId);
-
-    // TODO: Adicionar countItems() na Story 3.1 quando ListItem for criado
 }

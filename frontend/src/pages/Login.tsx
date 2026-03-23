@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import client from '../api/client'
+import { listsApi } from '../api/listsApi'
+import { ApiError } from '../types/ApiError'
 import { AuthLayout } from '../components/AuthLayout'
 import { GoogleAuthButton } from '../components/GoogleAuthButton'
 
@@ -67,6 +69,34 @@ export default function Login() {
         avatarUrl: data.avatarUrl,
         onboardingCompletedAt: data.onboardingCompletedAt ?? null,
       })
+
+      const pendingInviteCode = sessionStorage.getItem('pendingInviteCode')
+      if (pendingInviteCode) {
+        try {
+          const joinResponse = await listsApi.joinList(pendingInviteCode)
+          sessionStorage.removeItem('pendingInviteCode')
+          navigate(`/lists/${joinResponse.id}`, {
+            state: {
+              toastMessage: joinResponse.message,
+              toastType: 'success',
+            },
+          })
+          return
+        } catch (joinError) {
+          sessionStorage.removeItem('pendingInviteCode')
+          const toastMessage =
+            joinError instanceof ApiError && joinError.status === 410
+              ? 'Link de convite expirou. Peça um novo link.'
+              : 'Erro ao entrar na lista. Tente novamente.'
+          navigate('/home', {
+            state: {
+              toastMessage,
+              toastType: 'error',
+            },
+          })
+          return
+        }
+      }
 
       const nextRedirect = sessionStorage.getItem('postLoginRedirect')
       if (nextRedirect) {

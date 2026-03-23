@@ -99,7 +99,7 @@ class MemberServiceTest {
 
         InviteByUsernameResponse response = memberService.inviteByUsername(testList.getId(), owner.getId(), "pedro");
 
-        assertThat(response.invited_username()).isEqualTo("pedro");
+        assertThat(response.invitedUsername()).isEqualTo("pedro");
         assertThat(response.message()).isEqualTo("pedro adicionado!");
         verify(listMemberRepository).save(any(ListMember.class));
         verify(activityLogService).logMemberInvitedByUsername(testList, targetUser, owner);
@@ -304,7 +304,7 @@ class MemberServiceTest {
         memberService.leaveList(testList.getId(), memberUser.getId());
 
         ArgumentCaptor<MemberLeftPayload> payloadCaptor = ArgumentCaptor.forClass(MemberLeftPayload.class);
-        verify(eventPublisher).publishItemsEvent(
+        verify(eventPublisher).publishEvent(
             eq(testList.getId()), eq("MEMBER_LEFT"), payloadCaptor.capture(), eq(memberUser), isNull()
         );
         assertThat(payloadCaptor.getValue().reason()).isEqualTo("LEFT");
@@ -326,7 +326,7 @@ class MemberServiceTest {
         memberService.removeMember(testList.getId(), owner.getId(), memberUser.getId());
 
         ArgumentCaptor<MemberLeftPayload> payloadCaptor = ArgumentCaptor.forClass(MemberLeftPayload.class);
-        verify(eventPublisher).publishItemsEvent(
+        verify(eventPublisher).publishEvent(
             eq(testList.getId()), eq("MEMBER_REMOVED"), payloadCaptor.capture(), eq(memberUser), isNull()
         );
         assertThat(payloadCaptor.getValue().reason()).isEqualTo("REMOVED");

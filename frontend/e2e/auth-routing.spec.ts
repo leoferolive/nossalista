@@ -26,14 +26,14 @@ test('@pr join deslogado abre login na landing e guarda inviteCode', async ({ pa
       body: JSON.stringify({
         id: 'list-demo-1',
         name: 'Mercado da Semana',
-        type_slug: 'compras',
-        type_name: 'Compras',
-        owner_username: 'leo',
-        owner_name: 'Leo',
-        owner_avatar_url: null,
+        typeSlug: 'compras',
+        typeName: 'Compras',
+        ownerUsername: 'leo',
+        ownerName: 'Leo',
+        ownerAvatarUrl: null,
         items: [],
-        invite_code: 'MOCKSHOP',
-        expires_at: nowIso(),
+        inviteCode: 'MOCKSHOP',
+        expiresAt: nowIso(),
         mode: 'READ_ONLY',
       }),
     })
@@ -142,9 +142,9 @@ test('@pr login por email com invite pendente entra automaticamente na lista', a
     if (path === '/api/lists/list-joined/members' && method === 'GET') {
       return json(200, [
         {
-          user: { id: 'user-1', username: 'leo', name: 'Leo', avatar_url: null },
+          user: { id: 'user-1', username: 'leo', name: 'Leo', avatarUrl: null },
           role: 'MEMBER',
-          joined_at: nowIso(),
+          joinedAt: nowIso(),
         },
       ])
     }
@@ -155,9 +155,9 @@ test('@pr login por email com invite pendente entra automaticamente na lista', a
 
     if (path === '/api/lists/list-joined/invite-link' && method === 'POST') {
       return json(200, {
-        invite_code: 'MOCKSHOP',
-        invite_link: 'http://localhost:4173/join/MOCKSHOP',
-        expires_at: nowIso(),
+        inviteCode: 'MOCKSHOP',
+        inviteLink: 'http://localhost:4173/join/MOCKSHOP',
+        expiresAt: nowIso(),
       })
     }
 

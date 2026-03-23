@@ -239,6 +239,12 @@ textarea {
   -webkit-backdrop-filter: blur(20px);
 }
 
+.nl-glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--nl-surface) 80%, transparent);
+}
+
 .nl-badge {
   display: inline-flex;
   align-items: center;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { ApiError } from '../types/ApiError'
 
 interface EditListNameModalProps {
   isOpen: boolean
@@ -101,8 +102,7 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
       onClose()
     } catch (err) {
       // AC4: Modal deve fechar em erro 403 (permissão negada)
-      const errorMessage = err instanceof Error ? err.message : ''
-      if (errorMessage.includes('permissão')) {
+      if (err instanceof ApiError && err.status === 403) {
         onClose()
       }
       // Outros erros: modal fica aberto para retry

@@ -2,9 +2,9 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InviteModal } from './InviteModal'
-import { useToast } from './Toast'
+import { useToast } from '../contexts/ToastContext'
 
-vi.mock('./Toast')
+vi.mock('../contexts/ToastContext')
 
 describe('InviteModal - convite por username', () => {
   const mockShowToast = vi.fn()
@@ -25,7 +25,7 @@ describe('InviteModal - convite por username', () => {
       { username: 'leo', name: 'Leo Oliveira', avatarUrl: null },
     ])
     mockOnInviteByUsername.mockResolvedValue({
-      invited_username: 'leo',
+      invitedUsername: 'leo',
       message: 'leo adicionado!',
     })
   })

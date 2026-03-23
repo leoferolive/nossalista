@@ -135,7 +135,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
         <section className="nl-section-stack">
           <p className="nl-label mb-2">Preferências</p>
-          <ThemeToggle className={isMobile ? "w-full justify-between" : ""} fullWidth={isMobile} />
+          <ThemeToggle className={!isDesktop ? "w-full justify-between" : ""} fullWidth={!isDesktop} />
           <p className={`mt-3 text-sm ${pushStatus.tone}`}>{pushStatus.label}</p>
         </section>
 

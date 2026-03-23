@@ -5,10 +5,10 @@ import { ForgotPassword } from './ForgotPassword'
 import { ThemeProvider } from '../contexts/ThemeContext'
 
 describe('ForgotPassword page', () => {
-  it('explica que o fluxo ainda nao esta disponivel', () => {
+  it('mostra formulario de email para redefinicao de senha', () => {
     render(
       <ThemeProvider>
-        <MemoryRouter initialEntries={['/forgot-password?redirect=%2Fjoin%2Fabc123']}>
+        <MemoryRouter initialEntries={['/forgot-password']}>
           <Routes>
             <Route path="/forgot-password" element={<ForgotPassword />} />
           </Routes>
@@ -16,11 +16,8 @@ describe('ForgotPassword page', () => {
       </ThemeProvider>
     )
 
-    expect(screen.getByText(/a redefinicao completa ainda depende do backend/i)).toBeInTheDocument()
-    expect(
-      screen
-        .getAllByRole('link', { name: 'Voltar para login' })
-        .every((link) => link.getAttribute('href') === '/?auth=login')
-    ).toBe(true)
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /enviar link de redefinicao/i })).toBeInTheDocument()
+    expect(screen.getAllByText(/voltar para login/i).length).toBeGreaterThanOrEqual(1)
   })
 })

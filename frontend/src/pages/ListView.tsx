@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useLists } from '../hooks/useLists'
 import { useItems } from '../hooks/useItems'
 import { useActivities } from '../hooks/useActivities'
-import { useWebSocket } from '../hooks/useWebSocket'
+import { useWebSocketContext } from '../contexts/WebSocketContext'
 import { useAuth } from '../contexts/AuthContext'
 import { LIST_TYPES } from '../types/List'
 import { EditListNameModal } from '../components/EditListNameModal'
@@ -19,7 +19,7 @@ import { ConnectionStatusIndicator } from '../components/ConnectionStatusIndicat
 import { AppHeader } from '../components/AppHeader'
 import { ResponsiveActionMenu } from '../components/ResponsiveActionMenu'
 import { listsApi } from '../api/listsApi'
-import { useToast, Toast } from '../components/Toast'
+import { useToast } from '../contexts/ToastContext'
 import { ApiError } from '../types/ApiError'
 import { ListItem } from '../types/Item'
 import { ListMemberResponse } from '../types/List'
@@ -28,7 +28,6 @@ import { OnlineMember } from '../types/OnlineMember'
 import { useListRealtimeSync } from '../hooks/useListRealtimeSync'
 
 const ACTIVITY_TIMELINE_ENABLED = true
-const HOME_TOAST_SESSION_KEY = 'homeToast'
 
 function sortItemsByPosition(items: ListItem[]): ListItem[] {
   return [...items].sort((a, b) => a.position - b.position)
@@ -55,11 +54,12 @@ export const ListView: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user: currentUser } = useAuth()
-  const { status: wsStatus, subscribe, unsubscribe, send } = useWebSocket()
+  const { status: wsStatus, subscribe, unsubscribe, send } = useWebSocketContext()
   const {
     currentList,
     loadingList,
     errorList,
+    errorListStatus,
     updatingList,
     deletingList,
     fetchListById,
@@ -67,7 +67,7 @@ export const ListView: React.FC = () => {
     deleteList,
     clearListError,
   } = useLists()
-  const { toasts, showToast, removeToast } = useToast()
+  const { showToast } = useToast()
 
   // Exibir toast passado via navigation state (ex: boas-vindas após join via convite)
   useEffect(() => {
@@ -664,13 +664,6 @@ export const ListView: React.FC = () => {
 
     try {
       await listsApi.leaveList(id)
-      sessionStorage.setItem(
-        HOME_TOAST_SESSION_KEY,
-        JSON.stringify({
-          toastMessage: 'Você saiu',
-          toastType: 'success',
-        })
-      )
       setIsLeaveConfirmOpen(false)
       setIsMembersModalOpen(false)
       navigate('/home', {
@@ -788,8 +781,8 @@ export const ListView: React.FC = () => {
   }
 
   // Error state - 404 ou 403 (não encontrada ou sem permissão)
-  const isNotFound = errorList?.includes('não encontrada')
-  const isForbidden = errorList?.includes('permissão')
+  const isNotFound = errorListStatus === 404
+  const isForbidden = errorListStatus === 403
 
   if (errorList && (isNotFound || isForbidden)) {
     return (
@@ -934,7 +927,7 @@ export const ListView: React.FC = () => {
           <AppHeader
             title={currentList.name}
             subtitle="Compartilhe progresso, acompanhe presença em tempo real e mantenha tudo sincronizado."
-            onBack={() => navigate(-1)}
+            onBack={() => navigate('/home')}
             primaryAction={
               currentList.isOwner ? (
                 <button
@@ -1184,7 +1177,7 @@ export const ListView: React.FC = () => {
       {editingItem && (
         <EditItemModal
           item={editingItem}
-          listType={String(currentList.type.id)}
+          listType={currentList.type.slug}
           isOpen={isEditItemModalOpen}
           onClose={() => {
             setIsEditItemModalOpen(false)
@@ -1250,17 +1243,6 @@ export const ListView: React.FC = () => {
           onLoadMore={loadMoreActivities}
         />
       )}
-
-      {/* Toasts */}
-      {toasts.map((toast, i) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-          index={i}
-        />
-      ))}
     </div>
   )
 }

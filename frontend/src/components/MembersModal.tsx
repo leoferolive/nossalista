@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { ListMemberResponse } from '../types/List'
 
 /**
@@ -47,6 +47,20 @@ export const MembersModal: React.FC<MembersModalProps> = ({
   onConfirmRemove,
   onCancelRemove,
 }) => {
+  // Fechar ao pressionar Escape
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   return (
@@ -55,8 +69,9 @@ export const MembersModal: React.FC<MembersModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="members-modal-title"
+      onClick={onClose}
     >
-      <div className="nl-card w-full max-w-md p-6">
+      <div className="nl-card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h2 id="members-modal-title" className="font-display text-xl font-bold text-nl-text">
@@ -98,9 +113,9 @@ export const MembersModal: React.FC<MembersModalProps> = ({
               <div key={member.user.id}>
                 <div className="flex items-center gap-3 rounded-xl border border-nl-border bg-nl-surface/40 p-2.5">
                   {/* Avatar */}
-                  {member.user.avatar_url ? (
+                  {member.user.avatarUrl ? (
                     <img
-                      src={member.user.avatar_url}
+                      src={member.user.avatarUrl}
                       alt={member.user.username}
                       className="h-10 w-10 rounded-full object-cover"
                       width={40}

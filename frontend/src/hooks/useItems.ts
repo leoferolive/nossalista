@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import { itemsApi } from '../api/itemsApi'
 import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item'
 
@@ -26,7 +26,8 @@ interface UseItemsReturn {
  * Hook para gerenciar estado de itens de uma lista
  */
 export const useItems = (): UseItemsReturn => {
-  const [items, setItems] = useState<ListItem[]>([])
+  const [items, setItemsState] = useState<ListItem[]>([])
+  const itemsRef = useRef<ListItem[]>(items)
   const [loadingItems, setLoadingItems] = useState(false)
   const [errorItems, setErrorItems] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState(false)
@@ -34,23 +35,38 @@ export const useItems = (): UseItemsReturn => {
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null)
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null)
 
+  // Wrapper that keeps the ref in sync with state
+  const setItems: React.Dispatch<React.SetStateAction<ListItem[]>> = useCallback(
+    (action: React.SetStateAction<ListItem[]>) => {
+      setItemsState((prev) => {
+        const next = typeof action === 'function' ? action(prev) : action
+        itemsRef.current = next
+        return next
+      })
+    },
+    []
+  )
+
   /**
    * Busca todos os itens de uma lista
    */
-  const fetchItems = useCallback(async (listId: string) => {
-    setLoadingItems(true)
-    setErrorItems(null)
+  const fetchItems = useCallback(
+    async (listId: string) => {
+      setLoadingItems(true)
+      setErrorItems(null)
 
-    try {
-      const data = await itemsApi.getItemsByListId(listId)
-      setItems(data)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao carregar itens'
-      setErrorItems(message)
-    } finally {
-      setLoadingItems(false)
-    }
-  }, [])
+      try {
+        const data = await itemsApi.getItemsByListId(listId)
+        setItems(data)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao carregar itens'
+        setErrorItems(message)
+      } finally {
+        setLoadingItems(false)
+      }
+    },
+    [setItems]
+  )
 
   /**
    * Adiciona um novo item à lista
@@ -74,7 +90,7 @@ export const useItems = (): UseItemsReturn => {
         setAddingItem(false)
       }
     },
-    []
+    [setItems]
   )
 
   /**
@@ -86,18 +102,20 @@ export const useItems = (): UseItemsReturn => {
       setTogglingItemId(itemId)
       setErrorItems(null)
 
-      // Encontrar item atual e seu estado
-      const item = items.find((i) => i.id === itemId)
-      if (!item) {
+      // Read current items synchronously via ref
+      const currentItem = itemsRef.current.find((i) => i.id === itemId)
+
+      if (!currentItem) {
         setTogglingItemId(null)
         throw new Error('Item não encontrado')
       }
 
-      const originalChecked = item.checked
-      const newChecked = !originalChecked
+      const originalChecked = currentItem.checked
 
-      // Optimistic update: atualizar estado local imediatamente
-      setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, checked: newChecked } : i)))
+      // Optimistic update
+      setItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, checked: !originalChecked } : i))
+      )
 
       try {
         // Fazer request para backend
@@ -115,7 +133,7 @@ export const useItems = (): UseItemsReturn => {
         setTogglingItemId(null)
       }
     },
-    [items]
+    [setItems]
   )
 
   /**
@@ -127,15 +145,15 @@ export const useItems = (): UseItemsReturn => {
       setUpdatingItemId(itemId)
       setErrorItems(null)
 
-      // Encontrar item atual e seu estado
-      const item = items.find((i) => i.id === itemId)
-      if (!item) {
+      // Read current item synchronously via ref
+      const currentItem = itemsRef.current.find((i) => i.id === itemId)
+
+      if (!currentItem) {
         setUpdatingItemId(null)
         throw new Error('Item não encontrado')
       }
 
-      // Backup do estado original para rollback
-      const originalItem = { ...item }
+      const originalItem = { ...currentItem }
 
       // Optimistic update: merge inteligente - apenas atualiza campos fornecidos
       setItems((prev) =>
@@ -165,22 +183,22 @@ export const useItems = (): UseItemsReturn => {
         setUpdatingItemId(null)
       }
     },
-    [items]
+    [setItems]
   )
 
   /**
    * Remove um item da lista
-   * AC Story 3.6: Fade-out animation (200ms) before removing
-   * Aguarda animação CSS completar antes de remover do estado
+   * Animation delay should be handled by the component, not the data hook
    */
   const deleteItem = useCallback(
     async (listId: string, itemId: string): Promise<void> => {
       setDeletingItemId(itemId)
       setErrorItems(null)
 
-      // Encontrar item atual
-      const item = items.find((i) => i.id === itemId)
-      if (!item) {
+      // Check item exists synchronously via ref
+      const itemExists = itemsRef.current.some((i) => i.id === itemId)
+
+      if (!itemExists) {
         setDeletingItemId(null)
         throw new Error('Item não encontrado')
       }
@@ -189,10 +207,7 @@ export const useItems = (): UseItemsReturn => {
         // Fazer request para backend
         await itemsApi.deleteItem(listId, itemId)
 
-        // Aguardar 200ms para animação fade-out completar
-        await new Promise((resolve) => setTimeout(resolve, 200))
-
-        // Remover do estado local após animação
+        // Remover do estado local
         setItems((prev) => prev.filter((i) => i.id !== itemId))
       } catch (err) {
         // Em caso de erro, não remove do estado
@@ -203,7 +218,7 @@ export const useItems = (): UseItemsReturn => {
         setDeletingItemId(null)
       }
     },
-    [items]
+    [setItems]
   )
 
   /**

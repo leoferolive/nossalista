@@ -1,7 +1,5 @@
 import client, { preserveSessionOnUnauthorizedConfig } from './client'
-import { AxiosError } from 'axios'
-import { ProblemDetail } from '../types/ProblemDetail'
-import { ApiError } from '../types/ApiError'
+import { handleApiError } from './handleApiError'
 
 export interface UserProfileResponse {
   username: string
@@ -33,20 +31,7 @@ export const usersApi = {
       )
       return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
-
-      if (axiosError.response) {
-        const status = axiosError.response.status
-        const problemDetail = axiosError.response.data
-
-        if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.')
-        }
-
-        throw new Error(problemDetail?.detail || 'Erro ao carregar perfil. Tente novamente.')
-      }
-
-      throw new Error('Erro de conexão. Verifique sua internet.')
+      handleApiError(error)
     }
   },
 
@@ -64,27 +49,7 @@ export const usersApi = {
       )
       return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
-
-      if (axiosError.response) {
-        const status = axiosError.response.status
-        const problemDetail = axiosError.response.data
-
-        if (status === 400) {
-          throw new Error(
-            problemDetail?.detail || 'Dados inválidos. Verifique o nome e tente novamente.'
-          )
-        } else if (status === 401) {
-          throw new Error('Sessão expirada. Faça login novamente.')
-        }
-
-        throw new ApiError(
-          problemDetail?.detail || 'Erro ao atualizar perfil. Tente novamente.',
-          status
-        )
-      }
-
-      throw new ApiError('Erro de conexão. Verifique sua internet.', 500)
+      handleApiError(error)
     }
   },
 
@@ -107,15 +72,20 @@ export const usersApi = {
         preserveSessionOnUnauthorizedConfig
       )
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
+      handleApiError(error)
+    }
+  },
 
-      if (axiosError.response?.status === 401) {
-        throw new Error('Sessão expirada. Faça login novamente.')
-      }
-
-      throw new Error(
-        axiosError.response?.data?.detail || 'Não foi possível concluir o tutorial agora.'
-      )
+  /**
+   * Exclui permanentemente a conta do usuário autenticado (LGPD).
+   * Remove todas as listas, itens, membros e dados associados.
+   * @returns Promise void
+   */
+  async deleteAccount(): Promise<void> {
+    try {
+      await client.delete('/api/users/me')
+    } catch (error) {
+      handleApiError(error)
     }
   },
 }

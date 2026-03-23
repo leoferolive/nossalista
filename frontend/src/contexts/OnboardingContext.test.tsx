@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { OnboardingProvider, useOnboarding } from './OnboardingContext'
+import { ToastProvider } from './ToastContext'
 
 const mockMarkOnboardingCompleted = vi.fn()
 const mockCompleteOnboarding = vi.fn()
@@ -62,11 +63,13 @@ describe('OnboardingContext', () => {
   it('inicia tutorial automaticamente na Home quando onboarding ainda não foi concluído', async () => {
     render(
       <MemoryRouter initialEntries={['/home']}>
-        <OnboardingProvider>
-          <Routes>
-            <Route path="/home" element={<LocationProbe />} />
-          </Routes>
-        </OnboardingProvider>
+        <ToastProvider>
+          <OnboardingProvider>
+            <Routes>
+              <Route path="/home" element={<LocationProbe />} />
+            </Routes>
+          </OnboardingProvider>
+        </ToastProvider>
       </MemoryRouter>
     )
 
@@ -78,11 +81,13 @@ describe('OnboardingContext', () => {
 
     render(
       <MemoryRouter initialEntries={['/home']}>
-        <OnboardingProvider>
-          <Routes>
-            <Route path="/home" element={<LocationProbe />} />
-          </Routes>
-        </OnboardingProvider>
+        <ToastProvider>
+          <OnboardingProvider>
+            <Routes>
+              <Route path="/home" element={<LocationProbe />} />
+            </Routes>
+          </OnboardingProvider>
+        </ToastProvider>
       </MemoryRouter>
     )
 
@@ -97,13 +102,15 @@ describe('OnboardingContext', () => {
 
     render(
       <MemoryRouter initialEntries={['/lists/abc']}>
-        <OnboardingProvider>
-          <ReplayProbe />
-          <Routes>
-            <Route path="/home" element={<LocationProbe />} />
-            <Route path="/lists/:id" element={<LocationProbe />} />
-          </Routes>
-        </OnboardingProvider>
+        <ToastProvider>
+          <OnboardingProvider>
+            <ReplayProbe />
+            <Routes>
+              <Route path="/home" element={<LocationProbe />} />
+              <Route path="/lists/:id" element={<LocationProbe />} />
+            </Routes>
+          </OnboardingProvider>
+        </ToastProvider>
       </MemoryRouter>
     )
 
@@ -122,11 +129,13 @@ describe('OnboardingContext', () => {
 
     render(
       <MemoryRouter initialEntries={['/home']}>
-        <OnboardingProvider>
-          <Routes>
-            <Route path="/home" element={<LocationProbe />} />
-          </Routes>
-        </OnboardingProvider>
+        <ToastProvider>
+          <OnboardingProvider>
+            <Routes>
+              <Route path="/home" element={<LocationProbe />} />
+            </Routes>
+          </OnboardingProvider>
+        </ToastProvider>
       </MemoryRouter>
     )
 

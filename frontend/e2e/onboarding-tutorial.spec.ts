@@ -122,9 +122,9 @@ async function mockSession(page: Parameters<typeof test>[0]['page'], options: Se
     if (path.match(/^\/api\/lists\/[^/]+\/members$/) && method === 'GET') {
       return json(200, [
         {
-          user: { id: 'user-1', username: 'leo', name: 'Leo', avatar_url: null },
+          user: { id: 'user-1', username: 'leo', name: 'Leo', avatarUrl: null },
           role: 'OWNER',
-          joined_at: nowIso(),
+          joinedAt: nowIso(),
         },
       ])
     }
@@ -135,9 +135,9 @@ async function mockSession(page: Parameters<typeof test>[0]['page'], options: Se
 
     if (path.match(/^\/api\/lists\/[^/]+\/invite-link$/) && method === 'POST') {
       return json(200, {
-        invite_code: 'INVITE-123',
-        invite_link: 'http://localhost:5173/join/INVITE-123',
-        expires_at: nowIso(),
+        inviteCode: 'INVITE-123',
+        inviteLink: 'http://localhost:5173/join/INVITE-123',
+        expiresAt: nowIso(),
       })
     }
 

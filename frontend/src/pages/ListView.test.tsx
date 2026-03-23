@@ -4,8 +4,8 @@ import { BrowserRouter } from 'react-router-dom'
 import { ListView } from './ListView'
 import { useLists } from '../hooks/useLists'
 import { useItems } from '../hooks/useItems'
-import { useToast } from '../components/Toast'
-import { useWebSocket } from '../hooks/useWebSocket'
+import { useToast } from '../contexts/ToastContext'
+import { useWebSocketContext } from '../contexts/WebSocketContext'
 import { useAuth } from '../contexts/AuthContext'
 import { ListResponse } from '../types/List'
 import { ListItem } from '../types/Item'
@@ -21,8 +21,8 @@ afterEach(() => {
 // Mock hooks
 vi.mock('../hooks/useLists')
 vi.mock('../hooks/useItems')
-vi.mock('../components/Toast')
-vi.mock('../hooks/useWebSocket')
+vi.mock('../contexts/ToastContext')
+vi.mock('../contexts/WebSocketContext')
 vi.mock('../contexts/AuthContext')
 vi.mock('../contexts/ThemeContext', () => ({
   useTheme: () => ({ theme: 'light', toggleTheme: vi.fn(), setTheme: vi.fn() }),
@@ -99,7 +99,7 @@ describe('ListView - Delete Functionality', () => {
       deleteItem: vi.fn(),
       clearItemsError: vi.fn(),
     })
-    ;(useWebSocket as any).mockReturnValue({
+    ;(useWebSocketContext as any).mockReturnValue({
       status: 'DISCONNECTED',
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -296,9 +296,9 @@ describe('ListView - Delete Functionality', () => {
   it('deve abrir modal de membros e mostrar aviso para owner', async () => {
     ;(listsApi.getListMembers as any).mockResolvedValue([
       {
-        user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+        user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatarUrl: null },
         role: 'OWNER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
     ])
 
@@ -329,14 +329,14 @@ describe('ListView - Delete Functionality', () => {
     })
     ;(listsApi.getListMembers as any).mockResolvedValue([
       {
-        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatar_url: null },
+        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatarUrl: null },
         role: 'OWNER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
       {
-        user: { id: 'member-id', username: 'member', name: 'Member', avatar_url: null },
+        user: { id: 'member-id', username: 'member', name: 'Member', avatarUrl: null },
         role: 'MEMBER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
     ])
 
@@ -366,14 +366,14 @@ describe('ListView - Delete Functionality', () => {
     })
     ;(listsApi.getListMembers as any).mockResolvedValue([
       {
-        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatar_url: null },
+        user: { id: 'owner-id', username: 'owner', name: 'Owner', avatarUrl: null },
         role: 'OWNER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
       {
-        user: { id: 'member-id', username: 'member', name: 'Member', avatar_url: null },
+        user: { id: 'member-id', username: 'member', name: 'Member', avatarUrl: null },
         role: 'MEMBER',
-        joined_at: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
       },
     ])
     ;(listsApi.leaveList as any).mockResolvedValue(undefined)
@@ -408,28 +408,28 @@ describe('ListView - Delete Functionality', () => {
     ;(listsApi.getListMembers as any)
       .mockResolvedValueOnce([
         {
-          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatarUrl: null },
           role: 'OWNER',
-          joined_at: new Date().toISOString(),
+          joinedAt: new Date().toISOString(),
         },
       ])
       .mockResolvedValueOnce([
         {
-          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatar_url: null },
+          user: { id: 'owner-id', username: 'testuser', name: 'Test User', avatarUrl: null },
           role: 'OWNER',
-          joined_at: new Date().toISOString(),
+          joinedAt: new Date().toISOString(),
         },
         {
-          user: { id: 'invited-id', username: 'leo', name: 'Leo Oliveira', avatar_url: null },
+          user: { id: 'invited-id', username: 'leo', name: 'Leo Oliveira', avatarUrl: null },
           role: 'MEMBER',
-          joined_at: new Date().toISOString(),
+          joinedAt: new Date().toISOString(),
         },
       ])
     ;(listsApi.searchUsers as any).mockResolvedValue([
       { username: 'leo', name: 'Leo Oliveira', avatarUrl: null },
     ])
     ;(listsApi.inviteByUsername as any).mockResolvedValue({
-      invited_username: 'leo',
+      invitedUsername: 'leo',
       message: 'leo adicionado!',
     })
 
@@ -568,7 +568,7 @@ describe('ListView - WebSocket Integration', () => {
       login: vi.fn(),
       logout: vi.fn(),
     })
-    ;(useWebSocket as any).mockReturnValue({
+    ;(useWebSocketContext as any).mockReturnValue({
       status: 'CONNECTED',
       connect: mockConnect,
       disconnect: mockDisconnect,
@@ -1254,7 +1254,7 @@ describe('ListView - Reconnection UX', () => {
   it('deve recarregar itens na transicao RECONNECTING -> CONNECTED', async () => {
     let wsStatus: 'RECONNECTING' | 'CONNECTED' = 'RECONNECTING'
 
-    ;(useWebSocket as any).mockImplementation(() => ({
+    ;(useWebSocketContext as any).mockImplementation(() => ({
       status: wsStatus,
       connect: mockConnect,
       disconnect: mockDisconnect,
@@ -1300,7 +1300,7 @@ describe('ListView - Reconnection UX', () => {
         capturedHandler = handler
       }
     )
-    ;(useWebSocket as any).mockImplementation(() => ({
+    ;(useWebSocketContext as any).mockImplementation(() => ({
       status: wsStatus,
       connect: mockConnect,
       disconnect: mockDisconnect,
@@ -1371,7 +1371,7 @@ describe('ListView - Reconnection UX', () => {
   })
 
   it('deve renderizar ConnectionStatusIndicator com status correto', () => {
-    ;(useWebSocket as any).mockReturnValue({
+    ;(useWebSocketContext as any).mockReturnValue({
       status: 'RECONNECTING',
       connect: mockConnect,
       disconnect: mockDisconnect,
