@@ -171,12 +171,10 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-nl-text">
-              <span className="font-medium">"{activity.targetName || 'item'}"</span>{' '}
-              foi marcado/desmarcado {entry.collapseCount} vezes
+              <span className="font-medium">"{activity.targetName || 'item'}"</span> foi
+              marcado/desmarcado {entry.collapseCount} vezes
             </p>
-            <p className="mt-1 text-xs text-nl-muted">
-              {formatRelativeTime(activity.createdAt)}
-            </p>
+            <p className="mt-1 text-xs text-nl-muted">{formatRelativeTime(activity.createdAt)}</p>
           </div>
         </div>
       )
@@ -205,9 +203,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
           </p>
 
           {/* Tempo relativo */}
-          <p className="mt-1 text-xs text-nl-muted">
-            {formatRelativeTime(activity.createdAt)}
-          </p>
+          <p className="mt-1 text-xs text-nl-muted">{formatRelativeTime(activity.createdAt)}</p>
 
           {/* Detalhes expandidos (opcional) */}
           {isExpanded && activity.details && (

@@ -93,7 +93,7 @@ test('@pr lista cobre ciclo de item: adicionar, marcar, editar e excluir', async
   await expect(page.getByRole('button', { name: editedName })).toBeVisible()
 
   const editedRow = page.locator('[data-testid^="list-item-"]', { hasText: editedName }).first()
-  await editedRow.click({ delay: 1200 })
+  await editedRow.getByRole('button', { name: 'Mais ações do item' }).click()
   await page.getByTestId('item-option-delete').click()
   await page.getByTestId('delete-confirm-button').click()
 

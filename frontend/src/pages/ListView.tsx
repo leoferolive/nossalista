@@ -708,9 +708,7 @@ export const ListView: React.FC = () => {
       return
     }
     showToast('Marcando todos…', 'info')
-    const results = await Promise.allSettled(
-      uncheckedItems.map((item) => toggleItem(id, item.id))
-    )
+    const results = await Promise.allSettled(uncheckedItems.map((item) => toggleItem(id, item.id)))
     const failures = results.filter((r) => r.status === 'rejected').length
     if (failures === 0) {
       showToast(`${uncheckedItems.length} itens concluídos`, 'success')
@@ -728,9 +726,7 @@ export const ListView: React.FC = () => {
       return
     }
     showToast('Limpando concluídos…', 'info')
-    const results = await Promise.allSettled(
-      checkedItems.map((item) => deleteItem(id, item.id))
-    )
+    const results = await Promise.allSettled(checkedItems.map((item) => deleteItem(id, item.id)))
     const failures = results.filter((r) => r.status === 'rejected').length
     if (failures === 0) {
       showToast(`${checkedItems.length} itens removidos`, 'success')

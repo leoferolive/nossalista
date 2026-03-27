@@ -135,7 +135,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
         <section className="nl-section-stack">
           <p className="nl-label mb-2">Preferências</p>
-          <ThemeToggle className={!isDesktop ? "w-full justify-between" : ""} fullWidth={!isDesktop} />
+          <ThemeToggle
+            className={!isDesktop ? 'w-full justify-between' : ''}
+            fullWidth={!isDesktop}
+          />
           <p className={`mt-3 text-sm ${pushStatus.tone}`}>{pushStatus.label}</p>
         </section>
 
@@ -324,7 +327,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-
           {user ? <NotificationBell /> : null}
 
           <div className="relative z-40" ref={menuRef}>
