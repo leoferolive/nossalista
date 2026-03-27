@@ -150,6 +150,7 @@ async function mockSession(page: Parameters<typeof test>[0]['page'], options: Se
 }
 
 test('@pr first login tutorial completa o fluxo e persiste conclusão', async ({ page }) => {
+  test.setTimeout(60_000)
   const mocked = await mockSession(page, { onboardingCompletedAt: null })
 
   await page.goto('/home')

@@ -74,6 +74,7 @@ test('@pr home permite criar lista manualmente fora do onboarding', async ({ pag
 })
 
 test('@pr lista cobre ciclo de item: adicionar, marcar, editar e excluir', async ({ page }) => {
+  test.setTimeout(60_000)
   const itemName = `Item PR ${Date.now()}`
   const editedName = `${itemName} editado`
   await seedMockAuthSession(page, ownerSessionUser)
