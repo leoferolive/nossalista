@@ -18,7 +18,7 @@ on:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     outputs:
       resolved_sha: ${{ steps.meta.outputs.resolved_sha }}
       build_time: ${{ steps.meta.outputs.build_time }}
@@ -54,7 +54,7 @@ jobs:
 
   build-and-push:
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -89,8 +89,8 @@ jobs:
             org.opencontainers.image.revision=${{ needs.prepare.outputs.resolved_sha }}
             org.opencontainers.image.ref.name=${{ inputs.ref }}
             org.opencontainers.image.created=${{ needs.prepare.outputs.build_time }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=local,src=/home/runner/.buildx-cache
+          cache-to: type=local,dest=/home/runner/.buildx-cache-new,mode=max
           build-args: |
             GIT_SHA=${{ needs.prepare.outputs.resolved_sha }}
             APP_VERSION=${{ inputs.tag }}
@@ -99,19 +99,19 @@ jobs:
             APP_BUILD_TIME=${{ needs.prepare.outputs.build_time }}
             APP_ENVIRONMENT=${{ inputs.environment }}
 
+      - name: Rotate buildx cache
+        run: |
+          rm -rf /home/runner/.buildx-cache
+          mv /home/runner/.buildx-cache-new /home/runner/.buildx-cache
+
   deploy:
     needs: [prepare, build-and-push]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     steps:
       - name: Checkout (manifestos k8s)
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-
-      - name: Setup Tailscale
-        uses: tailscale/github-action@v2
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
       - name: Configurar KUBECONFIG
         env:

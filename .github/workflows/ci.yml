@@ -20,7 +20,7 @@ env:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 20
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -42,7 +42,7 @@ jobs:
   frontend-quality:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -137,7 +137,7 @@ jobs:
   frontend-e2e:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -154,22 +154,14 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Cache Playwright browsers
-        id: cache-playwright
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
-
       - name: Install Playwright browsers
-        if: steps.cache-playwright.outputs.cache-hit != 'true'
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright system deps
-        if: steps.cache-playwright.outputs.cache-hit == 'true'
-        working-directory: frontend
-        run: npx playwright install-deps chromium
+        run: |
+          if [ ! -d ~/.cache/ms-playwright ]; then
+            npx playwright install --with-deps chromium
+          else
+            npx playwright install-deps chromium 2>/dev/null || true
+          fi
 
       - name: Frontend e2e PR suite
         working-directory: frontend
@@ -187,7 +179,9 @@ jobs:
   backend-quality:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
+    env:
+      MAVEN_OPTS: "-Xmx1g -XX:+UseG1GC"
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -263,7 +257,7 @@ jobs:
 
   security-and-compliance:
     needs: changes
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -287,13 +281,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/bin/gitleaks
-          key: gitleaks-${{ runner.os }}-${{ env.GITLEAKS_VERSION }}
+          key: gitleaks-${{ runner.os }}-${{ runner.arch }}-${{ env.GITLEAKS_VERSION }}
 
       - name: Install Gitleaks
         if: steps.cache-gitleaks.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/bin
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
+          ARCH=$(dpkg --print-architecture)
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz" | tar -xz gitleaks
           mv gitleaks ~/bin/gitleaks
 
       - name: Gitleaks
@@ -303,12 +298,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-semgrep-${{ runner.os }}
+          key: pip-semgrep-${{ runner.os }}-${{ runner.arch }}
 
       - name: Semgrep
         run: |
-          pip install semgrep
-          semgrep scan --config p/security-audit --error .
+          if [ ! -f ~/semgrep-venv/bin/semgrep ]; then
+            python3 -m venv ~/semgrep-venv
+            ~/semgrep-venv/bin/pip install semgrep --quiet
+          fi
+          ~/semgrep-venv/bin/semgrep scan --config p/security-audit --error .
 
       - name: Frontend install
         if: needs.changes.outputs.frontend == 'true'

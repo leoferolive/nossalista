@@ -1,8 +1,9 @@
 name: Frontend E2E Fullstack
 
 on:
-  schedule:
-    - cron: '0 6 * * *'
+  # Desabilitado temporariamente — falha por falta de saldo no GitHub hosted runner
+  # schedule:
+  #   - cron: '0 6 * * *'
   workflow_dispatch:
 
 permissions:
