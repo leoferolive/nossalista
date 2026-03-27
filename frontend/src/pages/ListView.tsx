@@ -699,6 +699,42 @@ export const ListView: React.FC = () => {
     }
   }
 
+  // Handler para marcar todos os itens como concluídos
+  const handleCheckAll = async () => {
+    if (!id) return
+    const uncheckedItems = items.filter((i) => !i.checked)
+    if (uncheckedItems.length === 0) {
+      showToast('Todos os itens já estão concluídos', 'info')
+      return
+    }
+    showToast('Marcando todos…', 'info')
+    const results = await Promise.allSettled(uncheckedItems.map((item) => toggleItem(id, item.id)))
+    const failures = results.filter((r) => r.status === 'rejected').length
+    if (failures === 0) {
+      showToast(`${uncheckedItems.length} itens concluídos`, 'success')
+    } else {
+      showToast(`${failures} item(ns) falharam. Tente novamente.`, 'error')
+    }
+  }
+
+  // Handler para limpar itens concluídos
+  const handleClearChecked = async () => {
+    if (!id) return
+    const checkedItems = items.filter((i) => i.checked)
+    if (checkedItems.length === 0) {
+      showToast('Nenhum item concluído para limpar', 'info')
+      return
+    }
+    showToast('Limpando concluídos…', 'info')
+    const results = await Promise.allSettled(checkedItems.map((item) => deleteItem(id, item.id)))
+    const failures = results.filter((r) => r.status === 'rejected').length
+    if (failures === 0) {
+      showToast(`${checkedItems.length} itens removidos`, 'success')
+    } else {
+      showToast(`${failures} item(ns) falharam. Tente novamente.`, 'error')
+    }
+  }
+
   // Determinar emoji do tipo de lista
   const typeEmoji = currentList
     ? LIST_TYPES.find((t) => t.id === currentList.type.id)?.emoji || '📝'
@@ -788,48 +824,97 @@ export const ListView: React.FC = () => {
 
   const memberCountLabel = memberCount === null ? '--' : String(memberCount)
   const sortedOnlineMembers = sortOnlineMembers(Array.from(onlineMembers.values()), currentUser?.id)
-  const overflowActions = currentList.isOwner
-    ? [
-        {
-          label: 'Editar nome da lista',
-          icon: (
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
-            </svg>
-          ),
-          onSelect: handleOpenEditModal,
-        },
-        {
-          label: 'Excluir lista',
-          icon: (
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z"
-                clipRule="evenodd"
-              />
-            </svg>
-          ),
-          tone: 'danger' as const,
-          onSelect: handleOpenDeleteListModal,
-        },
-      ]
-    : [
-        {
-          label: 'Sair da lista',
-          icon: (
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.03-2.03a.75.75 0 011.06 0l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H8a.75.75 0 010-1.5h5.5l-2.22-2.22a.75.75 0 010-1.06z"
-                clipRule="evenodd"
-              />
-            </svg>
-          ),
-          tone: 'danger' as const,
-          onSelect: handleOpenLeaveFromActions,
-        },
-      ]
+  const overflowActions = [
+    // Navegacao da lista
+    {
+      label: `Membros (${memberCountLabel})`,
+      icon: <span>👥</span>,
+      onSelect: handleOpenMembersModal,
+    },
+    ...(ACTIVITY_TIMELINE_ENABLED
+      ? [
+          {
+            label: 'Histórico',
+            icon: <span>📜</span>,
+            onSelect: () => setIsActivityTimelineOpen(true),
+          },
+        ]
+      : []),
+    // Acoes em lote
+    ...(items.length > 0
+      ? [
+          {
+            label: 'Marcar todos como concluídos',
+            icon: (
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            ),
+            onSelect: handleCheckAll,
+          },
+          {
+            label: 'Limpar concluídos',
+            icon: (
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            ),
+            onSelect: handleClearChecked,
+          },
+        ]
+      : []),
+    // Gestao da lista
+    ...(currentList.isOwner
+      ? [
+          {
+            label: 'Editar nome da lista',
+            icon: (
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+              </svg>
+            ),
+            onSelect: handleOpenEditModal,
+          },
+          {
+            label: 'Excluir lista',
+            icon: (
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            ),
+            tone: 'danger' as const,
+            onSelect: handleOpenDeleteListModal,
+          },
+        ]
+      : [
+          {
+            label: 'Sair da lista',
+            icon: (
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.03-2.03a.75.75 0 011.06 0l3.5 3.5a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 11-1.06-1.06l2.22-2.22H8a.75.75 0 010-1.5h5.5l-2.22-2.22a.75.75 0 010-1.06z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            ),
+            tone: 'danger' as const,
+            onSelect: handleOpenLeaveFromActions,
+          },
+        ]),
+  ]
 
   return (
     <div className="nl-page">
@@ -857,34 +942,10 @@ export const ListView: React.FC = () => {
         </div>
 
         <div className="mb-3 flex flex-wrap gap-2" data-tour="list-actions">
-          <button
-            onClick={handleOpenMembersModal}
-            className="nl-btn-secondary min-h-[44px] rounded-xl px-3 py-2 text-sm"
-            aria-label="Abrir membros"
-          >
-            <span aria-hidden="true">👥</span>
-            <span>Membros</span>
-            <span className="font-tabular rounded-full bg-nl-surface-strong px-2 py-1 text-xs text-nl-accent">
-              {memberCountLabel}
-            </span>
-          </button>
-
-          {ACTIVITY_TIMELINE_ENABLED && (
-            <button
-              onClick={() => setIsActivityTimelineOpen(true)}
-              className="nl-btn-secondary"
-              aria-label="Ver atividades da lista"
-              title="Histórico de atividades"
-            >
-              <span aria-hidden="true">📜</span>
-              Histórico
-            </button>
-          )}
-
           {overflowActions.length > 0 && (
             <ResponsiveActionMenu
               triggerLabel="Mais ações da lista"
-              title="Mais ações da lista"
+              title="Ações da lista"
               items={overflowActions}
             />
           )}

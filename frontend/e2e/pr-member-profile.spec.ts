@@ -144,8 +144,8 @@ test('@pr membro pode sair da lista e voltar para home', async ({ page }) => {
   await seedMockMemberSession(page)
   await page.goto('/lists/list-member-1')
 
-  await page.getByRole('button', { name: 'Abrir membros' }).click()
-  await page.getByRole('button', { name: 'Sair da Lista' }).click()
+  await page.getByRole('button', { name: 'Mais ações da lista' }).click()
+  await page.getByRole('menuitem', { name: 'Sair da lista' }).click()
   await page.getByRole('button', { name: 'Sair', exact: true }).click()
 
   await expect(page).toHaveURL(/\/home$/)

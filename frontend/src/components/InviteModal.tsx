@@ -250,6 +250,12 @@ export const InviteModal: React.FC<InviteModalProps> = ({
             )}
           </div>
 
+          {!selectedUser && searchQuery.trim().length === 0 && (
+            <p className="nl-helper" style={{ color: 'var(--nl-primary)' }}>
+              Digite ao menos 2 caracteres para buscar
+            </p>
+          )}
+
           <p className="nl-helper">
             O convite por username funciona melhor para quem ja usa o NossaLista.
           </p>
