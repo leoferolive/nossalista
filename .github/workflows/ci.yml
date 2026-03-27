@@ -310,8 +310,11 @@ jobs:
 
       - name: Semgrep
         run: |
-          pip install semgrep
-          semgrep scan --config p/security-audit --error .
+          if [ ! -f ~/semgrep-venv/bin/semgrep ]; then
+            python3 -m venv ~/semgrep-venv
+            ~/semgrep-venv/bin/pip install semgrep --quiet
+          fi
+          ~/semgrep-venv/bin/semgrep scan --config p/security-audit --error .
 
       - name: Frontend install
         if: needs.changes.outputs.frontend == 'true'
