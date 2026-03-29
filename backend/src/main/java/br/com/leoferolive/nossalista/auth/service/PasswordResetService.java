@@ -3,11 +3,11 @@ package br.com.leoferolive.nossalista.auth.service;
 import br.com.leoferolive.nossalista.auth.domain.PasswordResetToken;
 import br.com.leoferolive.nossalista.auth.exception.InvalidResetTokenException;
 import br.com.leoferolive.nossalista.auth.repository.PasswordResetTokenRepository;
+import br.com.leoferolive.nossalista.email.service.EmailService;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +18,6 @@ import java.util.UUID;
 
 /**
  * Serviço para operações de reset de senha.
- * Para MVP, o link de reset é logado no console em vez de enviado por email.
  */
 @Service
 public class PasswordResetService {
@@ -28,24 +27,23 @@ public class PasswordResetService {
     private final UserService userService;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
-
-    @Value("${frontend.url:http://localhost:5173}")
-    private String frontendUrl;
+    private final EmailService emailService;
 
     public PasswordResetService(
         UserService userService,
         PasswordResetTokenRepository tokenRepository,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        EmailService emailService
     ) {
         this.userService = userService;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     /**
      * Solicita reset de senha para um email.
      * Não lança erro se email não existir (previne enumeração de emails).
-     * Para MVP, o link de reset é logado no console.
      *
      * @param email email do usuário
      */
@@ -55,7 +53,6 @@ public class PasswordResetService {
 
         Optional<User> userOpt = userService.findByEmailOptional(normalizedEmail);
         if (userOpt.isEmpty()) {
-            // Não revelar se email existe — silenciosamente retornar
             log.debug("Password reset requested for non-existent email: {}", normalizedEmail);
             return;
         }
@@ -75,8 +72,7 @@ public class PasswordResetService {
 
         tokenRepository.save(resetToken);
 
-        // MVP: logar link no console ao invés de enviar email
-        log.info("Password reset link: {}/reset-password?token={}", frontendUrl, tokenValue);
+        emailService.sendPasswordReset(user.getEmail(), user.getName(), tokenValue);
     }
 
     /**

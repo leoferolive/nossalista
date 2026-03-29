@@ -33,6 +33,27 @@ spring:
             user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
             user-name-attribute: sub
 
+  mail:
+    host: ${SMTP_HOST:smtp-relay.brevo.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  thymeleaf:
+    check-template-location: false
+
+app:
+  email:
+    from: ${EMAIL_FROM:no-reply@nossalista.leoferolive.com.br}
+    from-name: ${EMAIL_FROM_NAME:NossaLista}
+
 cors:
   allowed-origins: https://nossalista.leoferolive.com.br
 

@@ -43,3 +43,8 @@ logging:
 
 frontend:
   url: ${FRONTEND_URL:https://nossalista.leoferolive.com.br}
+
+app:
+  email:
+    smtp:
+      enabled: true
