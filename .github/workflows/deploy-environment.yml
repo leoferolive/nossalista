@@ -89,8 +89,8 @@ jobs:
             org.opencontainers.image.revision=${{ needs.prepare.outputs.resolved_sha }}
             org.opencontainers.image.ref.name=${{ inputs.ref }}
             org.opencontainers.image.created=${{ needs.prepare.outputs.build_time }}
-          cache-from: type=local,src=/home/runner/.buildx-cache
-          cache-to: type=local,dest=/home/runner/.buildx-cache-new,mode=max
+          cache-from: type=local,src=${{ runner.temp }}/.buildx-cache
+          cache-to: type=local,dest=${{ runner.temp }}/.buildx-cache-new,mode=max
           build-args: |
             GIT_SHA=${{ needs.prepare.outputs.resolved_sha }}
             APP_VERSION=${{ inputs.tag }}
@@ -101,8 +101,8 @@ jobs:
 
       - name: Rotate buildx cache
         run: |
-          rm -rf /home/runner/.buildx-cache
-          mv /home/runner/.buildx-cache-new /home/runner/.buildx-cache
+          rm -rf "$RUNNER_TEMP/.buildx-cache"
+          mv "$RUNNER_TEMP/.buildx-cache-new" "$RUNNER_TEMP/.buildx-cache"
 
   deploy:
     needs: [prepare, build-and-push]
