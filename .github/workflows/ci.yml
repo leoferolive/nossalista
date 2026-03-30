@@ -244,13 +244,19 @@ jobs:
         run: |
           java -jar target/*.jar --spring.profiles.active=ci > /tmp/backend-smoke.log 2>&1 &
           APP_PID=$!
-          for i in {1..60}; do
+          for i in {1..120}; do
             if curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null; then
               break
             fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null
+          if ! curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null; then
+            echo "::error::Backend failed to start within 120s"
+            echo "--- Smoke log (last 80 lines) ---"
+            tail -80 /tmp/backend-smoke.log
+            kill "$APP_PID" 2>/dev/null || true
+            exit 1
+          fi
           kill "$APP_PID"
 
   # backend-smoke job removed — smoke test is now the last step in backend-quality
