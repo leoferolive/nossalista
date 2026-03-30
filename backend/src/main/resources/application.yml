@@ -47,7 +47,7 @@ spring:
             required: true
 
   thymeleaf:
-    check-template-location: false
+    check-template-location: true
 
 cors:
   allowed-origins: https://nossalista.leoferolive.com.br

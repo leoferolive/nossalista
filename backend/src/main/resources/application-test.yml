@@ -22,3 +22,8 @@ jwt:
 
 frontend:
   url: http://localhost:5173
+
+app:
+  email:
+    smtp:
+      enabled: false

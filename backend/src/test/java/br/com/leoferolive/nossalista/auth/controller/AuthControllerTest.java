@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.auth.controller;
 
+import br.com.leoferolive.nossalista.config.RateLimiterService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -50,6 +51,9 @@ class AuthControllerTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private RateLimiterService rateLimiterService;
+
     private ObjectMapper objectMapper;
     private MockMvc mockMvc;
 
@@ -57,6 +61,7 @@ class AuthControllerTest {
     void setup() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         objectMapper = new ObjectMapper();
+        rateLimiterService.reset();
     }
 
     @Test
@@ -450,6 +455,72 @@ class AuthControllerTest {
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/invalid-credentials"))
             .andExpect(jsonPath("$.title").value("Credenciais inválidas"));
+    }
+
+    // ==================== RATE LIMITING TESTS ====================
+
+    @Test
+    void shouldReturn429WhenForgotPasswordExceedsIpRateLimit() throws Exception {
+        Map<String, String> request = new HashMap<>();
+        request.put("email", "ratelimit@example.com");
+
+        // 15 requests allowed per IP per 15 minutes
+        for (int i = 0; i < 15; i++) {
+            request.put("email", "ratelimit" + i + "@example.com");
+            mockMvc.perform(post("/api/auth/forgot-password")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+        }
+
+        // 16th request should be rate limited
+        request.put("email", "ratelimit16@example.com");
+        mockMvc.perform(post("/api/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isTooManyRequests())
+            .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/rate-limit-exceeded"))
+            .andExpect(jsonPath("$.title").value("Muitas requisições"));
+    }
+
+    @Test
+    void shouldReturn429WhenForgotPasswordExceedsEmailRateLimit() throws Exception {
+        Map<String, String> request = new HashMap<>();
+        request.put("email", "samemail@example.com");
+
+        // 5 requests allowed per email per hour
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/auth/forgot-password")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+        }
+
+        // 6th request with same email should be rate limited
+        mockMvc.perform(post("/api/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void shouldReturn429WhenResetPasswordExceedsIpRateLimit() throws Exception {
+        Map<String, String> request = new HashMap<>();
+        request.put("token", "invalid-token");
+        request.put("newPassword", "newpass123");
+
+        // 10 requests allowed per IP per 15 minutes
+        for (int i = 0; i < 10; i++) {
+            mockMvc.perform(post("/api/auth/reset-password")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+        }
+
+        // 11th request should be rate limited
+        mockMvc.perform(post("/api/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isTooManyRequests());
     }
 
     @Test

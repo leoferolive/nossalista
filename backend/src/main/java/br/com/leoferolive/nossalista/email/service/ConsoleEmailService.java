@@ -22,20 +22,26 @@ public class ConsoleEmailService implements EmailService {
 
     @Override
     public void sendPasswordReset(String toEmail, String userName, String resetToken) {
-        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
-        log.info("[EMAIL] Password reset → to={}, user={}, link={}", toEmail, userName, resetLink);
+        log.info("[EMAIL] Password reset → to={}, user={}, token={}…",
+            toEmail, userName, maskToken(resetToken));
     }
 
     @Override
     public void sendEmailVerification(String toEmail, String userName, String verificationToken) {
-        String verificationLink = frontendUrl + "/verify-email?token=" + verificationToken;
-        log.info("[EMAIL] Email verification → to={}, user={}, link={}",
-            toEmail, userName, verificationLink);
+        log.info("[EMAIL] Email verification → to={}, user={}, token={}…",
+            toEmail, userName, maskToken(verificationToken));
     }
 
     @Override
     public void sendMagicLink(String toEmail, String userName, String loginToken) {
-        String loginLink = frontendUrl + "/magic-login?token=" + loginToken;
-        log.info("[EMAIL] Magic link → to={}, user={}, link={}", toEmail, userName, loginLink);
+        log.info("[EMAIL] Magic link → to={}, user={}, token={}…",
+            toEmail, userName, maskToken(loginToken));
+    }
+
+    private String maskToken(String token) {
+        if (token == null || token.length() <= 8) {
+            return "***";
+        }
+        return token.substring(0, 8) + "***";
     }
 }

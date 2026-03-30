@@ -107,9 +107,17 @@ public class SmtpEmailService implements EmailService {
 
     private String maskEmail(String email) {
         int atIndex = email.indexOf('@');
-        if (atIndex <= 1) {
-            return "***" + email.substring(atIndex);
+        if (atIndex < 0) {
+            return "***";
         }
-        return email.charAt(0) + "***" + email.substring(atIndex);
+        String domain = email.substring(atIndex + 1);
+        int dotIndex = domain.lastIndexOf('.');
+        String maskedDomain = dotIndex > 1
+            ? domain.charAt(0) + "***" + domain.substring(dotIndex)
+            : "***";
+        if (atIndex <= 1) {
+            return "***@" + maskedDomain;
+        }
+        return email.charAt(0) + "***@" + maskedDomain;
     }
 }
