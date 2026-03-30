@@ -18,10 +18,12 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -93,6 +95,23 @@ class PasswordResetServiceTest {
         passwordResetService.requestReset("maria@test.com");
 
         verify(tokenRepository).deleteByUserIdAndUsedFalse(user.getId());
+    }
+
+    @Test
+    @DisplayName("requestReset não deve propagar exceção quando envio de e-mail falhar")
+    void requestResetDoesNotPropagateEmailException() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("falha@test.com");
+        user.setName("Falha");
+
+        when(userService.findByEmailOptional("falha@test.com")).thenReturn(Optional.of(user));
+        when(tokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        doThrow(new RuntimeException("SMTP connection refused"))
+            .when(emailService).sendPasswordReset(anyString(), anyString(), anyString());
+
+        assertThatCode(() -> passwordResetService.requestReset("falha@test.com"))
+            .doesNotThrowAnyException();
     }
 
     @Test

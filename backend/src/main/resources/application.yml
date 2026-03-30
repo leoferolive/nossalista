@@ -49,11 +49,6 @@ spring:
   thymeleaf:
     check-template-location: false
 
-app:
-  email:
-    from: ${EMAIL_FROM:no-reply@nossalista.leoferolive.com.br}
-    from-name: ${EMAIL_FROM_NAME:NossaLista}
-
 cors:
   allowed-origins: https://nossalista.leoferolive.com.br
 
@@ -76,6 +71,9 @@ vapid:
   subject: ${VAPID_SUBJECT:mailto:nossalista@leoferolive.com.br}
 
 app:
+  email:
+    from: ${EMAIL_FROM:no-reply@nossalista.leoferolive.com.br}
+    from-name: ${EMAIL_FROM_NAME:NossaLista}
   build:
     version: ${APP_VERSION:0.0.1-SNAPSHOT}
     git-sha: ${APP_GIT_SHA:unknown}

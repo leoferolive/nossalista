@@ -72,7 +72,11 @@ public class PasswordResetService {
 
         tokenRepository.save(resetToken);
 
-        emailService.sendPasswordReset(user.getEmail(), user.getName(), tokenValue);
+        try {
+            emailService.sendPasswordReset(user.getEmail(), user.getName(), tokenValue);
+        } catch (Exception e) {
+            log.error("Failed to send password reset email to {}: {}", normalizedEmail, e.getMessage());
+        }
     }
 
     /**
