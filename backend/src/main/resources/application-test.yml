@@ -23,6 +23,11 @@ jwt:
 frontend:
   url: http://localhost:5173
 
+management:
+  health:
+    mail:
+      enabled: false
+
 app:
   email:
     smtp:

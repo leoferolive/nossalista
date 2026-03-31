@@ -244,7 +244,7 @@ jobs:
         run: |
           java -jar target/*.jar --spring.profiles.active=ci > /tmp/backend-smoke.log 2>&1 &
           APP_PID=$!
-          for i in {1..180}; do
+          for i in {1..120}; do
             if curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null 2>&1; then
               echo "Health check passed after ${i}s"
               break
@@ -252,9 +252,9 @@ jobs:
             sleep 1
           done
           if ! curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null 2>&1; then
-            echo "::error::Backend failed to start within 180s"
+            echo "::error::Backend failed to start within 120s"
             echo "--- Smoke log: key events ---"
-            grep -E "Started|ERROR|WARN|Exception|FAILED|Tomcat|template" /tmp/backend-smoke.log | tail -30
+            grep -E "Started|ERROR|WARN|Exception|FAILED|Tomcat|template" /tmp/backend-smoke.log | tail -30 || true
             echo "--- Smoke log: last 30 lines ---"
             tail -30 /tmp/backend-smoke.log
             kill "$APP_PID" 2>/dev/null || true
