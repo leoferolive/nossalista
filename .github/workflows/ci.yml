@@ -190,11 +190,34 @@ jobs:
       - name: Setup Java
         uses: ./.github/actions/setup-java
 
+      - name: Install n1-detector from source
+        working-directory: backend
+        run: |
+          git clone --depth 1 https://github.com/leoferolive/n1-detector.git /tmp/n1-detector
+          cd /tmp/n1-detector/clients/java
+          sed -i 's|<maven.compiler.release>21</maven.compiler.release>|<maven.compiler.release>25</maven.compiler.release>|' pom.xml
+          mvn -B install -DskipTests
+
+      - name: Verify n1-detector installation
+        run: |
+          ls -la ~/.m2/repository/io/n1detector/n1-detector-core/0.1.0/
+          ls -la ~/.m2/repository/io/n1detector/n1-detector-hibernate/0.1.0/
+          ls -la ~/.m2/repository/io/n1detector/n1-detector-junit/0.1.0/
+          ls -la ~/.m2/repository/io/n1detector/n1-detector-cli/0.1.0/
+
       - name: Backend quality gate
         working-directory: backend
         run: ./mvnw -B -Pstrict-quality verify -Ddependency-check.skip=true
 
       # regression-tests step removed — verify without testGroups already runs all tests (no filter)
+
+      - name: Check N+1 query report
+        if: always()
+        working-directory: backend
+        run: |
+          if [ -f target/n1-report.json ]; then
+            java -jar ~/.m2/repository/io/n1detector/n1-detector-cli/0.1.0/n1-detector-cli-0.1.0-jar-with-dependencies.jar check-report target/n1-report.json
+          fi
 
       - name: Prepare base backend coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -238,6 +261,7 @@ jobs:
             backend/target/site/jacoco
             backend/target/dependency-check-report.html
             backend/target/dependency-check-report.json
+            backend/target/n1-report.json
 
       - name: Backend runtime smoke
         working-directory: backend
@@ -343,6 +367,16 @@ jobs:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: nvd-${{ runner.os }}-week-${{ env.NVD_WEEK }}
           restore-keys: nvd-${{ runner.os }}-
+
+      - name: Install n1-detector from source
+        if: needs.changes.outputs.backend == 'true'
+        run: |
+          if [ ! -f ~/.m2/repository/io/n1detector/n1-detector-junit/0.1.0/n1-detector-junit-0.1.0.jar ]; then
+            git clone --depth 1 https://github.com/leoferolive/n1-detector.git /tmp/n1-detector-sec
+            cd /tmp/n1-detector-sec/clients/java
+            sed -i 's|<maven.compiler.release>21</maven.compiler.release>|<maven.compiler.release>25</maven.compiler.release>|' pom.xml
+            mvn -B install -DskipTests
+          fi
 
       - name: Backend dependency check
         if: needs.changes.outputs.backend == 'true'

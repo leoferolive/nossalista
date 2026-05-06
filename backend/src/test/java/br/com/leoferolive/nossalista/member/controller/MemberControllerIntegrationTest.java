@@ -10,9 +10,11 @@ import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
+import io.n1detector.junit.N1DetectorExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -24,6 +26,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.nio.file.Path;
 import java.util.Collections;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -39,6 +42,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RegressionTest
 @DisplayName("MemberController Integration Tests")
 class MemberControllerIntegrationTest {
+
+    @RegisterExtension
+    static N1DetectorExtension n1Detector =
+        N1DetectorExtension.fromConfig(Path.of("src/test/resources/.n1-detector.yml"));
 
     @Autowired
     private WebApplicationContext webApplicationContext;

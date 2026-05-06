@@ -8,15 +8,18 @@ import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
+import io.n1detector.junit.N1DetectorExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,6 +36,10 @@ import static org.junit.jupiter.api.Assertions.*;
 })
 @Transactional
 class ListMemberRepositoryTest {
+
+    @RegisterExtension
+    static N1DetectorExtension n1Detector =
+        N1DetectorExtension.fromConfig(Path.of("src/test/resources/.n1-detector.yml"));
 
     @Autowired
     private ListMemberRepository listMemberRepository;

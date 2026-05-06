@@ -1,0 +1,7 @@
+default:
+  threshold: 15
+  mode: warn
+  strict: false
+report:
+  output: target/n1-report.json
+  pretty: true

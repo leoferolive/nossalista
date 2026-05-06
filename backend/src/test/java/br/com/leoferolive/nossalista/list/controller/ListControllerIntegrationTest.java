@@ -16,10 +16,12 @@ import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.n1detector.junit.N1DetectorExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -35,6 +37,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
+import java.nio.file.Path;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,6 +58,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @RegressionTest
 class ListControllerIntegrationTest {
+
+    @RegisterExtension
+    static N1DetectorExtension n1Detector =
+        N1DetectorExtension.fromConfig(Path.of("src/test/resources/.n1-detector.yml"));
 
     @Autowired
     private WebApplicationContext webApplicationContext;

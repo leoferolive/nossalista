@@ -188,6 +188,26 @@
             <version>1.4.1</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- N+1 Query Detector (test-only) -->
+        <dependency>
+            <groupId>io.n1detector</groupId>
+            <artifactId>n1-detector-core</artifactId>
+            <version>0.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.n1detector</groupId>
+            <artifactId>n1-detector-hibernate</artifactId>
+            <version>0.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.n1detector</groupId>
+            <artifactId>n1-detector-junit</artifactId>
+            <version>0.1.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
