@@ -195,9 +195,8 @@ jobs:
         run: |
           rm -rf /tmp/n1-detector
           git clone --depth 1 https://github.com/leoferolive/n1-detector.git /tmp/n1-detector
-          cd /tmp/n1-detector/clients/java
-          sed -i 's|<maven.compiler.release>21</maven.compiler.release>|<maven.compiler.release>25</maven.compiler.release>|' pom.xml
-          mvn -B install -DskipTests
+          sed -i 's|<maven.compiler.release>21</maven.compiler.release>|<maven.compiler.release>25</maven.compiler.release>|' /tmp/n1-detector/clients/java/pom.xml
+          ./mvnw -B -f /tmp/n1-detector/clients/java/pom.xml install -DskipTests
 
       - name: Verify n1-detector installation
         run: |
@@ -375,9 +374,8 @@ jobs:
           if [ ! -f ~/.m2/repository/io/n1detector/n1-detector-junit/0.1.0/n1-detector-junit-0.1.0.jar ]; then
             rm -rf /tmp/n1-detector-sec
             git clone --depth 1 https://github.com/leoferolive/n1-detector.git /tmp/n1-detector-sec
-            cd /tmp/n1-detector-sec/clients/java
-            sed -i 's|<maven.compiler.release>21</maven.compiler.release>|<maven.compiler.release>25</maven.compiler.release>|' pom.xml
-            mvn -B install -DskipTests
+            sed -i 's|<maven.compiler.release>21</maven.compiler.release>|<maven.compiler.release>25</maven.compiler.release>|' /tmp/n1-detector-sec/clients/java/pom.xml
+            (cd backend && ./mvnw -B -f /tmp/n1-detector-sec/clients/java/pom.xml install -DskipTests)
           fi
 
       - name: Backend dependency check
