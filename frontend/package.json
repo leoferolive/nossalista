@@ -20,7 +20,17 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:pr": "playwright test --grep @pr",
-    "test:e2e:fullstack": "E2E_MODE=fullstack playwright test --grep @fullstack"
+    "test:e2e:fullstack": "E2E_MODE=fullstack playwright test --grep @fullstack",
+    "prepare": "cd .. && husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --max-warnings 0",
+      "prettier --check"
+    ],
+    "*.{css,scss}": [
+      "stylelint"
+    ]
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
@@ -46,7 +56,9 @@
     "eslint": "^9.18.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
+    "husky": "^9.1.7",
     "jsdom": "^26.0.0",
+    "lint-staged": "^15.5.2",
     "postcss": "^8.4.49",
     "prettier": "^3.6.2",
     "stylelint": "^16.24.0",
