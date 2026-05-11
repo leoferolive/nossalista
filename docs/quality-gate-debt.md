@@ -36,7 +36,32 @@ Total no levantamento inicial: **13 violações** distribuídas em **4 arquivos*
 
 ## Frontend (ESLint) — registrada em 2026-05-11
 
-A definir após Tarefa 2.
+Total no levantamento inicial: **66 violações** distribuídas em **43 arquivos**.
+As regras infringidas são `complexity`, `max-lines-per-function` e `max-lines`.
+
+| Domínio | Arquivos afetados |
+|---|---|
+| Mock / config | `mock/mockServer.ts`, `vite.config.ts` |
+| Components | `ActivityTimeline`, `AppHeader`, `AuthLayout`, `CreateListModal`, `DeleteConfirmModal`, `DeleteListModal`, `EditItemModal`, `EditListNameModal`, `InviteModal`, `ItemOptionsMenu`, `ListCard`, `ListItem`, `LoginModal`, `MembersModal`, `ModalShell`, `NotificationBell`, `OnboardingTourOverlay`, `RegisterModal`, `ResponsiveActionMenu`, `ResponsiveSheet`, `UserProfile` |
+| Contexts | `AuthContext`, `NotificationContext`, `OnboardingContext`, `WebSocketContext` |
+| Hooks | `useActivities`, `useItems`, `useLists`, `usePushNotifications` |
+| Pages | `AuthCallback`, `ForgotPassword`, `Home`, `JoinListPage`, `LandingPage`, `ListView`, `Login`, `Profile`, `Register`, `ResetPassword` |
+| Types | `WebSocketMessage` |
+
+**TODO até:** 2026-08-31. A lista canônica de arquivos é o bloco de override
+em `frontend/eslint.config.js` (último bloco do array exportado).
+
+### Plano de refatoração sugerido
+
+- **Modais e páginas grandes** (`ListView.tsx`, `JoinListPage.tsx`, `AppHeader.tsx`):
+  extrair sub-componentes de seção (header, body, footer) e mover lógica de
+  estado para hooks customizados (`useListView`, `useListMembers`, ...).
+- **Hooks de fetch** (`useItems`, `useLists`, `useActivities`): quebrar o
+  `useEffect` central em handlers menores ou usar `useReducer`.
+- **`mock/mockServer.ts`**: já é um arquivo de mock — aceitável crescer,
+  mas pode ser fatiado por domínio (`mock/lists.ts`, `mock/items.ts`, ...).
+- **`WebSocketMessage.ts` (`parseListWebSocketMessage`)**: substituir o
+  `switch` gigante por um mapa `type → parser`.
 
 ---
 
