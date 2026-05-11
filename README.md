@@ -99,6 +99,21 @@ npm install
 npm run dev:mock
 ```
 
+## Quality Gate
+
+Validação unificada de qualidade (lint + types + cobertura + complexidade + ratchet):
+
+```bash
+./scripts/quality.sh --pre-commit   # subset rápido (<= 30s)
+./scripts/quality.sh --full         # tudo + ratchet de baseline
+```
+
+Roda nos dois ecossistemas (Maven + npm), produz uma tabela `OK/regrediu`, e
+falha se alguma métrica regrediu vs. `.quality-baseline/*.json`. Disparado
+automaticamente via Husky no `git commit`. Detalhes em
+[`docs/quality-gate.md`](docs/quality-gate.md). Dívida pré-existente em
+[`docs/quality-gate-debt.md`](docs/quality-gate-debt.md).
+
 ## Qualidade e testes
 
 ## Experiencia de interface

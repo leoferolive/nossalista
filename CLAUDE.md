@@ -29,6 +29,20 @@ Regras obrigatorias:
 - Em caso de duvida, atualizar ao inves de adiar.
 - Nao usar `_bmad-output/**` como fonte canonica operacional do projeto.
 
+## Quality Gate (Obrigatório antes de commit)
+
+Antes de qualquer `git commit`, rode:
+
+    ./scripts/quality.sh --pre-commit
+
+Ele faz lint + typecheck + static analysis nos dois ecossistemas em <= 30s. Se passar, commite. Se falhar, **corrija a regressão antes**, não relaxe thresholds.
+
+Para uma verificação completa (cobertura + ratchet), antes de abrir PR:
+
+    ./scripts/quality.sh --full
+
+Detalhes, thresholds e limitações: `docs/quality-gate.md`. Dívida técnica pré-existente: `docs/quality-gate-debt.md`.
+
 ## Stack Técnico Planejada
 
 | Camada      | Tecnologia                               |

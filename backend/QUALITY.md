@@ -2,6 +2,10 @@
 
 Este documento define os gates obrigatorios de qualidade do backend.
 
+> **Entry-point unificado:** Para rodar o gate dos dois ecossistemas (backend
+> + frontend) de uma vez, com tabela final e ratchet de regressão, use
+> `./scripts/quality.sh --full` na raiz. Documentação: `docs/quality-gate.md`.
+
 ## Gates obrigatorios
 
 - **Checkstyle**: validacao em `verify`.
@@ -43,6 +47,12 @@ Este documento define os gates obrigatorios de qualidade do backend.
 
 - Regras bloqueantes: `backend/pmd/ruleset.xml`
 - Execucao no `verify` via `maven-pmd-plugin`.
+- Inclui gates de complexidade: `CyclomaticComplexity` (<= 10/metodo),
+  `NPathComplexity` (<= 200), `CognitiveComplexity` (<= 15) e tamanho via
+  `NcssCount` (metodo <= 40, classe <= 250).
+- Violacoes pre-existentes em arquivos legados estao listadas em
+  `docs/quality-gate-debt.md` e excluidas via `<exclude-pattern>` no ruleset
+  (com prazo de refatoracao).
 
 ## SpotBugs
 
