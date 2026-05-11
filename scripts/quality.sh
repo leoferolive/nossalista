@@ -26,10 +26,24 @@ USAGE
     esac
 done
 
+FAILED=0
+
 echo "▶ Backend ($MODE)…"
-"$SCRIPT_DIR/quality/run-backend.sh" "$MODE"
+if ! "$SCRIPT_DIR/quality/run-backend.sh" "$MODE"; then
+    # Em pre-commit, falha do runner é fatal imediatamente (gate rápido).
+    # Em full, deixamos o ratchet/render mostrar quais métricas regrediram.
+    if [[ "$MODE" == "pre-commit" ]]; then
+        exit 1
+    fi
+    FAILED=1
+fi
 echo "▶ Frontend ($MODE)…"
-"$SCRIPT_DIR/quality/run-frontend.sh" "$MODE"
+if ! "$SCRIPT_DIR/quality/run-frontend.sh" "$MODE"; then
+    if [[ "$MODE" == "pre-commit" ]]; then
+        exit 1
+    fi
+    FAILED=1
+fi
 
 if [[ "$MODE" == "pre-commit" ]]; then
     echo "✓ pre-commit gate ok"
@@ -37,7 +51,6 @@ if [[ "$MODE" == "pre-commit" ]]; then
 fi
 
 # Full: ratchet
-FAILED=0
 for stack in backend frontend; do
     METRICS="$OUT_DIR/$stack.json"
     BASELINE="$BASELINE_DIR/$stack.json"
