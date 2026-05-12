@@ -32,18 +32,16 @@ PMD_XML="$BACKEND_DIR/target/pmd.xml"
 python3 - <<PY
 import json, sys
 from pathlib import Path
-import xml.etree.ElementTree as ET
+# Usamos defusedxml (alinha com plano 4.1 e com scripts/coverage/compare_backend_coverage.py).
+# Defaults do defusedxml não resolvem DTD externo, então o <!DOCTYPE report ...> do
+# JaCoCo é processado sem tentativa de rede — não precisamos mais do regex de DOCTYPE.
+from defusedxml import ElementTree as ET
 
 jacoco_path = Path("$JACOCO_XML")
 metrics = {}
 
 if jacoco_path.exists():
-    # O report do JaCoCo declara um DTD externo (report.dtd) que ET tenta buscar.
-    # Removemos o DOCTYPE para parsing seguro sem rede.
-    import re
-    raw = jacoco_path.read_text(encoding="utf-8")
-    raw = re.sub(r"<!DOCTYPE[^>]*>", "", raw, count=1)
-    jacoco = ET.fromstring(raw)
+    jacoco = ET.parse(str(jacoco_path)).getroot()
 
     def counter(name):
         el = jacoco.find(f"counter[@type='{name}']")

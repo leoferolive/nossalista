@@ -1,0 +1,10 @@
+# Dependências Python usadas pelos scripts de qualidade e cobertura.
+# Instale localmente com:
+#     pip install -r scripts/requirements.txt
+#
+# defusedxml: parsing XML seguro (jacoco.xml, pmd.xml). Sem ele os scripts caem
+# em xml.etree.ElementTree padrão, vulnerável a DTD externo e entity expansion.
+# Usado por:
+#   - scripts/quality/run-backend.sh (parsing inline de jacoco/pmd)
+#   - scripts/coverage/compare_backend_coverage.py
+defusedxml>=0.7.1
