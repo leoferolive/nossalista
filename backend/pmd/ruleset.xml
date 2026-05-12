@@ -9,14 +9,13 @@
     </description>
 
     <!--
-        Dívida técnica documentada em docs/quality-gate-debt.md.
-        Exclusões temporárias para violações pré-existentes (> 5).
-        TODO: refatorar até 2026-08-31 e remover as exclusões.
+        Dívida técnica documentada em docs/quality-gate-debt.md (TODO até 2026-08-31).
+        Excludes são cirúrgicos: aplicam-se via `violationSuppressRegex` somente à
+        regra que o arquivo viola — outras regras (ex.: EmptyCatchBlock) continuam
+        ativas nos mesmos arquivos. O XSD do PMD 7 não permite <exclude-pattern>
+        aninhado em <rule>, por isso suprimimos pela mensagem da violação
+        (método/classe específicos), o que mantém o escopo cirúrgico esperado.
     -->
-    <exclude-pattern>.*/auth/OAuth2SuccessHandler\.java</exclude-pattern>
-    <exclude-pattern>.*/listitem/service/ListItemService\.java</exclude-pattern>
-    <exclude-pattern>.*/member/service/MemberService\.java</exclude-pattern>
-    <exclude-pattern>.*/websocket/WebSocketSubscriptionInterceptor\.java</exclude-pattern>
 
     <!-- Errorprone (mantém o que já existia) -->
     <rule ref="category/java/errorprone.xml/EmptyCatchBlock"/>
@@ -26,18 +25,37 @@
         <properties>
             <property name="methodReportLevel" value="10"/>
             <property name="classReportLevel"  value="60"/>
+            <!--
+                Supressões cirúrgicas (dívida técnica — docs/quality-gate-debt.md):
+                - OAuth2SuccessHandler.onAuthenticationSuccess
+                - ListItemService (classe) + métodos updateItem / validateDynamicFieldsByType / validateUpdateFields
+                - MemberService.inviteByUsername
+                - WebSocketSubscriptionInterceptor.preSend
+            -->
+            <property name="violationSuppressRegex"
+                      value="The (method 'onAuthenticationSuccess|class 'ListItemService'|method 'validateDynamicFieldsByType|method 'updateItem|method 'validateUpdateFields|method 'inviteByUsername|method 'preSend).*"/>
         </properties>
     </rule>
 
     <rule ref="category/java/design.xml/NPathComplexity">
         <properties>
             <property name="reportLevel" value="200"/>
+            <!-- Dívida técnica: ListItemService.updateItem -->
+            <property name="violationSuppressRegex"
+                      value="The method 'updateItem.*"/>
         </properties>
     </rule>
 
     <rule ref="category/java/design.xml/CognitiveComplexity">
         <properties>
             <property name="reportLevel" value="15"/>
+            <!--
+                Dívida técnica:
+                - ListItemService.{updateItem, validateDynamicFieldsByType, validateUpdateFields}
+                - WebSocketSubscriptionInterceptor.preSend
+            -->
+            <property name="violationSuppressRegex"
+                      value="The method '(updateItem|validateDynamicFieldsByType|validateUpdateFields|preSend).*"/>
         </properties>
     </rule>
 
@@ -52,6 +70,9 @@
         <properties>
             <property name="methodReportLevel" value="40"/>
             <property name="classReportLevel"  value="250"/>
+            <!-- Dívida técnica: ListItemService.updateItem -->
+            <property name="violationSuppressRegex"
+                      value="The method 'updateItem.*"/>
         </properties>
     </rule>
 </ruleset>
