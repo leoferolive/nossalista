@@ -8,7 +8,7 @@
     "dev:mock": "vite --mode mock",
     "build": "tsc && vite build",
     "bundle:check": "node ./scripts/check-bundle-size.mjs",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "stylelint": "stylelint \"src/**/*.{css,scss,sass}\"",

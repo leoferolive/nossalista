@@ -18,7 +18,10 @@ fi
 
 # full
 ESLINT_REPORT="$OUT_DIR/eslint-report.json"
-npx eslint . --ext ts,tsx --format json --output-file "$ESLINT_REPORT" || true
+# ESLint 9 flat config ignora --ext; o pattern de arquivos vem do eslint.config.js
+# (files: ['**/*.{ts,tsx}']). Manter --ext aqui criava divergência silenciosa com
+# `npm run lint`.
+npx eslint . --format json --output-file "$ESLINT_REPORT" || true
 npm run typecheck
 npm run test:coverage
 
