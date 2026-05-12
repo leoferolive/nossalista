@@ -190,6 +190,12 @@ jobs:
       - name: Setup Java
         uses: ./.github/actions/setup-java
 
+      - name: Install Python deps for quality scripts
+        # Centraliza a instalacao de dependencias Python (defusedxml etc.) usadas
+        # por scripts/coverage/*.py e scripts/quality/run-backend.sh. Evita drift
+        # entre scripts/requirements.txt e pip install ad-hoc neste workflow.
+        run: pip install -r scripts/requirements.txt
+
       - name: Backend quality gate
         working-directory: backend
         run: ./mvnw -B -Pstrict-quality verify -Ddependency-check.skip=true
@@ -219,8 +225,8 @@ jobs:
 
       - name: Backend coverage no-decrease
         if: github.event_name == 'pull_request' && steps.base-backend-coverage.outputs.cache-hit == 'true'
+        # defusedxml ja foi instalado no step "Install Python deps for quality scripts".
         run: |
-          pip install defusedxml
           python3 scripts/coverage/compare_backend_coverage.py \
             backend/target/site/jacoco/jacoco.xml \
             /tmp/base-backend-coverage/jacoco.xml
