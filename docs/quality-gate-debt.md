@@ -68,6 +68,9 @@ em `frontend/eslint.config.js` (último bloco do array exportado).
 ## Como reduzir a dívida
 
 1. Refatore o arquivo.
-2. Remova o `<exclude-pattern>` correspondente em `backend/pmd/ruleset.xml`.
+2. Remova a entrada correspondente do `violationSuppressXPath` em
+   `backend/pmd/ruleset.xml` (regra afetada). Os XPath são qualificados por
+   `ClassDeclaration[@SimpleName='...']` para evitar colisão de nomes entre
+   service e controller (ex.: `updateItem`, `inviteByUsername`).
 3. Rode `./scripts/quality.sh --full` e confirme exit 0.
 4. Commit em PR separado, com referência a esta linha da dívida.

@@ -10,11 +10,21 @@
 
     <!--
         Dívida técnica documentada em docs/quality-gate-debt.md (TODO até 2026-08-31).
-        Excludes são cirúrgicos: aplicam-se via `violationSuppressRegex` somente à
-        regra que o arquivo viola — outras regras (ex.: EmptyCatchBlock) continuam
-        ativas nos mesmos arquivos. O XSD do PMD 7 não permite <exclude-pattern>
-        aninhado em <rule>, por isso suprimimos pela mensagem da violação
-        (método/classe específicos), o que mantém o escopo cirúrgico esperado.
+        Excludes são cirúrgicos via `violationSuppressXPath` qualificado por
+        ClassDeclaration. Trocamos a `violationSuppressRegex` anterior (que
+        casava só por nome do método) por XPath ancorado em
+        `ClassDeclaration[@SimpleName='X']`, eliminando a colisão de nomes
+        entre service e controller (ex.: ambos têm `updateItem` e
+        `inviteByUsername` — se um controller crescer, NÃO é silenciado).
+        Notas técnicas (PMD 7):
+          - O nó é `ClassDeclaration` (PMD 6 usava `ClassOrInterfaceDeclaration`).
+          - O XPath é avaliado contra o nó da violação: para regras de classe,
+            o nó é `ClassDeclaration`; para regras de método, é
+            `MethodDeclaration`. Match não-vazio => supressão.
+          - Misturar tipos de nó com `|` parece não funcionar em todas as
+            engines XPath usadas pelo PMD; usamos o idioma
+            `//*[(self::X and ...) or (self::Y and ...)]` para garantir union.
+          - O XSD do PMD 7 não permite <exclude-pattern> aninhado em <rule>.
     -->
 
     <!-- Errorprone (mantém o que já existia) -->
@@ -27,13 +37,15 @@
             <property name="classReportLevel"  value="60"/>
             <!--
                 Supressões cirúrgicas (dívida técnica — docs/quality-gate-debt.md):
+                - ListItemService (classe inteira: cobre a violação de classe E
+                  os 3 métodos `updateItem`, `validateDynamicFieldsByType`,
+                  `validateUpdateFields`)
                 - OAuth2SuccessHandler.onAuthenticationSuccess
-                - ListItemService (classe) + métodos updateItem / validateDynamicFieldsByType / validateUpdateFields
-                - MemberService.inviteByUsername
+                - MemberService.inviteByUsername  (NÃO confunde com
+                  MemberController.inviteByUsername)
                 - WebSocketSubscriptionInterceptor.preSend
             -->
-            <property name="violationSuppressRegex"
-                      value="The (method 'onAuthenticationSuccess|class 'ListItemService'|method 'validateDynamicFieldsByType|method 'updateItem|method 'validateUpdateFields|method 'inviteByUsername|method 'preSend).*"/>
+            <property name="violationSuppressXPath" value="//*[(self::ClassDeclaration and @SimpleName='ListItemService') or (self::MethodDeclaration and @Name='onAuthenticationSuccess' and ancestor::ClassDeclaration[@SimpleName='OAuth2SuccessHandler']) or (self::MethodDeclaration and @Name='inviteByUsername' and ancestor::ClassDeclaration[@SimpleName='MemberService']) or (self::MethodDeclaration and @Name='preSend' and ancestor::ClassDeclaration[@SimpleName='WebSocketSubscriptionInterceptor'])]"/>
         </properties>
     </rule>
 
@@ -41,8 +53,7 @@
         <properties>
             <property name="reportLevel" value="200"/>
             <!-- Dívida técnica: ListItemService.updateItem -->
-            <property name="violationSuppressRegex"
-                      value="The method 'updateItem.*"/>
+            <property name="violationSuppressXPath" value="//MethodDeclaration[@Name='updateItem' and ancestor::ClassDeclaration[@SimpleName='ListItemService']]"/>
         </properties>
     </rule>
 
@@ -54,8 +65,7 @@
                 - ListItemService.{updateItem, validateDynamicFieldsByType, validateUpdateFields}
                 - WebSocketSubscriptionInterceptor.preSend
             -->
-            <property name="violationSuppressRegex"
-                      value="The method '(updateItem|validateDynamicFieldsByType|validateUpdateFields|preSend).*"/>
+            <property name="violationSuppressXPath" value="//MethodDeclaration[(ancestor::ClassDeclaration[@SimpleName='ListItemService'] and (@Name='updateItem' or @Name='validateDynamicFieldsByType' or @Name='validateUpdateFields')) or (@Name='preSend' and ancestor::ClassDeclaration[@SimpleName='WebSocketSubscriptionInterceptor'])]"/>
         </properties>
     </rule>
 
@@ -71,8 +81,7 @@
             <property name="methodReportLevel" value="40"/>
             <property name="classReportLevel"  value="250"/>
             <!-- Dívida técnica: ListItemService.updateItem -->
-            <property name="violationSuppressRegex"
-                      value="The method 'updateItem.*"/>
+            <property name="violationSuppressXPath" value="//MethodDeclaration[@Name='updateItem' and ancestor::ClassDeclaration[@SimpleName='ListItemService']]"/>
         </properties>
     </rule>
 </ruleset>
