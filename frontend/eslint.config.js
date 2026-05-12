@@ -17,18 +17,24 @@ export default defineConfig([
       'react-hooks/exhaustive-deps': 'error',
 
       // Complexidade — gates calibrados para React 19 + TS estrito
-      'complexity': ['error', { max: 10 }],
-      'max-lines-per-function': ['error', {
-        max: 60,
-        skipBlankLines: true,
-        skipComments: true,
-        IIFEs: true,
-      }],
-      'max-lines': ['error', {
-        max: 400,
-        skipBlankLines: true,
-        skipComments: true,
-      }],
+      complexity: ['error', { max: 10 }],
+      'max-lines-per-function': [
+        'error',
+        {
+          max: 60,
+          skipBlankLines: true,
+          skipComments: true,
+          IIFEs: true,
+        },
+      ],
+      'max-lines': [
+        'error',
+        {
+          max: 400,
+          skipBlankLines: true,
+          skipComments: true,
+        },
+      ],
       'max-depth': ['error', 4],
       'max-params': ['error', 5],
     },
@@ -49,7 +55,7 @@ export default defineConfig([
     rules: {
       'max-lines-per-function': 'off',
       'max-lines': 'off',
-      'complexity': 'off',
+      complexity: 'off',
     },
   },
   // ---------------------------------------------------------------------
@@ -103,7 +109,7 @@ export default defineConfig([
       'src/types/WebSocketMessage.ts',
     ],
     rules: {
-      'complexity': 'off',
+      complexity: 'off',
       'max-lines-per-function': 'off',
       'max-lines': 'off',
     },
