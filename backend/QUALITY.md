@@ -11,7 +11,8 @@ Este documento define os gates obrigatorios de qualidade do backend.
 - **Cobertura JaCoCo**: minimo de **80% em linhas** e **75% em branches** no bundle monitorado.
 - **Suíte de regressao**: testes criticos marcados com `@RegressionTest`.
 - **SCA / OWASP Dependency-Check**: dependencias com CVEs bloqueantes falham o pipeline. Em Spring Boot 4, manter o SpringDoc na linha **3.x**; a linha `2.8.x` nao e compativel com Boot 4 e quebra a inicializacao dos testes.
-- **Supressoes de SCA**: registrar em `backend/dependency-check-suppressions.xml` somente com justificativa objetiva, prazo de remocao e referencia ao fornecedor upstream. Atualmente existe uma supressao temporaria para `CVE-2026-29062` porque o Spring Boot `4.0.3` ainda gerencia `tools.jackson.core:3.0.4`.
+- **Supressoes de SCA**: registrar em `backend/dependency-check-suppressions.xml` somente com justificativa objetiva, prazo de remocao e referencia ao fornecedor upstream. Hoje a unica supressao ativa cobre CVEs de dependencias npm transitivas detectadas via `backend/package-lock.json` residual (o backend e Java/Maven; remover o arquivo elimina a supressao). As supressoes de `CVE-2026-29062` (Jackson 3.0.4) e dos CVEs de DOMPurify do swagger-ui foram removidas em 2026-06-03 porque os bumps abaixo as tornaram obsoletas.
+- **Baseline de versoes (bump de seguranca 2026-06-03)**: Spring Boot `4.0.6` (BOM sobe spring-framework `7.0.7`, spring-security `7.0.5`, tomcat `11.0.21`, jackson `3.1.2`); overrides via `<properties>`: tomcat `11.0.22`, netty `4.2.15.Final`, postgresql `42.7.11`; swagger-ui `5.32.6` (DOMPurify `3.4.0`). Esse conjunto zera os CVEs CVSS>=7 do gate sem novas supressoes.
 
 ## Comandos principais
 
