@@ -52,6 +52,24 @@ vapid:
   private-key: ""
   subject: mailto:test@example.com
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+    prometheus:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: nossalista
+
 logging:
   level:
     org.flywaydb: DEBUG
