@@ -8,3 +8,9 @@
 #   - scripts/quality/run-backend.sh (parsing inline de jacoco/pmd)
 #   - scripts/coverage/compare_backend_coverage.py
 defusedxml>=0.7.1
+
+# diff-cover: gate de cobertura DIFERENCIAL (linhas alteradas do PR). Consome
+# backend/target/site/jacoco/jacoco.xml + git diff. Usado pelo step
+# "Diff coverage gate" no .github/workflows/ci.yml (job backend-quality).
+diff-cover>=9
+
