@@ -3,10 +3,13 @@ kind: Service
 metadata:
   name: nossalista
   namespace: nossalista
+  labels:
+    app: nossalista
 spec:
   selector:
     app: nossalista
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 8080
   type: ClusterIP
