@@ -211,9 +211,19 @@
                     <targetJdk>${java.version}</targetJdk>
                     <printFailingErrors>true</printFailingErrors>
                     <failOnViolation>true</failOnViolation>
+                    <format>xml</format>
                     <rulesets>
                         <ruleset>pmd/ruleset.xml</ruleset>
                     </rulesets>
+                    <!--
+                        CPD (duplicação): minimumTokens agressivo (default 100).
+                        IA copia-cola lógica em vez de reusar. Começa em 80; medir e
+                        descer. ignoreIdentifiers/Literals=false torna a detecção mais
+                        estrita.
+                    -->
+                    <minimumTokens>80</minimumTokens>
+                    <ignoreIdentifiers>false</ignoreIdentifiers>
+                    <ignoreLiterals>false</ignoreLiterals>
                 </configuration>
                 <executions>
                     <execution>
@@ -221,6 +231,18 @@
                         <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
+                        </goals>
+                    </execution>
+                    <!--
+                        WARNING inicial: goal `cpd` (report-only) gera target/cpd.xml
+                        sem quebrar o build. Promover a `cpd-check` (blocker) após medir
+                        o baseline e excluir DTOs/mappers que inflam falso-positivo.
+                    -->
+                    <execution>
+                        <id>cpd-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>cpd</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -237,12 +259,44 @@
                     <includeTests>false</includeTests>
                 </configuration>
                 <executions>
+                    <!-- Gate bloqueante existente: SpotBugs puro, High (inalterado). -->
                     <execution>
                         <id>spotbugs-check</id>
                         <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
+                    </execution>
+                    <!--
+                        FindSecBugs (SAST): varredura de segurança em threshold Medium.
+                        WARNING inicial — usa o goal `spotbugs` (report-only, NUNCA falha
+                        o build), não o `check`. Importante: o goal `check` forka o
+                        `spotbugs` e o fork IGNORA config de nível de execução (o
+                        findsecbugs e o nome custom do XML não seriam aplicados). O goal
+                        `spotbugs` roda a análise direto e honra esta config. Gera
+                        spotbugs-security.xml para decoração de PR. Promover a blocker
+                        (goal `check` + findsecbugs em nível de plugin) após triagem.
+                    -->
+                    <execution>
+                        <id>spotbugs-security</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>spotbugs</goal>
+                        </goals>
+                        <configuration>
+                            <effort>Max</effort>
+                            <threshold>Medium</threshold>
+                            <includeTests>false</includeTests>
+                            <xmlOutput>true</xmlOutput>
+                            <spotbugsXmlOutputFilename>spotbugs-security.xml</spotbugsXmlOutputFilename>
+                            <plugins>
+                                <plugin>
+                                    <groupId>com.h3xstream.findsecbugs</groupId>
+                                    <artifactId>findsecbugs-plugin</artifactId>
+                                    <version>1.14.0</version>
+                                </plugin>
+                            </plugins>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -334,6 +388,47 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!--
+                PIT (mutation testing). ADIADO: confirmado INCOMPATÍVEL com Java 25
+                em 2026-06-03 ("Unsupported class file major version 69" — PIT 1.19.1
+                não lê bytecode JDK 25 via ASM; ver hcoles/pitest#1439). O step de CI
+                está desativado (if: false). Plugin mantido aqui (não roda no `verify`
+                — sem <executions>) para reativar quando o PIT suportar JDK 25:
+                bumpar a versão e religar o step. Invocação prevista:
+                `org.pitest:pitest-maven:scmMutationCoverage` só nas classes alteradas.
+                Excludes espelham o JaCoCo.
+            -->
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>1.19.1</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>1.2.3</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <targetClasses>
+                        <param>br.com.leoferolive.nossalista.*</param>
+                    </targetClasses>
+                    <excludedClasses>
+                        <param>br.com.leoferolive.nossalista.websocket.*</param>
+                        <param>br.com.leoferolive.nossalista.*.dto.*Mapper*</param>
+                    </excludedClasses>
+                    <outputFormats>
+                        <param>XML</param>
+                        <param>HTML</param>
+                    </outputFormats>
+                    <timestampedReports>false</timestampedReports>
+                    <historyInputFile>${project.basedir}/target/pit-history/history.bin</historyInputFile>
+                    <historyOutputFile>${project.basedir}/target/pit-history/history.bin</historyOutputFile>
+                    <mutationThreshold>70</mutationThreshold>
+                    <coverageThreshold>0</coverageThreshold>
+                </configuration>
             </plugin>
 
             <plugin>
