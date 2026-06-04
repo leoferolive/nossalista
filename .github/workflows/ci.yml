@@ -194,10 +194,14 @@ jobs:
         uses: ./.github/actions/setup-java
 
       - name: Install Python deps for quality scripts
-        # Centraliza a instalacao de dependencias Python (defusedxml etc.) usadas
-        # por scripts/coverage/*.py e scripts/quality/run-backend.sh. Evita drift
-        # entre scripts/requirements.txt e pip install ad-hoc neste workflow.
-        run: pip install -r scripts/requirements.txt
+        # O runner self-hosted NAO tem `pip` no PATH (apenas `python3`). Usa venv
+        # dedicada (mesmo padrao comprovado do step Semgrep) e chama as ferramentas
+        # pelo caminho absoluto `~/quality-venv/bin/*`. Centraliza defusedxml
+        # (scripts/coverage/*.py) e diff-cover (gate de cobertura diferencial).
+        run: |
+          if [ ! -d ~/quality-venv ]; then python3 -m venv ~/quality-venv; fi
+          ~/quality-venv/bin/pip install --quiet --upgrade pip
+          ~/quality-venv/bin/pip install --quiet -r scripts/requirements.txt
 
       - name: Backend quality gate
         working-directory: backend
@@ -211,19 +215,20 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: git fetch --no-tags origin "$BASE_REF"
 
-      # diff-cover é instalado pelo step "Install Python deps for quality scripts"
-      # (scripts/requirements.txt), acima — mesmo mecanismo do defusedxml.
+      # diff-cover vem da venv ~/quality-venv (step "Install Python deps"), chamado
+      # por caminho absoluto pois `pip`/console-scripts não estão no PATH do runner.
 
       # BLOCKER (peça central): 80% de cobertura APENAS nas linhas alteradas do PR.
       # --src-roots é obrigatório em monorepo p/ casar o jacoco.xml (paths por
-      # package, sem prefixo) com o git diff. if: always() garante que o gate
-      # roda mesmo se o verify falhou antes (sinal de cobertura do diff não se perde).
+      # package, sem prefixo) com o git diff. if: success() de propósito: só roda
+      # se o verify (acima) produziu o jacoco.xml — senão diff-cover falharia por
+      # arquivo ausente, mascarando a causa real (verify quebrado).
       - name: Diff coverage gate (80% on changed lines)
-        if: always() && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          diff-cover backend/target/site/jacoco/jacoco.xml \
+          ~/quality-venv/bin/diff-cover backend/target/site/jacoco/jacoco.xml \
             --compare-branch="origin/$BASE_REF" \
             --src-roots backend/src/main/java \
             --fail-under=80 \
@@ -280,9 +285,10 @@ jobs:
 
       - name: Backend coverage no-decrease
         if: github.event_name == 'pull_request' && steps.base-backend-coverage.outputs.cache-hit == 'true'
-        # defusedxml ja foi instalado no step "Install Python deps for quality scripts".
+        # Usa o python da venv ~/quality-venv (onde defusedxml está instalado); o
+        # `python3` do sistema no runner não enxerga o defusedxml.
         run: |
-          python3 scripts/coverage/compare_backend_coverage.py \
+          ~/quality-venv/bin/python scripts/coverage/compare_backend_coverage.py \
             backend/target/site/jacoco/jacoco.xml \
             /tmp/base-backend-coverage/jacoco.xml
 
@@ -312,7 +318,9 @@ jobs:
         uses: reviewdog/action-setup@v1
 
       - name: Report Checkstyle (inline, só linhas do diff)
-        if: always() && github.event_name == 'pull_request'
+        # hashFiles guard: só roda se o relatório existe (se o verify foi pulado,
+        # o arquivo não existe e o reviewdog imprimiria usage + exit 1).
+        if: always() && github.event_name == 'pull_request' && hashFiles('backend/target/checkstyle-result.xml') != ''
         continue-on-error: true
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -331,7 +339,7 @@ jobs:
           reporter: java-junit
 
       - name: Diff coverage comment
-        if: always() && github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request' && hashFiles('backend/target/diff-cover.md') != ''
         continue-on-error: true
         uses: marocchino/sticky-pull-request-comment@v2
         with:
