@@ -11,10 +11,13 @@ import br.com.leoferolive.nossalista.auth.dto.UserMapper;
 import br.com.leoferolive.nossalista.auth.service.AuthService;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.auth.service.PasswordResetService;
+import br.com.leoferolive.nossalista.common.exception.RateLimitExceededException;
+import br.com.leoferolive.nossalista.config.RateLimiterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
@@ -36,17 +40,27 @@ import java.time.LocalDateTime;
 @Tag(name = "Autenticação", description = "Endpoints de autenticação e registro de usuários")
 public class AuthController {
 
+    private static final int FORGOT_PASSWORD_LIMIT_PER_EMAIL = 5;
+    private static final Duration FORGOT_PASSWORD_WINDOW = Duration.ofHours(1);
+    private static final int FORGOT_PASSWORD_LIMIT_PER_IP = 15;
+    private static final Duration FORGOT_PASSWORD_IP_WINDOW = Duration.ofMinutes(15);
+    private static final int RESET_PASSWORD_LIMIT_PER_IP = 10;
+    private static final Duration RESET_PASSWORD_IP_WINDOW = Duration.ofMinutes(15);
+
     private final AuthService authService;
     private final JwtService jwtService;
     private final UserMapper userMapper;
     private final PasswordResetService passwordResetService;
+    private final RateLimiterService rateLimiterService;
 
     public AuthController(AuthService authService, JwtService jwtService,
-                          UserMapper userMapper, PasswordResetService passwordResetService) {
+                          UserMapper userMapper, PasswordResetService passwordResetService,
+                          RateLimiterService rateLimiterService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
         this.passwordResetService = passwordResetService;
+        this.rateLimiterService = rateLimiterService;
     }
 
     /**
@@ -138,9 +152,23 @@ public class AuthController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Requisição processada (não confirma existência do email)"),
-        @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
+        @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+        @ApiResponse(responseCode = "429", description = "Muitas requisições — tente novamente mais tarde")
     })
-    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+                                               HttpServletRequest httpRequest) {
+        String clientIp = getClientIp(httpRequest);
+        String email = request.email().trim().toLowerCase();
+
+        if (!rateLimiterService.isAllowed("forgot-password:ip:" + clientIp,
+                FORGOT_PASSWORD_LIMIT_PER_IP, FORGOT_PASSWORD_IP_WINDOW)) {
+            throw new RateLimitExceededException("Muitas requisições. Tente novamente mais tarde.");
+        }
+        if (!rateLimiterService.isAllowed("forgot-password:email:" + email,
+                FORGOT_PASSWORD_LIMIT_PER_EMAIL, FORGOT_PASSWORD_WINDOW)) {
+            throw new RateLimitExceededException("Muitas requisições para este email. Tente novamente mais tarde.");
+        }
+
         passwordResetService.requestReset(request.email());
         return ResponseEntity.ok().build();
     }
@@ -158,10 +186,27 @@ public class AuthController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Senha redefinida com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou dados inválidos")
+        @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou dados inválidos"),
+        @ApiResponse(responseCode = "429", description = "Muitas requisições — tente novamente mais tarde")
     })
-    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+                                              HttpServletRequest httpRequest) {
+        String clientIp = getClientIp(httpRequest);
+
+        if (!rateLimiterService.isAllowed("reset-password:ip:" + clientIp,
+                RESET_PASSWORD_LIMIT_PER_IP, RESET_PASSWORD_IP_WINDOW)) {
+            throw new RateLimitExceededException("Muitas tentativas. Tente novamente mais tarde.");
+        }
+
         passwordResetService.resetPassword(request.token(), request.newPassword());
         return ResponseEntity.ok().build();
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

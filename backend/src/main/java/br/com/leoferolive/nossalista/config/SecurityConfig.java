@@ -52,7 +52,7 @@ public class SecurityConfig {
                 // Configurar autorização de endpoints
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints públicos - não requerem autenticação
-                        .requestMatchers("/api/auth/**", "/api/health", "/actuator/health").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/health", "/actuator/health", "/actuator/prometheus").permitAll()
                         // OAuth2 endpoints (Spring Security gerencia automaticamente)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         // Endpoint de join via convite - GET é público (read-only), POST requer auth

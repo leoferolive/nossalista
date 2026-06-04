@@ -6,6 +6,7 @@ import br.com.leoferolive.nossalista.auth.exception.InvalidResetTokenException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
+import br.com.leoferolive.nossalista.common.exception.RateLimitExceededException;
 import br.com.leoferolive.nossalista.common.exception.ValidationException;
 import br.com.leoferolive.nossalista.list.exception.InvalidListTypeException;
 import br.com.leoferolive.nossalista.list.exception.InviteCodeGenerationException;
@@ -119,6 +120,26 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata exceção de rate limit excedido
+     * Retorna 429 Too Many Requests com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimitExceeded(
+        RateLimitExceededException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.TOO_MANY_REQUESTS,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/rate-limit-exceeded"));
+        problem.setTitle("Muitas requisições");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(problem);
     }
 
     /**
