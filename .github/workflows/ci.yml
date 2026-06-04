@@ -349,7 +349,11 @@ jobs:
       - name: Backend runtime smoke
         working-directory: backend
         run: |
-          java -jar target/*.jar --spring.profiles.active=ci > /tmp/backend-smoke.log 2>&1 &
+          # Aponta o jar executável da app explicitamente: target/ também contém
+          # findsecbugs-plugin-*.jar (o spotbugs-maven-plugin copia os detectores
+          # para lá), e `target/*.jar` pegaria o plugin primeiro (sem Main-Class).
+          APP_JAR=$(ls target/nossalista-*.jar | grep -v '\.original$' | head -1)
+          java -jar "$APP_JAR" --spring.profiles.active=ci > /tmp/backend-smoke.log 2>&1 &
           APP_PID=$!
           for i in {1..120}; do
             if curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null 2>&1; then
