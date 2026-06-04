@@ -41,7 +41,9 @@ describe('Register page', () => {
     )
 
   it('envia cadastro e redireciona para landing com login aberto', async () => {
-    const user = userEvent.setup()
+    // delay: null remove o atraso por tecla do userEvent, que somado nos 5 campos
+    // tornava o teste lento e estourava o timeout padrao de 5000ms sob carga (runner ARM64).
+    const user = userEvent.setup({ delay: null })
     vi.mocked(authApi.register).mockResolvedValue({
       id: 'user-1',
       username: 'leo',
@@ -74,10 +76,10 @@ describe('Register page', () => {
       replace: true,
     })
     expect(sessionStorage.getItem('pendingInviteCode')).toBe('code-1')
-  })
+  }, 15000)
 
   it('bloqueia envio quando as senhas nao conferem', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
 
     renderRegister('/register')
 
