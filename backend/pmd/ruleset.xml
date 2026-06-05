@@ -4,8 +4,84 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.github.io/schema/ruleset_2_0_0.xsd">
     <description>
-        Regras de PMD usadas como gate bloqueante no CI para detectar problemas de alto impacto.
+        Regras de PMD usadas como gate bloqueante no CI e no quality gate local.
+        Foca em complexidade e tamanho — outras dimensões ficam em Checkstyle/SpotBugs.
     </description>
 
+    <!--
+        Dívida técnica documentada em docs/quality-gate-debt.md (TODO até 2026-08-31).
+        Excludes são cirúrgicos via `violationSuppressXPath` qualificado por
+        ClassDeclaration. Trocamos a `violationSuppressRegex` anterior (que
+        casava só por nome do método) por XPath ancorado em
+        `ClassDeclaration[@SimpleName='X']`, eliminando a colisão de nomes
+        entre service e controller (ex.: ambos têm `updateItem` e
+        `inviteByUsername` — se um controller crescer, NÃO é silenciado).
+        Notas técnicas (PMD 7):
+          - O nó é `ClassDeclaration` (PMD 6 usava `ClassOrInterfaceDeclaration`).
+          - O XPath é avaliado contra o nó da violação: para regras de classe,
+            o nó é `ClassDeclaration`; para regras de método, é
+            `MethodDeclaration`. Match não-vazio => supressão.
+          - Misturar tipos de nó com `|` parece não funcionar em todas as
+            engines XPath usadas pelo PMD; usamos o idioma
+            `//*[(self::X and ...) or (self::Y and ...)]` para garantir union.
+          - O XSD do PMD 7 não permite <exclude-pattern> aninhado em <rule>.
+    -->
+
+    <!-- Errorprone (mantém o que já existia) -->
     <rule ref="category/java/errorprone.xml/EmptyCatchBlock"/>
+
+    <!-- Complexidade: thresholds calibrados para Java mainstream (não Rails) -->
+    <rule ref="category/java/design.xml/CyclomaticComplexity">
+        <properties>
+            <property name="methodReportLevel" value="10"/>
+            <property name="classReportLevel"  value="60"/>
+            <!--
+                Supressões cirúrgicas (dívida técnica — docs/quality-gate-debt.md):
+                - ListItemService (classe inteira: cobre a violação de classe E
+                  os 3 métodos `updateItem`, `validateDynamicFieldsByType`,
+                  `validateUpdateFields`)
+                - OAuth2SuccessHandler.onAuthenticationSuccess
+                - MemberService.inviteByUsername  (NÃO confunde com
+                  MemberController.inviteByUsername)
+                - WebSocketSubscriptionInterceptor.preSend
+            -->
+            <property name="violationSuppressXPath" value="//*[(self::ClassDeclaration and @SimpleName='ListItemService') or (self::MethodDeclaration and @Name='onAuthenticationSuccess' and ancestor::ClassDeclaration[@SimpleName='OAuth2SuccessHandler']) or (self::MethodDeclaration and @Name='inviteByUsername' and ancestor::ClassDeclaration[@SimpleName='MemberService']) or (self::MethodDeclaration and @Name='preSend' and ancestor::ClassDeclaration[@SimpleName='WebSocketSubscriptionInterceptor'])]"/>
+        </properties>
+    </rule>
+
+    <rule ref="category/java/design.xml/NPathComplexity">
+        <properties>
+            <property name="reportLevel" value="200"/>
+            <!-- Dívida técnica: ListItemService.updateItem -->
+            <property name="violationSuppressXPath" value="//MethodDeclaration[@Name='updateItem' and ancestor::ClassDeclaration[@SimpleName='ListItemService']]"/>
+        </properties>
+    </rule>
+
+    <rule ref="category/java/design.xml/CognitiveComplexity">
+        <properties>
+            <property name="reportLevel" value="15"/>
+            <!--
+                Dívida técnica:
+                - ListItemService.{updateItem, validateDynamicFieldsByType, validateUpdateFields}
+                - WebSocketSubscriptionInterceptor.preSend
+            -->
+            <property name="violationSuppressXPath" value="//MethodDeclaration[(ancestor::ClassDeclaration[@SimpleName='ListItemService'] and (@Name='updateItem' or @Name='validateDynamicFieldsByType' or @Name='validateUpdateFields')) or (@Name='preSend' and ancestor::ClassDeclaration[@SimpleName='WebSocketSubscriptionInterceptor'])]"/>
+        </properties>
+    </rule>
+
+    <!--
+        Tamanho: thresholds calibrados para Java (mais verboso que Ruby).
+        Nota: PMD 7 removeu ExcessiveMethodLength/ExcessiveClassLength;
+        a regra unificada NcssCount cobre ambos os casos via report levels.
+        NCSS conta statements (não linhas brutas), por isso os números são
+        ligeiramente menores que os equivalentes em "linhas".
+    -->
+    <rule ref="category/java/design.xml/NcssCount">
+        <properties>
+            <property name="methodReportLevel" value="40"/>
+            <property name="classReportLevel"  value="250"/>
+            <!-- Dívida técnica: ListItemService.updateItem -->
+            <property name="violationSuppressXPath" value="//MethodDeclaration[@Name='updateItem' and ancestor::ClassDeclaration[@SimpleName='ListItemService']]"/>
+        </properties>
+    </rule>
 </ruleset>

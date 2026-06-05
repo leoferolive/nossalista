@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# Husky pre-commit hook (executado como `sh -e` por husky v9)
+# Não usar bash-isms aqui (sem `set -o pipefail`, `[[ ]]`, etc).
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 1
+
+# 1. lint-staged só nos arquivos alterados (rápido)
+if [ -d "$REPO_ROOT/frontend/node_modules" ]; then
+    (cd frontend && npx lint-staged) || exit 1
+fi
+
+# 2. Quality gate subset (≤ 30s alvo)
+./scripts/quality.sh --pre-commit || exit 1

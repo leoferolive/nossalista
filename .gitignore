@@ -100,3 +100,6 @@ frontend/.env.local
 logs/
 *.log
 .worktrees/
+
+# Quality gate (.quality-baseline/ IS versionado; .quality-output/ NÃO)
+.quality-output/

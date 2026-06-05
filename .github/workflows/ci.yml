@@ -9,7 +9,8 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write   # decoração de PR (reviewdog, comentário de cobertura)
+  checks: write          # dorny/test-reporter cria Check Run
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -186,15 +187,80 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # histórico completo p/ diff-cover e PIT (git diff vs base)
 
       - name: Setup Java
         uses: ./.github/actions/setup-java
+
+      - name: Install Python deps for quality scripts
+        # O runner self-hosted NAO tem `pip` no PATH (apenas `python3`). Usa venv
+        # dedicada (mesmo padrao comprovado do step Semgrep) e chama as ferramentas
+        # pelo caminho absoluto `~/quality-venv/bin/*`. Centraliza defusedxml
+        # (scripts/coverage/*.py) e diff-cover (gate de cobertura diferencial).
+        run: |
+          if [ ! -d ~/quality-venv ]; then python3 -m venv ~/quality-venv; fi
+          ~/quality-venv/bin/pip install --quiet --upgrade pip
+          ~/quality-venv/bin/pip install --quiet -r scripts/requirements.txt
 
       - name: Backend quality gate
         working-directory: backend
         run: ./mvnw -B -Pstrict-quality verify -Ddependency-check.skip=true
 
       # regression-tests step removed — verify without testGroups already runs all tests (no filter)
+
+      - name: Fetch PR base branch
+        if: always() && github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: git fetch --no-tags origin "$BASE_REF"
+
+      # diff-cover vem da venv ~/quality-venv (step "Install Python deps"), chamado
+      # por caminho absoluto pois `pip`/console-scripts não estão no PATH do runner.
+
+      # BLOCKER (peça central): 80% de cobertura APENAS nas linhas alteradas do PR.
+      # --src-roots é obrigatório em monorepo p/ casar o jacoco.xml (paths por
+      # package, sem prefixo) com o git diff. if: success() de propósito: só roda
+      # se o verify (acima) produziu o jacoco.xml — senão diff-cover falharia por
+      # arquivo ausente, mascarando a causa real (verify quebrado).
+      - name: Diff coverage gate (80% on changed lines)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          ~/quality-venv/bin/diff-cover backend/target/site/jacoco/jacoco.xml \
+            --compare-branch="origin/$BASE_REF" \
+            --src-roots backend/src/main/java \
+            --fail-under=80 \
+            --markdown-report backend/target/diff-cover.md
+
+      # ADIADO: mutation testing (PIT) está DESATIVADO (if: false).
+      # Smoke local em 2026-06-03 confirmou incompatibilidade com Java 25:
+      # "Unsupported class file major version 69" (PIT 1.19.1 / ASM não lê
+      # bytecode JDK 25). Ver hcoles/pitest#1439. O plugin permanece declarado no
+      # pom, pronto para reativar: basta trocar `if: false` por
+      # `if: github.event_name == 'pull_request'` quando o PIT suportar JDK 25.
+      - name: Mutation testing (changed classes only)
+        if: false
+        continue-on-error: true
+        working-directory: backend
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          ./mvnw -B org.pitest:pitest-maven:scmMutationCoverage \
+            -DoriginBranch="origin/$BASE_REF" \
+            -DdestinationBranch=HEAD \
+            -Dinclude=ADDED,MODIFIED \
+            -DmutationThreshold=70
+
+      # WARNING: higiene de dependências (declaradas-não-usadas / usadas-não-declaradas).
+      # No Maven, coordenada inexistente já falha o build na resolução.
+      - name: Dependency hygiene
+        continue-on-error: true
+        working-directory: backend
+        run: |
+          ./mvnw -B dependency:analyze -DfailOnWarning=false
+          ./mvnw -B dependency:resolve
 
       - name: Prepare base backend coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -219,9 +285,10 @@ jobs:
 
       - name: Backend coverage no-decrease
         if: github.event_name == 'pull_request' && steps.base-backend-coverage.outputs.cache-hit == 'true'
+        # Usa o python da venv ~/quality-venv (onde defusedxml está instalado); o
+        # `python3` do sistema no runner não enxerga o defusedxml.
         run: |
-          pip install defusedxml
-          python3 scripts/coverage/compare_backend_coverage.py \
+          ~/quality-venv/bin/python scripts/coverage/compare_backend_coverage.py \
             backend/target/site/jacoco/jacoco.xml \
             /tmp/base-backend-coverage/jacoco.xml
 
@@ -238,11 +305,55 @@ jobs:
             backend/target/site/jacoco
             backend/target/dependency-check-report.html
             backend/target/dependency-check-report.json
+            backend/target/pmd.xml
+            backend/target/cpd.xml
+            backend/target/spotbugs-security.xml
+            backend/target/diff-cover.md
+
+      # --- Decoração de PR (não-bloqueante: continue-on-error em tudo) ---
+
+      - name: Setup reviewdog
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: reviewdog/action-setup@v1
+
+      - name: Report Checkstyle (inline, só linhas do diff)
+        # hashFiles guard: só roda se o relatório existe (se o verify foi pulado,
+        # o arquivo não existe e o reviewdog imprimiria usage + exit 1).
+        if: always() && github.event_name == 'pull_request' && hashFiles('backend/target/checkstyle-result.xml') != ''
+        continue-on-error: true
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          reviewdog -f=checkstyle -name=checkstyle \
+            -reporter=github-pr-review -filter-mode=added -fail-level=none \
+            < backend/target/checkstyle-result.xml
+
+      - name: JUnit test report
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: dorny/test-reporter@v1
+        with:
+          name: Backend Tests
+          path: backend/target/surefire-reports/*.xml
+          reporter: java-junit
+
+      - name: Diff coverage comment
+        if: always() && github.event_name == 'pull_request' && hashFiles('backend/target/diff-cover.md') != ''
+        continue-on-error: true
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: backend-diff-coverage
+          path: backend/target/diff-cover.md
 
       - name: Backend runtime smoke
         working-directory: backend
         run: |
-          java -jar target/*.jar --spring.profiles.active=ci > /tmp/backend-smoke.log 2>&1 &
+          # Aponta o jar executável da app explicitamente: target/ também contém
+          # findsecbugs-plugin-*.jar (o spotbugs-maven-plugin copia os detectores
+          # para lá), e `target/*.jar` pegaria o plugin primeiro (sem Main-Class).
+          APP_JAR=$(ls target/nossalista-*.jar | grep -v '\.original$' | head -1)
+          java -jar "$APP_JAR" --spring.profiles.active=ci > /tmp/backend-smoke.log 2>&1 &
           APP_PID=$!
           for i in {1..120}; do
             if curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null 2>&1; then
