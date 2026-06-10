@@ -111,3 +111,27 @@
   sair o **Spring Boot 4.0.7+**, que ja gerenciara o Spring Framework 7.0.8 (ou superior) pelo
   proprio parent. O override de `async-http-client` permanece ate `web-push` atualizar seu
   transitivo.
+
+## D-014 Dimensionamento de startupProbe e rollout timeout para o boot lento no Pi ARM
+
+- **Contexto:** o deploy automatico do release v0.0.49 em dev falhou no job `deploy`
+  (`kubectl rollout status --timeout=300s` deu *timeout*) embora o pod tenha se estabilizado
+  sozinho minutos depois. Investigacao mostrou exit code **143 (SIGTERM)** e 5 restarts no boot.
+- **Causa-raiz:** o boot real do Spring Boot 4 / Java 25 no **Raspberry Pi 4 (ARM)** mede
+  **~180-195s** ("Started NossaListaApplication in 182.032 seconds"). A janela do `startupProbe`
+  era `15 + 10*18 = 195s` (dev) e `60 + 10*18 = 240s` (prod); em dev o container morto rodou
+  **195.224s** antes de ficar Ready e o startupProbe o matou por ~0,2s de margem, gerando
+  crash-loop. Em paralelo, o `kubectl rollout status --timeout=300s` da CI nao cobria boot lento
+  + pull da imagem + ciclos de restart, virando **falso negativo** de deploy.
+- **Decisao:**
+  - `startupProbe.failureThreshold` **18 → 30** em `k8s/dev` e `k8s/prod` (janela de boot:
+    dev **315s**, prod **360s**), dando folga confortavel sobre o pior caso medido (~195s).
+    Prod usa `initialDelaySeconds: 60` porque no rollout o pod novo sobe ao lado do antigo
+    (maxSurge) competindo por CPU no mesmo no, podendo passar de 240s.
+  - `kubectl rollout status --timeout` **300s → 540s** em `deploy-environment.yml` (cobre boot
+    + pull + janela do startupProbe de ambos os ambientes).
+- **Motivo:** o codigo (CVE bump + PRs de QUESTIONS) roda saudavel em runtime (`/actuator/health`
+  = UP em dev com v0.0.49); a falha era de **dimensionamento de infra**, nao regressao. Ajustar
+  probe/timeout para a realidade do hardware ARM elimina o crash-loop e o falso negativo de CI.
+- **Nota:** se o boot for otimizado (ex.: AOT/CDS, lazy init) e cair bem abaixo de 195s, os
+  valores podem ser reduzidos; ate la, manter a folga.

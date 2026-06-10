@@ -46,12 +46,14 @@ spec:
               port: 8080
             # initialDelaySeconds baixo: o startupProbe começa a sondar cedo e o
             # failureThreshold cobre o tempo de boot. Janela total de boot =
-            # initialDelaySeconds + periodSeconds*failureThreshold = 15 + 10*18 = 195s,
-            # folgada para o boot do Spring Boot sem matar a app prematuramente.
+            # initialDelaySeconds + periodSeconds*failureThreshold = 15 + 10*30 = 315s.
+            # O boot real no Raspberry Pi ARM mede ~180-195s ("Started ... in 182s");
+            # com 195s o startupProbe matava o container por uma margem de ~0,2s e
+            # provocava crash-loop. 315s dá folga confortável sobre o pior caso medido.
             initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 18
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

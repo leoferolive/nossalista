@@ -167,7 +167,10 @@ jobs:
         run: |
           APP_NAME="${{ needs.prepare.outputs.app_name }}"
           NAMESPACE="${{ needs.prepare.outputs.namespace }}"
-          kubectl rollout status "deployment/$APP_NAME" -n "$NAMESPACE" --timeout=300s
+          # 540s cobre o boot lento do Spring Boot no Raspberry Pi ARM (~180-195s),
+          # o pull da imagem e a janela do startupProbe (dev 315s / prod 360s).
+          # Com 300s o rollout dava timeout antes do pod ficar Ready (falso negativo).
+          kubectl rollout status "deployment/$APP_NAME" -n "$NAMESPACE" --timeout=540s
 
       - name: Resumo final do deploy
         if: always()

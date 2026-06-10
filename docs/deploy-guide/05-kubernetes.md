@@ -85,7 +85,9 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 18
+            # Janela de boot = initialDelaySeconds + periodSeconds*failureThreshold.
+            # O boot do Spring Boot no Pi ARM mede ~180-195s; 30 da folga (ver D-014).
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -229,7 +231,9 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 18
+            # Janela de boot = initialDelaySeconds + periodSeconds*failureThreshold.
+            # O boot do Spring Boot no Pi ARM mede ~180-195s; 30 da folga (ver D-014).
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

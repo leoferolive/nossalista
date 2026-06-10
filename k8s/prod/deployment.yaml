@@ -44,10 +44,14 @@ spec:
             httpGet:
               path: /actuator/health/liveness
               port: 8080
+            # Janela de boot = initialDelaySeconds + periodSeconds*failureThreshold
+            # = 60 + 10*30 = 360s. O boot no Pi ARM mede ~180-195s e, durante um
+            # rollout, o pod novo sobe ao lado do antigo (maxSurge) competindo por
+            # CPU no mesmo nó, então pode passar de 240s. 360s evita SIGTERM no boot.
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 18
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
