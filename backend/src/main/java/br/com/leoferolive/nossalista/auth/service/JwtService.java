@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.user.domain.User;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,11 +22,58 @@ import java.util.UUID;
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
+    /**
+     * Tamanho mínimo da chave em bytes exigido pelo HMAC-SHA256 (HS256).
+     * RFC 7518 (seção 3.2) exige que a chave tenha pelo menos o tamanho do
+     * output do hash — 256 bits / 32 bytes.
+     */
+    private static final int MIN_SECRET_BYTES = 32;
+
+    /**
+     * Placeholder histórico inseguro que ficava no application.yml.
+     * Mantido aqui apenas para rejeitar explicitamente caso reapareça.
+     */
+    private static final String INSECURE_PLACEHOLDER =
+        "change-this-secret-key-in-production-minimum-32-characters-for-hs256";
+
+    @Value("${jwt.secret:}")
     private String secretKey;
 
     @Value("${jwt.expiration:604800000}") // 7 dias em milissegundos
     private long expirationMs;
+
+    /**
+     * Valida o secret JWT na inicialização da aplicação (fail-fast).
+     *
+     * <p>Lança {@link IllegalStateException} se o secret estiver ausente, for o
+     * placeholder inseguro ou for curto demais para HS256 (&lt; 32 bytes).
+     * Isso impede que a aplicação suba com um secret fraco/default, fechando
+     * a brecha de assinatura de tokens com chave conhecida.</p>
+     *
+     * @throws IllegalStateException se {@code JWT_SECRET} for inválido
+     */
+    @PostConstruct
+    void validateSecret() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                "JWT_SECRET ausente: defina a variável de ambiente JWT_SECRET com "
+                    + "pelo menos " + MIN_SECRET_BYTES + " bytes (256 bits) para HS256. "
+                    + "A aplicação não sobe sem um secret válido.");
+        }
+        if (INSECURE_PLACEHOLDER.equals(secretKey)) {
+            throw new IllegalStateException(
+                "JWT_SECRET está usando o placeholder inseguro de exemplo. "
+                    + "Gere um secret aleatório de pelo menos " + MIN_SECRET_BYTES + " bytes "
+                    + "e configure-o via variável de ambiente JWT_SECRET.");
+        }
+        int secretBytes = secretKey.getBytes(StandardCharsets.UTF_8).length;
+        if (secretBytes < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                "JWT_SECRET curto demais para HS256: " + secretBytes + " bytes "
+                    + "(mínimo " + MIN_SECRET_BYTES + " bytes / 256 bits). "
+                    + "Gere um secret mais longo e configure-o via JWT_SECRET.");
+        }
+    }
 
     /**
      * Obtém a chave de assinatura a partir da chave secreta configurada

@@ -59,7 +59,9 @@ server:
     include-binding-errors: always
 
 jwt:
-  secret: ${JWT_SECRET:change-this-secret-key-in-production-minimum-32-characters-for-hs256}
+  # Sem default: JWT_SECRET é obrigatório. A aplicação falha na inicialização
+  # (JwtService.validateSecret) se ausente, placeholder ou < 32 bytes para HS256.
+  secret: ${JWT_SECRET}
   expiration: 604800000  # 7 dias em milissegundos
 
 frontend:

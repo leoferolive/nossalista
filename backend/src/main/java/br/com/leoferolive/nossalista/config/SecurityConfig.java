@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.auth.OAuth2SuccessHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -21,6 +22,7 @@ import java.util.Arrays;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Value("${cors.allowed-origins}")
@@ -29,15 +31,18 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2SuccessHandler oauth2SuccessHandler;
     private final Http401UnauthorizedEntryPoint unauthorizedEntryPoint;
+    private final Http403AccessDeniedHandler accessDeniedHandler;
 
     public SecurityConfig(
         JwtAuthenticationFilter jwtAuthenticationFilter,
         OAuth2SuccessHandler oauth2SuccessHandler,
-        Http401UnauthorizedEntryPoint unauthorizedEntryPoint
+        Http401UnauthorizedEntryPoint unauthorizedEntryPoint,
+        Http403AccessDeniedHandler accessDeniedHandler
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.oauth2SuccessHandler = oauth2SuccessHandler;
         this.unauthorizedEntryPoint = unauthorizedEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -70,9 +75,11 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // Exception Handling - Retornar 401 RFC 7807 para APIs REST (não redirecionar)
+                // Exception Handling - RFC 7807 para APIs REST (não redirecionar):
+                // 401 quando não autenticado, 403 quando autenticado sem authority
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(unauthorizedEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
                 )
 
                 // Configurar OAuth2 Login

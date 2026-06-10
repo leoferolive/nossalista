@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -436,6 +437,31 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata negação de autorização do Spring Security (ex.: method security via
+     * {@code @PreAuthorize("hasRole('ADMIN')")}).
+     *
+     * <p>{@code AuthorizationDeniedException} (lançada por method security) é
+     * subtipo de {@link AccessDeniedException}, então este handler cobre ambos.
+     * Sem ele, o catch-all converteria a negação em 500. Retorna 403 Forbidden
+     * com RFC 7807 Problem Details.</p>
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDenied(
+        AccessDeniedException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.FORBIDDEN,
+            "Você não tem permissão para acessar este recurso"
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/access-denied"));
+        problem.setTitle("Acesso negado");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
     /**
