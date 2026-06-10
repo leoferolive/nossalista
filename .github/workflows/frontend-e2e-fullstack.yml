@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write # cria issue de alerta em caso de falha (Q14.8)
 
 jobs:
   frontend-e2e-fullstack:
@@ -31,9 +32,27 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Install Playwright browsers
+      # Cache dos browsers do Playwright (espelha a intenção do ci.yml de não
+      # rebaixar o Chromium toda execução). Key derivada do hash do
+      # package-lock.json, que fixa a versão de @playwright/test.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ms-playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: frontend
         run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright OS deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: frontend
+        run: npx playwright install-deps chromium
 
       - name: Build backend
         working-directory: backend
@@ -44,7 +63,12 @@ jobs:
       - name: Run fullstack e2e suite
         run: |
           cd backend
-          java -jar target/*.jar --spring.profiles.active=ci --server.port=8080 > /tmp/backend-e2e.log 2>&1 &
+          # Aponta o jar executável da app explicitamente: target/ também contém
+          # findsecbugs-plugin-*.jar (sem Main-Class), e `target/*.jar` poderia
+          # casar o plugin primeiro. Mesmo padrão do step "Backend runtime smoke"
+          # do ci.yml.
+          APP_JAR=$(ls target/nossalista-*.jar | grep -v '\.original$' | head -1)
+          java -jar "$APP_JAR" --spring.profiles.active=ci --server.port=8080 > /tmp/backend-e2e.log 2>&1 &
           BACKEND_PID=$!
 
           cleanup() {
@@ -73,4 +97,32 @@ jobs:
             frontend/playwright-report
             frontend/test-results
             /tmp/backend-e2e.log
+
+      # Notificação de falha (Q14.8): abre uma issue rotulada quando a suíte
+      # fullstack falha. Funciona em qualquer disparo (workflow_dispatch hoje;
+      # schedule se for reativado no futuro). O cron noturno permanece DESABILITADO
+      # por limite de billing — esta notificação não o reativa.
+      - name: Notificar falha via GitHub issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW: ${{ github.workflow }}
+          REF_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          TITLE="[CI] Falha em Frontend E2E Fullstack (${REF_NAME})"
+          # printf evita a fragilidade de indentação de heredoc dentro do bloco YAML.
+          BODY=$(printf '%s\n' \
+            "A suíte **${WORKFLOW}** falhou." \
+            "" \
+            "- Ref: \`${REF_NAME}\`" \
+            "- Disparo: \`${EVENT_NAME}\`" \
+            "- Run: ${RUN_URL}" \
+            "" \
+            "Verifique os artefatos (\`playwright-report\`, \`test-results\`, \`backend-e2e.log\`) anexados ao run.")
+          # Tenta com a label ci-failure; se ela não existir no repo, recria a issue sem label.
+          gh issue create --title "$TITLE" --body "$BODY" --label "ci-failure" 2>/dev/null \
+            || gh issue create --title "$TITLE" --body "$BODY"
 

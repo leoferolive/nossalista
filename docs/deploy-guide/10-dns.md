@@ -156,6 +156,13 @@ Para acessar o ambiente `nossalista-dev` fora da rede local, usar o `tailscale s
 - Celular conectado na mesma tailnet
 - Ingress dev com host `leo-ubuntu.tail7485fb.ts.net`
 
+> **Host Tailscale como ponto único:** o hostname `leo-ubuntu.tail7485fb.ts.net` é
+> específico do nó/tailnet atual e fica declarado em um único lugar:
+> `k8s/dev/ingress.yaml` (regra `host:`). O fluxo de deploy
+> (`deploy-environment.yml`) aplica os manifestos com `kubectl apply` direto, sem
+> templating/`envsubst`. Se o nó ou a tailnet mudar, edite o host nesse manifesto
+> e atualize as URLs desta seção. Não há substituição automática em tempo de deploy.
+
 ### Configurar proxy HTTPS no Tailscale
 
 ```bash

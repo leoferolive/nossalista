@@ -56,6 +56,17 @@ jobs:
     needs: prepare
     runs-on: [self-hosted, linux, ARM64]
     steps:
+      - name: Validar GHCR_PAT configurado
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GHCR_PAT:-}" ]; then
+            echo "::error::GHCR_PAT não configurado — configure o secret com escopo write:packages para o push ao GHCR."
+            exit 1
+          fi
+          echo "GHCR_PAT presente."
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -75,7 +86,10 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GHCR_PAT || github.token }}
+          # GHCR_PAT obrigatório (validado no step "Validar GHCR_PAT configurado").
+          # Sem fallback p/ github.token: ele não tem write:packages e o push falharia
+          # de forma confusa em vez de parar cedo com mensagem clara.
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Build e push da imagem Docker
         uses: docker/build-push-action@v5
@@ -134,14 +148,14 @@ jobs:
             "$APP_NAME=$IMAGE_URI" \
             -n "$NAMESPACE"
 
-          kubectl set env "deployment/$APP_NAME" \
-            APP_VERSION="${{ inputs.tag }}" \
-            APP_GIT_TAG="${{ inputs.tag }}" \
-            APP_GIT_SHA="${{ needs.prepare.outputs.resolved_sha }}" \
-            APP_BUILD_TIME="${{ needs.prepare.outputs.build_time }}" \
-            APP_ENVIRONMENT="${{ inputs.environment }}" \
-            -n "$NAMESPACE"
-
+          # NOTA (fonte única da metadata de build): APP_VERSION / APP_GIT_TAG /
+          # APP_GIT_SHA / APP_BUILD_TIME / APP_ENVIRONMENT NÃO são injetados aqui
+          # via `kubectl set env`. Esses valores já são embutidos como ENV na
+          # imagem (Dockerfile stage 3, a partir dos build-args do job
+          # build-and-push). Reinjetá-los no Deployment criava dupla fonte de
+          # verdade e podia mascarar o que de fato roda no container. A imagem é a
+          # fonte canônica; as annotations abaixo seguem como registro auditável
+          # do deploy.
           kubectl annotate "deployment/$APP_NAME" \
             "deploy.nossalista/tag=${{ inputs.tag }}" \
             "deploy.nossalista/sha=${{ needs.prepare.outputs.resolved_sha }}" \
