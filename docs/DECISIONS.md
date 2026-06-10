@@ -47,7 +47,21 @@
   - `@fullstack`: navegador + backend real, execucao noturna e manual.
 - **Motivo:** elevar cobertura de fluxo critico sem estourar tempo de feedback no PR.
 
-## D-010 OAuth2 one-time code (Q2.3)
+## D-010 Resolucao de IP do cliente para rate limiting
+
+- **Decisao:** resolver o IP do cliente (chave de rate limit em `forgot-password`, `reset-password`
+  e `resend-verification`) via o header confiavel `CF-Connecting-IP`, com fallback seguro para
+  `request.getRemoteAddr()`. O header `X-Forwarded-For` deixa de ser usado por ser controlado pelo
+  cliente. A logica fica isolada no componente `ClientIpResolver` (`config/`).
+- **Motivo:** na topologia `Cloudflare Tunnel -> Traefik -> pod`, o `CF-Connecting-IP` e reescrito
+  pela borda Cloudflare e nao e spoofavel pelo cliente. Confiar no primeiro valor do
+  `X-Forwarded-For` permitia a um atacante enviar um valor diferente por requisicao e ganhar um
+  bucket novo a cada chamada, anulando o rate limit por IP (em especial no brute-force de token do
+  `reset-password`, que so tem bucket por IP). Nao adotamos `server.forward-headers-strategy` porque
+  ela deriva o IP do proprio `X-Forwarded-For`/`Forwarded`, reintroduzindo o vetor de spoof nesta
+  topologia.
+
+## D-011 OAuth2 one-time code (Q2.3)
 
 - **Decisao:** o sucesso do OAuth2 nao coloca mais o JWT na URL de redirect. Emite
   um one-time code opaco (SecureRandom + Base64 URL-safe, 256 bits) guardado
@@ -59,7 +73,7 @@
   header `Referer`, mantendo a arquitetura `localStorage` existente (sem migrar
   para cookie HttpOnly — decisao Q2.9 do dono).
 
-## D-011 Verificacao de e-mail no registro (Q2.7)
+## D-012 Verificacao de e-mail no registro (Q2.7)
 
 - **Decisao:** registro email/senha gera token de verificacao
   (`email_verification_tokens`, validade 24h) e envia e-mail

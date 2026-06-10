@@ -16,6 +16,7 @@ import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.auth.service.OAuthExchangeService;
 import br.com.leoferolive.nossalista.auth.service.PasswordResetService;
 import br.com.leoferolive.nossalista.common.exception.RateLimitExceededException;
+import br.com.leoferolive.nossalista.config.ClientIpResolver;
 import br.com.leoferolive.nossalista.config.RateLimiterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -61,12 +62,14 @@ public class AuthController {
     private final UserMapper userMapper;
     private final PasswordResetService passwordResetService;
     private final RateLimiterService rateLimiterService;
+    private final ClientIpResolver clientIpResolver;
     private final OAuthExchangeService oauthExchangeService;
     private final EmailVerificationService emailVerificationService;
 
     public AuthController(AuthService authService, JwtService jwtService,
                           UserMapper userMapper, PasswordResetService passwordResetService,
                           RateLimiterService rateLimiterService,
+                          ClientIpResolver clientIpResolver,
                           OAuthExchangeService oauthExchangeService,
                           EmailVerificationService emailVerificationService) {
         this.authService = authService;
@@ -74,6 +77,7 @@ public class AuthController {
         this.userMapper = userMapper;
         this.passwordResetService = passwordResetService;
         this.rateLimiterService = rateLimiterService;
+        this.clientIpResolver = clientIpResolver;
         this.oauthExchangeService = oauthExchangeService;
         this.emailVerificationService = emailVerificationService;
     }
@@ -197,7 +201,7 @@ public class AuthController {
     })
     public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
                                                HttpServletRequest httpRequest) {
-        String clientIp = getClientIp(httpRequest);
+        String clientIp = clientIpResolver.resolve(httpRequest);
         String email = request.email().trim().toLowerCase();
 
         if (!rateLimiterService.isAllowed("forgot-password:ip:" + clientIp,
@@ -231,7 +235,7 @@ public class AuthController {
     })
     public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request,
                                               HttpServletRequest httpRequest) {
-        String clientIp = getClientIp(httpRequest);
+        String clientIp = clientIpResolver.resolve(httpRequest);
 
         if (!rateLimiterService.isAllowed("reset-password:ip:" + clientIp,
                 RESET_PASSWORD_LIMIT_PER_IP, RESET_PASSWORD_IP_WINDOW)) {
@@ -281,7 +285,7 @@ public class AuthController {
     })
     public ResponseEntity<Void> resendVerification(@Valid @RequestBody ResendVerificationRequest request,
                                                    HttpServletRequest httpRequest) {
-        String clientIp = getClientIp(httpRequest);
+        String clientIp = clientIpResolver.resolve(httpRequest);
         String email = request.email().trim().toLowerCase();
 
         if (!rateLimiterService.isAllowed("resend-verification:ip:" + clientIp,
@@ -295,13 +299,5 @@ public class AuthController {
 
         emailVerificationService.resendVerification(request.email());
         return ResponseEntity.ok().build();
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 }

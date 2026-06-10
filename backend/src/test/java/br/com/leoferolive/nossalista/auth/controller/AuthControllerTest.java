@@ -524,6 +524,83 @@ class AuthControllerTest {
     }
 
     @Test
+    void shouldNotBypassResetPasswordIpRateLimitBySpoofingXForwardedFor() throws Exception {
+        Map<String, String> request = new HashMap<>();
+        request.put("token", "invalid-token");
+        request.put("newPassword", "newpass123");
+
+        // Atacante tenta burlar o rate limit por IP rotacionando X-Forwarded-For a cada request.
+        // Como o XFF é controlado pelo cliente, ele NÃO deve render um bucket novo.
+        // 10 requisições permitidas por IP / 15 min — todas vêm do mesmo remoteAddr (127.0.0.1).
+        for (int i = 0; i < 10; i++) {
+            mockMvc.perform(post("/api/auth/reset-password")
+                    .header("X-Forwarded-For", "9.9.9." + i)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+        }
+
+        // A 11ª requisição, ainda com um XFF "novo", deve ser bloqueada — o spoof não criou bucket novo.
+        mockMvc.perform(post("/api/auth/reset-password")
+                .header("X-Forwarded-For", "9.9.9.99")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void shouldNotBypassForgotPasswordIpRateLimitBySpoofingXForwardedFor() throws Exception {
+        Map<String, String> request = new HashMap<>();
+
+        // 15 requisições permitidas por IP / 15 min. Emails distintos para não bater no limite por email.
+        // X-Forwarded-For rotacionado a cada request não deve conceder buckets novos.
+        for (int i = 0; i < 15; i++) {
+            request.put("email", "spoof" + i + "@example.com");
+            mockMvc.perform(post("/api/auth/forgot-password")
+                    .header("X-Forwarded-For", "8.8.8." + i)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+        }
+
+        // 16ª requisição com XFF "novo" deve ser bloqueada por IP.
+        request.put("email", "spoof16@example.com");
+        mockMvc.perform(post("/api/auth/forgot-password")
+                .header("X-Forwarded-For", "8.8.8.99")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void shouldKeyResetPasswordRateLimitByTrustedCloudflareHeader() throws Exception {
+        Map<String, String> request = new HashMap<>();
+        request.put("token", "invalid-token");
+        request.put("newPassword", "newpass123");
+
+        // Esgota o bucket do IP confiável "203.0.113.10" (10 por IP / 15 min).
+        for (int i = 0; i < 10; i++) {
+            mockMvc.perform(post("/api/auth/reset-password")
+                    .header("CF-Connecting-IP", "203.0.113.10")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+        }
+
+        // Mesmo IP confiável -> bloqueado.
+        mockMvc.perform(post("/api/auth/reset-password")
+                .header("CF-Connecting-IP", "203.0.113.10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isTooManyRequests());
+
+        // Um IP confiável legítimo e diferente ainda tem bucket próprio (não é bloqueado por throttle).
+        mockMvc.perform(post("/api/auth/reset-password")
+                .header("CF-Connecting-IP", "203.0.113.20")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void shouldNormalizeEmailToLowercase() throws Exception {
         // Given - create user with lowercase email
         User user = new User();
