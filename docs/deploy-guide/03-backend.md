@@ -72,8 +72,10 @@ spring:
       ddl-auto: validate
 
 # JWT e OAuth também devem vir de env vars
+# JWT_SECRET é OBRIGATÓRIO e sem default: a aplicação faz fail-fast na
+# inicialização (JwtService) se ausente, placeholder ou < 32 bytes (HS256).
 jwt:
-  secret: ${JWT_SECRET:dev-secret-change-in-production-min-32-chars}
+  secret: ${JWT_SECRET}
 
 spring.security.oauth2.client.registration.google:
   client-id: ${GOOGLE_CLIENT_ID:}
@@ -84,7 +86,7 @@ frontend:
   url: ${FRONTEND_URL:http://localhost:8080}
 ```
 
-**Benefício:** A mesma imagem Docker funciona em dev local (sem env vars → usa defaults), em K8s dev (env vars do secret `nossalista-secrets`) e em K8s prod.
+**Benefício:** A mesma imagem Docker funciona em dev local, em K8s dev (env vars do secret `nossalista-secrets`) e em K8s prod. **Atenção:** mesmo em dev local é preciso definir `JWT_SECRET` (mín. 32 bytes) — não há mais default; sem ele a aplicação não sobe.
 
 ## 3. application-prod.yml — Verificar Consistência
 

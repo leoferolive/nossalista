@@ -78,9 +78,18 @@ Com o frontend embutido, o fluxo é:
    http://localhost:8080/api/auth/google/callback?code=... (dev)
    ou
    https://nossalista.leoferolive.com.br/api/auth/google/callback?code=... (prod)
-5. Spring Boot troca o code por token
-6. Backend redireciona para FRONTEND_URL do ambiente
+5. Spring Boot troca o code do Google por um JWT (OAuth2SuccessHandler)
+6. Q2.3: o backend NÃO coloca o JWT na URL. Ele emite um one-time code opaco
+   (single-use, TTL 60s) e redireciona para FRONTEND_URL/auth/callback?code=<code>
+7. O frontend (AuthCallback) troca o one-time code pelo JWT em
+   POST /api/auth/oauth/exchange e persiste o token no localStorage
+8. Usuários Google entram com email_verified=true (e-mail já verificado pelo provedor)
 ```
+
+> **Por que one-time code (Q2.3):** colocar o JWT direto na URL
+> (`?token=<JWT>`) vazaria o token em histórico do browser, logs de servidor e
+> header `Referer`. O one-time code é trocado por POST e descartado após o
+> primeiro uso, sem mudar a arquitetura `localStorage` do frontend (decisão Q2.9).
 
 ---
 

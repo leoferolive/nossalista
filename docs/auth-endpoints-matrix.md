@@ -6,9 +6,14 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 
 | Metodo | Endpoint | Origem no frontend | Contrato |
 | --- | --- | --- | --- |
-| `POST` | `/api/auth/register` | fluxo de cadastro | Publico |
-| `POST` | `/api/auth/login` | `frontend/src/components/LoginModal.tsx` (landing), `frontend/src/pages/Login.tsx` (legado sem rota principal) | Publico |
+| `POST` | `/api/auth/register` | fluxo de cadastro | Publico; dispara e-mail de verificacao (Q2.7) |
+| `POST` | `/api/auth/login` | `frontend/src/components/LoginModal.tsx` (landing), `frontend/src/pages/Login.tsx` (legado sem rota principal) | Publico; 403 quando `app.auth.require-email-verification=true` e conta EMAIL nao-verificada (Q2.7) |
 | `GET` | `/api/auth/google` | `frontend/src/components/LoginModal.tsx`, `frontend/src/pages/Login.tsx` (legado), `frontend/src/pages/JoinListPage.tsx` | Publico |
+| `POST` | `/api/auth/oauth/exchange` | `frontend/src/pages/AuthCallback.tsx` via `authApi.exchangeOAuthCode` | Publico; troca one-time code OAuth2 por JWT (Q2.3). Code single-use, TTL 60s |
+| `GET` | `/api/auth/verify-email?token=` | `frontend/src/pages/VerifyEmail.tsx` via `authApi.verifyEmail` | Publico; consome token e marca `email_verified=true` (Q2.7) |
+| `POST` | `/api/auth/resend-verification` | `authApi.resendVerification` | Publico; rate-limited (3/email/h, 10/IP/15min); sempre 200 (anti-enumeracao) (Q2.7) |
+| `POST` | `/api/auth/forgot-password` | `authApi.forgotPassword` | Publico; rate-limited; sempre 200 (anti-enumeracao) |
+| `POST` | `/api/auth/reset-password` | `authApi.resetPassword` | Publico; rate-limited; consome token de reset |
 | `GET` | `/api/health` | monitoramento e auditoria operacional | Publico; retorna status, version, gitSha, gitTag, environment e buildTime |
 | `GET` | `/api/lists/join/{inviteCode}` | `frontend/src/api/listsApi.ts` | Publico para preview do convite |
 | `WS` | `/ws/**` | `frontend/src/api/websocket.ts` | Handshake permissivo; autenticacao exigida no CONNECT STOMP |
@@ -46,3 +51,5 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 - `POST /api/auth/login` e `GET /api/users/me` retornam `onboardingCompletedAt` para controlar o tutorial de primeiro login por conta.
 - O frontend centraliza auth na landing (`/`) e usa query params (`auth`, `registered`, `email`) para abrir modal e prefill.
 - `/login` permanece apenas para compatibilidade de links antigos e redireciona para `/?auth=login`.
+- **OAuth2 one-time code (Q2.3):** o `OAuth2SuccessHandler` NAO coloca mais o JWT na URL. Ele emite um code opaco (SecureRandom + Base64 URL-safe, 256 bits) guardado in-memory (`OAuthCodeStore`, TTL 60s, single-use, varrido pelo scheduler de cleanup) e redireciona para `/auth/callback?code=<code>`. O frontend troca o code pelo JWT em `POST /api/auth/oauth/exchange` e persiste no `localStorage` como antes (arquitetura `localStorage` mantida — decisao Q2.9). Isso evita vazamento do JWT em historico do browser, logs e header `Referer`.
+- **Verificacao de e-mail (Q2.7):** registro EMAIL gera token (`email_verification_tokens`, validade 24h) e envia e-mail (`email-verification.html`). `GET /api/auth/verify-email?token=` consome o token e marca `email_verified=true`. Usuarios Google entram com `email_verified=true` (e-mail ja verificado pelo provedor). O enforcement estrito de login e configuravel via `app.auth.require-email-verification` (default `false`) — ver `docs/ENVIRONMENT.md` e `docs/DECISIONS.md`.

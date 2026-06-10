@@ -1,8 +1,11 @@
 package br.com.leoferolive.nossalista.config;
 
 import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
+import br.com.leoferolive.nossalista.auth.exception.EmailNotVerifiedException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
+import br.com.leoferolive.nossalista.auth.exception.InvalidOAuthCodeException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidResetTokenException;
+import br.com.leoferolive.nossalista.auth.exception.InvalidVerificationTokenException;
 import br.com.leoferolive.nossalista.auth.exception.UsernameAlreadyExistsException;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
@@ -24,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -120,6 +124,66 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata exceção de one-time code OAuth2 inválido/expirado/já usado (Q2.3)
+     * Retorna 400 Bad Request com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(InvalidOAuthCodeException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidOAuthCode(
+        InvalidOAuthCodeException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/invalid-oauth-code"));
+        problem.setTitle("Código de login inválido");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata exceção de token de verificação de e-mail inválido/expirado (Q2.7)
+     * Retorna 400 Bad Request com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(InvalidVerificationTokenException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidVerificationToken(
+        InvalidVerificationTokenException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/invalid-verification-token"));
+        problem.setTitle("Token de verificação inválido");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata exceção de login bloqueado por e-mail não verificado (Q2.7)
+     * Retorna 403 Forbidden com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ProblemDetail> handleEmailNotVerified(
+        EmailNotVerifiedException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.FORBIDDEN,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/email-not-verified"));
+        problem.setTitle("E-mail não verificado");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
     /**
@@ -436,6 +500,31 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata negação de autorização do Spring Security (ex.: method security via
+     * {@code @PreAuthorize("hasRole('ADMIN')")}).
+     *
+     * <p>{@code AuthorizationDeniedException} (lançada por method security) é
+     * subtipo de {@link AccessDeniedException}, então este handler cobre ambos.
+     * Sem ele, o catch-all converteria a negação em 500. Retorna 403 Forbidden
+     * com RFC 7807 Problem Details.</p>
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDenied(
+        AccessDeniedException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.FORBIDDEN,
+            "Você não tem permissão para acessar este recurso"
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/access-denied"));
+        problem.setTitle("Acesso negado");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
     /**

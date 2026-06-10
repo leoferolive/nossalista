@@ -340,6 +340,45 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
       return
     }
 
+    // Q2.3: troca do one-time code OAuth2 pelo JWT (mock).
+    if (pathname === '/api/auth/oauth/exchange' && method === 'POST') {
+      const body = (await readJsonBody(req)) as { code?: string }
+      if (!body.code) {
+        json(res, 400, {
+          type: 'https://api.nossalista.com/docs/errors/invalid-oauth-code',
+          title: 'Código de login inválido',
+          status: 400,
+          detail: 'Código de login inválido ou expirado',
+        })
+        return
+      }
+      json(res, 200, {
+        id: demoUser.id,
+        username: demoUser.username,
+        email: demoUser.email,
+        name: demoUser.name,
+        avatarUrl: demoUser.avatarUrl,
+        onboardingCompletedAt: demoUser.onboardingCompletedAt,
+        authProvider: 'GOOGLE',
+        createdAt: now(),
+        token: `mock-token-${demoUser.id}`,
+        expiresAt: now(),
+      })
+      return
+    }
+
+    // Q2.7: verificação de e-mail (mock).
+    if (pathname === '/api/auth/verify-email' && method === 'GET') {
+      json(res, 200, null)
+      return
+    }
+
+    // Q2.7: reenvio de verificação (mock; sempre 200 anti-enumeração).
+    if (pathname === '/api/auth/resend-verification' && method === 'POST') {
+      json(res, 200, null)
+      return
+    }
+
     if (pathname === '/api/users/me' && method === 'GET') {
       json(res, 200, {
         id: currentUser.id,

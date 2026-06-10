@@ -2,6 +2,7 @@ package br.com.leoferolive.nossalista.auth;
 
 import br.com.leoferolive.nossalista.auth.service.AuthService;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
+import br.com.leoferolive.nossalista.auth.service.OAuthCodeStore;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -27,7 +28,8 @@ import java.util.Map;
  * - Criar novo usuário se não existir
  * - Atualizar informações se usuário já existir
  * - Gerar JWT token
- * - Redirecionar para frontend com token
+ * - Emitir um one-time code (Q2.3) e redirecionar para o frontend com {@code ?code=}
+ *   (nunca o JWT na URL, para não vazar em histórico/logs/Referer)
  */
 @Component
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
@@ -35,14 +37,17 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final AuthService authService;
+    private final OAuthCodeStore oauthCodeStore;
 
     @Value("${frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
-    public OAuth2SuccessHandler(UserRepository userRepository, JwtService jwtService, AuthService authService) {
+    public OAuth2SuccessHandler(UserRepository userRepository, JwtService jwtService,
+                                AuthService authService, OAuthCodeStore oauthCodeStore) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.authService = authService;
+        this.oauthCodeStore = oauthCodeStore;
     }
 
     /**
@@ -78,35 +83,58 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         // Normalizar email (trim + toLowerCase)
         final String email = rawEmail.trim().toLowerCase();
 
-        // Buscar ou criar usuário
-        User user = userRepository.findByEmail(email)
-            .orElseGet(() -> createGoogleUser(email, name, picture));
+        // Buscar ou criar usuário. createGoogleUser já persiste com todos os
+        // campos corretos (incl. emailVerified=true), então a reconciliação
+        // abaixo só se aplica a contas pré-existentes para não salvar duas vezes.
+        User existing = userRepository.findByEmail(email).orElse(null);
+        User user = existing != null ? existing : createGoogleUser(email, name, picture);
 
-        // Atualizar informações se mudaram (apenas usuários GOOGLE)
-        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
-            boolean updated = false;
-
-            if (name != null && !name.equals(user.getName())) {
-                user.setName(name);
-                updated = true;
-            }
-
-            if (picture != null && !picture.equals(user.getAvatarUrl())) {
-                user.setAvatarUrl(picture);
-                updated = true;
-            }
-
-            if (updated) {
-                userRepository.save(user);
-            }
+        // Atualizar informações se mudaram (apenas usuários GOOGLE pré-existentes)
+        if (existing != null && user.getAuthProvider() == AuthProvider.GOOGLE) {
+            reconcileExistingGoogleUser(user, name, picture);
         }
 
         // Gerar JWT token
         String token = jwtService.generateToken(user);
 
-        // Redirecionar para frontend com token
-        String redirectUrl = String.format("%s/auth/callback?token=%s", frontendUrl, token);
+        // Q2.3: NÃO colocar o JWT na URL. Emite um one-time code e redireciona o
+        // frontend apenas com ?code=, que será trocado pelo JWT via POST seguro.
+        String code = oauthCodeStore.issue(token);
+        String redirectUrl = String.format("%s/auth/callback?code=%s", frontendUrl, code);
         response.sendRedirect(redirectUrl);
+    }
+
+    /**
+     * Reconcilia dados de um usuário GOOGLE pré-existente com o que o provedor
+     * informou agora (nome, avatar) e garante {@code emailVerified=true}. Só
+     * persiste se algo mudou, evitando writes redundantes.
+     *
+     * @param user    usuário pré-existente (provider GOOGLE)
+     * @param name    nome atual vindo do Google
+     * @param picture avatar atual vindo do Google
+     */
+    private void reconcileExistingGoogleUser(User user, String name, String picture) {
+        boolean updated = false;
+
+        if (name != null && !name.equals(user.getName())) {
+            user.setName(name);
+            updated = true;
+        }
+
+        if (picture != null && !picture.equals(user.getAvatarUrl())) {
+            user.setAvatarUrl(picture);
+            updated = true;
+        }
+
+        // O Google já verificou o e-mail; garante o flag para contas pré-existentes.
+        if (!user.isEmailVerified()) {
+            user.setEmailVerified(true);
+            updated = true;
+        }
+
+        if (updated) {
+            userRepository.save(user);
+        }
     }
 
     /**
@@ -128,6 +156,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         newUser.setAuthProvider(AuthProvider.GOOGLE);
         newUser.setPassword(null); // OAuth2 não tem senha
         newUser.setRole(Role.USER);
+        newUser.setEmailVerified(true); // Google já verifica o e-mail do usuário
 
         return userRepository.save(newUser);
     }

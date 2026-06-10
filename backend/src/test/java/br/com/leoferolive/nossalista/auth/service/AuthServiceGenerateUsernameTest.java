@@ -32,11 +32,14 @@ class AuthServiceGenerateUsernameTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private EmailVerificationService emailVerificationService;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userService, userRepository, passwordEncoder);
+        authService = new AuthService(userService, userRepository, passwordEncoder, emailVerificationService);
     }
 
     @Test

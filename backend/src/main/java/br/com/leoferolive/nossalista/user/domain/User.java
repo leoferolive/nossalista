@@ -45,6 +45,9 @@ public class User {
     @Column(name = "role", nullable = false, length = 20)
     private Role role;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -136,6 +139,14 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 
     public LocalDateTime getCreatedAt() {

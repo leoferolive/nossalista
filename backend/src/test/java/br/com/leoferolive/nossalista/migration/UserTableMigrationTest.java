@@ -32,10 +32,11 @@ class UserTableMigrationTest {
         List<String> columns = jdbcTemplate.queryForList(query, String.class);
 
         // Verify all expected columns exist (order may vary in H2)
+        // email_verified adicionado em V10 (Q2.7 — verificação de e-mail).
         assertThat(columns)
             .containsExactlyInAnyOrder("id", "username", "email", "password", "name",
                            "avatar_url", "auth_provider", "role", "created_at", "updated_at",
-                           "onboarding_completed_at");
+                           "onboarding_completed_at", "email_verified");
     }
 
     @Test
