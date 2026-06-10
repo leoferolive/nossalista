@@ -31,14 +31,25 @@ RUN mvn clean package -DskipTests -B
 # Stage 3: Runtime mínimo
 FROM eclipse-temurin:25-jre
 WORKDIR /app
+# eclipse-temurin:25-jre é baseado em Ubuntu e NÃO inclui curl/wget por padrão.
+# Instala curl minimamente para o HEALTHCHECK.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 RUN groupadd -r appuser && useradd -r -g appuser appuser
-COPY --from=backend-builder /app/target/*.jar app.jar
+COPY --from=backend-builder /app/app.jar app.jar
 USER appuser
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
+
+> No `backend-builder`, o jar executável é selecionado explicitamente antes do
+> `COPY` (`ls target/nossalista-*.jar | grep -v '\.original$'` → copiado para
+> `/app/app.jar`), evitando o glob `target/*.jar` que pegaria o `*.jar.original`
+> (jar plano sem launcher) ou jars de plugins copiados para `target/`. Mesma
+> lógica do smoke test do CI.
 
 ## 3. Decisões do Dockerfile
 
@@ -47,9 +58,11 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 | `node:22-alpine` | Alpine minimiza tamanho; Node 22 é LTS atual |
 | `maven:3.9-eclipse-temurin-25` | Maven 3.9 + JDK 25 compatível com Spring Boot 4 |
 | `eclipse-temurin:25-jre` | JRE (não JDK) minimiza imagem final |
+| `apt-get install curl` (final) | Base Ubuntu não traz curl/wget; sem isso o `HEALTHCHECK` falharia sempre. Instalação mínima (`--no-install-recommends` + limpeza de `apt` lists) |
 | `RUN mvn dependency:go-offline` | Cache de dependências Maven em camada separada |
+| Seleção explícita do jar (`/app/app.jar`) | Evita o glob `target/*.jar` (pega `.original` ou jars de plugins); alinhado ao smoke test do CI |
 | `USER appuser` | Segurança: não rodar como root |
-| `HEALTHCHECK` | K8s usa `/actuator/health` para liveness, mas Docker usa este |
+| `HEALTHCHECK` | K8s usa `/actuator/health` para liveness, mas Docker usa este (via curl) |
 
 ## 4. Verificação do Build Local
 

@@ -3,15 +3,20 @@ services:
     image: postgres:17-alpine
     container_name: nossalista-postgres
     environment:
-      POSTGRES_DB: nossalista_dev
-      POSTGRES_USER: nossalista
-      POSTGRES_PASSWORD: nossalista
+      POSTGRES_DB: ${POSTGRES_DB:-nossalista_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-nossalista}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nossalista}
     ports:
-      - "5432:5432"
+      # Bind apenas no loopback: o Postgres de dev nao fica exposto na rede.
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nossalista -d nossalista_dev"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-nossalista} -d ${POSTGRES_DB:-nossalista_dev}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
