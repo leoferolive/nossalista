@@ -151,7 +151,8 @@ release.yml (workflow_run após CI) ─── cria tag + release
                                     └─ gh workflow run deploy-on-tag.yml (GHCR_PAT)
                                                           ↓
 deploy-branch-dev.yml (manual) ───────────────────────────┤
-deploy-prod.yml (manual + aprovação) ─────────────────────┘
+deploy-prod.yml (manual + aprovação) ─────────────────────┤
+rollback-prod.yml (manual + aprovação) ───────────────────┘
                                               ↓
                                    deploy-environment.yml
                                    (build Docker + push GHCR + kubectl)
@@ -162,9 +163,14 @@ deploy-prod.yml (manual + aprovação) ─────────────�
 - **`deploy-on-tag.yml`**: Deploya tag estável em dev — chamado pelo release automático ou manualmente.
 - **`deploy-branch-dev.yml`**: Para branches/SHAs não mergeados. Cria RC tag rastreável, deploya em dev, limpa imagens RC antigas do `nossalista-dev` (mantém 3).
 - **`deploy-prod.yml`**: Deploy em prod com aprovação manual (environment `production`).
+- **`rollback-prod.yml`**: Rollback de prod para uma tag semântica estável **anterior**. Espelha o `deploy-prod.yml` (valida tag `vX.Y.Z`, aprovação manual no environment `production`, reusa `deploy-environment.yml`) — só muda a semântica: reimplanta uma release já conhecida. Compartilha o `concurrency: group: deploy-prod` com o `deploy-prod.yml` para serializar operações em prod.
+- **`frontend-e2e-fullstack.yml`**: Suíte E2E navegador↔backend, hoje só por `workflow_dispatch` (cron noturno DESABILITADO por billing — ver abaixo). Possui notificação de falha (`if: failure()` abre issue rotulada `ci-failure` via `gh`) e cache dos browsers Playwright (`~/.cache/ms-playwright`, key por hash do `package-lock.json`).
 - Todos os workflows de deploy publicam um `Deployment Summary` ao final da execução no GitHub Actions.
 - `tag` em workflows de deploy significa **tag da imagem implantada**; `ref` significa **ref do checkout que será reconstruído**.
 - O workflow de deploy aplica manifestos estruturais e depois força a imagem do Deployment com `kubectl set image`, além de registrar `deploy.nossalista/tag` e `deploy.nossalista/sha` via annotations.
+- **`GHCR_PAT` é obrigatório** no `deploy-environment.yml`: o job `build-and-push` falha cedo, com mensagem clara, se o secret estiver vazio (sem fallback silencioso para `github.token`, que não tem `write:packages`).
+- **Fonte única da metadata de build**: `APP_VERSION`/`APP_GIT_TAG`/`APP_GIT_SHA`/`APP_BUILD_TIME`/`APP_ENVIRONMENT` são embutidos como `ENV` na **imagem** (Dockerfile, a partir dos build-args). O deploy **não** reinjeta via `kubectl set env` (eliminada a dupla fonte de verdade) e os manifestos **não** declaram placeholders estáticos dessa metadata. As annotations `deploy.nossalista/tag|sha` seguem como registro auditável.
+- **Profile Spring por ambiente**: ambos os Deployments setam `SPRING_PROFILES_ACTIVE` declarativamente (`dev` em `k8s/dev`, `prod` em `k8s/prod`).
 
 ### Fluxo de Deploy (Regra Obrigatória)
 
@@ -181,6 +187,10 @@ workflow_dispatch → deploy-branch-dev.yml (para branches/SHAs não mergeados)
 workflow_dispatch → deploy-prod.yml (com tag semântica estável)
               └─ aprovação manual (environment: production)
               └─ deploy-environment(prod, v1.2.x)
+
+workflow_dispatch → rollback-prod.yml (com tag semântica estável ANTERIOR)
+              └─ aprovação manual (environment: production)
+              └─ deploy-environment(prod, v1.2.x-anterior)  # reimplanta release conhecida
 ```
 
 **Regras:**
@@ -215,6 +225,9 @@ gh workflow run deploy-branch-dev.yml --field ref=<branch-ou-sha>
 
 # Deploy em produção (requer tag semântica e aprovação manual)
 gh workflow run deploy-prod.yml --field tag=v1.2.3
+
+# Rollback de produção para uma release estável anterior (aprovação manual)
+gh workflow run rollback-prod.yml --field tag=v1.2.2
 ```
 
 ## Decisões Arquiteturais Importantes

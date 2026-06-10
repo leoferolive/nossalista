@@ -25,18 +25,14 @@ spec:
             - secretRef:
                 name: nossalista-secrets
           env:
+            # Ativa o profile Spring `prod` (application-prod.yml).
             - name: SPRING_PROFILES_ACTIVE
               value: prod
-            - name: APP_ENVIRONMENT
-              value: prod
-            - name: APP_VERSION
-              value: bootstrap
-            - name: APP_GIT_TAG
-              value: bootstrap
-            - name: APP_GIT_SHA
-              value: unknown
-            - name: APP_BUILD_TIME
-              value: unknown
+            # Metadata de build (APP_VERSION / APP_GIT_TAG / APP_GIT_SHA /
+            # APP_BUILD_TIME / APP_ENVIRONMENT) NÃO é declarada aqui: já vem
+            # embutida como ENV na imagem (Dockerfile), que é a fonte única.
+            # Placeholders estáticos (bootstrap/unknown) só mascarariam o valor
+            # real do container.
           resources:
             requests:
               memory: "256Mi"

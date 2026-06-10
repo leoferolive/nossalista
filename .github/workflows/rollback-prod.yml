@@ -1,0 +1,91 @@
+name: Rollback Prod (nossalista.leoferolive.com.br)
+
+# Rollback de produção: reimplanta uma tag semântica estável ANTERIOR já
+# publicada. Espelha deploy-prod.yml (validação de tag + aprovação manual no
+# environment `production` + reuso de deploy-environment.yml). A diferença é
+# apenas semântica: a `tag` informada deve ser uma release estável conhecida
+# para a qual se deseja voltar.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag semântica estável ANTERIOR para reimplantar em produção, ex: v1.2.3"
+        required: true
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  validate-tag:
+    runs-on: [self-hosted, linux, ARM64]
+    steps:
+      - name: Validar formato da tag estável
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag inválida: '$TAG'. Rollback de produção aceita apenas tag estável vX.Y.Z."
+            exit 1
+          fi
+
+      - name: Checkout para validação da tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Garantir que a tag existe no repositório
+        run: |
+          set -euo pipefail
+          git rev-parse "${{ inputs.tag }}^{commit}" >/dev/null
+
+  approve:
+    needs: validate-tag
+    runs-on: [self-hosted, linux, ARM64]
+    environment: production
+    steps:
+      - name: Aguardando aprovação manual do rollback
+        run: echo "Aprovação recebida para rollback da produção para a tag ${{ inputs.tag }}."
+
+  deploy:
+    needs: approve
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: prod
+      tag: ${{ inputs.tag }} # tag da imagem reimplantada (rollback)
+      ref: ${{ inputs.tag }} # ref do checkout: a própria tag estável
+    secrets: inherit
+
+  summary:
+    needs: [validate-tag, approve, deploy]
+    if: always()
+    runs-on: [self-hosted, linux, ARM64]
+    steps:
+      - name: Resumo do workflow
+        run: |
+          DEPLOY_RESULT="${{ needs.deploy.result }}"
+          RESULT_LABEL="SUCESSO"
+          if [ "$DEPLOY_RESULT" != "success" ]; then
+            RESULT_LABEL="FALHA"
+          fi
+
+          echo "Resultado: $RESULT_LABEL"
+          echo "Operação: rollback"
+          echo "Environment: prod"
+          echo "Tag version reimplantada: ${{ inputs.tag }}"
+          echo "Ref usado: ${{ inputs.tag }}"
+          echo "Status deploy: $DEPLOY_RESULT"
+
+          {
+            echo "## Deployment Summary (Rollback)"
+            echo
+            echo "| Campo | Valor |"
+            echo "| --- | --- |"
+            echo "| Resultado | $RESULT_LABEL |"
+            echo "| Operação | rollback |"
+            echo "| Environment | prod |"
+            echo "| Tag version reimplantada | \`${{ inputs.tag }}\` |"
+            echo "| Ref usado | \`${{ inputs.tag }}\` |"
+            echo "| Status deploy | \`$DEPLOY_RESULT\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -18,6 +18,10 @@ spec:
                 name: nossalista-dev
                 port:
                   number: 80
+    # Host Tailscale do nó k3s (acesso fora da rede local via `tailscale serve`).
+    # Valor específico do ambiente atual e único ponto a editar caso o nó/tailnet
+    # mude. Não há templating no fluxo de deploy (deploy-environment.yml usa
+    # `kubectl apply` direto). Documentado em docs/deploy-guide/10-dns.md.
     - host: leo-ubuntu.tail7485fb.ts.net
       http:
         paths:

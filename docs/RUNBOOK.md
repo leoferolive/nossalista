@@ -103,7 +103,7 @@ Regras operacionais:
 - `deploy-branch-dev.yml`: `ref` obrigatorio (sem default)
 - `deploy-on-tag.yml`: valida formato de tag estavel e alinhamento entre `tag` e `ref`
 - `deploy-prod.yml`: aceita apenas tag estavel existente no repositorio
-- `frontend-e2e-fullstack.yml`: executa E2E navegador↔backend diariamente (`06:00 UTC`, equivalente a `03:00 America/Sao_Paulo`) e tambem manualmente via `workflow_dispatch`
+- `frontend-e2e-fullstack.yml`: executa E2E navegador↔backend **manualmente** via `workflow_dispatch`. O cron noturno (`06:00 UTC`) está **DESABILITADO** (comentado) por limite de billing do GitHub Actions — não reativar sem decisão sobre billing. O workflow já possui notificação de falha (`if: failure()` abre issue `ci-failure` via `gh`) e cache dos browsers Playwright, prontos para quando rodar (manual hoje, ou cron se reativado)
 - `deploy-environment.yml` aplica o manifesto e depois executa `kubectl set image`, entao `latest` e `:dev` nao sao mais fonte de verdade do que ficou implantado
 - `tag` = tag da imagem implantada; `ref` = ref do checkout usado para build
 - ao final de cada workflow de deploy, consultar a aba **Summary** do GitHub Actions para ver `Tag version deployada`, imagem, SHA e ambiente efetivos
@@ -116,7 +116,19 @@ Regras operacionais:
 gh release list --limit 20
 ```
 
-2. Reexecutar `deploy-prod.yml` apontando `tag` para a release estavel desejada.
+2. Disparar o workflow dedicado de rollback apontando `tag` para a release estavel
+   desejada (requer aprovação manual no environment `production`):
+
+```bash
+gh workflow run rollback-prod.yml --field tag=v1.2.2
+```
+
+   > `rollback-prod.yml` espelha o `deploy-prod.yml` (mesma validação de tag, mesma
+   > aprovação e reuso do `deploy-environment.yml`); só muda a semântica para
+   > reimplantar uma release já conhecida. Compartilha o `concurrency group`
+   > `deploy-prod`, então não roda em paralelo com um deploy de prod.
+   > Alternativa: reexecutar o próprio `deploy-prod.yml` com a tag anterior produz
+   > o mesmo efeito.
 
 3. Verificar rollout:
 
