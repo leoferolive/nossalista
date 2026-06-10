@@ -18,7 +18,8 @@ Docker multi-stage build:
     - mvn clean package -DskipTests
 
   Stage 3 (eclipse-temurin:25-jre):
-    - COPY --from=stage2 target/*.jar app.jar
+    - apt-get install curl (para o HEALTHCHECK; base não traz curl/wget)
+    - COPY --from=stage2 /app/app.jar app.jar  (jar executável selecionado no builder)
     - USER appuser
     - ENTRYPOINT ["java", "-jar", "app.jar"]
 ```

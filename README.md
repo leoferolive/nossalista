@@ -72,6 +72,20 @@ nossalista/
 docker compose up -d
 ```
 
+O `docker-compose.yml` sobe apenas o Postgres de desenvolvimento. As credenciais sao
+parametrizadas por variaveis de ambiente com defaults de dev, e a porta e exposta
+somente no loopback (`127.0.0.1:5432`), nunca em toda a rede:
+
+| Variavel            | Default (dev)   |
+| ------------------- | --------------- |
+| `POSTGRES_DB`       | `nossalista_dev` |
+| `POSTGRES_USER`     | `nossalista`     |
+| `POSTGRES_PASSWORD` | `nossalista`     |
+
+`docker compose up` funciona sem configuracao adicional (usa os defaults). Para
+sobrescrever, copie `.env.example` para `.env` na raiz e ajuste os valores — o
+`.env` e ignorado pelo git e pelo build da imagem (`.dockerignore`).
+
 ### 2) Backend
 
 ```bash
