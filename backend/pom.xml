@@ -30,6 +30,10 @@
         <!-- swagger-ui 5.32.6 bundles DOMPurify 3.4.0 (>= 3.2.7), corrige CVE-2026-41238/41239/41240 -->
         <swagger.ui.version>5.32.6</swagger.ui.version>
         <!-- Override de versões para CVEs além do que o Spring Boot 4.0.6 BOM gerencia -->
+        <!-- spring-framework 7.0.8 corrige CVE-2026-41842/41850/41851 (DoS recursos estáticos
+             MVC/WebFlux). Override sobre o gerenciado pelo Boot 4.0.6; remover quando sair
+             Spring Boot 4.0.7+. Ver docs/quality-gate-debt.md. -->
+        <spring-framework.version>7.0.8</spring-framework.version>
         <postgresql.version>42.7.11</postgresql.version>
         <tomcat.version>11.0.22</tomcat.version>
         <netty.version>4.2.15.Final</netty.version>
@@ -50,6 +54,15 @@
                 <groupId>org.bitbucket.b_c</groupId>
                 <artifactId>jose4j</artifactId>
                 <version>0.9.6</version>
+            </dependency>
+            <!-- Override transitive async-http-client de web-push:5.1.1 (vinha em 2.10.4)
+                 para 2.15.0 e corrigir CVE-2026-45300 (vazamento de Cookie em redirect
+                 cross-origin). Mesmo major 2.x, compatível. O async-http-client-netty-utils
+                 acompanha como dependência interna do próprio async-http-client. -->
+            <dependency>
+                <groupId>org.asynchttpclient</groupId>
+                <artifactId>async-http-client</artifactId>
+                <version>2.15.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -91,3 +91,23 @@
   (default desligado).
 - **Motivo:** reduzir abuso/contas falsas sem quebrar contas legadas nem usuarios
   OAuth no momento da implantacao.
+
+## D-013 Override de versoes para remediar CVEs (gate security-and-compliance)
+
+- **Decisao:** sobrescrever no `backend/pom.xml` duas versoes geridas/transitivas para
+  passar o gate OWASP dependency-check (`failBuildOnCVSS=7`), mantendo o
+  `spring-boot-starter-parent` em **4.0.6** (nao existe Spring Boot 4.0.7 no Maven Central):
+  - `spring-framework` fixado em **7.0.8** via propriedade `<spring-framework.version>7.0.8</spring-framework.version>`
+    (mecanismo oficial do BOM do Spring Boot para sobrescrever a versao do Spring Framework
+    sem trocar o parent). Corrige **CVE-2026-41842**, **CVE-2026-41850** e **CVE-2026-41851**
+    (CVSS 7.5, DoS em recursos estaticos do MVC/WebFlux). 7.0.8 e patch — nao quebra contrato.
+  - `async-http-client` fixado em **2.15.0** via `<dependencyManagement>` (vinha em **2.10.4**
+    como transitivo de `nl.martijndwars:web-push:5.1.1`). Corrige **CVE-2026-45300**
+    (vazamento de Cookie em redirect cross-origin). Mesmo major 2.x, compativel; o
+    `async-http-client-netty-utils` acompanha para 2.15.0 automaticamente.
+- **Motivo:** desbloquear o gate de seguranca sem subir o parent (indisponivel) nem trocar o
+  major do async-http-client.
+- **Nota de manutencao:** o override de `spring-framework.version` deve ser **removido** quando
+  sair o **Spring Boot 4.0.7+**, que ja gerenciara o Spring Framework 7.0.8 (ou superior) pelo
+  proprio parent. O override de `async-http-client` permanece ate `web-push` atualizar seu
+  transitivo.

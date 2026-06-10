@@ -65,6 +65,26 @@ em `frontend/eslint.config.js` (último bloco do array exportado).
 
 ---
 
+## Remediação de CVEs — gate `security-and-compliance` (registrada em 2026-06-10)
+
+Override de versões no `backend/pom.xml` para passar o OWASP dependency-check
+(`failBuildOnCVSS=7`), mantendo o `spring-boot-starter-parent` em **4.0.6**
+(não existe Spring Boot 4.0.7 no Maven Central). Detalhe arquitetural em
+`docs/DECISIONS.md` (D-013).
+
+| Dependência | De → Para | Mecanismo no pom | CVEs corrigidas | Quando remover override |
+|---|---|---|---|---|
+| `org.springframework:spring-framework` | gerido pelo Boot 4.0.6 → **7.0.8** | propriedade `<spring-framework.version>` | CVE-2026-41842, CVE-2026-41850, CVE-2026-41851 (CVSS 7.5, DoS recursos estáticos MVC/WebFlux) | ao sair **Spring Boot 4.0.7+** (passará a gerir 7.0.8+ pelo parent) |
+| `org.asynchttpclient:async-http-client` | 2.10.4 (transitivo de `web-push:5.1.1`) → **2.15.0** | `<dependencyManagement>` | CVE-2026-45300 (vazamento de Cookie em redirect cross-origin) | quando `web-push` atualizar o transitivo |
+
+- `async-http-client-netty-utils` sobe para 2.15.0 automaticamente (dependência
+  interna do próprio `async-http-client`) — não precisa de entrada extra.
+- Validação: `dependency:tree` confirma `spring-core:7.0.8`, `spring-web:7.0.8`,
+  `async-http-client:2.15.0` e `async-http-client-netty-utils:2.15.0`, sem
+  resíduo asynchttpclient em 2.10.4. Suite de testes: 484 testes, 0 falhas.
+
+---
+
 ## Como reduzir a dívida
 
 1. Refatore o arquivo.
