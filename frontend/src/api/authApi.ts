@@ -1,6 +1,5 @@
-import { AxiosError } from 'axios'
 import client from './client'
-import { ProblemDetail } from '../types/ProblemDetail'
+import { handleApiError } from './handleApiError'
 
 export interface RegisterPayload {
   email: string
@@ -19,50 +18,46 @@ export interface RegisterResponse {
   createdAt: string
 }
 
-function extractProblemMessage(error: unknown, fallback: string) {
-  const axiosError = error as AxiosError<ProblemDetail>
-  return axiosError.response?.data?.detail || fallback
-}
-
 export const authApi = {
+  /**
+   * Cria uma nova conta de usuário (email/senha)
+   * @param payload - Dados de cadastro
+   * @returns Promise com os dados do usuário criado
+   * @throws ApiError com status code (ex.: 409 email/username em uso, 400 dados invalidos)
+   */
   async register(payload: RegisterPayload): Promise<RegisterResponse> {
     try {
       const response = await client.post<RegisterResponse>('/api/auth/register', payload)
       return response.data
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
-
-      if (axiosError.response?.status === 409) {
-        throw new Error(extractProblemMessage(error, 'Email ou username ja estao em uso.'))
-      }
-
-      if (axiosError.response?.status === 400) {
-        throw new Error(
-          extractProblemMessage(error, 'Confira os dados informados e tente novamente.')
-        )
-      }
-
-      throw new Error(extractProblemMessage(error, 'Nao foi possivel criar sua conta agora.'))
+      handleApiError(error)
     }
   },
 
+  /**
+   * Solicita o envio de um link de redefinição de senha
+   * @param email - Email da conta
+   * @throws ApiError com status code em caso de falha
+   */
   async forgotPassword(email: string): Promise<void> {
-    await client.post('/api/auth/forgot-password', { email })
+    try {
+      await client.post('/api/auth/forgot-password', { email })
+    } catch (error) {
+      handleApiError(error)
+    }
   },
 
+  /**
+   * Redefine a senha a partir de um token de redefinição
+   * @param token - Token recebido por email
+   * @param newPassword - Nova senha
+   * @throws ApiError com status code (ex.: 400 token invalido ou expirado)
+   */
   async resetPassword(token: string, newPassword: string): Promise<void> {
     try {
       await client.post('/api/auth/reset-password', { token, newPassword })
     } catch (error) {
-      const axiosError = error as AxiosError<ProblemDetail>
-
-      if (axiosError.response?.status === 400) {
-        throw new Error(
-          extractProblemMessage(error, 'Token invalido ou expirado. Solicite um novo link.')
-        )
-      }
-
-      throw new Error(extractProblemMessage(error, 'Nao foi possivel redefinir sua senha agora.'))
+      handleApiError(error)
     }
   },
 }
