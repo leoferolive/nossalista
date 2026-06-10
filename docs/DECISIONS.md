@@ -46,3 +46,34 @@
   - `@pr`: deterministic/mockado, bloqueante no PR.
   - `@fullstack`: navegador + backend real, execucao noturna e manual.
 - **Motivo:** elevar cobertura de fluxo critico sem estourar tempo de feedback no PR.
+
+## D-010 OAuth2 one-time code (Q2.3)
+
+- **Decisao:** o sucesso do OAuth2 nao coloca mais o JWT na URL de redirect. Emite
+  um one-time code opaco (SecureRandom + Base64 URL-safe, 256 bits) guardado
+  in-memory (`OAuthCodeStore`, TTL 60s, single-use, varrido pelo scheduler de
+  cleanup existente) e redireciona para `/auth/callback?code=<code>`. O frontend
+  troca o code pelo JWT em `POST /api/auth/oauth/exchange` e persiste no
+  `localStorage`.
+- **Motivo:** evitar vazamento do JWT em historico do browser, logs de servidor e
+  header `Referer`, mantendo a arquitetura `localStorage` existente (sem migrar
+  para cookie HttpOnly — decisao Q2.9 do dono).
+
+## D-011 Verificacao de e-mail no registro (Q2.7)
+
+- **Decisao:** registro email/senha gera token de verificacao
+  (`email_verification_tokens`, validade 24h) e envia e-mail
+  (`email-verification.html`). `GET /api/auth/verify-email?token=` consome o token
+  e marca `users.email_verified=true`; `POST /api/auth/resend-verification`
+  reenvia (rate-limited). Usuarios Google entram com `email_verified=true`.
+- **Decisao (gating configuravel):** o enforcement estrito de login e controlado
+  por `app.auth.require-email-verification` (default `false`). Desligado: status
+  registrado, login nao bloqueado. Ligado: login de conta EMAIL nao-verificada
+  retorna 403. O gating nunca afeta contas Google.
+- **DECISAO PENDENTE DO DONO:** ligar o enforcement estrito so e seguro apos
+  decidir o tratamento das contas pre-existentes (todas com `email_verified=false`
+  apos a migracao `V10`): backfill explicito para `true`, campanha de
+  reverificacao, ou manter desligado. A migracao **nao** desloga ninguem por si so
+  (default desligado).
+- **Motivo:** reduzir abuso/contas falsas sem quebrar contas legadas nem usuarios
+  OAuth no momento da implantacao.

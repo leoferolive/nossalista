@@ -1,19 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import client from '../api/client'
+import { authApi } from '../api/authApi'
 import { listsApi } from '../api/listsApi'
 import { ApiError } from '../types/ApiError'
 import { clearStoredSession, persistAuthToken } from '../auth/session'
-
-interface CurrentUserResponse {
-  id: string
-  username: string
-  email: string
-  name: string
-  avatarUrl?: string
-  onboardingCompletedAt?: string | null
-}
 
 export function AuthCallback() {
   const navigate = useNavigate()
@@ -28,25 +19,28 @@ export function AuthCallback() {
     }
     hasProcessedRef.current = true
 
-    const token = searchParams.get('token')
+    // Q2.3: o OAuth2 não devolve mais o JWT na URL. Recebemos um one-time code
+    // opaco e o trocamos pelo JWT via endpoint seguro.
+    const code = searchParams.get('code')
 
-    if (!token) {
-      setError('Token de autenticação não encontrado.')
+    if (!code) {
+      setError('Código de autenticação não encontrado.')
       return
     }
 
     const finishAuth = async () => {
       try {
-        // Necessário para que o interceptor envie Authorization ao carregar o perfil.
-        persistAuthToken(token)
+        const data = await authApi.exchangeOAuthCode(code)
 
-        const { data } = await client.get<CurrentUserResponse>('/api/users/me')
-        login(token, {
+        // Persiste o JWT no localStorage (mesma arquitetura de hoje; WebSocket lê daqui).
+        persistAuthToken(data.token)
+
+        login(data.token, {
           id: data.id,
           username: data.username,
           email: data.email,
           displayName: data.name,
-          avatarUrl: data.avatarUrl,
+          avatarUrl: data.avatarUrl ?? undefined,
           onboardingCompletedAt: data.onboardingCompletedAt ?? null,
         })
 
@@ -89,10 +83,12 @@ export function AuthCallback() {
 
         // Se não há pending invite, redirecionar para home normalmente
         navigate('/home', { replace: true })
-      } catch {
+      } catch (err) {
         clearStoredSession()
         sessionStorage.removeItem('pendingInviteCode')
-        setError('Não foi possível concluir o login com Google.')
+        setError(
+          err instanceof Error ? err.message : 'Não foi possível concluir o login com Google.'
+        )
       }
     }
 

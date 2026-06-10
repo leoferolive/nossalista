@@ -34,6 +34,9 @@ management:
       enabled: false
 
 app:
+  auth:
+    # Dev: enforcement desligado para não atrapalhar o fluxo local de testes.
+    require-email-verification: ${REQUIRE_EMAIL_VERIFICATION:false}
   email:
     smtp:
       enabled: false

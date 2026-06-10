@@ -23,6 +23,17 @@ Importantes (com default em alguns cenarios):
 - `DATABASE_URL` (default: `jdbc:postgresql://localhost:5432/nossalista`)
 - `DATABASE_USER` (default: `nossalista`)
 - `FRONTEND_URL` (default: `http://localhost:5173`)
+- `REQUIRE_EMAIL_VERIFICATION` -> `app.auth.require-email-verification` (default: `false`)
+
+> **`REQUIRE_EMAIL_VERIFICATION` (Q2.7) — enforcement de verificacao de e-mail:**
+> Controla se o login email/senha bloqueia contas EMAIL ainda nao verificadas.
+> Default `false`: o status `email_verified` e registrado, mas o login **nao** e
+> bloqueado — evita deslogar contas pre-existentes (criadas antes da feature) e
+> nao afeta usuarios Google (que entram com `email_verified=true`). Quando `true`,
+> login de conta EMAIL nao-verificada retorna **403** (ProblemDetail orientando a
+> verificar o e-mail). **Decisao pendente do dono:** so ligue o enforcement estrito
+> depois de decidir o tratamento das contas pre-existentes (backfill de
+> `email_verified` ou campanha de reverificacao) — ver `docs/DECISIONS.md`.
 
 Referencia de exemplo:
 - `backend/.env.example`

@@ -195,6 +195,22 @@ public class UserService {
     }
 
     /**
+     * Marca o e-mail de um usuário como verificado (Q2.7). Idempotente.
+     *
+     * @param userId ID do usuário
+     * @throws UserNotFoundException se usuário não existe
+     */
+    @Transactional
+    public void markEmailVerified(UUID userId) {
+        User user = findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
+        if (!user.isEmailVerified()) {
+            user.setEmailVerified(true);
+            userRepository.save(user);
+        }
+    }
+
+    /**
      * Busca usuários por username (case-insensitive e parcial)
      *
      * @param query termo de busca

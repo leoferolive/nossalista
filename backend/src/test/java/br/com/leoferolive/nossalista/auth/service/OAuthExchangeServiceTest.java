@@ -1,0 +1,114 @@
+package br.com.leoferolive.nossalista.auth.service;
+
+import br.com.leoferolive.nossalista.auth.dto.LoginResponse;
+import br.com.leoferolive.nossalista.auth.dto.UserMapper;
+import br.com.leoferolive.nossalista.auth.exception.InvalidOAuthCodeException;
+import br.com.leoferolive.nossalista.user.domain.AuthProvider;
+import br.com.leoferolive.nossalista.user.domain.Role;
+import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("OAuthExchangeService (Q2.3)")
+class OAuthExchangeServiceTest {
+
+    @Mock
+    private JwtService jwtService;
+
+    @Mock
+    private UserService userService;
+
+    private OAuthCodeStore oauthCodeStore;
+    private UserMapper userMapper;
+    private OAuthExchangeService exchangeService;
+
+    private final UUID userId = UUID.randomUUID();
+
+    @BeforeEach
+    void setUp() {
+        oauthCodeStore = new OAuthCodeStore();
+        userMapper = new UserMapper();
+        exchangeService = new OAuthExchangeService(oauthCodeStore, jwtService, userService, userMapper);
+    }
+
+    private User buildUser() {
+        User user = new User();
+        user.setId(userId);
+        user.setUsername("leo");
+        user.setEmail("leo@gmail.com");
+        user.setName("Leonardo");
+        user.setAuthProvider(AuthProvider.GOOGLE);
+        user.setRole(Role.USER);
+        user.setEmailVerified(true);
+        return user;
+    }
+
+    @Test
+    @DisplayName("code válido → retorna LoginResponse com o JWT")
+    void validCodeReturnsLoginResponse() {
+        String jwt = "valid.jwt.token";
+        String code = oauthCodeStore.issue(jwt);
+
+        when(jwtService.extractUserId(jwt)).thenReturn(userId);
+        when(userService.findById(userId)).thenReturn(Optional.of(buildUser()));
+        when(jwtService.getExpirationTime()).thenReturn(LocalDateTime.now().plusDays(7));
+
+        LoginResponse response = exchangeService.exchange(code);
+
+        assertThat(response.token()).isEqualTo(jwt);
+        assertThat(response.email()).isEqualTo("leo@gmail.com");
+        assertThat(response.username()).isEqualTo("leo");
+    }
+
+    @Test
+    @DisplayName("code inválido/inexistente → lança InvalidOAuthCodeException")
+    void invalidCodeThrows() {
+        assertThatThrownBy(() -> exchangeService.exchange("inexistente"))
+            .isInstanceOf(InvalidOAuthCodeException.class);
+    }
+
+    @Test
+    @DisplayName("reuso do code → segunda troca lança InvalidOAuthCodeException")
+    void reusedCodeThrows() {
+        String jwt = "valid.jwt.token";
+        String code = oauthCodeStore.issue(jwt);
+
+        when(jwtService.extractUserId(jwt)).thenReturn(userId);
+        when(userService.findById(userId)).thenReturn(Optional.of(buildUser()));
+        when(jwtService.getExpirationTime()).thenReturn(LocalDateTime.now().plusDays(7));
+
+        // Primeira troca: sucesso
+        exchangeService.exchange(code);
+
+        // Segunda troca do mesmo code: falha (single-use)
+        assertThatThrownBy(() -> exchangeService.exchange(code))
+            .isInstanceOf(InvalidOAuthCodeException.class);
+    }
+
+    @Test
+    @DisplayName("usuário do JWT não existe mais → lança InvalidOAuthCodeException")
+    void missingUserThrows() {
+        String jwt = "valid.jwt.token";
+        String code = oauthCodeStore.issue(jwt);
+
+        when(jwtService.extractUserId(jwt)).thenReturn(userId);
+        when(userService.findById(userId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> exchangeService.exchange(code))
+            .isInstanceOf(InvalidOAuthCodeException.class);
+    }
+}

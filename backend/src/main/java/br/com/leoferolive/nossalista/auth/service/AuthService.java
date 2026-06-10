@@ -4,9 +4,11 @@ import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.auth.dto.LoginRequest;
 import br.com.leoferolive.nossalista.auth.dto.RegisterRequest;
+import br.com.leoferolive.nossalista.auth.exception.EmailNotVerifiedException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import br.com.leoferolive.nossalista.user.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +22,34 @@ public class AuthService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationService emailVerificationService;
 
-    public AuthService(UserService userService, UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    /**
+     * Enforcement estrito de verificação de e-mail no login email/senha (Q2.7).
+     * Default {@code false}: o status fica registrado mas o login não é bloqueado,
+     * evitando deslogar contas pré-existentes. O dono pode ligar via
+     * {@code app.auth.require-email-verification=true} quando todas as contas
+     * relevantes estiverem verificadas.
+     */
+    @Value("${app.auth.require-email-verification:false}")
+    private boolean requireEmailVerification;
+
+    public AuthService(UserService userService, UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       EmailVerificationService emailVerificationService) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailVerificationService = emailVerificationService;
+    }
+
+    /**
+     * Setter para injeção do flag de enforcement (usado em testes).
+     *
+     * @param requireEmailVerification se o login deve bloquear não-verificados
+     */
+    void setRequireEmailVerification(boolean requireEmailVerification) {
+        this.requireEmailVerification = requireEmailVerification;
     }
 
     /**
@@ -49,13 +74,18 @@ public class AuthService {
         String hashedPassword = passwordEncoder.encode(trimmedPassword);
 
         // Create user via UserService
-        return userService.createUser(
+        User user = userService.createUser(
             normalizedUsername,
             normalizedEmail,
             hashedPassword,
             trimmedName,
             AuthProvider.EMAIL
         );
+
+        // Q2.7: dispara o e-mail de verificação (best-effort, não quebra o registro)
+        emailVerificationService.sendVerification(user);
+
+        return user;
     }
 
     /**
@@ -78,6 +108,16 @@ public class AuthService {
         // Validar senha com BCrypt
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new InvalidCredentialsException();
+        }
+
+        // Q2.7: gating configurável. Só bloqueia contas EMAIL não-verificadas quando
+        // o enforcement estrito está ligado — usuários OAuth (Google) já entram
+        // verificados e não são afetados.
+        if (requireEmailVerification
+                && user.getAuthProvider() == AuthProvider.EMAIL
+                && !user.isEmailVerified()) {
+            throw new EmailNotVerifiedException(
+                "E-mail não verificado. Verifique sua caixa de entrada ou solicite um novo link de verificação.");
         }
 
         return user;

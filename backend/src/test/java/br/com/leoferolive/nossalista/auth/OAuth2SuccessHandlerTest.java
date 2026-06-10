@@ -2,6 +2,7 @@ package br.com.leoferolive.nossalista.auth;
 
 import br.com.leoferolive.nossalista.auth.service.AuthService;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
+import br.com.leoferolive.nossalista.auth.service.OAuthCodeStore;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -54,6 +55,8 @@ class OAuth2SuccessHandlerTest {
     @Mock
     private HttpServletResponse response;
 
+    private OAuthCodeStore oauthCodeStore;
+
     private OAuth2SuccessHandler successHandler;
 
     private static final String FRONTEND_URL = "http://localhost:5173";
@@ -65,8 +68,23 @@ class OAuth2SuccessHandlerTest {
 
     @BeforeEach
     void setUp() {
-        successHandler = new OAuth2SuccessHandler(userRepository, jwtService, authService);
+        oauthCodeStore = new OAuthCodeStore();
+        successHandler = new OAuth2SuccessHandler(userRepository, jwtService, authService, oauthCodeStore);
         successHandler.setFrontendUrl(FRONTEND_URL);
+    }
+
+    /**
+     * Captura a URL de redirect, valida que usa o padrão one-time code (Q2.3) — ou
+     * seja, contém {@code ?code=} e NÃO expõe o JWT na URL — e devolve o code emitido.
+     */
+    private String captureRedirectCode() throws IOException {
+        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(response).sendRedirect(urlCaptor.capture());
+        String url = urlCaptor.getValue();
+        assertThat(url).startsWith(FRONTEND_URL + "/auth/callback?code=");
+        assertThat(url).doesNotContain(TEST_JWT);
+        assertThat(url).doesNotContain("token=");
+        return url.substring((FRONTEND_URL + "/auth/callback?code=").length());
     }
 
     @Test
@@ -102,12 +120,15 @@ class OAuth2SuccessHandlerTest {
         assertThat(savedUser.getAvatarUrl()).isEqualTo(TEST_PICTURE);
         assertThat(savedUser.getAuthProvider()).isEqualTo(AuthProvider.GOOGLE);
         assertThat(savedUser.getPassword()).isNull();
+        assertThat(savedUser.isEmailVerified()).isTrue(); // Google já verifica o e-mail
 
         // Then: Verifica que JWT foi gerado
         verify(jwtService).generateToken(any(User.class));
 
-        // Then: Verifica redirect para frontend com token
-        verify(response).sendRedirect(FRONTEND_URL + "/auth/callback?token=" + TEST_JWT);
+        // Then: Verifica redirect com one-time code (sem token na URL) e que o
+        // code troca pelo JWT emitido (single-use).
+        String code = captureRedirectCode();
+        assertThat(oauthCodeStore.consume(code)).contains(TEST_JWT);
     }
 
     @Test
@@ -142,14 +163,15 @@ class OAuth2SuccessHandlerTest {
         assertThat(updatedUser.getName()).isEqualTo(TEST_NAME);
         assertThat(updatedUser.getAvatarUrl()).isEqualTo(TEST_PICTURE);
 
-        // Then: Verifica redirect com token
-        verify(response).sendRedirect(FRONTEND_URL + "/auth/callback?token=" + TEST_JWT);
+        // Then: Verifica redirect com one-time code (sem token na URL)
+        String code = captureRedirectCode();
+        assertThat(oauthCodeStore.consume(code)).contains(TEST_JWT);
     }
 
     @Test
-    @DisplayName("Não deve atualizar usuário quando dados não mudaram")
+    @DisplayName("Não deve atualizar usuário quando dados não mudaram e já está verificado")
     void shouldNotUpdateUserWhenDataNotChanged() throws IOException {
-        // Given: Usuário existente com mesmos dados
+        // Given: Usuário existente com mesmos dados e e-mail já verificado
         User existingUser = createUser(
             UUID.randomUUID(),
             TEST_USERNAME,
@@ -159,6 +181,7 @@ class OAuth2SuccessHandlerTest {
             AuthProvider.GOOGLE,
             null
         );
+        existingUser.setEmailVerified(true);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(existingUser));
 
         // Given: OAuth2 token com mesmos dados
@@ -170,12 +193,41 @@ class OAuth2SuccessHandlerTest {
         // When: Handler processa autenticação
         successHandler.onAuthenticationSuccess(request, response, oauth2Token);
 
-        // Then: Não deve chamar save (dados iguais)
+        // Then: Não deve chamar save (dados iguais e já verificado)
         verify(userRepository, never()).save(any(User.class));
 
-        // Then: Deve gerar token e redirecionar
+        // Then: Deve gerar token e redirecionar com one-time code
         verify(jwtService).generateToken(existingUser);
-        verify(response).sendRedirect(FRONTEND_URL + "/auth/callback?token=" + TEST_JWT);
+        String code = captureRedirectCode();
+        assertThat(oauthCodeStore.consume(code)).contains(TEST_JWT);
+    }
+
+    @Test
+    @DisplayName("Deve marcar e-mail como verificado para usuário Google pré-existente não-verificado")
+    void shouldMarkExistingGoogleUserAsVerified() throws IOException {
+        // Given: Usuário Google existente com mesmos dados mas e-mail não verificado
+        User existingUser = createUser(
+            UUID.randomUUID(),
+            TEST_USERNAME,
+            TEST_EMAIL,
+            TEST_NAME,
+            TEST_PICTURE,
+            AuthProvider.GOOGLE,
+            null
+        );
+        existingUser.setEmailVerified(false);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(existingUser));
+
+        OAuth2AuthenticationToken oauth2Token = createOAuth2Token(TEST_EMAIL, TEST_NAME, TEST_PICTURE);
+        when(jwtService.generateToken(any(User.class))).thenReturn(TEST_JWT);
+
+        // When: Handler processa autenticação
+        successHandler.onAuthenticationSuccess(request, response, oauth2Token);
+
+        // Then: Deve salvar marcando o e-mail como verificado (Google já verifica)
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertThat(userCaptor.getValue().isEmailVerified()).isTrue();
     }
 
     @Test
@@ -290,9 +342,10 @@ class OAuth2SuccessHandlerTest {
         // Then: Não deve atualizar (authProvider é EMAIL, não GOOGLE)
         verify(userRepository, never()).save(any(User.class));
 
-        // Then: Deve gerar token normalmente
+        // Then: Deve gerar token normalmente e redirecionar com one-time code
         verify(jwtService).generateToken(existingUser);
-        verify(response).sendRedirect(FRONTEND_URL + "/auth/callback?token=" + TEST_JWT);
+        String code = captureRedirectCode();
+        assertThat(oauthCodeStore.consume(code)).contains(TEST_JWT);
     }
 
     // Helper methods

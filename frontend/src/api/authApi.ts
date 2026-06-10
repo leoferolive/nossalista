@@ -19,6 +19,19 @@ export interface RegisterResponse {
   createdAt: string
 }
 
+export interface OAuthExchangeResponse {
+  id: string
+  username: string
+  email: string
+  name: string | null
+  avatarUrl: string | null
+  onboardingCompletedAt: string | null
+  authProvider: string
+  createdAt: string
+  token: string
+  expiresAt: string
+}
+
 function extractProblemMessage(error: unknown, fallback: string) {
   const axiosError = error as AxiosError<ProblemDetail>
   return axiosError.response?.data?.detail || fallback
@@ -46,8 +59,59 @@ export const authApi = {
     }
   },
 
+  /**
+   * Q2.3: troca o one-time code do OAuth2 pelo JWT (o token não vem mais na URL).
+   */
+  async exchangeOAuthCode(code: string): Promise<OAuthExchangeResponse> {
+    try {
+      const response = await client.post<OAuthExchangeResponse>('/api/auth/oauth/exchange', {
+        code,
+      })
+      return response.data
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>
+
+      if (axiosError.response?.status === 400) {
+        throw new Error(
+          extractProblemMessage(error, 'Link de login expirado ou inválido. Tente novamente.')
+        )
+      }
+
+      throw new Error(extractProblemMessage(error, 'Não foi possível concluir o login com Google.'))
+    }
+  },
+
   async forgotPassword(email: string): Promise<void> {
     await client.post('/api/auth/forgot-password', { email })
+  },
+
+  /**
+   * Q2.7: confirma a verificação de e-mail usando o token recebido por e-mail.
+   */
+  async verifyEmail(token: string): Promise<void> {
+    try {
+      await client.get('/api/auth/verify-email', { params: { token } })
+    } catch (error) {
+      const axiosError = error as AxiosError<ProblemDetail>
+
+      if (axiosError.response?.status === 400) {
+        throw new Error(
+          extractProblemMessage(
+            error,
+            'Token de verificação inválido ou expirado. Solicite um novo link.'
+          )
+        )
+      }
+
+      throw new Error(extractProblemMessage(error, 'Não foi possível verificar seu e-mail agora.'))
+    }
+  },
+
+  /**
+   * Q2.7: reenvia o e-mail de verificação. Sempre resolve (não revela existência).
+   */
+  async resendVerification(email: string): Promise<void> {
+    await client.post('/api/auth/resend-verification', { email })
   },
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
