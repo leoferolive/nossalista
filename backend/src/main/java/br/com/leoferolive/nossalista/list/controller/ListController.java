@@ -8,7 +8,7 @@ import br.com.leoferolive.nossalista.list.dto.ListMapper;
 import br.com.leoferolive.nossalista.list.dto.ListResponse;
 import br.com.leoferolive.nossalista.list.dto.ListStateResponse;
 import br.com.leoferolive.nossalista.list.dto.InviteLinkResponse;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.service.ListService;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -98,7 +98,7 @@ public class ListController {
     public ListResponse createList(
             @Valid @RequestBody CreateListRequest request,
             @AuthenticationPrincipal User owner) {
-        List list = listService.createList(request, owner);
+        SharedList list = listService.createList(request, owner);
         // Newly created list always has 0 items
         return listMapper.toListResponse(list, 0);
     }
@@ -130,10 +130,10 @@ public class ListController {
     public java.util.List<ListResponse> getAllLists(@AuthenticationPrincipal User authenticatedUser) {
         // Passa currentUserId explicitamente para calcular isOwner corretamente
         // (usuário autenticado pode não ser owner em listas compartilhadas)
-        java.util.List<List> lists = listService.getAllListsForUser(authenticatedUser.getId());
+        java.util.List<SharedList> lists = listService.getAllListsForUser(authenticatedUser.getId());
 
         // Batch count query to avoid N+1
-        java.util.List<UUID> listIds = lists.stream().map(List::getId).toList();
+        java.util.List<UUID> listIds = lists.stream().map(SharedList::getId).toList();
         Map<UUID, Integer> countsMap = listIds.isEmpty()
             ? Map.of()
             : listItemRepository.countByListIds(listIds).stream()
@@ -188,7 +188,7 @@ public class ListController {
     public ListResponse getListById(
             @PathVariable UUID id,
             @AuthenticationPrincipal User authenticatedUser) {
-        List list = listService.getListById(id, authenticatedUser.getId());
+        SharedList list = listService.getListById(id, authenticatedUser.getId());
         int itemsCount = listItemRepository.countByListId(list.getId()).intValue();
         return listMapper.toListResponse(list, authenticatedUser.getId(), itemsCount);
     }
@@ -306,7 +306,7 @@ public class ListController {
             @PathVariable UUID id,
             @Valid @RequestBody UpdateListNameRequest request,
             @AuthenticationPrincipal User authenticatedUser) {
-        List list = listService.updateListName(id, authenticatedUser.getId(), request);
+        SharedList list = listService.updateListName(id, authenticatedUser.getId(), request);
         int itemsCount = listItemRepository.countByListId(list.getId()).intValue();
         return listMapper.toListResponse(list, authenticatedUser.getId(), itemsCount);
     }
@@ -391,7 +391,7 @@ public class ListController {
     public InviteLinkResponse generateInviteLink(
             @PathVariable UUID id,
             @AuthenticationPrincipal User authenticatedUser) {
-        List list = listService.generateInviteLink(id, authenticatedUser.getId());
+        SharedList list = listService.generateInviteLink(id, authenticatedUser.getId());
 
         String inviteLink = frontendBaseUrl + "/join/" + list.getInviteCode();
 

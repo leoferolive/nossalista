@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.list.dto;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.util.ListTypeMapper;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.stereotype.Component;
@@ -25,7 +25,7 @@ public class ListMapper {
      * @param itemsCount número de itens na lista
      * @return DTO ListResponse com dados completos
      */
-    public ListResponse toListResponse(List list, int itemsCount) {
+    public ListResponse toListResponse(SharedList list, int itemsCount) {
         return toListResponse(list, list.getOwner().getId(), itemsCount);
     }
 
@@ -37,7 +37,7 @@ public class ListMapper {
      * @param itemsCount    número de itens na lista
      * @return DTO ListResponse com dados completos
      */
-    public ListResponse toListResponse(List list, UUID currentUserId, int itemsCount) {
+    public ListResponse toListResponse(SharedList list, UUID currentUserId, int itemsCount) {
         ListResponse.TypeResponse typeResponse = new ListResponse.TypeResponse(
             ListTypeMapper.resolveId(list.getTypeEntity(), list.getTypeId()),
             ListTypeMapper.resolveName(list.getTypeEntity(), list.getTypeId()),

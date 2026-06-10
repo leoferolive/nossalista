@@ -28,7 +28,7 @@ import java.util.UUID;
  */
 @Entity(name = "lists")
 @Table(name = "lists")
-public class List {
+public class SharedList {
 
     @Id
     @Column(name = "id", updatable = false, nullable = false)

@@ -1,7 +1,7 @@
 package br.com.leoferolive.nossalista.member.service;
 
 import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.domain.ListTypeEntity;
 import br.com.leoferolive.nossalista.list.dto.JoinListResponse;
 import br.com.leoferolive.nossalista.list.exception.InviteExpiredException;
@@ -70,7 +70,7 @@ class ListJoinServiceTest {
     @InjectMocks
     private ListJoinService listJoinService;
 
-    private List testList;
+    private SharedList testList;
     private User testOwner;
     private User testUser;
     private ListTypeEntity testTypeEntity;
@@ -100,7 +100,7 @@ class ListJoinServiceTest {
         lenient().when(testTypeEntity.getSlug()).thenReturn("compras");
 
         // Setup test list
-        testList = new List();
+        testList = new SharedList();
         testList.setId(UUID.randomUUID());
         testList.setName("Mercado Semanal");
         testList.setTypeId(1);

@@ -76,7 +76,7 @@ src/main/java/br/com/leoferolive/nossalista/
 ├── config/          (Security, WebSocket, CORS)
 ├── auth/            (AuthController, AuthService, JWT, OAuth2)
 ├── user/            (User entity, controller, service, repository)
-├── list/            (Lista, ListType, controller, service, repository)
+├── list/            (SharedList entity [tabela `lists`], ListType, controller, service, repository)
 ├── listitem/        (ListItem entity, CRUD)
 ├── member/          (ListMember, convites)
 ├── activity/        (ActivityLog, histórico)

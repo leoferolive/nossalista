@@ -2,7 +2,7 @@ package br.com.leoferolive.nossalista.member.service;
 
 import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
@@ -65,7 +65,7 @@ class MemberServiceTest {
     @InjectMocks
     private MemberService memberService;
 
-    private List testList;
+    private SharedList testList;
     private User owner;
     private User targetUser;
     private User memberUser;
@@ -84,7 +84,7 @@ class MemberServiceTest {
         memberUser.setId(UUID.randomUUID());
         memberUser.setUsername("member");
 
-        testList = new List();
+        testList = new SharedList();
         testList.setId(UUID.randomUUID());
         testList.setOwner(owner);
         testList.setName("Lista compartilhada");

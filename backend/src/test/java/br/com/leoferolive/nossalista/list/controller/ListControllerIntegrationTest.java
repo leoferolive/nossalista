@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.list.controller;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
@@ -155,7 +155,7 @@ class ListControllerIntegrationTest {
                     objectMapper.readTree(responseJson).get("id").asText()
             );
 
-            List savedList = listRepository.findById(listId).orElseThrow();
+            SharedList savedList = listRepository.findById(listId).orElseThrow();
             assertEquals("Mercado Semanal", savedList.getName());
             assertEquals(1, savedList.getTypeId());
             assertEquals(testUser.getId(), savedList.getOwner().getId());
@@ -360,7 +360,7 @@ class ListControllerIntegrationTest {
 
             // Verificar persistência
             assertEquals(1, listRepository.count());
-            List savedList = listRepository.findAll().get(0);
+            SharedList savedList = listRepository.findAll().get(0);
             assertEquals(100, savedList.getName().length());
         }
 
@@ -498,7 +498,7 @@ class ListControllerIntegrationTest {
         @DisplayName("Deve retornar itemsCount correto quando lista possui itens")
         void shouldReturnCorrectItemsCountWhenListHasItems() throws Exception {
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista com itens", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista com itens", 1), testUser);
             listItemService.addItem(
                     createdList.getId(),
                     new CreateItemRequestDTO("Arroz", 1, null, null, null),
@@ -529,11 +529,11 @@ class ListControllerIntegrationTest {
             authenticateUser(testUser);
 
             // Criar 3 listas em ordem (primeira criada terá updatedAt mais antigo)
-            List list1 = listService.createList(new CreateListRequest("Lista 1", 1), testUser);
+            SharedList list1 = listService.createList(new CreateListRequest("Lista 1", 1), testUser);
             Thread.sleep(10); // Pequeno delay para garantir updatedAt diferente
-            List list2 = listService.createList(new CreateListRequest("Lista 2", 2), testUser);
+            SharedList list2 = listService.createList(new CreateListRequest("Lista 2", 2), testUser);
             Thread.sleep(10);
-            List list3 = listService.createList(new CreateListRequest("Lista 3", 3), testUser);
+            SharedList list3 = listService.createList(new CreateListRequest("Lista 3", 3), testUser);
 
             // Act & Assert - a mais recente deve vir primeiro
             mockMvc.perform(get("/api/lists"))
@@ -587,7 +587,7 @@ class ListControllerIntegrationTest {
         void shouldReturn200WithCompleteDataWhenListExistsAndUserIsOwner() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Minha Lista Detalhada", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Minha Lista Detalhada", 1), testUser);
 
             // Act & Assert
             mockMvc.perform(get("/api/lists/{id}", createdList.getId()))
@@ -625,7 +625,7 @@ class ListControllerIntegrationTest {
         void shouldReturn403WhenUserHasNoPermission() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
 
             // Criar outro usuário
             User otherUser = userService.createUser(
@@ -651,7 +651,7 @@ class ListControllerIntegrationTest {
         void shouldReturn401WhenNotAuthenticated() throws Exception {
             // Arrange - criar lista sem autenticar
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
@@ -666,7 +666,7 @@ class ListControllerIntegrationTest {
         void shouldReturnTaskListSuccessfully() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Tarefas Importantes", 2), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Tarefas Importantes", 2), testUser);
 
             // Act & Assert
             mockMvc.perform(get("/api/lists/{id}", createdList.getId()))
@@ -682,7 +682,7 @@ class ListControllerIntegrationTest {
         void shouldReturnWishlistSuccessfully() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Presentes Desejados", 3), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Presentes Desejados", 3), testUser);
 
             // Act & Assert
             mockMvc.perform(get("/api/lists/{id}", createdList.getId()))
@@ -702,7 +702,7 @@ class ListControllerIntegrationTest {
         void shouldReturn200WhenUpdateNameSuccessfully() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Nome Original", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Nome Original", 1), testUser);
 
             UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome da Lista");
 
@@ -722,7 +722,7 @@ class ListControllerIntegrationTest {
         void shouldReturn400WhenNameTooShort() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
 
             UpdateListNameRequest request = new UpdateListNameRequest("AB");
 
@@ -739,7 +739,7 @@ class ListControllerIntegrationTest {
         void shouldReturn400WhenNameIsEmpty() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
 
             UpdateListNameRequest request = new UpdateListNameRequest("");
 
@@ -755,7 +755,7 @@ class ListControllerIntegrationTest {
         void shouldReturn403WhenUserIsNotOwner() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
 
             // Criar outro usuário
             User otherUser = userService.createUser(
@@ -803,7 +803,7 @@ class ListControllerIntegrationTest {
         void shouldReturn401WhenNotAuthenticated() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
@@ -822,7 +822,7 @@ class ListControllerIntegrationTest {
         void shouldAcceptNameAtMaxLength() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
 
             String longName = "A".repeat(100);
             UpdateListNameRequest request = new UpdateListNameRequest(longName);
@@ -840,7 +840,7 @@ class ListControllerIntegrationTest {
         void shouldReturn400WhenNameExceedsMaxLength() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
 
             String tooLongName = "A".repeat(101);
             UpdateListNameRequest request = new UpdateListNameRequest(tooLongName);
@@ -857,7 +857,7 @@ class ListControllerIntegrationTest {
         void shouldIgnoreUnknownFieldsInRequestBody() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
 
             // Enviar JSON com campo extra "typeId" que deve ser ignorado
             String jsonWithExtraField = "{\"name\": \"Novo Nome\", \"typeId\": 2}";
@@ -876,7 +876,7 @@ class ListControllerIntegrationTest {
         void shouldPersistNewNameInDatabase() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Original", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Original", 1), testUser);
 
             UpdateListNameRequest request = new UpdateListNameRequest("Lista Renomeada Persistida");
 
@@ -888,7 +888,7 @@ class ListControllerIntegrationTest {
                     .andExpect(jsonPath("$.name").value("Lista Renomeada Persistida"));
 
             // Verificar persistência no banco
-            List updatedList = listRepository.findById(createdList.getId()).orElseThrow();
+            SharedList updatedList = listRepository.findById(createdList.getId()).orElseThrow();
             assertEquals("Lista Renomeada Persistida", updatedList.getName());
         }
     }
@@ -902,7 +902,7 @@ class ListControllerIntegrationTest {
         void shouldReturn204WhenDeleteListSuccessfully() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista para Excluir", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista para Excluir", 1), testUser);
 
             // Act & Assert
             mockMvc.perform(delete("/api/lists/{id}", createdList.getId()))
@@ -917,7 +917,7 @@ class ListControllerIntegrationTest {
         void shouldReturn403WhenUserIsNotOwner() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
 
             // Criar outro usuário
             User otherUser = userService.createUser(
@@ -960,7 +960,7 @@ class ListControllerIntegrationTest {
         void shouldReturn401WhenNotAuthenticated() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
@@ -978,7 +978,7 @@ class ListControllerIntegrationTest {
         void shouldRemoveListFromDatabaseAfterDeletion() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista para Excluir", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista para Excluir", 1), testUser);
             UUID listId = createdList.getId();
 
             // CRITICAL: Flush JPA entities para DB antes de deletar
@@ -1009,7 +1009,7 @@ class ListControllerIntegrationTest {
         void shouldCascadeDeleteMembersWhenListDeleted() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista com Membros", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista com Membros", 1), testUser);
             UUID listId = createdList.getId();
 
             // Criar outro usuário para ser membro
@@ -1072,7 +1072,7 @@ class ListControllerIntegrationTest {
         void shouldGenerateInviteLinkWhen200() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Convidar", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Convidar", 1), testUser);
 
             // Act & Assert
             MvcResult result = mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))
@@ -1088,7 +1088,7 @@ class ListControllerIntegrationTest {
             String responseJson = result.getResponse().getContentAsString();
             String inviteCode = objectMapper.readTree(responseJson).get("inviteCode").asText();
 
-            List updatedList = listRepository.findById(createdList.getId()).orElseThrow();
+            SharedList updatedList = listRepository.findById(createdList.getId()).orElseThrow();
             assertEquals(inviteCode, updatedList.getInviteCode());
             assertNotNull(updatedList.getInviteExpiresAt());
         }
@@ -1098,7 +1098,7 @@ class ListControllerIntegrationTest {
         void shouldReturn403WhenUserIsNotOwner() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
 
             // Criar outro usuário
             User otherUser = userService.createUser(
@@ -1138,7 +1138,7 @@ class ListControllerIntegrationTest {
         void shouldReturn401WhenNotAuthenticated() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Teste", 1), testUser);
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
@@ -1153,7 +1153,7 @@ class ListControllerIntegrationTest {
         void shouldReuseExistingCodeWhenStillValid() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List createdList = listService.createList(new CreateListRequest("Lista Com Link", 1), testUser);
+            SharedList createdList = listService.createList(new CreateListRequest("Lista Com Link", 1), testUser);
 
             // Gerar link pela primeira vez
             MvcResult firstResult = mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))
@@ -1184,7 +1184,7 @@ class ListControllerIntegrationTest {
         @DisplayName("Deve retornar revision e itemsCount para owner")
         void shouldReturnListStateForOwner() throws Exception {
             authenticateUser(testUser);
-            List list = listService.createList(new CreateListRequest("Lista State", 1), testUser);
+            SharedList list = listService.createList(new CreateListRequest("Lista State", 1), testUser);
             entityManager.flush();
             entityManager.clear();
 
@@ -1224,7 +1224,7 @@ class ListControllerIntegrationTest {
         @Test
         @DisplayName("Deve retornar atividades paginadas para usuario autenticado")
         void shouldReturnPaginatedActivitiesForAuthenticatedUser() throws Exception {
-            List list = listService.createList(new CreateListRequest("Lista com atividades", 1), testUser);
+            SharedList list = listService.createList(new CreateListRequest("Lista com atividades", 1), testUser);
             listItemService.addItem(list.getId(), new CreateItemRequestDTO("Leite", 1, null, null, null), testUser);
 
             UpdateItemRequest updateItemRequest = new UpdateItemRequest();
@@ -1254,7 +1254,7 @@ class ListControllerIntegrationTest {
         @Test
         @DisplayName("Deve retornar 401 quando nao autenticado")
         void shouldReturn401WhenNotAuthenticated() throws Exception {
-            List list = listService.createList(new CreateListRequest("Lista protegida", 1), testUser);
+            SharedList list = listService.createList(new CreateListRequest("Lista protegida", 1), testUser);
 
             mockMvc.perform(get("/api/lists/{id}/activity", list.getId()))
                     .andExpect(status().isUnauthorized());
@@ -1263,7 +1263,7 @@ class ListControllerIntegrationTest {
         @Test
         @DisplayName("Deve retornar 403 quando usuario nao pertence a lista")
         void shouldReturn403WhenUserIsNotMember() throws Exception {
-            List list = listService.createList(new CreateListRequest("Lista privada", 1), testUser);
+            SharedList list = listService.createList(new CreateListRequest("Lista privada", 1), testUser);
             User outsider = userService.createUser(
                     "outsider",
                     "outsider@example.com",

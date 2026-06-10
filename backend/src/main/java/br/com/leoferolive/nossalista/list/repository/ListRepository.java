@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.list.repository;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +13,7 @@ import java.util.UUID;
  * Repositório para operações da entidade List
  */
 @Repository
-public interface ListRepository extends JpaRepository<List, UUID> {
+public interface ListRepository extends JpaRepository<SharedList, UUID> {
 
     /**
      * Busca todas as listas de um determinado proprietário.
@@ -21,7 +21,7 @@ public interface ListRepository extends JpaRepository<List, UUID> {
      * @param ownerId o ID do usuário proprietário
      * @return lista de listas pertencentes ao usuário
      */
-    java.util.List<List> findByOwnerId(UUID ownerId);
+    java.util.List<SharedList> findByOwnerId(UUID ownerId);
 
     /**
      * Busca uma lista pelo código de convite.
@@ -29,7 +29,7 @@ public interface ListRepository extends JpaRepository<List, UUID> {
      * @param inviteCode o código de convite
      * @return Optional contendo a lista se encontrada
      */
-    Optional<List> findByInviteCode(String inviteCode);
+    Optional<SharedList> findByInviteCode(String inviteCode);
 
     /**
      * Busca uma lista pelo código de convite com owner e type carregados (JOIN FETCH).
@@ -42,7 +42,7 @@ public interface ListRepository extends JpaRepository<List, UUID> {
            "JOIN FETCH l.owner o " +
            "JOIN FETCH l.typeEntity t " +
            "WHERE l.inviteCode = :inviteCode")
-    Optional<List> findByInviteCodeWithDetails(@Param("inviteCode") String inviteCode);
+    Optional<SharedList> findByInviteCodeWithDetails(@Param("inviteCode") String inviteCode);
 
     /**
      * Verifica se já existe uma lista com o código de convite fornecido.
@@ -65,11 +65,11 @@ public interface ListRepository extends JpaRepository<List, UUID> {
            "LEFT JOIN ListMember lm ON lm.list.id = l.id AND lm.user.id = :userId " +
            "WHERE l.owner.id = :userId OR lm.user.id = :userId " +
            "ORDER BY l.updatedAt DESC")
-    java.util.List<List> findAllByOwnerOrMemberOrderByUpdatedAtDesc(@Param("userId") UUID userId);
+    java.util.List<SharedList> findAllByOwnerOrMemberOrderByUpdatedAtDesc(@Param("userId") UUID userId);
 
     @Query("SELECT l FROM lists l " +
            "JOIN FETCH l.owner o " +
            "JOIN FETCH l.typeEntity t " +
            "WHERE l.id = :listId")
-    Optional<List> findByIdWithDetails(@Param("listId") UUID listId);
+    Optional<SharedList> findByIdWithDetails(@Param("listId") UUID listId);
 }

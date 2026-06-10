@@ -2,7 +2,7 @@ package br.com.leoferolive.nossalista.list.service;
 
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.dto.ListStateResponse;
 import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
@@ -70,14 +70,14 @@ public class ListService {
      * @throws InvalidListTypeException se o typeId não existir no database
      */
     @Transactional
-    public List createList(CreateListRequest request, User owner) {
+    public SharedList createList(CreateListRequest request, User owner) {
         // Validar se o typeId existe
         if (!listTypeRepository.existsById(request.typeId())) {
             throw new InvalidListTypeException(request.typeId());
         }
 
         // Criar entidade e setar UUID manualmente (CRÍTICO para PostgreSQL)
-        List list = new List();
+        SharedList list = new SharedList();
         list.setId(java.util.UUID.randomUUID());
         list.setName(request.name());
         list.setTypeId(request.typeId());
@@ -86,7 +86,7 @@ public class ListService {
 
         // @PrePersist vai preencher createdAt e updatedAt
 
-        List savedList = listRepository.save(list);
+        SharedList savedList = listRepository.save(list);
 
         // Criar membro OWNER automaticamente (Story 4.1)
         ListMember ownerMember = new ListMember();
@@ -135,7 +135,7 @@ public class ListService {
      * @param owner Usuário dono das listas
      * @return Lista de listas pertencentes ao usuário
      */
-    public java.util.List<List> getAllListsByOwner(User owner) {
+    public java.util.List<SharedList> getAllListsByOwner(User owner) {
         return listRepository.findByOwnerId(owner.getId());
     }
 
@@ -146,7 +146,7 @@ public class ListService {
      * @param userId ID do usuário
      * @return Lista de listas pertencentes ao usuário ou onde ele é membro
      */
-    public java.util.List<List> getAllListsForUser(UUID userId) {
+    public java.util.List<SharedList> getAllListsForUser(UUID userId) {
         return listRepository.findAllByOwnerOrMemberOrderByUpdatedAtDesc(userId);
     }
 
@@ -160,8 +160,8 @@ public class ListService {
      * @throws ListNotFoundException se a lista não existir
      * @throws ForbiddenException    se o usuário não for owner nem member
      */
-    public List getListById(UUID listId, UUID currentUserId) {
-        List list = listRepository.findByIdWithDetails(listId)
+    public SharedList getListById(UUID listId, UUID currentUserId) {
+        SharedList list = listRepository.findByIdWithDetails(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // Verificar se usuário é owner
@@ -178,7 +178,7 @@ public class ListService {
 
     @Transactional(readOnly = true)
     public ListStateResponse getListState(UUID listId, UUID currentUserId) {
-        List list = listRepository.findById(listId)
+        SharedList list = listRepository.findById(listId)
             .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         boolean isOwner = list.getOwner() != null && list.getOwner().getId().equals(currentUserId);
@@ -208,9 +208,9 @@ public class ListService {
      * @throws ForbiddenException    se o usuário não for o dono da lista
      */
     @Transactional
-    public List updateListName(UUID listId, UUID currentUserId, UpdateListNameRequest request) {
+    public SharedList updateListName(UUID listId, UUID currentUserId, UpdateListNameRequest request) {
         // Buscar a lista com JOIN FETCH para evitar LazyInitializationException
-        List list = listRepository.findByIdWithDetails(listId)
+        SharedList list = listRepository.findByIdWithDetails(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // Verificar se usuário é dono
@@ -231,7 +231,7 @@ public class ListService {
         list.setName(trimmedName);
 
         // @PreUpdate vai atualizar o updatedAt automaticamente
-        List savedList = listRepository.save(list);
+        SharedList savedList = listRepository.save(list);
 
         eventPublisher.publishEvent(
             listId, "LIST_NAME_UPDATED",
@@ -259,7 +259,7 @@ public class ListService {
     @Transactional
     public void deleteList(UUID listId, UUID currentUserId) {
         // Buscar a lista com JOIN FETCH para evitar LazyInitializationException
-        List list = listRepository.findByIdWithDetails(listId)
+        SharedList list = listRepository.findByIdWithDetails(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // Verificar se usuário é dono
@@ -293,9 +293,9 @@ public class ListService {
      * @throws ForbiddenException    se o usuário não for o dono da lista
      */
     @Transactional
-    public List generateInviteLink(UUID listId, UUID currentUserId) {
+    public SharedList generateInviteLink(UUID listId, UUID currentUserId) {
         // Buscar a lista com JOIN FETCH para evitar LazyInitializationException
-        List list = listRepository.findByIdWithDetails(listId)
+        SharedList list = listRepository.findByIdWithDetails(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // Verificar se usuário é dono (CRITICAL: apenas owner pode gerar link)

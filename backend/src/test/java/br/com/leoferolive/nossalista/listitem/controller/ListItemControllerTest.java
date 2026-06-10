@@ -1,7 +1,7 @@
 package br.com.leoferolive.nossalista.listitem.controller;
 
 import br.com.leoferolive.nossalista.auth.service.JwtService;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.list.service.ListService;
@@ -138,7 +138,7 @@ class ListItemControllerTest {
         void shouldCreateItemWhenUserIsOwner() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             Map<String, Object> request = new HashMap<>();
             request.put("name", "Arroz");
@@ -192,7 +192,7 @@ class ListItemControllerTest {
         void shouldReturn403WhenUserIsNotParticipant() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
 
             // Limpar e autenticar como outro usuário
             SecurityContextHolder.clearContext();
@@ -216,7 +216,7 @@ class ListItemControllerTest {
         void shouldReturn400WhenNameIsEmpty() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             Map<String, Object> request = new HashMap<>();
             request.put("name", "");
@@ -237,7 +237,7 @@ class ListItemControllerTest {
         void shouldReturn400WhenNameIsTooLong() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             Map<String, Object> request = new HashMap<>();
             request.put("name", "A".repeat(201));
@@ -256,7 +256,7 @@ class ListItemControllerTest {
         void shouldReturn401WhenNoToken() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
@@ -276,7 +276,7 @@ class ListItemControllerTest {
         void shouldCalculatePositionCorrectlyForMultipleItems() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             // Create first item
             Map<String, Object> request1 = new HashMap<>();
@@ -321,7 +321,7 @@ class ListItemControllerTest {
         void shouldAcceptDynamicFields() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Compras", 1), testUser); // SHOPPING
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Compras", 1), testUser); // SHOPPING
 
             Map<String, Object> request = new HashMap<>();
             request.put("name", "Arroz Integral");
@@ -343,7 +343,7 @@ class ListItemControllerTest {
         void shouldSetCheckedAsFalseByDefault() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             Map<String, Object> request = new HashMap<>();
             request.put("name", "Item Não Marcado");
@@ -365,7 +365,7 @@ class ListItemControllerTest {
         void shouldTrimItemName() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             Map<String, Object> request = new HashMap<>();
             request.put("name", "  Arroz Integral  ");
@@ -392,7 +392,7 @@ class ListItemControllerTest {
         void shouldReturnItemsOrderedByPosition() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             // Criar 3 itens
             createItem(testList, "Item 1", 0);
@@ -417,7 +417,7 @@ class ListItemControllerTest {
         void shouldReturnEmptyListWhenNoItems() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista Vazia", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista Vazia", 1), testUser);
 
             // When & Then
             mockMvc.perform(get("/api/lists/{listId}/items", testList.getId()))
@@ -446,7 +446,7 @@ class ListItemControllerTest {
         void shouldReturn403WhenUserIsNotParticipant() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
 
             // Limpar e autenticar como outro usuário
             SecurityContextHolder.clearContext();
@@ -465,7 +465,7 @@ class ListItemControllerTest {
         void shouldReturn401WhenNoToken() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
@@ -480,7 +480,7 @@ class ListItemControllerTest {
         void shouldReturnCompleteItemFields() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Compras", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Compras", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Arroz Integral");
@@ -505,7 +505,7 @@ class ListItemControllerTest {
                 .andExpect(jsonPath("$[0].updatedAt").exists());
         }
 
-        private void createItem(List list, String name, int position) {
+        private void createItem(SharedList list, String name, int position) {
             ListItem item = new ListItem();
             item.setName(name);
             item.setList(list);
@@ -525,7 +525,7 @@ class ListItemControllerTest {
         void shouldToggleCheckedFromFalseToTrue() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Item Teste");
@@ -552,7 +552,7 @@ class ListItemControllerTest {
         void shouldToggleCheckedFromTrueToFalse() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Item Teste");
@@ -593,7 +593,7 @@ class ListItemControllerTest {
         void shouldReturn404WhenItemDoesNotExist() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
             UUID nonExistentItemId = UUID.randomUUID();
 
             // Act & Assert
@@ -609,7 +609,7 @@ class ListItemControllerTest {
         void shouldReturn403WhenUserIsNotParticipant() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Item Teste");
@@ -636,7 +636,7 @@ class ListItemControllerTest {
         void shouldReturn401WhenNoToken() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Item Teste");
@@ -659,8 +659,8 @@ class ListItemControllerTest {
         void shouldReturn404WhenItemDoesNotBelongToList() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            List testList = listService.createList(new CreateListRequest("Lista 1", 1), testUser);
-            List otherList = listService.createList(new CreateListRequest("Lista 2", 1), testUser);
+            SharedList testList = listService.createList(new CreateListRequest("Lista 1", 1), testUser);
+            SharedList otherList = listService.createList(new CreateListRequest("Lista 2", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Item da Lista 2");
@@ -688,7 +688,7 @@ class ListItemControllerTest {
         void shouldDeleteItemAndReturn204() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            br.com.leoferolive.nossalista.list.domain.SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Item para Deletar");
@@ -712,7 +712,7 @@ class ListItemControllerTest {
         void shouldReorderPositionsAfterDelete() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            br.com.leoferolive.nossalista.list.domain.SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             // Criar 3 itens
             ListItem item1 = createItem(testList, "Item 1", 0);
@@ -753,7 +753,7 @@ class ListItemControllerTest {
         void shouldReturn404WhenItemDoesNotExist() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            br.com.leoferolive.nossalista.list.domain.SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
             UUID nonExistentItemId = UUID.randomUUID();
 
             // Act & Assert
@@ -769,7 +769,7 @@ class ListItemControllerTest {
         void shouldReturn403WhenUserIsNotParticipant() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
+            br.com.leoferolive.nossalista.list.domain.SharedList testList = listService.createList(new CreateListRequest("Lista Privada", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Item Teste");
@@ -796,7 +796,7 @@ class ListItemControllerTest {
         void shouldReturn401WhenNoToken() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
+            br.com.leoferolive.nossalista.list.domain.SharedList testList = listService.createList(new CreateListRequest("Lista de Teste", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Item Teste");
@@ -819,8 +819,8 @@ class ListItemControllerTest {
         void shouldReturn404WhenItemDoesNotBelongToList() throws Exception {
             // Arrange
             authenticateUser(testUser);
-            br.com.leoferolive.nossalista.list.domain.List testList = listService.createList(new CreateListRequest("Lista 1", 1), testUser);
-            br.com.leoferolive.nossalista.list.domain.List otherList = listService.createList(new CreateListRequest("Lista 2", 1), testUser);
+            br.com.leoferolive.nossalista.list.domain.SharedList testList = listService.createList(new CreateListRequest("Lista 1", 1), testUser);
+            br.com.leoferolive.nossalista.list.domain.SharedList otherList = listService.createList(new CreateListRequest("Lista 2", 1), testUser);
 
             ListItem item = new ListItem();
             item.setName("Item da Lista 2");
@@ -838,7 +838,7 @@ class ListItemControllerTest {
                 .andExpect(jsonPath("$.status").value(404));
         }
 
-        private ListItem createItem(br.com.leoferolive.nossalista.list.domain.List list, String name, int position) {
+        private ListItem createItem(br.com.leoferolive.nossalista.list.domain.SharedList list, String name, int position) {
             ListItem item = new ListItem();
             item.setName(name);
             item.setList(list);

@@ -4,7 +4,7 @@ import br.com.leoferolive.nossalista.activity.domain.ActivityLogEntry;
 import br.com.leoferolive.nossalista.activity.dto.ActivityLogResponse;
 import br.com.leoferolive.nossalista.activity.dto.ActivityPageResponse;
 import br.com.leoferolive.nossalista.activity.repository.ActivityLogRepository;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.service.ListService;
 import br.com.leoferolive.nossalista.listitem.domain.ListItem;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -36,37 +36,37 @@ public class ActivityLogService {
     }
 
     @Transactional
-    public void logItemAdded(List list, User actor, ListItem item) {
+    public void logItemAdded(SharedList list, User actor, ListItem item) {
         save(list, actor, "ITEM_ADDED", "ITEM", item.getId(), item.getName(), null);
     }
 
     @Transactional
-    public void logItemChecked(List list, User actor, ListItem item) {
+    public void logItemChecked(SharedList list, User actor, ListItem item) {
         save(list, actor, "ITEM_CHECKED", "ITEM", item.getId(), item.getName(), null);
     }
 
     @Transactional
-    public void logItemUnchecked(List list, User actor, ListItem item) {
+    public void logItemUnchecked(SharedList list, User actor, ListItem item) {
         save(list, actor, "ITEM_UNCHECKED", "ITEM", item.getId(), item.getName(), null);
     }
 
     @Transactional
-    public void logItemUpdated(List list, User actor, ListItem item, java.util.List<String> changedFields) {
+    public void logItemUpdated(SharedList list, User actor, ListItem item, java.util.List<String> changedFields) {
         save(list, actor, "ITEM_UPDATED", "ITEM", item.getId(), item.getName(), Map.of("changedFields", changedFields));
     }
 
     @Transactional
-    public void logItemRemoved(List list, User actor, ListItem item) {
+    public void logItemRemoved(SharedList list, User actor, ListItem item) {
         save(list, actor, "ITEM_REMOVED", "ITEM", item.getId(), item.getName(), null);
     }
 
     @Transactional
-    public void logMemberJoinedViaLink(List list, User member) {
+    public void logMemberJoinedViaLink(SharedList list, User member) {
         save(list, member, "MEMBER_JOINED", "MEMBER", member.getId(), displayName(member), Map.of("method", "LINK"));
     }
 
     @Transactional
-    public void logMemberInvitedByUsername(List list, User member, User invitedBy) {
+    public void logMemberInvitedByUsername(SharedList list, User member, User invitedBy) {
         save(
             list,
             member,
@@ -79,12 +79,12 @@ public class ActivityLogService {
     }
 
     @Transactional
-    public void logMemberLeft(List list, User member) {
+    public void logMemberLeft(SharedList list, User member) {
         save(list, member, "MEMBER_LEFT", "MEMBER", member.getId(), displayName(member), null);
     }
 
     @Transactional
-    public void logMemberRemoved(List list, User member, User removedBy) {
+    public void logMemberRemoved(SharedList list, User member, User removedBy) {
         save(
             list,
             member,
@@ -108,7 +108,7 @@ public class ActivityLogService {
     }
 
     private void save(
-        List list,
+        SharedList list,
         User actor,
         String action,
         String targetType,

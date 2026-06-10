@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.member.repository;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
@@ -45,7 +45,7 @@ class ListMemberRepositoryTest {
 
     private User testUser;
     private User anotherUser;
-    private List testList;
+    private SharedList testList;
 
     @BeforeEach
     void setUp() {
@@ -66,7 +66,7 @@ class ListMemberRepositoryTest {
         anotherUser = userRepository.save(anotherUser);
 
         // Criar lista de teste
-        testList = new List();
+        testList = new SharedList();
         testList.setName("Lista de Teste");
         testList.setTypeId(1);
         testList.setOwner(testUser);
@@ -138,7 +138,7 @@ class ListMemberRepositoryTest {
     @DisplayName("Deve permitir mesmo usuário em listas diferentes")
     void shouldAllowSameUserInDifferentLists() {
         // Arrange - Segunda lista
-        List anotherList = new List();
+        SharedList anotherList = new SharedList();
         anotherList.setName("Outra Lista");
         anotherList.setTypeId(2);
         anotherList.setOwner(anotherUser);
