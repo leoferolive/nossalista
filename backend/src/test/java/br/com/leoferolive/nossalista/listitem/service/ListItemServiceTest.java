@@ -3,7 +3,7 @@ package br.com.leoferolive.nossalista.listitem.service;
 import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.ValidationException;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.listitem.domain.ListItem;
@@ -72,7 +72,7 @@ class ListItemServiceTest {
 
     private User testUser;
     private User otherUser;
-    private List testList;
+    private SharedList testList;
     private UUID listId;
 
     @BeforeEach
@@ -99,7 +99,7 @@ class ListItemServiceTest {
         otherUser.setEmail("other@test.com");
 
         listId = UUID.randomUUID();
-        testList = new List();
+        testList = new SharedList();
         testList.setId(listId);
         testList.setName("Lista de Teste");
         testList.setTypeId(1); // Shopping
@@ -107,8 +107,8 @@ class ListItemServiceTest {
         testList.setInviteCode("TEST12345678");
         testList.setUpdatedAt(LocalDateTime.now());
 
-        lenient().when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
-            List list = invocation.getArgument(0);
+        lenient().when(listRepository.save(any(SharedList.class))).thenAnswer(invocation -> {
+            SharedList list = invocation.getArgument(0);
             if (list.getUpdatedAt() == null) {
                 list.setUpdatedAt(LocalDateTime.now());
             }
@@ -731,7 +731,7 @@ class ListItemServiceTest {
         void shouldThrowItemNotFoundExceptionWhenItemDoesNotBelongToList() {
             // Arrange
             UUID itemId = UUID.randomUUID();
-            List otherList = new List();
+            SharedList otherList = new SharedList();
             otherList.setId(UUID.randomUUID());
             otherList.setOwner(testUser);
 
@@ -1062,7 +1062,7 @@ class ListItemServiceTest {
         void shouldThrowItemNotFoundWhenItemDoesNotBelongToListForUpdate() {
             // Arrange
             UUID itemId = UUID.randomUUID();
-            List otherList = new List();
+            SharedList otherList = new SharedList();
             otherList.setId(UUID.randomUUID());
             otherList.setOwner(testUser);
 
@@ -1257,7 +1257,7 @@ class ListItemServiceTest {
         void shouldThrow404WhenItemNotBelongsToList() {
             // Arrange
             UUID itemId = UUID.randomUUID();
-            List otherList = new List();
+            SharedList otherList = new SharedList();
             otherList.setId(UUID.randomUUID());
             otherList.setOwner(testUser);
 

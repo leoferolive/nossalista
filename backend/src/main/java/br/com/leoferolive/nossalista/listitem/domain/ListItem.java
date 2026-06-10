@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.listitem.domain;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -60,7 +60,7 @@ public class ListItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "list_id", nullable = false)
-    private List list;
+    private SharedList list;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
@@ -149,11 +149,11 @@ public class ListItem {
         this.position = position;
     }
 
-    public List getList() {
+    public SharedList getList() {
         return list;
     }
 
-    public void setList(List list) {
+    public void setList(SharedList list) {
         this.list = list;
     }
 

@@ -3,7 +3,7 @@ package br.com.leoferolive.nossalista.listitem.service;
 import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.ValidationException;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.domain.ListType;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
@@ -76,7 +76,7 @@ public class ListItemService {
     public ListItemResponseDTO addItem(UUID listId, CreateItemRequestDTO dto, User creator) {
         // 1. Verificar se lista existe
         // Usa findById em vez de findByIdWithDetails para evitar problemas com JOIN FETCH
-        List list = listRepository.findById(listId)
+        SharedList list = listRepository.findById(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // 2. Verificar se usuário é participante (dono ou membro)
@@ -194,7 +194,7 @@ public class ListItemService {
      * @param user Usuário a verificar
      * @return true se o usuário for dono ou membro da lista
      */
-    private boolean isParticipant(List list, User user) {
+    private boolean isParticipant(SharedList list, User user) {
         // Verificar se é o dono (tratando lazy loading)
         User owner = list.getOwner();
         if (owner != null && owner.getId().equals(user.getId())) {
@@ -217,7 +217,7 @@ public class ListItemService {
     @Transactional(readOnly = true)
     public java.util.List<ListItemResponseDTO> getItemsByListId(UUID listId, User user) {
         // 1. Verificar se lista existe
-        List list = listRepository.findById(listId)
+        SharedList list = listRepository.findById(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // 2. Verificar se usuário é participante
@@ -249,7 +249,7 @@ public class ListItemService {
     @Transactional
     public ListItemResponseDTO toggleItemCheck(UUID listId, UUID itemId, User user) {
         // 1. Verificar se lista existe
-        List list = listRepository.findById(listId)
+        SharedList list = listRepository.findById(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // 2. Verificar se usuário é participante
@@ -311,7 +311,7 @@ public class ListItemService {
             User user) {
 
         // 1. Verificar se lista existe
-        List list = listRepository.findById(listId)
+        SharedList list = listRepository.findById(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // 2. Verificar se usuário é participante
@@ -409,7 +409,7 @@ public class ListItemService {
     @Transactional
     public void deleteItem(UUID listId, UUID itemId, User user) {
         // 1. Verificar se lista existe
-        List list = listRepository.findById(listId)
+        SharedList list = listRepository.findById(listId)
                 .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // 2. Verificar se usuário é participante
@@ -464,8 +464,8 @@ public class ListItemService {
         eventPublisher.publishEvent(listId, "LIST_LAYOUT_UPDATED", new ListLayoutUpdatedPayload(positions), actor, revision);
     }
 
-    private Long touchListRevision(List list) {
-        List savedList = listRepository.save(list);
+    private Long touchListRevision(SharedList list) {
+        SharedList savedList = listRepository.save(list);
         return savedList.getUpdatedAt().toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 

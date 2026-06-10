@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.user.service;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.push.PushSubscriptionStore;
@@ -67,8 +67,8 @@ public class AccountDeletionService {
         // 1-4. Delete user's owned lists and all their dependent data.
         // Each list has CASCADE on activity_logs, list_items, and list_members,
         // so deleting the list removes all children.
-        java.util.List<List> ownedLists = listRepository.findByOwnerId(userId);
-        for (List list : ownedLists) {
+        java.util.List<SharedList> ownedLists = listRepository.findByOwnerId(userId);
+        for (SharedList list : ownedLists) {
             log.debug("Deleting owned list: listId={}, listName='{}'", list.getId(), list.getName());
             listRepository.delete(list);
         }

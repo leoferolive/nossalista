@@ -2,7 +2,7 @@ package br.com.leoferolive.nossalista.member.service;
 
 import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.exception.ListNotFoundException;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
@@ -52,7 +52,7 @@ public class MemberService {
 
     @Transactional
     public InviteByUsernameResponse inviteByUsername(UUID listId, UUID requesterId, String username) {
-        List list = listRepository.findByIdWithDetails(listId)
+        SharedList list = listRepository.findByIdWithDetails(listId)
             .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         if (!list.getOwner().getId().equals(requesterId)) {
@@ -111,7 +111,7 @@ public class MemberService {
 
     @Transactional
     public void removeMember(UUID listId, UUID requesterId, UUID targetUserId) {
-        List list = listRepository.findByIdWithDetails(listId)
+        SharedList list = listRepository.findByIdWithDetails(listId)
             .orElseThrow(() -> new ListNotFoundException("Lista não encontrada"));
 
         // AC3: Apenas OWNER pode remover participantes
@@ -149,7 +149,7 @@ public class MemberService {
         }
 
         User leavingUser = membership.getUser();
-        List list = membership.getList();
+        SharedList list = membership.getList();
         activityLogService.logMemberLeft(list, leavingUser);
         listMemberRepository.delete(membership);
 

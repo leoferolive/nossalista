@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.activity.domain;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,7 +24,7 @@ public class ActivityLogEntry {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "list_id", nullable = false)
-    private List list;
+    private SharedList list;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -69,11 +69,11 @@ public class ActivityLogEntry {
         this.id = id;
     }
 
-    public List getList() {
+    public SharedList getList() {
         return list;
     }
 
-    public void setList(List list) {
+    public void setList(SharedList list) {
         this.list = list;
     }
 

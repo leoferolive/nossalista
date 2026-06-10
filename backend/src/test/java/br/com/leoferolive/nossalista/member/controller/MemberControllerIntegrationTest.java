@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.member.controller;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
@@ -59,7 +59,7 @@ class MemberControllerIntegrationTest {
     private User owner;
     private User member;
     private User target;
-    private List list;
+    private SharedList list;
 
     @BeforeEach
     void setUp() {
@@ -74,7 +74,7 @@ class MemberControllerIntegrationTest {
         member = userService.createUser("member", "member@example.com", "hashed", "Member", AuthProvider.EMAIL);
         target = userService.createUser("pedro", "pedro@example.com", "hashed", "Pedro", AuthProvider.EMAIL);
 
-        list = new List();
+        list = new SharedList();
         list.setName("Lista Convite");
         list.setTypeId(1);
         list.setOwner(owner);

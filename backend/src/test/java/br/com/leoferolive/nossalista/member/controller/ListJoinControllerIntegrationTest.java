@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.member.controller;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.listitem.domain.ListItem;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
@@ -58,7 +58,7 @@ class ListJoinControllerIntegrationTest {
 
     private MockMvc mockMvc;
     private User testOwner;
-    private List testList;
+    private SharedList testList;
     private static final String VALID_INVITE_CODE = "ABC123XYZ789";
 
     private String bearerToken(User user) {
@@ -83,7 +83,7 @@ class ListJoinControllerIntegrationTest {
         testOwner.setAvatarUrl("https://example.com/avatar.jpg");
 
         // Create test list with valid invite code
-        testList = new List();
+        testList = new SharedList();
         testList.setId(UUID.randomUUID());
         testList.setName("Mercado Semanal");
         testList.setTypeId(1); // Compras

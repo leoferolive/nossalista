@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.list.repository;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.domain.ListType;
 import br.com.leoferolive.nossalista.list.domain.ListTypeEntity;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
@@ -53,13 +53,13 @@ class ListRepositoryTest {
     @Test
     void shouldCreateListWithValidTypeAndOwner() {
         // Given: List with valid type and owner - @PrePersist will set timestamps
-        List list = new List();
+        SharedList list = new SharedList();
         list.setName("Weekly Market");
         list.setTypeId(1); // Shopping
         list.setOwner(testUser);
 
         // When: Save the list
-        List saved = listRepository.save(list);
+        SharedList saved = listRepository.save(list);
 
         // Then: List must be persisted with fields populated (including auto-generated timestamps)
         assertNotNull(saved.getId());
@@ -73,7 +73,7 @@ class ListRepositoryTest {
     @Test
     void shouldEnforceUniqueInviteCode() {
         // Given: First list with invite code
-        List list1 = new List();
+        SharedList list1 = new SharedList();
         list1.setName("List 1");
         list1.setTypeId(1);
         list1.setOwner(testUser);
@@ -81,7 +81,7 @@ class ListRepositoryTest {
         listRepository.saveAndFlush(list1); // Force persist to check constraint
 
         // When/Then: Second list with same invite code should fail
-        List list2 = new List();
+        SharedList list2 = new SharedList();
         list2.setName("List 2");
         list2.setTypeId(2);
         list2.setOwner(testUser);
@@ -95,20 +95,20 @@ class ListRepositoryTest {
     @Test
     void shouldFindListsByOwnerId() {
         // Given: Two lists from same user
-        List list1 = new List();
+        SharedList list1 = new SharedList();
         list1.setName("List 1");
         list1.setTypeId(1);
         list1.setOwner(testUser);
         listRepository.save(list1);
 
-        List list2 = new List();
+        SharedList list2 = new SharedList();
         list2.setName("List 2");
         list2.setTypeId(2);
         list2.setOwner(testUser);
         listRepository.save(list2);
 
         // When: Find lists by user
-        java.util.List<List> lists = listRepository.findByOwnerId(testUser.getId());
+        java.util.List<SharedList> lists = listRepository.findByOwnerId(testUser.getId());
 
         // Then: Both lists must be returned
         assertEquals(2, lists.size());
@@ -117,7 +117,7 @@ class ListRepositoryTest {
     @Test
     void shouldFindByInviteCode() {
         // Given: List with invite code
-        List list = new List();
+        SharedList list = new SharedList();
         list.setName("Shared List");
         list.setTypeId(3);
         list.setOwner(testUser);
@@ -125,7 +125,7 @@ class ListRepositoryTest {
         listRepository.save(list);
 
         // When: Find by invite code
-        java.util.Optional<List> found = listRepository.findByInviteCode("SHARE123");
+        java.util.Optional<SharedList> found = listRepository.findByInviteCode("SHARE123");
 
         // Then: List must be found
         assertTrue(found.isPresent());
@@ -135,7 +135,7 @@ class ListRepositoryTest {
     @Test
     void shouldReturnEmptyWhenInviteCodeNotFound() {
         // When: Find by non-existent invite code
-        java.util.Optional<List> found = listRepository.findByInviteCode("NOTEXIST");
+        java.util.Optional<SharedList> found = listRepository.findByInviteCode("NOTEXIST");
 
         // Then: Must return empty
         assertFalse(found.isPresent());
@@ -168,11 +168,11 @@ class ListRepositoryTest {
     @Test
     void shouldUpdateUpdatedAtOnModify() {
         // Given: List created - @PrePersist sets timestamps
-        List list = new List();
+        SharedList list = new SharedList();
         list.setName("Original Name");
         list.setTypeId(1);
         list.setOwner(testUser);
-        List saved = listRepository.saveAndFlush(list); // Force persist
+        SharedList saved = listRepository.saveAndFlush(list); // Force persist
         LocalDateTime originalUpdatedAt = saved.getUpdatedAt();
 
         // When: Wait and modify
@@ -182,7 +182,7 @@ class ListRepositoryTest {
             // Ignore
         }
         saved.setName("Updated Name");
-        List updated = listRepository.saveAndFlush(saved); // Force update with @PreUpdate
+        SharedList updated = listRepository.saveAndFlush(saved); // Force update with @PreUpdate
 
         // Then: @PreUpdate must update updatedAt automatically
         assertTrue(updated.getUpdatedAt().isAfter(originalUpdatedAt),
@@ -192,7 +192,7 @@ class ListRepositoryTest {
     @Test
     void shouldNotAllowInvalidTypeId() {
         // Given: List with invalid typeId
-        List list = new List();
+        SharedList list = new SharedList();
         list.setName("Invalid Type List");
         list.setTypeId(999); // Does not exist in list_types table
         list.setOwner(testUser);
@@ -223,7 +223,7 @@ class ListRepositoryTest {
     @Test
     void shouldReturnTypeFromListEntity() {
         // Given: List with typeId 1 (Shopping)
-        List list = new List();
+        SharedList list = new SharedList();
         list.setTypeId(1);
 
         // When: Get type
@@ -238,7 +238,7 @@ class ListRepositoryTest {
         // Given: ListTypeEntity with slug "compras"
         ListTypeEntity typeEntity = listTypeRepository.findBySlug("compras").orElseThrow();
 
-        List list = new List();
+        SharedList list = new SharedList();
         list.setTypeId(typeEntity.getId());
         list.setTypeEntity(typeEntity);
 

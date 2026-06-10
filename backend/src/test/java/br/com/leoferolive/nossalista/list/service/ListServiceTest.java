@@ -2,7 +2,7 @@ package br.com.leoferolive.nossalista.list.service;
 
 import br.com.leoferolive.nossalista.common.exception.ForbiddenException;
 import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.dto.CreateListRequest;
 import br.com.leoferolive.nossalista.list.dto.ListStateResponse;
 import br.com.leoferolive.nossalista.list.dto.UpdateListNameRequest;
@@ -80,13 +80,13 @@ class ListServiceTest {
         // Arrange
         CreateListRequest request = new CreateListRequest("Mercado Semanal", 1);
         when(listTypeRepository.existsById(1)).thenReturn(true);
-        when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
-            List list = invocation.getArgument(0);
+        when(listRepository.save(any(SharedList.class))).thenAnswer(invocation -> {
+            SharedList list = invocation.getArgument(0);
             return list;
         });
         when(listRepository.findByIdWithDetails(any(UUID.class))).thenAnswer(invocation -> {
             UUID listId = invocation.getArgument(0);
-            List hydratedList = new List();
+            SharedList hydratedList = new SharedList();
             hydratedList.setId(listId);
             hydratedList.setName("Mercado Semanal");
             hydratedList.setTypeId(1);
@@ -100,7 +100,7 @@ class ListServiceTest {
         });
 
         // Act
-        List result = listService.createList(request, testUser);
+        SharedList result = listService.createList(request, testUser);
 
         // Assert - Lista
         assertNotNull(result.getId(), "ID deve ser gerado");
@@ -120,7 +120,7 @@ class ListServiceTest {
         assertEquals(MemberRole.OWNER, savedMember.getRole(), "Role deve ser OWNER");
 
         verify(listTypeRepository).existsById(1);
-        verify(listRepository).save(any(List.class));
+        verify(listRepository).save(any(SharedList.class));
         verify(listRepository).findByIdWithDetails(result.getId());
     }
 
@@ -142,7 +142,7 @@ class ListServiceTest {
         assertTrue(exception.getMessage().contains("999"));
 
         verify(listTypeRepository).existsById(999);
-        verify(listRepository, never()).save(any(List.class));
+        verify(listRepository, never()).save(any(SharedList.class));
     }
 
     @Test
@@ -151,13 +151,13 @@ class ListServiceTest {
         // Arrange
         CreateListRequest request = new CreateListRequest("Lista 1", 1);
         when(listTypeRepository.existsById(1)).thenReturn(true);
-        when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
-            List list = invocation.getArgument(0);
+        when(listRepository.save(any(SharedList.class))).thenAnswer(invocation -> {
+            SharedList list = invocation.getArgument(0);
             return list;
         });
         when(listRepository.findByIdWithDetails(any(UUID.class))).thenAnswer(invocation -> {
             UUID listId = invocation.getArgument(0);
-            List hydratedList = new List();
+            SharedList hydratedList = new SharedList();
             hydratedList.setId(listId);
             hydratedList.setOwner(testUser);
             hydratedList.setTypeId(1);
@@ -171,8 +171,8 @@ class ListServiceTest {
         });
 
         // Act
-        List list1 = listService.createList(request, testUser);
-        List list2 = listService.createList(request, testUser);
+        SharedList list1 = listService.createList(request, testUser);
+        SharedList list2 = listService.createList(request, testUser);
 
         // Assert
         assertNotEquals(list1.getInviteCode(), list2.getInviteCode(),
@@ -187,13 +187,13 @@ class ListServiceTest {
         when(listTypeRepository.existsById(1)).thenReturn(true);
         // Simula colisão no primeiro código, aceita no segundo
         when(listRepository.existsByInviteCode(any())).thenReturn(true, false);
-        when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
-            List list = invocation.getArgument(0);
+        when(listRepository.save(any(SharedList.class))).thenAnswer(invocation -> {
+            SharedList list = invocation.getArgument(0);
             return list;
         });
         when(listRepository.findByIdWithDetails(any(UUID.class))).thenAnswer(invocation -> {
             UUID listId = invocation.getArgument(0);
-            List hydratedList = new List();
+            SharedList hydratedList = new SharedList();
             hydratedList.setId(listId);
             hydratedList.setName("Lista com Colisão");
             hydratedList.setTypeId(1);
@@ -207,12 +207,12 @@ class ListServiceTest {
         });
 
         // Act
-        List result = listService.createList(request, testUser);
+        SharedList result = listService.createList(request, testUser);
 
         // Assert - verifica que o retry foi executado (existsByInviteCode chamado 2x)
         assertNotNull(result.getInviteCode());
         verify(listRepository, times(2)).existsByInviteCode(any());
-        verify(listRepository).save(any(List.class));
+        verify(listRepository).save(any(SharedList.class));
         verify(listMemberRepository).save(any(ListMember.class));
     }
 
@@ -235,20 +235,20 @@ class ListServiceTest {
 
         assertEquals(10, exception.getMaxAttempts());
         verify(listRepository, times(9)).existsByInviteCode(any());
-        verify(listRepository, never()).save(any(List.class));
+        verify(listRepository, never()).save(any(SharedList.class));
     }
 
     @Nested
     @DisplayName("getListById - Buscar Lista por ID")
     class GetListByIdTests {
 
-        private List testList;
+        private SharedList testList;
         private UUID listId;
 
         @BeforeEach
         void setUpList() {
             listId = UUID.randomUUID();
-            testList = new List();
+            testList = new SharedList();
             testList.setId(listId);
             testList.setName("Minha Lista de Teste");
             testList.setTypeId(1);
@@ -263,7 +263,7 @@ class ListServiceTest {
             when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
 
             // Act
-            List result = listService.getListById(listId, testUser.getId());
+            SharedList result = listService.getListById(listId, testUser.getId());
 
             // Assert
             assertNotNull(result);
@@ -309,13 +309,13 @@ class ListServiceTest {
     }
 
     private String findInviteCodeById(UUID listId) {
-        ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<SharedList> captor = ArgumentCaptor.forClass(SharedList.class);
         verify(listRepository, atLeastOnce()).save(captor.capture());
 
         return captor.getAllValues().stream()
             .filter(list -> listId.equals(list.getId()))
             .findFirst()
-            .map(List::getInviteCode)
+            .map(SharedList::getInviteCode)
             .orElse("ABCDEFGHIJKL");
     }
 
@@ -323,13 +323,13 @@ class ListServiceTest {
     @DisplayName("getListState - Estado leve da Lista")
     class GetListStateTests {
 
-        private List testList;
+        private SharedList testList;
         private UUID listId;
 
         @BeforeEach
         void setUpList() {
             listId = UUID.randomUUID();
-            testList = new List();
+            testList = new SharedList();
             testList.setId(listId);
             testList.setName("Lista State");
             testList.setTypeId(1);
@@ -371,13 +371,13 @@ class ListServiceTest {
     @DisplayName("updateListName - Atualizar Nome da Lista")
     class UpdateListNameTests {
 
-        private List testList;
+        private SharedList testList;
         private UUID listId;
 
         @BeforeEach
         void setUpList() {
             listId = UUID.randomUUID();
-            testList = new List();
+            testList = new SharedList();
             testList.setId(listId);
             testList.setName("Nome Original");
             testList.setTypeId(1);
@@ -391,19 +391,19 @@ class ListServiceTest {
             // Arrange
             UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome da Lista");
             when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
-            when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
-                List list = invocation.getArgument(0);
+            when(listRepository.save(any(SharedList.class))).thenAnswer(invocation -> {
+                SharedList list = invocation.getArgument(0);
                 return list;
             });
 
             // Act
-            List result = listService.updateListName(listId, testUser.getId(), request);
+            SharedList result = listService.updateListName(listId, testUser.getId(), request);
 
             // Assert
             assertNotNull(result);
             assertEquals("Novo Nome da Lista", result.getName());
             verify(listRepository).findByIdWithDetails(listId);
-            verify(listRepository).save(any(List.class));
+            verify(listRepository).save(any(SharedList.class));
         }
 
         @Test
@@ -422,7 +422,7 @@ class ListServiceTest {
 
             assertEquals("Lista não encontrada", exception.getMessage());
             verify(listRepository).findByIdWithDetails(nonExistentId);
-            verify(listRepository, never()).save(any(List.class));
+            verify(listRepository, never()).save(any(SharedList.class));
         }
 
         @Test
@@ -441,7 +441,7 @@ class ListServiceTest {
 
             assertEquals("Apenas o dono pode editar esta lista", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
-            verify(listRepository, never()).save(any(List.class));
+            verify(listRepository, never()).save(any(SharedList.class));
         }
 
         @Test
@@ -450,13 +450,13 @@ class ListServiceTest {
             // Arrange
             UpdateListNameRequest request = new UpdateListNameRequest("  Nome com espaços  ");
             when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
-            when(listRepository.save(any(List.class))).thenAnswer(invocation -> {
-                List list = invocation.getArgument(0);
+            when(listRepository.save(any(SharedList.class))).thenAnswer(invocation -> {
+                SharedList list = invocation.getArgument(0);
                 return list;
             });
 
             // Act
-            List result = listService.updateListName(listId, testUser.getId(), request);
+            SharedList result = listService.updateListName(listId, testUser.getId(), request);
 
             // Assert
             assertEquals("Nome com espaços", result.getName());
@@ -477,7 +477,7 @@ class ListServiceTest {
 
             assertEquals("Nome da lista deve ter pelo menos 3 caracteres", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
-            verify(listRepository, never()).save(any(List.class));
+            verify(listRepository, never()).save(any(SharedList.class));
         }
 
         @Test
@@ -496,7 +496,7 @@ class ListServiceTest {
 
             assertEquals("Nome da lista deve ter no máximo 100 caracteres", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
-            verify(listRepository, never()).save(any(List.class));
+            verify(listRepository, never()).save(any(SharedList.class));
         }
 
         @Test
@@ -506,7 +506,7 @@ class ListServiceTest {
             String oldName = testList.getName(); // "Nome Original"
             UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome");
             when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
-            when(listRepository.save(any(List.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(listRepository.save(any(SharedList.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
             listService.updateListName(listId, testUser.getId(), request);
@@ -529,13 +529,13 @@ class ListServiceTest {
     @DisplayName("deleteList - Excluir Lista")
     class DeleteListTests {
 
-        private List testList;
+        private SharedList testList;
         private UUID listId;
 
         @BeforeEach
         void setUpList() {
             listId = UUID.randomUUID();
-            testList = new List();
+            testList = new SharedList();
             testList.setId(listId);
             testList.setName("Lista para Excluir");
             testList.setTypeId(1);
@@ -573,7 +573,7 @@ class ListServiceTest {
 
             assertEquals("Lista não encontrada", exception.getMessage());
             verify(listRepository).findByIdWithDetails(nonExistentId);
-            verify(listRepository, never()).delete(any(List.class));
+            verify(listRepository, never()).delete(any(SharedList.class));
         }
 
         @Test
@@ -591,7 +591,7 @@ class ListServiceTest {
 
             assertEquals("Apenas o dono pode excluir esta lista", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
-            verify(listRepository, never()).delete(any(List.class));
+            verify(listRepository, never()).delete(any(SharedList.class));
         }
     }
 
@@ -599,13 +599,13 @@ class ListServiceTest {
     @DisplayName("generateInviteLink - Gerar Link de Convite")
     class GenerateInviteLinkTests {
 
-        private List testList;
+        private SharedList testList;
         private UUID listId;
 
         @BeforeEach
         void setUpList() {
             listId = UUID.randomUUID();
-            testList = new List();
+            testList = new SharedList();
             testList.setId(listId);
             testList.setName("Lista de Teste");
             testList.setTypeId(1);
@@ -621,10 +621,10 @@ class ListServiceTest {
 
             when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
             when(listRepository.existsByInviteCode(any())).thenReturn(false);
-            when(listRepository.save(any(List.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(listRepository.save(any(SharedList.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
-            List result = listService.generateInviteLink(listId, testUser.getId());
+            SharedList result = listService.generateInviteLink(listId, testUser.getId());
 
             // Assert
             assertNotNull(result.getInviteCode(), "inviteCode deve ser gerado");
@@ -637,7 +637,7 @@ class ListServiceTest {
             assertTrue(Math.abs(minutesDiff) < 1, "expiresAt deve ser aproximadamente 24h no futuro");
 
             verify(listRepository).findByIdWithDetails(listId);
-            verify(listRepository).save(any(List.class));
+            verify(listRepository).save(any(SharedList.class));
         }
 
         @Test
@@ -653,14 +653,14 @@ class ListServiceTest {
             when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
 
             // Act
-            List result = listService.generateInviteLink(listId, testUser.getId());
+            SharedList result = listService.generateInviteLink(listId, testUser.getId());
 
             // Assert
             assertEquals(existingCode, result.getInviteCode(), "Deve reutilizar o código existente");
             assertEquals(futureExpiry, result.getInviteExpiresAt(), "expiry não deve mudar");
 
             verify(listRepository).findByIdWithDetails(listId);
-            verify(listRepository, never()).save(any(List.class)); // Não deve salvar nada
+            verify(listRepository, never()).save(any(SharedList.class)); // Não deve salvar nada
         }
 
         @Test
@@ -675,10 +675,10 @@ class ListServiceTest {
 
             when(listRepository.findByIdWithDetails(listId)).thenReturn(Optional.of(testList));
             when(listRepository.existsByInviteCode(any())).thenReturn(false);
-            when(listRepository.save(any(List.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(listRepository.save(any(SharedList.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
-            List result = listService.generateInviteLink(listId, testUser.getId());
+            SharedList result = listService.generateInviteLink(listId, testUser.getId());
 
             // Assert
             assertNotNull(result.getInviteCode());
@@ -690,7 +690,7 @@ class ListServiceTest {
                     "Nova expiração deve ser no futuro");
 
             verify(listRepository).findByIdWithDetails(listId);
-            verify(listRepository).save(any(List.class));
+            verify(listRepository).save(any(SharedList.class));
         }
 
         @Test
@@ -711,7 +711,7 @@ class ListServiceTest {
 
             assertEquals("Apenas o dono pode gerar link de convite", exception.getMessage());
             verify(listRepository).findByIdWithDetails(listId);
-            verify(listRepository, never()).save(any(List.class));
+            verify(listRepository, never()).save(any(SharedList.class));
         }
 
         @Test
@@ -729,7 +729,7 @@ class ListServiceTest {
 
             assertEquals("Lista não encontrada", exception.getMessage());
             verify(listRepository).findByIdWithDetails(nonExistentId);
-            verify(listRepository, never()).save(any(List.class));
+            verify(listRepository, never()).save(any(SharedList.class));
         }
     }
 }

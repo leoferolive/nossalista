@@ -1,7 +1,7 @@
 package br.com.leoferolive.nossalista.member.service;
 
 import br.com.leoferolive.nossalista.activity.service.ActivityLogService;
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.dto.JoinListResponse;
 import br.com.leoferolive.nossalista.list.dto.ListResponse;
 import br.com.leoferolive.nossalista.list.util.ListTypeMapper;
@@ -69,7 +69,7 @@ public class ListJoinService {
      */
     @Transactional(readOnly = true)
     public JoinListResponse getListByInviteCode(String inviteCode) {
-        List list = listRepository.findByInviteCodeWithDetails(inviteCode)
+        SharedList list = listRepository.findByInviteCodeWithDetails(inviteCode)
             .orElseThrow(() -> new ListNotFoundException("Convite não encontrado"));
 
         // Validar expiração
@@ -87,7 +87,7 @@ public class ListJoinService {
         return mapToJoinListResponse(list, items);
     }
 
-    private JoinListResponse mapToJoinListResponse(List list, java.util.List<ListItem> items) {
+    private JoinListResponse mapToJoinListResponse(SharedList list, java.util.List<ListItem> items) {
         String typeSlug = ListTypeMapper.resolveSlug(list.getTypeEntity(), list.getTypeId());
         String typeName = ListTypeMapper.resolveName(list.getTypeEntity(), list.getTypeId());
 
@@ -133,7 +133,7 @@ public class ListJoinService {
     @Transactional
     public ListJoinedResponse joinList(UUID userId, String inviteCode) {
         // 1. Buscar lista por invite_code
-        List list = listRepository.findByInviteCodeWithDetails(inviteCode)
+        SharedList list = listRepository.findByInviteCodeWithDetails(inviteCode)
             .orElseThrow(() -> new ListNotFoundException("Convite não encontrado"));
 
         // 2. Validar expiração
@@ -195,7 +195,7 @@ public class ListJoinService {
     /**
      * Constrói o response de join com dados completos da lista.
      */
-    private ListJoinedResponse buildListJoinedResponse(List list, MemberRole role, String message, boolean created) {
+    private ListJoinedResponse buildListJoinedResponse(SharedList list, MemberRole role, String message, boolean created) {
         String typeSlug = ListTypeMapper.resolveSlug(list.getTypeEntity(), list.getTypeId());
         String typeName = ListTypeMapper.resolveName(list.getTypeEntity(), list.getTypeId());
 

@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.listitem.repository;
 
-import br.com.leoferolive.nossalista.list.domain.List;
+import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.listitem.domain.ListItem;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
@@ -42,7 +42,7 @@ class ListItemRepositoryTest {
     private EntityManager entityManager;
 
     private User testUser;
-    private List testList;
+    private SharedList testList;
 
     @BeforeEach
     void setUp() {
@@ -56,7 +56,7 @@ class ListItemRepositoryTest {
         testUser = userRepository.saveAndFlush(testUser);
 
         // Create and persist test list
-        testList = new List();
+        testList = new SharedList();
         testList.setName("Test List");
         testList.setTypeId(1); // Shopping
         testList.setOwner(testUser);
@@ -331,7 +331,7 @@ class ListItemRepositoryTest {
     @Test
     void shouldEnforceForeignKeyConstraintOnList() {
         // Given: Create a transient List (not persisted, no ID)
-        List transientList = new List();
+        SharedList transientList = new SharedList();
         transientList.setName("Transient List");
         transientList.setTypeId(1);
         transientList.setOwner(testUser);
