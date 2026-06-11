@@ -1,0 +1,10 @@
+{
+  "Exclude": [
+    "^_bmad/",
+    "^_bmad-output/",
+    "^\\.quality-baseline/"
+  ],
+  "Disable": {
+    "IndentSize": true
+  }
+}

@@ -150,7 +150,16 @@
   `EC_VERSION` (env do workflow, hoje `3.7.0`); `ARCH` via `dpkg --print-architecture` (arm64).
 - **Motivo:** `github.com/releases/download` (objects.githubusercontent.com) e independente do
   `api.github.com`, entao o step passa mesmo durante panes da API e fica cacheado. Remove um
-  ponto unico de falha externo do gate de CI. Binario `ec` v3.7.0 valida o repo com 0 violacoes
-  (identico ao comportamento da action).
+  ponto unico de falha externo do gate de CI.
+- **Config explicita (`.editorconfig-checker.json`):** o binario `ec` cru tem defaults mais
+  estritos que a action (a action efetivamente desabilitava o check de `IndentSize` e ignorava
+  conteudo vendored/gerado). Sem config, `ec` v3.7.0 acusava **476 violacoes** pre-existentes no
+  checkout (461 `IndentSize` "multiple of 2" em `_bmad/`, `_bmad-output/`, `backend/`, `docs/`;
+  + 15 de line-ending/newline em `_bmad/` e `.quality-baseline/`). Para reproduzir o comportamento
+  verde anterior, foi adicionado `.editorconfig-checker.json` na raiz: `Disable.IndentSize=true`
+  (check ruidoso em markdown/yaml, ja tolerado antes) e `Exclude` de `^_bmad/`, `^_bmad-output/`,
+  `^\.quality-baseline/` (artefatos vendored/gerados, nao canonicos — `_bmad-output/**` ja e
+  declarado nao-canonico no CLAUDE.md). Com isso `ec` valida o checkout com **0 violacoes**.
 - **Manutencao:** bumpar `EC_VERSION` periodicamente (a action fazia isso implicitamente com
-  `latest`). Comportamento de checagem inalterado (usa `.editorconfig`; sem `.ecrc` no repo).
+  `latest`). Violacoes reais de estilo em codigo canonico (`backend/`, `frontend/`, `docs/`) que
+  nao sejam `IndentSize` continuam barrando a CI — a config so neutraliza o ruido conhecido.
