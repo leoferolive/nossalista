@@ -135,3 +135,22 @@
   probe/timeout para a realidade do hardware ARM elimina o crash-loop e o falso negativo de CI.
 - **Nota:** se o boot for otimizado (ex.: AOT/CDS, lazy init) e cair bem abaixo de 195s, os
   valores podem ser reduzidos; ate la, manter a folga.
+
+## D-015 EditorConfig check via binario direto + cache (resiliente a pane do api.github.com)
+
+- **Contexto:** durante uma indisponibilidade do `api.github.com` (IP Azure `4.228.31.149`,
+  2026-06-10), o job `security-and-compliance` falhou repetidamente no step `EditorConfig check`.
+  A action `editorconfig-checker/action-editorconfig-checker@v2` consulta
+  `api.github.com/.../releases/latest` em **todo run, sem cache**; com o endpoint fora, dava
+  `ETIMEDOUT` → CI vermelha → `release.yml` `skipped` → nenhuma tag nova. Os demais steps que
+  baixam de `github.com` (Gitleaks, actions) seguiram funcionando — só a chamada REST quebrava.
+- **Decisao:** substituir a action por **download direto do binario** de
+  `github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EC_VERSION}/ec-linux-${ARCH}.tar.gz`
+  + `actions/cache`, espelhando o padrao ja usado para o Gitleaks. Versao pinada em
+  `EC_VERSION` (env do workflow, hoje `3.7.0`); `ARCH` via `dpkg --print-architecture` (arm64).
+- **Motivo:** `github.com/releases/download` (objects.githubusercontent.com) e independente do
+  `api.github.com`, entao o step passa mesmo durante panes da API e fica cacheado. Remove um
+  ponto unico de falha externo do gate de CI. Binario `ec` v3.7.0 valida o repo com 0 violacoes
+  (identico ao comportamento da action).
+- **Manutencao:** bumpar `EC_VERSION` periodicamente (a action fazia isso implicitamente com
+  `latest`). Comportamento de checagem inalterado (usa `.editorconfig`; sem `.ecrc` no repo).

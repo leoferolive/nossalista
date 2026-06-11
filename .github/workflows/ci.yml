@@ -18,6 +18,7 @@ concurrency:
 
 env:
   GITLEAKS_VERSION: '8.21.2'
+  EC_VERSION: '3.7.0'
 
 jobs:
   changes:
@@ -393,8 +394,29 @@ jobs:
         if: needs.changes.outputs.backend == 'true'
         uses: ./.github/actions/setup-java
 
+      # Binário baixado direto de github.com/releases (não de api.github.com) e
+      # cacheado — espelha o padrão do Gitleaks abaixo. A action oficial
+      # `editorconfig-checker/action-editorconfig-checker` consulta
+      # `api.github.com/.../releases/latest` em todo run (sem cache), o que derruba
+      # a CI quando o api.github.com está indisponível (visto em 2026-06-10).
+      - name: Cache editorconfig-checker
+        id: cache-ec
+        uses: actions/cache@v4
+        with:
+          path: ~/bin/ec
+          key: ec-${{ runner.os }}-${{ runner.arch }}-${{ env.EC_VERSION }}
+
+      - name: Install editorconfig-checker
+        if: steps.cache-ec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/bin
+          ARCH=$(dpkg --print-architecture)
+          curl -sSfL "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EC_VERSION}/ec-linux-${ARCH}.tar.gz" | tar -xz "bin/ec-linux-${ARCH}"
+          mv "bin/ec-linux-${ARCH}" ~/bin/ec
+          chmod +x ~/bin/ec
+
       - name: EditorConfig check
-        uses: editorconfig-checker/action-editorconfig-checker@v2
+        run: ~/bin/ec
 
       - name: Cache Gitleaks
         id: cache-gitleaks
