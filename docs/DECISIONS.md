@@ -65,13 +65,21 @@
 
 - **Decisao:** o sucesso do OAuth2 nao coloca mais o JWT na URL de redirect. Emite
   um one-time code opaco (SecureRandom + Base64 URL-safe, 256 bits) guardado
-  in-memory (`OAuthCodeStore`, TTL 60s, single-use, varrido pelo scheduler de
-  cleanup existente) e redireciona para `/auth/callback?code=<code>`. O frontend
-  troca o code pelo JWT em `POST /api/auth/oauth/exchange` e persiste no
-  `localStorage`.
+  **no banco** (tabela `oauth_authorization_codes` via `OAuthCodeStore`, TTL 60s,
+  single-use, varrido pelo scheduler de cleanup existente) e redireciona para
+  `/auth/callback?code=<code>`. O frontend troca o code pelo JWT em
+  `POST /api/auth/oauth/exchange` e persiste no `localStorage`.
 - **Motivo:** evitar vazamento do JWT em historico do browser, logs de servidor e
   header `Referer`, mantendo a arquitetura `localStorage` existente (sem migrar
   para cookie HttpOnly — decisao Q2.9 do dono).
+- **Store persistido (correcao):** originalmente o code vivia in-memory por
+  instancia (`ConcurrentHashMap`). Como o code e EMITIDO na requisicao de callback
+  do Google e TROCADO numa segunda requisicao (XHR do SPA), com store por
+  instancia essas duas requisicoes caindo em pods diferentes (≥1 replica/HPA) — ou
+  um restart do pod entre elas — faziam o `oauth/exchange` responder **400** e o
+  login Google nunca completar (usuario sem JWT => 401 em tudo). Persistir no banco
+  compartilhado (migration `V11`) deixa qualquer instancia validar o code e o fluxo
+  sobreviver a restart/escala. Mesmo padrao de `password_reset_tokens`.
 
 ## D-012 Verificacao de e-mail no registro (Q2.7)
 

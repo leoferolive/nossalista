@@ -5,10 +5,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Limpa estruturas in-memory com TTL a cada 5 minutos:
- * buckets expirados do {@link RateLimiterService}, entradas expiradas do
- * {@link AuthenticatedUserCache} e one-time codes expirados do
- * {@link OAuthCodeStore}, evitando vazamento de memória.
+ * Varredura de limpeza com TTL a cada 5 minutos:
+ * buckets expirados do {@link RateLimiterService} (in-memory), entradas
+ * expiradas do {@link AuthenticatedUserCache} (in-memory) e one-time codes
+ * expirados do {@link OAuthCodeStore} (persistido no banco), evitando
+ * acúmulo de lixo (memória / linhas órfãs).
  */
 @Component
 public class RateLimiterCleanupScheduler {

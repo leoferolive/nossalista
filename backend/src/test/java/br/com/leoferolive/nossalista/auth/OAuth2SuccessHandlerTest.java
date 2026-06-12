@@ -1,5 +1,7 @@
 package br.com.leoferolive.nossalista.auth;
 
+import br.com.leoferolive.nossalista.auth.domain.OAuthAuthorizationCode;
+import br.com.leoferolive.nossalista.auth.repository.OAuthAuthorizationCodeRepository;
 import br.com.leoferolive.nossalista.auth.service.AuthService;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.auth.service.OAuthCodeStore;
@@ -55,6 +57,11 @@ class OAuth2SuccessHandlerTest {
     @Mock
     private HttpServletResponse response;
 
+    @Mock
+    private OAuthAuthorizationCodeRepository codeRepository;
+
+    private final Map<String, OAuthAuthorizationCode> issuedCodes = new HashMap<>();
+
     private OAuthCodeStore oauthCodeStore;
 
     private OAuth2SuccessHandler successHandler;
@@ -68,7 +75,22 @@ class OAuth2SuccessHandlerTest {
 
     @BeforeEach
     void setUp() {
-        oauthCodeStore = new OAuthCodeStore();
+        // OAuthCodeStore agora é persistido. Aqui usamos um repositório mockado
+        // com um mapa por trás para preservar o round-trip issue->consume do teste.
+        lenient().when(codeRepository.save(any(OAuthAuthorizationCode.class))).thenAnswer(inv -> {
+            OAuthAuthorizationCode entity = inv.getArgument(0);
+            issuedCodes.put(entity.getCode(), entity);
+            return entity;
+        });
+        lenient().when(codeRepository.findByCode(anyString()))
+            .thenAnswer(inv -> Optional.ofNullable(issuedCodes.get(inv.<String>getArgument(0))));
+        lenient().doAnswer(inv -> {
+            OAuthAuthorizationCode entity = inv.getArgument(0);
+            issuedCodes.remove(entity.getCode());
+            return null;
+        }).when(codeRepository).delete(any(OAuthAuthorizationCode.class));
+
+        oauthCodeStore = new OAuthCodeStore(codeRepository);
         successHandler = new OAuth2SuccessHandler(userRepository, jwtService, authService, oauthCodeStore);
         successHandler.setFrontendUrl(FRONTEND_URL);
     }
