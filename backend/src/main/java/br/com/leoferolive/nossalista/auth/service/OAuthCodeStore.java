@@ -2,6 +2,8 @@ package br.com.leoferolive.nossalista.auth.service;
 
 import br.com.leoferolive.nossalista.auth.domain.OAuthAuthorizationCode;
 import br.com.leoferolive.nossalista.auth.repository.OAuthAuthorizationCodeRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +13,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Store persistido para o padrão "one-time code" do login OAuth2 (Q2.3).
@@ -35,6 +38,13 @@ import java.util.Optional;
  */
 @Component
 public class OAuthCodeStore {
+
+    // INSTRUMENTAÇÃO TEMPORÁRIA (debug/oauth-exchange-logs): logs para diagnosticar
+    // por que o POST /api/auth/oauth/exchange responde 400 em produção. REMOVER
+    // depois de identificar a causa.
+    private static final Logger log = LoggerFactory.getLogger(OAuthCodeStore.class);
+    /** Marcador de instância (por processo): se issue e consume divergirem, é multi-instância. */
+    private static final String INSTANCE = UUID.randomUUID().toString().substring(0, 8);
 
     /** TTL padrão do code: 60s — janela curta entre redirect e troca. */
     static final Duration DEFAULT_TTL = Duration.ofSeconds(60);
@@ -72,10 +82,22 @@ public class OAuthCodeStore {
         OAuthAuthorizationCode entity = new OAuthAuthorizationCode();
         entity.setCode(code);
         entity.setJwt(jwt);
-        entity.setExpiresAt(LocalDateTime.now().plus(ttl));
+        LocalDateTime now = LocalDateTime.now();
+        entity.setExpiresAt(now.plus(ttl));
         repository.save(entity);
+        repository.flush();
+
+        log.info("OAUTHDBG issue inst={} prefix={} now={} expiresAt={} ttlSec={} rowsNow={}",
+            INSTANCE, prefix(code), now, entity.getExpiresAt(), ttl.toSeconds(), repository.count());
 
         return code;
+    }
+
+    private static String prefix(String code) {
+        if (code == null) {
+            return "<null>";
+        }
+        return (code.length() <= 10 ? code : code.substring(0, 10)) + "(len=" + code.length() + ")";
     }
 
     /**
@@ -87,12 +109,16 @@ public class OAuthCodeStore {
      */
     @Transactional
     public Optional<String> consume(String code) {
+        long rowsBefore = repository.count();
         if (code == null || code.isBlank()) {
+            log.warn("OAUTHDBG consume inst={} BLANK code rowsBefore={}", INSTANCE, rowsBefore);
             return Optional.empty();
         }
 
         Optional<OAuthAuthorizationCode> found = repository.findByCode(code);
         if (found.isEmpty()) {
+            log.warn("OAUTHDBG consume inst={} NOT_FOUND prefix={} rowsBefore={}",
+                INSTANCE, prefix(code), rowsBefore);
             return Optional.empty();
         }
 
@@ -101,7 +127,12 @@ public class OAuthCodeStore {
         repository.delete(entity);
         repository.flush();
 
-        if (entity.getExpiresAt().isBefore(LocalDateTime.now())) {
+        LocalDateTime now = LocalDateTime.now();
+        boolean expired = entity.getExpiresAt().isBefore(now);
+        log.info("OAUTHDBG consume inst={} FOUND prefix={} expired={} now={} expiresAt={} createdAt={} rowsBefore={}",
+            INSTANCE, prefix(code), expired, now, entity.getExpiresAt(), entity.getCreatedAt(), rowsBefore);
+
+        if (expired) {
             return Optional.empty();
         }
         return Optional.of(entity.getJwt());
