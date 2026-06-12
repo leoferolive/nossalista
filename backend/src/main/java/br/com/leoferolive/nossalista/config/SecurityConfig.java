@@ -32,17 +32,20 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oauth2SuccessHandler;
     private final Http401UnauthorizedEntryPoint unauthorizedEntryPoint;
     private final Http403AccessDeniedHandler accessDeniedHandler;
+    private final CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
 
     public SecurityConfig(
         JwtAuthenticationFilter jwtAuthenticationFilter,
         OAuth2SuccessHandler oauth2SuccessHandler,
         Http401UnauthorizedEntryPoint unauthorizedEntryPoint,
-        Http403AccessDeniedHandler accessDeniedHandler
+        Http403AccessDeniedHandler accessDeniedHandler,
+        CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.oauth2SuccessHandler = oauth2SuccessHandler;
         this.unauthorizedEntryPoint = unauthorizedEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.authorizationRequestRepository = authorizationRequestRepository;
     }
 
     @Bean
@@ -82,8 +85,15 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler)
                 )
 
-                // Configurar OAuth2 Login
+                // Configurar OAuth2 Login.
+                // O authorization-request (state anti-CSRF) é guardado em COOKIE e não
+                // na HttpSession — obrigatório porque a app é STATELESS. Sem isso o
+                // state não persiste, o callback do Google vira não-idempotente e
+                // emite múltiplos one-time codes órfãos (login Google nunca completa).
                 .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(authorization ->
+                                authorization.authorizationRequestRepository(authorizationRequestRepository)
+                        )
                         .redirectionEndpoint(redirect ->
                                 redirect.baseUri("/api/auth/google/callback")
                         )
