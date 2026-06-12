@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { authApi } from '../api/authApi'
 import { listsApi } from '../api/listsApi'
 import { ApiError } from '../types/ApiError'
-import { clearStoredSession, persistAuthToken } from '../auth/session'
+import { clearStoredSession, getStoredAuthToken, persistAuthToken } from '../auth/session'
 
 export function AuthCallback() {
   const navigate = useNavigate()
@@ -27,6 +27,20 @@ export function AuthCallback() {
       setError('Código de autenticação não encontrado.')
       return
     }
+
+    // Idempotência: o login Google pode gerar callbacks/redirects duplicados
+    // (browser, reload do service worker). Cada one-time code é single-use, então
+    // só pode ser trocado UMA vez — uma 2ª troca do mesmo code retorna 400 e NÃO
+    // deve invalidar a sessão já autenticada pela 1ª. O guard sobrevive a
+    // remontagem/reload do AuthCallback no mesmo tab.
+    const exchangeGuardKey = `oauth_exchange:${code}`
+    if (sessionStorage.getItem(exchangeGuardKey)) {
+      if (getStoredAuthToken()) {
+        navigate('/home', { replace: true })
+      }
+      return
+    }
+    sessionStorage.setItem(exchangeGuardKey, '1')
 
     const finishAuth = async () => {
       try {
@@ -84,6 +98,14 @@ export function AuthCallback() {
         // Se não há pending invite, redirecionar para home normalmente
         navigate('/home', { replace: true })
       } catch (err) {
+        // Se uma troca concorrente/duplicada do MESMO code já autenticou (token
+        // presente), o 400 "code já usado" é esperado e benigno: NÃO limpar a
+        // sessão — apenas seguir para a home. Sem isso, a 2ª troca apagaria o
+        // token que a 1ª acabou de salvar (causa do 401 nas listas após o login).
+        if (getStoredAuthToken()) {
+          navigate('/home', { replace: true })
+          return
+        }
         clearStoredSession()
         sessionStorage.removeItem('pendingInviteCode')
         setError(
