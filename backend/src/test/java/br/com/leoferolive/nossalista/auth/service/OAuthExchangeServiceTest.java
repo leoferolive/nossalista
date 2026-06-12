@@ -1,8 +1,10 @@
 package br.com.leoferolive.nossalista.auth.service;
 
+import br.com.leoferolive.nossalista.auth.domain.OAuthAuthorizationCode;
 import br.com.leoferolive.nossalista.auth.dto.LoginResponse;
 import br.com.leoferolive.nossalista.auth.dto.UserMapper;
 import br.com.leoferolive.nossalista.auth.exception.InvalidOAuthCodeException;
+import br.com.leoferolive.nossalista.auth.repository.OAuthAuthorizationCodeRepository;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -15,12 +17,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("OAuthExchangeService (Q2.3)")
@@ -32,6 +36,11 @@ class OAuthExchangeServiceTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private OAuthAuthorizationCodeRepository codeRepository;
+
+    private final Map<String, OAuthAuthorizationCode> issuedCodes = new HashMap<>();
+
     private OAuthCodeStore oauthCodeStore;
     private UserMapper userMapper;
     private OAuthExchangeService exchangeService;
@@ -40,7 +49,22 @@ class OAuthExchangeServiceTest {
 
     @BeforeEach
     void setUp() {
-        oauthCodeStore = new OAuthCodeStore();
+        // OAuthCodeStore agora é persistido. Repositório mockado com um mapa por
+        // trás preserva o round-trip issue->consume deste teste unitário.
+        lenient().when(codeRepository.save(any(OAuthAuthorizationCode.class))).thenAnswer(inv -> {
+            OAuthAuthorizationCode entity = inv.getArgument(0);
+            issuedCodes.put(entity.getCode(), entity);
+            return entity;
+        });
+        lenient().when(codeRepository.findByCode(anyString()))
+            .thenAnswer(inv -> Optional.ofNullable(issuedCodes.get(inv.<String>getArgument(0))));
+        lenient().doAnswer(inv -> {
+            OAuthAuthorizationCode entity = inv.getArgument(0);
+            issuedCodes.remove(entity.getCode());
+            return null;
+        }).when(codeRepository).delete(any(OAuthAuthorizationCode.class));
+
+        oauthCodeStore = new OAuthCodeStore(codeRepository);
         userMapper = new UserMapper();
         exchangeService = new OAuthExchangeService(oauthCodeStore, jwtService, userService, userMapper);
     }
