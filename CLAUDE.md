@@ -151,8 +151,8 @@ release.yml (workflow_run após CI) ─── cria tag + release
                                     └─ gh workflow run deploy-on-tag.yml (GHCR_PAT)
                                                           ↓
 deploy-branch-dev.yml (manual) ───────────────────────────┤
-deploy-prod.yml (manual + aprovação) ─────────────────────┤
-rollback-prod.yml (manual + aprovação) ───────────────────┘
+deploy-prod.yml (manual) ─────────────────────────────────┤
+rollback-prod.yml (manual) ───────────────────────────────┘
                                               ↓
                                    deploy-environment.yml
                                    (build Docker + push GHCR + kubectl)
@@ -162,8 +162,8 @@ rollback-prod.yml (manual + aprovação) ─────────────
 - **`release.yml`**: Cria tag semântica e GitHub Release. Usa `GHCR_PAT` (escopo `workflow`) para disparar deploy em dev.
 - **`deploy-on-tag.yml`**: Deploya tag estável em dev — chamado pelo release automático ou manualmente.
 - **`deploy-branch-dev.yml`**: Para branches/SHAs não mergeados. Cria RC tag rastreável, deploya em dev, limpa imagens RC antigas do `nossalista-dev` (mantém 3).
-- **`deploy-prod.yml`**: Deploy em prod com aprovação manual (environment `production`).
-- **`rollback-prod.yml`**: Rollback de prod para uma tag semântica estável **anterior**. Espelha o `deploy-prod.yml` (valida tag `vX.Y.Z`, aprovação manual no environment `production`, reusa `deploy-environment.yml`) — só muda a semântica: reimplanta uma release já conhecida. Compartilha o `concurrency: group: deploy-prod` com o `deploy-prod.yml` para serializar operações em prod.
+- **`deploy-prod.yml`**: Deploy em prod, disparado manualmente via `workflow_dispatch` com uma tag semântica estável (valida formato `vX.Y.Z` e existência da tag antes do deploy). Sem gate de aprovação manual.
+- **`rollback-prod.yml`**: Rollback de prod para uma tag semântica estável **anterior**. Espelha o `deploy-prod.yml` (valida tag `vX.Y.Z`, reusa `deploy-environment.yml`) — só muda a semântica: reimplanta uma release já conhecida. Compartilha o `concurrency: group: deploy-prod` com o `deploy-prod.yml` para serializar operações em prod.
 - **`frontend-e2e-fullstack.yml`**: Suíte E2E navegador↔backend, hoje só por `workflow_dispatch` (cron noturno DESABILITADO por billing — ver abaixo). Possui notificação de falha (`if: failure()` abre issue rotulada `ci-failure` via `gh`) e cache dos browsers Playwright (`~/.cache/ms-playwright`, key por hash do `package-lock.json`).
 - Todos os workflows de deploy publicam um `Deployment Summary` ao final da execução no GitHub Actions.
 - `tag` em workflows de deploy significa **tag da imagem implantada**; `ref` significa **ref do checkout que será reconstruído**.
@@ -185,11 +185,9 @@ workflow_dispatch → deploy-branch-dev.yml (para branches/SHAs não mergeados)
               └─ limpa RC tags antigas (mantém 10 tags / 3 imagens nossalista-dev)
 
 workflow_dispatch → deploy-prod.yml (com tag semântica estável)
-              └─ aprovação manual (environment: production)
               └─ deploy-environment(prod, v1.2.x)
 
 workflow_dispatch → rollback-prod.yml (com tag semântica estável ANTERIOR)
-              └─ aprovação manual (environment: production)
               └─ deploy-environment(prod, v1.2.x-anterior)  # reimplanta release conhecida
 ```
 
@@ -223,10 +221,10 @@ kubectl rollout restart deployment/nossalista -n nossalista
 # Testar branch/SHA em dev (gera RC tag auditável)
 gh workflow run deploy-branch-dev.yml --field ref=<branch-ou-sha>
 
-# Deploy em produção (requer tag semântica e aprovação manual)
+# Deploy em produção (requer tag semântica estável; sem aprovação manual)
 gh workflow run deploy-prod.yml --field tag=v1.2.3
 
-# Rollback de produção para uma release estável anterior (aprovação manual)
+# Rollback de produção para uma release estável anterior (sem aprovação manual)
 gh workflow run rollback-prod.yml --field tag=v1.2.2
 ```
 

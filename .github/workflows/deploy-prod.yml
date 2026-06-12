@@ -34,16 +34,8 @@ jobs:
           set -euo pipefail
           git rev-parse "${{ inputs.tag }}^{commit}" >/dev/null
 
-  approve:
-    needs: validate-tag
-    runs-on: [self-hosted, linux, ARM64]
-    environment: production
-    steps:
-      - name: Aguardando aprovação manual
-        run: echo "Aprovação recebida para deploy da tag ${{ inputs.tag }} em produção."
-
   deploy:
-    needs: approve
+    needs: validate-tag
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: prod
@@ -52,7 +44,7 @@ jobs:
     secrets: inherit
 
   summary:
-    needs: [validate-tag, approve, deploy]
+    needs: [validate-tag, deploy]
     if: always()
     runs-on: [self-hosted, linux, ARM64]
     steps:
