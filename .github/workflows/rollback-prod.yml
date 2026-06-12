@@ -1,10 +1,9 @@
 name: Rollback Prod (nossalista.leoferolive.com.br)
 
 # Rollback de produção: reimplanta uma tag semântica estável ANTERIOR já
-# publicada. Espelha deploy-prod.yml (validação de tag + aprovação manual no
-# environment `production` + reuso de deploy-environment.yml). A diferença é
-# apenas semântica: a `tag` informada deve ser uma release estável conhecida
-# para a qual se deseja voltar.
+# publicada. Espelha deploy-prod.yml (validação de tag + reuso de
+# deploy-environment.yml). A diferença é apenas semântica: a `tag` informada
+# deve ser uma release estável conhecida para a qual se deseja voltar.
 
 on:
   workflow_dispatch:
@@ -40,16 +39,8 @@ jobs:
           set -euo pipefail
           git rev-parse "${{ inputs.tag }}^{commit}" >/dev/null
 
-  approve:
-    needs: validate-tag
-    runs-on: [self-hosted, linux, ARM64]
-    environment: production
-    steps:
-      - name: Aguardando aprovação manual do rollback
-        run: echo "Aprovação recebida para rollback da produção para a tag ${{ inputs.tag }}."
-
   deploy:
-    needs: approve
+    needs: validate-tag
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: prod
@@ -58,7 +49,7 @@ jobs:
     secrets: inherit
 
   summary:
-    needs: [validate-tag, approve, deploy]
+    needs: [validate-tag, deploy]
     if: always()
     runs-on: [self-hosted, linux, ARM64]
     steps:
