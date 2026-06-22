@@ -22,6 +22,9 @@ import { ResetPassword } from './pages/ResetPassword.tsx'
 import { VerifyEmail } from './pages/VerifyEmail.tsx'
 import { ProtectedRoute } from './components/ProtectedRoute.tsx'
 import './index.css'
+// leoferolive design: override de tokens --nl-* + fontes self-hosted.
+// Importado DEPOIS de index.css para vencer na cascata. Ver frontend/README.md.
+import './styles/leoferolive-tokens.css'
 
 // sockjs-client still references the Node-style global object in browser builds.
 const browserGlobal = globalThis as typeof globalThis & {

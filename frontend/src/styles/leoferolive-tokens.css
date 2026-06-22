@@ -1,0 +1,109 @@
+/* ============================================================
+   leoferolive design — re-skin do NossaLista
+   ------------------------------------------------------------
+   Este arquivo NÃO altera nenhum componente. Ele só:
+     1) auto-hospeda as fontes (Fraunces + Plus Jakarta Sans);
+     2) sobrescreve os VALORES das variáveis --nl-* que o app
+        inteiro já usa, trocando a paleta coral/teal antiga pela
+        identidade unificada Violeta + Teal.
+
+   Como ligar: importe-o no FINAL do src/index.css
+   (depois dos blocos :root existentes) — veja COMO-APLICAR.md.
+   ============================================================ */
+
+/* ---------- 1. Fontes self-hosted (substituem o @import do Google) ----------
+   woff2 com subset latino (range "latin" do Google Fonts, cobre PT-BR 100%).
+   Variáveis: Fraunces mantém opsz/wght/SOFT/WONK; Plus Jakarta mantém wght. */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('./fonts/Fraunces.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('./fonts/PlusJakartaSans.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- 2. Tokens — tema CLARO ---------- */
+
+/* Mesmo seletor do app + carregado depois = estes valores vencem. */
+:root,
+:root[data-theme='light'] {
+  /* superfícies / fundo (slate neutro, leve toque violeta) */
+  --nl-bg: #f7f6fb;
+  --nl-bg-soft: #efedf5;
+  --nl-bg-elevated: rgba(255, 255, 255, 0.85);
+  --nl-surface: #ffffff;
+  --nl-surface-strong: #ffffff;
+  --nl-surface-muted: #f1eff7;
+
+  /* elevação neutra (sem o tom coral antigo) */
+  --nl-card-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 24px rgba(16, 24, 40, 0.06);
+  --nl-card-shadow-strong: 0 2px 4px rgba(16, 24, 40, 0.06), 0 18px 40px rgba(16, 24, 40, 0.12);
+  --nl-overlay: rgba(20, 16, 30, 0.42);
+
+  /* bordas */
+  --nl-border: rgba(40, 25, 70, 0.1);
+  --nl-border-strong: rgba(40, 25, 70, 0.18);
+
+  /* texto */
+  --nl-text: #1e1a2b;
+  --nl-text-muted: #564f68;
+
+  /* MARCA: accent = Violeta (ação/CTA) · primary = Teal (status/progresso) */
+  --nl-accent: #7c3aed;
+  --nl-accent-strong: #6326c9;
+  --nl-accent-soft: rgba(124, 58, 237, 0.12);
+  --nl-primary: #14b8a6;
+  --nl-primary-strong: #0d9488;
+
+  /* semânticas */
+  --nl-danger: #e5484d;
+  --nl-success: #15a06e;
+  --nl-focus: rgba(124, 58, 237, 0.3);
+  --nl-btn-text: #ffffff;
+
+  /* fundo limpo: textura de "papel" desligada (suba se quiser o grid de volta) */
+  --nl-grid: transparent;
+  --nl-paper-line: transparent;
+  --nl-radial-a: rgba(255, 255, 255, 0.85);
+  --nl-radial-b: rgba(124, 58, 237, 0.06);
+  --nl-radial-c: rgba(20, 184, 166, 0.05);
+}
+
+/* ---------- 2. Tokens — tema ESCURO ---------- */
+:root[data-theme='dark'] {
+  --nl-bg: #14101e;
+  --nl-bg-soft: #181426;
+  --nl-bg-elevated: rgba(28, 22, 42, 0.85);
+  --nl-surface: #1d1830;
+  --nl-surface-strong: #211b35;
+  --nl-surface-muted: #271f3d;
+  --nl-card-shadow: 0 28px 54px rgba(0, 0, 0, 0.32);
+  --nl-card-shadow-strong: 0 34px 64px rgba(0, 0, 0, 0.4);
+  --nl-overlay: rgba(6, 4, 12, 0.62);
+  --nl-border: rgba(255, 255, 255, 0.09);
+  --nl-border-strong: rgba(255, 255, 255, 0.17);
+  --nl-text: #ece9f4;
+  --nl-text-muted: #a39db5;
+  --nl-accent: #a78bfa;
+  --nl-accent-strong: #8b5cf6;
+  --nl-accent-soft: rgba(167, 139, 250, 0.16);
+  --nl-primary: #2dd4bf;
+  --nl-primary-strong: #14b8a6;
+  --nl-danger: #ff6b6f;
+  --nl-success: #2dd4a7;
+  --nl-focus: rgba(167, 139, 250, 0.34);
+  --nl-btn-text: #160f29;
+  --nl-grid: transparent;
+  --nl-paper-line: transparent;
+  --nl-radial-a: rgba(167, 139, 250, 0.08);
+  --nl-radial-b: rgba(45, 212, 191, 0.05);
+  --nl-radial-c: rgba(255, 255, 255, 0.02);
+}

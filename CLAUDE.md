@@ -107,7 +107,9 @@ src/
 ## Diretriz Visual Atual do Frontend
 
 - A linguagem oficial do frontend e `Fresh Lists`
-- A direcao base do sistema visual e `Playful Editorial`, com paleta `coral + teal`
+- A direcao base do sistema visual e `Playful Editorial`, com a identidade unificada **leoferolive design**: paleta `violeta + teal` (`--nl-accent` = violeta `#7c3aed` para acao/CTA; `--nl-primary` = teal `#14b8a6` para status/progresso)
+- As fontes sao **self-hosted** (`Fraunces` + `Plus Jakarta Sans`, variaveis) em `frontend/src/styles/fonts/` — nao usar o CDN do Google Fonts
+- A marca vive em tokens `--nl-*` (`frontend/src/index.css`); o override da identidade `leoferolive design` esta em `frontend/src/styles/leoferolive-tokens.css`, importado por ultimo em `frontend/src/main.tsx` para vencer na cascata. Re-skins futuros trocam **valores** de tokens, nunca componentes
 - `light` e `dark` devem ser tratados como temas de primeira classe, com o mesmo nivel de refinamento visual
 - A landing publica deve manter dois fluxos distintos:
   - CTA principal: cadastro
