@@ -7,8 +7,8 @@
         inteiro já usa, trocando a paleta coral/teal antiga pela
         identidade unificada Violeta + Teal.
 
-   Como ligar: importe-o no FINAL do src/index.css
-   (depois dos blocos :root existentes) — veja COMO-APLICAR.md.
+   Como ligar: importado por último em src/main.tsx (depois de ./index.css),
+   de modo que estes valores vençam na cascata. Ver frontend/README.md.
    ============================================================ */
 
 /* ---------- 1. Fontes self-hosted (substituem o @import do Google) ----------
@@ -106,4 +106,17 @@
   --nl-radial-a: rgba(167, 139, 250, 0.08);
   --nl-radial-b: rgba(45, 212, 191, 0.05);
   --nl-radial-c: rgba(255, 255, 255, 0.02);
+}
+
+/* ---------- 3. Acessibilidade — teal como TEXTO no tema claro ----------
+   --nl-primary (#14b8a6) é o teal vibrante da marca, ótimo para preenchimentos,
+   mas como foreground de texto pequeno sobre superfície clara fica abaixo de
+   WCAG AA (~2.5:1). Aqui escurecemos APENAS onde o teal é texto/ícone no claro
+   (#0a7d6f ≈ 5:1), preservando o teal vibrante nos fills. O ✓ do estado
+   data-done='true' permanece branco (não é alvo destas regras).
+   No tema escuro o teal sobre fundo escuro já passa AA — por isso o seletor
+   exclui [data-theme='dark'] (cobre tanto o claro explícito quanto o default). */
+:root:not([data-theme='dark']) .nl-badge,
+:root:not([data-theme='dark']) .nl-check:not([data-done='true']) {
+  color: #0a7d6f;
 }

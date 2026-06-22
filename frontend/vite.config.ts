@@ -24,12 +24,12 @@ export default defineConfig(({ mode }) => {
           short_name: 'NossaLista',
           start_url: '/',
           display: 'standalone',
-          theme_color: '#1a1a2e',
-          background_color: '#1a1a2e',
+          theme_color: '#14101e',
+          background_color: '#14101e',
           icons: [{ src: '/favicon.ico', sizes: '64x64', type: 'image/x-icon' }],
         },
         injectManifest: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         },
         devOptions: {
           enabled: true,
