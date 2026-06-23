@@ -139,8 +139,10 @@ O pipeline usa `deploy-environment.yml` como único workflow reutilizável centr
 
 **Runners (regra):**
 
-- **CI (`ci.yml`)** roda em `ubuntu-latest` (GitHub-hosted). Não depende de ARM nem de acesso ao cluster; desacopla a capacidade de revisar/mergear PRs da disponibilidade do runner caseiro. Ver `docs/DECISIONS.md` D-016.
-- **Deploy** (`deploy-environment.yml` e orquestradores) roda em `[self-hosted, linux, ARM64]` (runner `leo-ubuntu-nossalista`, no Raspberry Pi) — precisa de rede para o cluster K3s local e do build nativo ARM. **Não** mover deploy para GitHub-hosted.
+- **Todos os workflows** (CI **e** deploy, dev e prod) rodam em `ubuntu-latest` (GitHub-hosted). Nenhum workflow depende mais do runner self-hosted do Pi. Ver `docs/DECISIONS.md` D-016 (CI) e D-017 (deploy).
+- **Deploy → cluster:** o kube-apiserver do K3s **não** é exposto na internet; o `KUBECONFIG` aponta para o **IP Tailscale** do nó. Os jobs de deploy entram na tailnet via `tailscale/github-action` (secret `TAILSCALE_AUTHKEY`) **antes** do `kubectl`.
+- **Build ARM:** o `Dockerfile` é cross-build — os stages de compilação (npm/maven) usam `--platform=$BUILDPLATFORM` (nativos em x86); só o stage de runtime é `linux/arm64`, emulado via `docker/setup-qemu-action`. Por isso a migração não exige build nativo ARM.
+- **Secrets exigidos pelo deploy:** `GHCR_PAT` (push GHCR), `KUBECONFIG` (com IP Tailscale do nó), `TAILSCALE_AUTHKEY` (entrar na tailnet). O `TAILSCALE_AUTHKEY` deve estar válido (auth keys expiram) — se o deploy falhar no step "Conectar na Tailscale", renove o secret.
 
 **Limitações conhecidas do GitHub Actions (não contornar):**
 

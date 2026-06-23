@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   validate-inputs:
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     steps:
       - name: Validar formato da tag estável
         run: |
@@ -67,7 +67,7 @@ jobs:
   summary:
     needs: [validate-inputs, deploy-dev]
     if: always()
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     steps:
       - name: Resumo do workflow
         run: |

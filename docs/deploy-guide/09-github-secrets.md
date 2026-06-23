@@ -15,7 +15,7 @@ Acessar: **GitHub → leoferolive/nossalista → Settings → Secrets and variab
 
 ## 2. TAILSCALE_AUTHKEY
 
-O self-workflows usa `tailscale/github-action@v2` para conectar ao homelab antes de executar `kubectl`.
+O job `deploy` (em `deploy-environment.yml`, rodando em runner GitHub-hosted) usa `tailscale/github-action@v2` para entrar na tailnet e alcançar o kube-apiserver do K3s antes de executar `kubectl`. Ver `docs/DECISIONS.md` D-017.
 
 ### 2.1 Gerar no Tailscale Admin
 

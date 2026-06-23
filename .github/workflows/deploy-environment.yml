@@ -18,7 +18,7 @@ on:
 
 jobs:
   prepare:
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     outputs:
       resolved_sha: ${{ steps.meta.outputs.resolved_sha }}
       build_time: ${{ steps.meta.outputs.build_time }}
@@ -54,7 +54,7 @@ jobs:
 
   build-and-push:
     needs: prepare
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     steps:
       - name: Validar GHCR_PAT configurado
         env:
@@ -72,6 +72,15 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
+
+      # Em runner GitHub-hosted (x86) o binfmt/QEMU permite o stage 3 (runtime
+      # arm64: apt-get curl + copy do jar) rodar emulado. Os stages pesados de
+      # build (npm/maven) usam --platform=$BUILDPLATFORM e rodam nativos em x86,
+      # entao so o stage final minimo e emulado. Em self-hosted ARM era nativo.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -120,12 +129,20 @@ jobs:
 
   deploy:
     needs: [prepare, build-and-push]
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout (manifestos k8s)
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+
+      # O kube-apiserver do K3s nao e exposto na internet: o KUBECONFIG aponta
+      # para o IP Tailscale do no. Em runner GitHub-hosted precisamos entrar na
+      # tailnet antes do kubectl (no self-hosted o no ja estava na tailnet).
+      - name: Conectar na Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
       - name: Configurar KUBECONFIG
         env:
