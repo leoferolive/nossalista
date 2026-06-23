@@ -172,7 +172,7 @@
   `latest`). Violacoes reais de estilo em codigo canonico (`backend/`, `frontend/`, `docs/`) que
   nao sejam `IndentSize` continuam barrando a CI — a config so neutraliza o ruido conhecido.
 
-## D-016 CI em runner GitHub-hosted (deploy permanece self-hosted)
+## D-016 CI em runner GitHub-hosted (deploy migrado depois — ver D-017)
 
 - **Contexto:** o `ci.yml` rodava todos os jobs em `runs-on: [self-hosted, linux, ARM64]`
   (runner `leo-ubuntu-nossalista`, no proprio Raspberry Pi). Quando esse runner ficou
@@ -201,3 +201,34 @@
     `ubuntu-latest` e PRs seguintes voltam a comparar no mesmo ambiente.
   - Para voltar a usar o runner self-hosted (ex.: economizar minutos hospedados), basta
     reverter `runs-on` para `[self-hosted, linux, ARM64]` nos jobs do `ci.yml` com o runner online.
+
+## D-017 Deploy (dev e prod) em runner GitHub-hosted via Tailscale + QEMU
+
+- **Contexto:** apos D-016, a CI ja rodava em `ubuntu-latest`, mas todos os workflows de **deploy**
+  (`deploy-environment.yml` e orquestradores: `deploy-branch-dev`, `deploy-on-tag`, `deploy-prod`,
+  `rollback-prod`, `release`) ainda exigiam o runner self-hosted ARM64 do Pi. Com o runner
+  offline/instavel, o deploy ficava preso na fila — inclusive o **auto-deploy em dev** disparado
+  por `release.yml` apos cada merge na `main`. O acoplamento "deploy depende do Pi ligado"
+  bloqueava tanto restaurar dev quanto promover prod.
+- **Decisao:** mover **todos** os jobs de deploy para `runs-on: ubuntu-latest`, resolvendo os dois
+  acoplamentos que prendiam o deploy ao Pi:
+  - **Acesso ao cluster:** o kube-apiserver do K3s nao e exposto na internet; o `KUBECONFIG` ja
+    aponta para o **IP Tailscale** do no. O job `deploy` entra na tailnet via
+    `tailscale/github-action@v2` (secret `TAILSCALE_AUTHKEY`, ja existente) antes do `kubectl`.
+  - **Build ARM:** o `Dockerfile` ja e cross-build — os stages de compilacao (`node`, `maven`)
+    usam `FROM --platform=$BUILDPLATFORM` e rodam nativos em x86; so o stage 3 (runtime
+    `eclipse-temurin:25-jre` arm64, que faz `apt-get curl` + copia o jar) e arm64. Adicionado
+    `docker/setup-qemu-action@v3` no `build-and-push` para o binfmt do stage emulado. O resultado
+    final continua `linux/arm64`, compativel com o cluster.
+- **Motivo:** desacopla completamente revisao, merge **e** deploy da disponibilidade do hardware
+  caseiro. Os orquestradores (criar tag, chamar o reusable, limpar imagens via
+  `actions/delete-package-versions`, publicar summary) sao tarefas de `git`/`gh`/API e nao
+  precisam de ARM nem de rede local.
+- **Secrets exigidos:** `GHCR_PAT`, `KUBECONFIG` (com IP Tailscale do no) e `TAILSCALE_AUTHKEY`.
+  Auth keys da Tailscale expiram — se o deploy falhar no step "Conectar na Tailscale", renove o
+  secret. Recomendado usar uma auth key **efemera** para nao acumular nos na tailnet a cada run.
+- **Pre-condicao operacional:** o destino do deploy continua sendo o cluster K3s no Pi. Mover o
+  runner para a nuvem **nao** substitui o cluster: se o Pi/cluster estiver desligado, o `kubectl`
+  falha (timeout) — GitHub-hosted apenas remove a dependencia do *runner*, nao do *cluster*.
+- **Reversao:** voltar `runs-on` para `[self-hosted, linux, ARM64]` nos workflows de deploy (e
+  remover os steps QEMU/Tailscale) com o runner online.
