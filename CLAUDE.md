@@ -137,6 +137,11 @@ src/
 
 O pipeline usa `deploy-environment.yml` como único workflow reutilizável central. A lógica de build/deploy está **internalizada** nele (sem dependência de repos externos). O `release.yml` usa `GHCR_PAT` para disparar `deploy-on-tag.yml` via `workflow_dispatch` — necessário porque `GITHUB_TOKEN` não pode disparar outros workflows e `workflow_call` dentro de `workflow_run` não é suportado pelo GitHub.
 
+**Runners (regra):**
+
+- **CI (`ci.yml`)** roda em `ubuntu-latest` (GitHub-hosted). Não depende de ARM nem de acesso ao cluster; desacopla a capacidade de revisar/mergear PRs da disponibilidade do runner caseiro. Ver `docs/DECISIONS.md` D-016.
+- **Deploy** (`deploy-environment.yml` e orquestradores) roda em `[self-hosted, linux, ARM64]` (runner `leo-ubuntu-nossalista`, no Raspberry Pi) — precisa de rede para o cluster K3s local e do build nativo ARM. **Não** mover deploy para GitHub-hosted.
+
 **Limitações conhecidas do GitHub Actions (não contornar):**
 
 - `GITHUB_TOKEN` não pode disparar `workflow_dispatch` em outros workflows (403)

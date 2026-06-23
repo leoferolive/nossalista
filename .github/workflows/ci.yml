@@ -22,7 +22,7 @@ env:
 
 jobs:
   changes:
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -44,7 +44,7 @@ jobs:
   frontend-quality:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -139,7 +139,7 @@ jobs:
   frontend-e2e:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -181,7 +181,7 @@ jobs:
   backend-quality:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     env:
       MAVEN_OPTS: "-Xmx1g -XX:+UseG1GC"
     timeout-minutes: 20
@@ -195,10 +195,11 @@ jobs:
         uses: ./.github/actions/setup-java
 
       - name: Install Python deps for quality scripts
-        # O runner self-hosted NAO tem `pip` no PATH (apenas `python3`). Usa venv
-        # dedicada (mesmo padrao comprovado do step Semgrep) e chama as ferramentas
-        # pelo caminho absoluto `~/quality-venv/bin/*`. Centraliza defusedxml
-        # (scripts/coverage/*.py) e diff-cover (gate de cobertura diferencial).
+        # Usa uma venv dedicada (`~/quality-venv`) e chama as ferramentas pelo
+        # caminho absoluto `~/quality-venv/bin/*` — mesmo padrao do step Semgrep,
+        # isolando defusedxml (scripts/coverage/*.py) e diff-cover (gate de
+        # cobertura diferencial) do Python do sistema. Funciona tanto no runner
+        # GitHub-hosted (ubuntu-latest) quanto em runner self-hosted.
         run: |
           if [ ! -d ~/quality-venv ]; then python3 -m venv ~/quality-venv; fi
           ~/quality-venv/bin/pip install --quiet --upgrade pip
@@ -378,7 +379,7 @@ jobs:
 
   security-and-compliance:
     needs: changes
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout
