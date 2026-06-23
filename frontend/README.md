@@ -62,10 +62,12 @@ npm run dev:mock
 
 - Linguagem visual oficial: `Fresh Lists`
 - Direcao visual base: `Playful Editorial`
-- Paleta principal: `coral + teal`
-- Fonte display: `Fraunces`
-- Fonte de interface: `Plus Jakarta Sans`
+- Identidade unificada: `leoferolive design`
+- Paleta principal: `violeta + teal` (`--nl-accent` violeta `#7c3aed` = acao/CTA; `--nl-primary` teal `#14b8a6` = status/progresso)
+- Fonte display: `Fraunces` (self-hosted, `woff2` variavel com subset latino)
+- Fonte de interface: `Plus Jakarta Sans` (self-hosted, `woff2` variavel com subset latino)
 - Tokens globais vivem em `src/index.css` e cobrem `light` e `dark` com paridade de superficie, borda, foco, sombra e overlays
+- O override da identidade `leoferolive design` (valores dos tokens + `@font-face` self-hosted) fica em `src/styles/leoferolive-tokens.css` com as fontes em `src/styles/fonts/`, importado por ultimo em `src/main.tsx` para vencer na cascata sem tocar componentes. Reverter = remover esse import (e reativar o `@import` do Google Fonts em `src/index.css`)
 - O switch de tema e parte do produto e deve aparecer nas telas publicas e na area autenticada principal
 - Em mobile autenticado, o switch de tema sai do topo e vai para o sheet da conta para reduzir ruído visual
 - A landing publica deve ficar mais leve que o produto autenticado: um hero, um preview principal e apoio curto

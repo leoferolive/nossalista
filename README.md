@@ -133,7 +133,7 @@ automaticamente via Husky no `git commit`. Detalhes em
 ## Experiencia de interface
 
 - Tema visual oficial do frontend: `Fresh Lists`
-- Direcao visual: `Playful Editorial`, com paleta base `coral + teal`
+- Direcao visual: `Playful Editorial` na identidade unificada `leoferolive design`, com paleta base `violeta + teal`
 - Modos `light` e `dark` compartilham a mesma linguagem visual e os mesmos componentes
 - A landing usa dois fluxos distintos:
   - CTA principal abre cadastro
