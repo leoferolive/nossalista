@@ -191,5 +191,13 @@
 - **Notas:**
   - Caches do `actions/cache` tem chave por `runner.arch`: a troca ARM64 → X64 gera um
     cache-miss unico na primeira execucao (Maven/NVD/Playwright re-populam), sem quebra.
+  - **Download do Gitleaks:** o asset x86_64 do Gitleaks (GoReleaser) chama-se `x64`, nao
+    `amd64`; `dpkg --print-architecture` retorna `amd64` no GitHub-hosted, entao o step mapeia
+    `amd64 → x64` (arm64 ja casava). O EditorConfig (`ec-linux-amd64`) ja usava o nome correto.
+  - **Baseline de cobertura:** o gate `no-decrease` compara contra um cache medido no ambiente
+    anterior (self-hosted ARM). A medicao da V8/Node difere por fracoes entre ARM e x64, gerando
+    falso-negativo na primeira comparacao apos a migracao. Mitigacao one-time: invalidar o cache
+    `base-frontend-coverage-<sha>` obsoleto; o proximo push na `main` re-mede a baseline em
+    `ubuntu-latest` e PRs seguintes voltam a comparar no mesmo ambiente.
   - Para voltar a usar o runner self-hosted (ex.: economizar minutos hospedados), basta
     reverter `runs-on` para `[self-hosted, linux, ARM64]` nos jobs do `ci.yml` com o runner online.

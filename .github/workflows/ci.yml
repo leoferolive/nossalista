@@ -430,8 +430,15 @@ jobs:
         if: steps.cache-gitleaks.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/bin
+          # Gitleaks (GoReleaser) nomeia o asset x86_64 como `x64`, nao `amd64`.
+          # `dpkg --print-architecture` retorna `amd64` no runner GitHub-hosted e
+          # `arm64` no self-hosted — mapeia amd64 -> x64; arm64 ja casa o asset.
           ARCH=$(dpkg --print-architecture)
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz" | tar -xz gitleaks
+          case "$ARCH" in
+            amd64) GL_ARCH=x64 ;;
+            *) GL_ARCH="$ARCH" ;;
+          esac
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${GL_ARCH}.tar.gz" | tar -xz gitleaks
           mv gitleaks ~/bin/gitleaks
 
       - name: Gitleaks
