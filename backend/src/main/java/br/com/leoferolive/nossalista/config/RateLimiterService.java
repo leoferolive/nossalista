@@ -36,6 +36,25 @@ public class RateLimiterService {
     }
 
     /**
+     * Verifica, sem incrementar, se a chave já está bloqueada pelo limite
+     * configurado. Usado quando o chamador precisa decidir se bloqueia a
+     * requisição ANTES de fazer trabalho adicional (ex.: lookup no banco) —
+     * ao contrário de {@link #isAllowed}, não registra tentativa nem cria
+     * bucket novo.
+     *
+     * @param key   chave de rate limiting
+     * @param limit número máximo de tentativas na janela
+     * @return true se a chave já atingiu ou excedeu o limite na janela corrente
+     */
+    public boolean isBlocked(String key, int limit) {
+        RateBucket bucket = buckets.get(key);
+        if (bucket == null || bucket.isExpired(Instant.now())) {
+            return false;
+        }
+        return bucket.currentCount() >= limit;
+    }
+
+    /**
      * Remove buckets expirados para evitar memory leak.
      * Chamado periodicamente pelo scheduler.
      */
@@ -69,6 +88,10 @@ public class RateLimiterService {
 
         int increment() {
             return count.incrementAndGet();
+        }
+
+        int currentCount() {
+            return count.get();
         }
     }
 }

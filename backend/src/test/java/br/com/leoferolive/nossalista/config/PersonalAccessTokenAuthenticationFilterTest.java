@@ -192,4 +192,26 @@ class PersonalAccessTokenAuthenticationFilterTest {
         verify(chain, never()).doFilter(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(response));
         assertThat(body.toString()).contains("Muitas tentativas");
     }
+
+    @Test
+    @DisplayName("IP já bloqueado: responde 429 sem fazer lookup do token no banco")
+    void blockedIpSkipsTokenLookupEntirely() throws Exception {
+        when(tokenService.authenticate(VALID_PAT)).thenReturn(Optional.empty());
+
+        for (int i = 0; i < PersonalAccessTokenAuthenticationFilter.INVALID_ATTEMPTS_LIMIT; i++) {
+            filter.doFilter(requestWithBearer(VALID_PAT), mock(HttpServletResponse.class), mock(FilterChain.class));
+        }
+        verify(tokenService, org.mockito.Mockito.times(PersonalAccessTokenAuthenticationFilter.INVALID_ATTEMPTS_LIMIT))
+            .authenticate(VALID_PAT);
+
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+        filter.doFilter(requestWithBearer(VALID_PAT), response, mock(FilterChain.class));
+
+        // A requisição que estoura o limite é bloqueada ANTES do lookup — a
+        // contagem de chamadas a authenticate() não deve mudar.
+        verify(tokenService, org.mockito.Mockito.times(PersonalAccessTokenAuthenticationFilter.INVALID_ATTEMPTS_LIMIT))
+            .authenticate(VALID_PAT);
+        verify(response).setStatus(429);
+    }
 }

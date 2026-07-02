@@ -44,10 +44,13 @@ import java.util.Optional;
  * escopo READ a métodos seguros e para bloquear PATs de endpoints de
  * autenticação/gestão de tokens.</p>
  *
- * <p>Tentativas com token inválido/expirado/revogado são contadas por IP via
- * {@link RateLimiterService}; ao exceder o limite, responde 429 diretamente
- * (RFC 7807) sem prosseguir a cadeia — proteção contra força bruta do
- * segredo do token.</p>
+ * <p>Antes de qualquer lookup no banco, verifica (sem incrementar) se o IP já
+ * está bloqueado por tentativas inválidas anteriores — se estiver, responde
+ * 429 diretamente (RFC 7807) sem tocar o banco. Só depois disso resolve o
+ * token; se o lookup falhar (inválido/expirado/revogado), a tentativa é
+ * registrada via {@link RateLimiterService} para contar no bloqueio das
+ * próximas requisições desse IP. Um token válido nunca é contado como
+ * tentativa — proteção contra força bruta do segredo do token.</p>
  */
 @Component
 public class PersonalAccessTokenAuthenticationFilter extends OncePerRequestFilter {
@@ -93,9 +96,18 @@ public class PersonalAccessTokenAuthenticationFilter extends OncePerRequestFilte
             return;
         }
 
+        String rateLimitKey = "pat-auth:invalid:ip:" + clientIpResolver.resolve(request);
+        if (rateLimiterService.isBlocked(rateLimitKey, INVALID_ATTEMPTS_LIMIT)) {
+            respondTooManyRequests(request, response);
+            return;
+        }
+
         Optional<PersonalAccessToken> resolved = tokenService.authenticate(candidate);
         if (resolved.isEmpty()) {
-            handleInvalidToken(request, response, filterChain);
+            // Registra a tentativa inválida; o bloqueio (429) só passa a valer a
+            // partir da PRÓXIMA requisição desse IP, verificado no isBlocked acima.
+            rateLimiterService.isAllowed(rateLimitKey, INVALID_ATTEMPTS_LIMIT, INVALID_ATTEMPTS_WINDOW);
+            filterChain.doFilter(request, response);
             return;
         }
 
@@ -114,21 +126,10 @@ public class PersonalAccessTokenAuthenticationFilter extends OncePerRequestFilte
         filterChain.doFilter(request, response);
     }
 
-    private void handleInvalidToken(
+    private void respondTooManyRequests(
         HttpServletRequest request,
-        HttpServletResponse response,
-        FilterChain filterChain
-    ) throws ServletException, IOException {
-        String clientIp = clientIpResolver.resolve(request);
-        boolean withinLimit = rateLimiterService.isAllowed(
-            "pat-auth:invalid:ip:" + clientIp, INVALID_ATTEMPTS_LIMIT, INVALID_ATTEMPTS_WINDOW);
-
-        if (withinLimit) {
-            // Segue sem autenticar — o endpoint protegido responderá 401 normalmente.
-            filterChain.doFilter(request, response);
-            return;
-        }
-
+        HttpServletResponse response
+    ) throws IOException {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
             HttpStatus.TOO_MANY_REQUESTS,
             "Muitas tentativas de autenticação com token inválido. Tente novamente mais tarde."
