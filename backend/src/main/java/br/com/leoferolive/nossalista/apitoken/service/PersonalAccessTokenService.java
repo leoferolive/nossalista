@@ -8,6 +8,8 @@ import br.com.leoferolive.nossalista.apitoken.dto.PersonalAccessTokenResponse;
 import br.com.leoferolive.nossalista.apitoken.exception.PersonalAccessTokenLimitExceededException;
 import br.com.leoferolive.nossalista.apitoken.exception.PersonalAccessTokenNotFoundException;
 import br.com.leoferolive.nossalista.apitoken.repository.PersonalAccessTokenRepository;
+import br.com.leoferolive.nossalista.user.exception.UserNotFoundException;
+import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,24 +53,41 @@ public class PersonalAccessTokenService {
     private static final int PREFIX_DISPLAY_CHARS = 6;
 
     private final PersonalAccessTokenRepository repository;
+    private final UserRepository userRepository;
     private final PersonalAccessTokenMapper mapper;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public PersonalAccessTokenService(PersonalAccessTokenRepository repository, PersonalAccessTokenMapper mapper) {
+    public PersonalAccessTokenService(
+        PersonalAccessTokenRepository repository,
+        UserRepository userRepository,
+        PersonalAccessTokenMapper mapper
+    ) {
         this.repository = repository;
+        this.userRepository = userRepository;
         this.mapper = mapper;
     }
 
     /**
      * Cria um novo PAT para o usuário informado.
      *
+     * <p>Trava a linha do usuário ({@code SELECT ... FOR UPDATE} via
+     * {@link UserRepository#findByIdForUpdate}) antes de contar os tokens
+     * ativos, serializando chamadas concorrentes do mesmo usuário e
+     * eliminando a janela de TOCTOU em que duas requisições simultâneas
+     * passariam ambas pela checagem de limite antes de qualquer inserção
+     * (MENOR-1 da Fase A, ver docs/DECISIONS.md D-020).</p>
+     *
      * @param userId  ID do usuário dono do token
      * @param request dados de criação (nome, escopo, validade opcional)
      * @return resposta contendo o token em claro (única exposição) e metadados
+     * @throws UserNotFoundException se o usuário não existir
      * @throws PersonalAccessTokenLimitExceededException se o limite de tokens ativos for atingido
      */
     @Transactional
     public PersonalAccessTokenCreatedResponse create(UUID userId, CreatePersonalAccessTokenRequest request) {
+        userRepository.findByIdForUpdate(userId)
+            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado"));
+
         long activeCount = repository.countByUserIdAndRevokedAtIsNull(userId);
         if (activeCount >= MAX_ACTIVE_TOKENS_PER_USER) {
             throw new PersonalAccessTokenLimitExceededException(MAX_ACTIVE_TOKENS_PER_USER);
