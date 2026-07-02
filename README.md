@@ -16,6 +16,7 @@ Status atual:
 - MVP em desenvolvimento ativo
 - Backend e frontend implementados no monorepo
 - Onboarding guiado no primeiro login (com replay manual no menu da conta)
+- Personal Access Tokens (PAT) para autenticar clientes MCP/API externos, gerenciaveis em "Conexoes (API/Assistentes)" no menu da conta
 - Rebranding global do frontend com linguagem `Fresh Lists`, paridade light/dark e switch de tema exposto na UI
 - Shell autenticado mobile refeito com headers compactos, sheets para conta/notificacoes e acoes de lista reorganizadas
 - Landing page publica com CTAs separados para cadastro e login em modais distintos

@@ -43,7 +43,7 @@ npm run dev:mock
 ## Integracao com backend
 
 - A API esperada e servida pelo backend em `http://localhost:8080`
-- Em modo `mock`, o Vite intercepta `/api/**` com respostas em memoria para login, perfil, listas, itens e convites
+- Em modo `mock`, o Vite intercepta `/api/**` com respostas em memoria para login, perfil, listas, itens, convites e Personal Access Tokens (`/api/users/me/tokens`)
 - Endpoints e contrato de autenticacao: `docs/auth-endpoints-matrix.md`
 - Sincronizacao realtime: STOMP/SockJS em `/ws/**`
 

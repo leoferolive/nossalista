@@ -232,3 +232,34 @@
   falha (timeout) — GitHub-hosted apenas remove a dependencia do *runner*, nao do *cluster*.
 - **Reversao:** voltar `runs-on` para `[self-hosted, linux, ARM64]` nos workflows de deploy (e
   remover os steps QEMU/Tailscale) com o runner online.
+
+## D-018 Personal Access Tokens (PAT) como mecanismo de auth para MCP/integracoes
+
+- **Contexto:** o futuro servidor MCP do NossaLista (e outros clientes de API externos, ex.:
+  assistentes de IA) precisa autenticar em nome de um usuario sem usar o fluxo de login
+  interativo (JWT de sessao com expiracao curta, pensado para o SPA). E necessario um mecanismo
+  de credencial de longa duracao, gerenciavel pelo proprio usuario, com granularidade de acesso.
+- **Decisao:** introduzir Personal Access Tokens (`personal_access_tokens`), com as seguintes
+  regras:
+  - **Formato:** `nlmcp_` + 256 bits de entropia (`SecureRandom`, hex), mesmo padrao de forca do
+    `OAuthCodeStore` (D-011). O prefixo identifica o token como PAT no filtro de autenticacao
+    (`PersonalAccessTokenAuthenticationFilter`), distinguindo-o de um JWT sem custo de parsing.
+  - **Hash-only:** so o hash SHA-256 do token e persistido (`token_hash`, coluna `UNIQUE`). O
+    valor em claro e devolvido **uma unica vez**, na resposta de criacao — nunca mais recuperavel,
+    nem pelo proprio dono. Mesma logica de "nunca guardar segredo em claro" do hashing de senha.
+  - **Escopo:** `READ` ou `READ_WRITE`. Um PAT `READ` so pode usar metodos HTTP seguros
+    (GET/HEAD/OPTIONS) em `/api/**` — reforcado via `AuthorizationManager` dedicado em
+    `SecurityConfig`, nao apenas por convencao do cliente.
+  - **Superficie restrita:** um PAT nunca pode gerenciar tokens (`/api/users/me/tokens/**`) nem
+    acessar `/api/auth/**` — essas rotas exigem JWT de sessao normal. Evita que um token vazado
+    seja usado para emitir novos tokens ou orquestrar o fluxo de auth.
+  - **Limite por conta:** maximo de 10 tokens ativos (nao revogados) por usuario, com erro de
+    negocio claro (`409 Conflict`) ao exceder — evita acumulo descontrolado de credenciais.
+  - **`last_used_at` com throttle:** atualizado no maximo a cada 60s por token, para nao gerar um
+    `UPDATE` a cada requisicao autenticada via PAT em uso intenso.
+  - **Rate limiting de tentativas invalidas:** tentativas de autenticacao com token invalido sao
+    contadas por IP (`RateLimiterService`); ao exceder o limite, a requisicao recebe `429`
+    diretamente no filtro, antes de qualquer lookup adicional no banco.
+- **Motivo:** e o pre-requisito de autenticacao do servidor MCP (Fase B do plano) — sem isso, o
+  servidor MCP nao teria como autenticar clientes externos em nome de um usuario de forma segura
+  e auditavel (revogavel, com expiracao e escopo).
