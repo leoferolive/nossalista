@@ -380,7 +380,10 @@ jobs:
   security-and-compliance:
     needs: changes
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 40min: o update incremental do feed NVD no dependency-check leva ~10-14min
+    # em dias normais e já estourou 20min três vezes num único dia quando a API
+    # do NVD está throttled (02/07/2026) — o cancelamento por timeout bloqueia a release.
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
