@@ -51,7 +51,18 @@ function useTokenManager() {
 
   const createToken = useCallback(async (data: CreateTokenRequest) => {
     const created = await tokensApi.create(data)
-    setTokens((prev) => [created, ...prev])
+    // Nunca guarda o valor em claro no estado da lista além do necessário
+    // para devolvê-lo ao chamador (que o exibe uma única vez no modal).
+    const metadata: PersonalAccessToken = {
+      id: created.id,
+      name: created.name,
+      prefix: created.prefix,
+      scope: created.scope,
+      expiresAt: created.expiresAt,
+      lastUsedAt: created.lastUsedAt,
+      createdAt: created.createdAt,
+    }
+    setTokens((prev) => [metadata, ...prev])
     return created
   }, [])
 

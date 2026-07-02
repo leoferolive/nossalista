@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -141,7 +142,7 @@ class PersonalAccessTokenAuthorizationIntegrationTest {
     }
 
     @Test
-    @DisplayName("PAT (qualquer escopo) não pode gerenciar tokens: 403")
+    @DisplayName("PAT (qualquer escopo) não pode gerenciar tokens: 403 em GET, POST e DELETE")
     void patCannotManageTokens() throws Exception {
         String readToken = issueToken(TokenScope.READ);
         String readWriteToken = issueToken(TokenScope.READ_WRITE);
@@ -149,6 +150,17 @@ class PersonalAccessTokenAuthorizationIntegrationTest {
         mockMvc.perform(get("/api/users/me/tokens").header("Authorization", "Bearer " + readToken))
             .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/users/me/tokens").header("Authorization", "Bearer " + readWriteToken))
+            .andExpect(status().isForbidden());
+
+        // Regra é por path (não por método), mas assevera explicitamente POST e DELETE
+        // para não depender apenas da inferência de que "por path" cobre todos os verbos.
+        mockMvc.perform(post("/api/users/me/tokens")
+                .header("Authorization", "Bearer " + readWriteToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"via PAT\",\"scope\":\"READ\"}"))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/users/me/tokens/{id}", java.util.UUID.randomUUID())
+                .header("Authorization", "Bearer " + readWriteToken))
             .andExpect(status().isForbidden());
     }
 

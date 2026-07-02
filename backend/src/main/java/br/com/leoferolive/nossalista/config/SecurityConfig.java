@@ -70,7 +70,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/me/tokens/**").access(sessionOnlyManager())
                         // Endpoints públicos - não requerem autenticação. Um PAT nunca pode
                         // ser usado aqui (ex.: login/registro), mesmo que o endpoint seja público.
-                        .requestMatchers("/api/auth/**", "/api/health", "/actuator/health", "/actuator/prometheus")
+                        .requestMatchers(
+                            "/api/auth/**", "/api/health", "/actuator/health", "/actuator/prometheus", "/actuator/info")
                         .access(publicUnlessPatManager())
                         // OAuth2 endpoints (Spring Security gerencia automaticamente)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()

@@ -257,9 +257,12 @@
     negocio claro (`409 Conflict`) ao exceder — evita acumulo descontrolado de credenciais.
   - **`last_used_at` com throttle:** atualizado no maximo a cada 60s por token, para nao gerar um
     `UPDATE` a cada requisicao autenticada via PAT em uso intenso.
-  - **Rate limiting de tentativas invalidas:** tentativas de autenticacao com token invalido sao
-    contadas por IP (`RateLimiterService`); ao exceder o limite, a requisicao recebe `429`
-    diretamente no filtro, antes de qualquer lookup adicional no banco.
+  - **Rate limiting de tentativas invalidas:** apos o lookup por `token_hash` (indexado, `UNIQUE`)
+    falhar, a tentativa e contada por IP (`RateLimiterService`); ao exceder o limite, a requisicao
+    recebe `429` diretamente no filtro, sem nenhum processamento adicional. Nao ha janela para
+    amplificacao (1 tentativa = 1 lookup indexado = 1 incremento de contador) e os 256 bits de
+    entropia do segredo tornam forca bruta inviavel mesmo sem esse throttle — o rate limiting e
+    uma camada extra, nao a defesa primaria.
 - **Motivo:** e o pre-requisito de autenticacao do servidor MCP (Fase B do plano) — sem isso, o
   servidor MCP nao teria como autenticar clientes externos em nome de um usuario de forma segura
   e auditavel (revogavel, com expiracao e escopo).
