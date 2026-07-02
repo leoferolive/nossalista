@@ -115,10 +115,9 @@
     `async-http-client-netty-utils` acompanha para 2.15.0 automaticamente.
 - **Motivo:** desbloquear o gate de seguranca sem subir o parent (indisponivel) nem trocar o
   major do async-http-client.
-- **Nota de manutencao:** o override de `spring-framework.version` deve ser **removido** quando
-  sair o **Spring Boot 4.0.7+**, que ja gerenciara o Spring Framework 7.0.8 (ou superior) pelo
-  proprio parent. O override de `async-http-client` permanece ate `web-push` atualizar seu
-  transitivo.
+- **Nota de manutencao:** o override de `spring-framework.version` foi **removido em 2026-07-02**
+  com o bump do parent para **Spring Boot 4.0.7** — ver D-019. O override de `async-http-client`
+  permanece ate `web-push` atualizar seu transitivo.
 
 ## D-014 Dimensionamento de startupProbe e rollout timeout para o boot lento no Pi ARM
 
@@ -267,3 +266,26 @@
 - **Motivo:** e o pre-requisito de autenticacao do servidor MCP (Fase B do plano) — sem isso, o
   servidor MCP nao teria como autenticar clientes externos em nome de um usuario de forma segura
   e auditavel (revogavel, com expiracao e escopo).
+
+## D-019 Bump para Spring Boot 4.0.7 (fecha CVEs de jackson-databind e spring-security)
+
+- **Contexto:** o gate `security-and-compliance` (OWASP dependency-check) passou a falhar no PR
+  #50 por CVEs novas no feed NVD, sem relacao com o conteudo do PR: `jackson-databind` 2.21.2 e
+  `tools.jackson.core:jackson-databind` 3.1.2 (CVE-2026-54512, CVE-2026-54513, CVSS 8.1) e
+  `spring-security-{core,web,oauth2-core,config,crypto}` 7.0.5 (CVE-2026-40988, CVE-2026-40993,
+  CVSS 7.5/7.2). Todas geridas pelo BOM do `spring-boot-starter-parent` (nao sao dependencias
+  adicionadas pelo PR).
+- **Decisao:** subir o parent de **4.0.6** para **4.0.7** (ja disponivel no Maven Central). O BOM
+  4.0.7 passa a gerenciar `jackson-2-bom` **2.21.4**, `jackson-bom` (tools.jackson) **3.1.4** e
+  `spring-security.version` **7.0.6** — todas acima do minimo corrigido (2.21.3+/3.1.3+/7.0.6+),
+  resolvendo as 4 CVEs sem overrides individuais.
+- **Efeito colateral (positivo):** o 4.0.7 tambem passa a gerenciar `spring-framework` em
+  **7.0.8** nativamente — o override manual `<spring-framework.version>7.0.8</spring-framework.version>`
+  de D-013 ficou redundante e foi **removido**. Confirmado via `dependency:tree`:
+  `spring-core:7.0.8` e `spring-web:7.0.8` inalterados.
+- **Motivo:** patch de parent (4.0.6 -> 4.0.7) e de menor risco que overrides individuais e ainda
+  reduz divida tecnica (fecha o item pendente de D-013 sobre remover o override de
+  `spring-framework` "quando sair Spring Boot 4.0.7+").
+- **Validacao:** `spring-security-{core,web,oauth2-core,config,crypto}:7.0.6`,
+  `jackson-databind:2.21.4`, `tools.jackson.core:jackson-databind:3.1.4` confirmados via
+  `dependency:tree`. Suite de testes completa sem regressao (ver resultado no PR #50).
