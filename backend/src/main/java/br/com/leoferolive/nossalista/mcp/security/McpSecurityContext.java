@@ -42,10 +42,25 @@ public class McpSecurityContext {
      * dados (criar, renomear, excluir, adicionar/editar/remover itens,
      * compartilhar, remover membro).
      *
+     * <p>Também assevera autenticação por conta própria (não depende de uma
+     * chamada anterior a {@link #currentUser()} na mesma tool): sem essa
+     * checagem, uma autenticação ausente/anônima faria
+     * {@code isPersonalAccessToken(null)} retornar {@code false} e o método
+     * retornaria normalmente, liberando a escrita por omissão. Hoje isso não
+     * é explorável (o matcher {@code /mcp/**} em {@code SecurityConfig} já
+     * exige autenticação antes de qualquer tool ser despachada), mas é
+     * defesa em profundidade para uma tool futura que chame
+     * {@code requireWriteAccess()} sem antes chamar {@code currentUser()}.</p>
+     *
+     * @throws McpAuthenticationException se não houver autenticação válida no contexto
      * @throws McpScopeException se a autenticação corrente for um PAT READ-only
      */
     public void requireWriteAccess() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!PatAuthorizationSupport.isAuthenticatedUser(authentication)) {
+            throw new McpAuthenticationException(
+                "Not authenticated. Connect with a valid Bearer JWT or Personal Access Token (nlmcp_...).");
+        }
         if (PatAuthorizationSupport.isPersonalAccessToken(authentication)
             && PatAuthorizationSupport.hasReadOnlyScope(authentication)) {
             throw new McpScopeException(

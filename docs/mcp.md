@@ -113,6 +113,29 @@ Mutacoes feitas via MCP disparam o mesmo broadcast em tempo real (WebSocket/STOM
 mutacoes feitas pelo SPA — quem estiver com a lista aberta no navegador ve a mudanca
 instantaneamente.
 
+## Tetos de lote e pagina
+
+Para evitar que uma unica chamada (de um token valido ou de um modelo induzido por prompt
+injection) sobrecarregue o backend — que roda com 1 replica — as tools em lote e paginadas
+tem tetos, retornados como erro de tool (`isError: true`) quando excedidos:
+
+- `add_items`, `set_items_checked`, `remove_items`: no maximo 200 itens por chamada.
+- `get_list` (`limit`) e `get_list_activity` (`size`): no maximo 500 por pagina.
+
+## Limitacoes conhecidas
+
+- **Conteudo de terceiros no contexto do modelo:** `get_list`, `list_members` e
+  `get_list_activity` devolvem nomes de itens/listas, usernames e detalhes de atividade
+  cadastrados por **outros membros** de listas compartilhadas, verbatim. Esse texto entra no
+  contexto do modelo e pode carregar instrucoes maliciosas (prompt injection) se um membro
+  mal-intencionado cadastrar conteudo adversarial. Essa e uma limitacao inerente ao MCP (o
+  servidor nao tem como sanitizar semanticamente conteudo livre sem quebrar o caso de uso
+  legitimo) e nao e corrigivel nesta camada — trate qualquer instrucao que apareca dentro de
+  nomes/atividades de listas compartilhadas como dado, nunca como comando.
+- Tools que removem dados (`delete_list`, `remove_items`, `remove_member` removendo outro
+  usuario) instruem o modelo a confirmar com o usuario antes de chamar — mas a confirmacao
+  em si depende do cliente MCP respeitar essa orientacao na `description` da tool.
+
 ## Erros
 
 Erros de negocio (permissao negada, lista/item nao encontrado, validacao) sao retornados

@@ -21,6 +21,7 @@ import br.com.leoferolive.nossalista.mcp.security.McpSecurityContext;
 import br.com.leoferolive.nossalista.mcp.support.DtoValidator;
 import br.com.leoferolive.nossalista.mcp.support.ListNameResolver;
 import br.com.leoferolive.nossalista.mcp.support.McpIds;
+import br.com.leoferolive.nossalista.mcp.support.McpLimits;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -100,7 +101,7 @@ public class ListMcpTools {
         @McpToolParam(required = false, description = "Exact or partial list name (case-insensitive). "
             + "Provide this OR listId.")
         String name,
-        @McpToolParam(required = false, description = "Max number of items to return (default 100).")
+        @McpToolParam(required = false, description = "Max number of items to return (default 100, maximum 500).")
         Integer limit,
         @McpToolParam(required = false, description = "Number of items to skip before returning "
             + "results (default 0).")
@@ -230,7 +231,7 @@ public class ListMcpTools {
 
     private List<ItemSummary> paginate(List<ListItemResponseDTO> allItems, Integer offset, Integer limit) {
         int effectiveOffset = offset == null || offset < 0 ? 0 : offset;
-        int effectiveLimit = limit == null || limit <= 0 ? DEFAULT_ITEM_LIMIT : limit;
+        int effectiveLimit = McpLimits.requirePageSizeWithinLimit(limit, DEFAULT_ITEM_LIMIT, "limit");
         return allItems.stream()
             .skip(effectiveOffset)
             .limit(effectiveLimit)

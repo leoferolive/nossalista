@@ -92,7 +92,8 @@ public class MemberMcpTools {
         name = "remove_member",
         description = "Removes a member from a list. If the target user is the caller, this leaves "
             + "the list instead (owners cannot leave; they must delete or transfer the list first). "
-            + "If the target is another user, only the list owner can remove them.",
+            + "If the target is another user, only the list owner can remove them. Confirm with the "
+            + "user before calling this tool when removing someone else.",
         generateOutputSchema = true
     )
     public RemoveMemberResult removeMember(

@@ -16,6 +16,7 @@ import br.com.leoferolive.nossalista.mcp.dto.UpdateItemResult;
 import br.com.leoferolive.nossalista.mcp.security.McpSecurityContext;
 import br.com.leoferolive.nossalista.mcp.support.DtoValidator;
 import br.com.leoferolive.nossalista.mcp.support.McpIds;
+import br.com.leoferolive.nossalista.mcp.support.McpLimits;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -78,6 +79,7 @@ public class ListItemMcpTools {
         if (items == null || items.isEmpty()) {
             throw new InvalidInputException("items não pode ser vazio");
         }
+        McpLimits.requireBatchSizeWithinLimit(items.size(), "items");
 
         List<BatchItemOutcome> outcomes = items.stream().map(item -> addOneItem(id, item, user)).toList();
         int added = (int) outcomes.stream().filter(BatchItemOutcome::success).count();
@@ -135,7 +137,7 @@ public class ListItemMcpTools {
 
         UUID listUuid = McpIds.parseUuid(listId, "listId");
         listService.getListById(listUuid, user.getId());
-        requireNonEmptyIds(itemIds);
+        requireValidItemIdsBatch(itemIds);
 
         Map<UUID, ListItemResponseDTO> currentItems = listItemService.getItemsByListId(listUuid, user).stream()
             .collect(Collectors.toMap(ListItemResponseDTO::id, item -> item));
@@ -150,7 +152,7 @@ public class ListItemMcpTools {
     @McpTool(
         name = "remove_items",
         description = "Removes a batch of items from a list in a single call. Reports success/failure "
-            + "per item id.",
+            + "per item id. This cannot be undone — confirm with the user before calling this tool.",
         generateOutputSchema = true
     )
     public RemoveItemsResult removeItems(
@@ -164,7 +166,7 @@ public class ListItemMcpTools {
 
         UUID listUuid = McpIds.parseUuid(listId, "listId");
         listService.getListById(listUuid, user.getId());
-        requireNonEmptyIds(itemIds);
+        requireValidItemIdsBatch(itemIds);
 
         List<BatchItemOutcome> outcomes = itemIds.stream()
             .map(rawId -> removeOneItem(listUuid, rawId, user))
@@ -174,6 +176,9 @@ public class ListItemMcpTools {
     }
 
     private BatchItemOutcome addOneItem(UUID listId, AddItemInput item, User user) {
+        if (item == null) {
+            return new BatchItemOutcome(null, null, false, "item não pode ser nulo");
+        }
         try {
             LocalDateTime dueDate = McpIds.parseDateTime(item.dueDate(), "dueDate");
             CreateItemRequestDTO dto = new CreateItemRequestDTO(item.name(), item.quantity(), dueDate, item.url(), null);
@@ -181,7 +186,7 @@ public class ListItemMcpTools {
             ListItemResponseDTO created = listItemService.addItem(listId, dto, user);
             return new BatchItemOutcome(created.id().toString(), created.name(), true, null);
         } catch (RuntimeException ex) {
-            return new BatchItemOutcome(null, item == null ? null : item.name(), false, ex.getMessage());
+            return new BatchItemOutcome(null, item.name(), false, ex.getMessage());
         }
     }
 
@@ -218,25 +223,32 @@ public class ListItemMcpTools {
     }
 
     private UpdateItemRequest buildAndValidatePartialUpdate(String name, Integer quantity, String dueDate, String url) {
+        requireAtLeastOneFieldToUpdate(name, quantity, dueDate, url);
+
         UpdateItemRequest request = new UpdateItemRequest();
         request.setName(name);
         request.setQuantity(quantity);
         request.setDueDate(McpIds.parseDateTime(dueDate, "dueDate"));
         request.setUrl(url);
 
-        if (name != null) {
-            validator.validateProperty(request, "name");
-        }
-        if (quantity != null) {
-            validator.validateProperty(request, "quantity");
-        }
-        if (request.getDueDate() != null) {
-            validator.validateProperty(request, "dueDate");
-        }
-        if (url != null) {
-            validator.validateProperty(request, "url");
-        }
+        validateProvidedProperty(request, "name", name);
+        validateProvidedProperty(request, "quantity", quantity);
+        validateProvidedProperty(request, "dueDate", request.getDueDate());
+        validateProvidedProperty(request, "url", url);
         return request;
+    }
+
+    private void requireAtLeastOneFieldToUpdate(String name, Integer quantity, String dueDate, String url) {
+        if (name == null && quantity == null && dueDate == null && url == null) {
+            throw new InvalidInputException(
+                "Informe ao menos um campo para atualizar (name, quantity, dueDate ou url)");
+        }
+    }
+
+    private void validateProvidedProperty(UpdateItemRequest request, String propertyName, Object value) {
+        if (value != null) {
+            validator.validateProperty(request, propertyName);
+        }
     }
 
     private UpdateItemResult toUpdateItemResult(ListItemResponseDTO item) {
@@ -250,9 +262,10 @@ public class ListItemMcpTools {
         );
     }
 
-    private void requireNonEmptyIds(List<String> itemIds) {
+    private void requireValidItemIdsBatch(List<String> itemIds) {
         if (itemIds == null || itemIds.isEmpty()) {
             throw new InvalidInputException("itemIds não pode ser vazio");
         }
+        McpLimits.requireBatchSizeWithinLimit(itemIds.size(), "itemIds");
     }
 }

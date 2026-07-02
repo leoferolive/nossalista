@@ -7,6 +7,7 @@ import br.com.leoferolive.nossalista.mcp.dto.ActivityEntrySummary;
 import br.com.leoferolive.nossalista.mcp.dto.ActivityPageResult;
 import br.com.leoferolive.nossalista.mcp.security.McpSecurityContext;
 import br.com.leoferolive.nossalista.mcp.support.McpIds;
+import br.com.leoferolive.nossalista.mcp.support.McpLimits;
 import br.com.leoferolive.nossalista.user.domain.User;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -43,13 +44,13 @@ public class ActivityMcpTools {
         String listId,
         @McpToolParam(required = false, description = "Zero-based page number (default 0).")
         Integer page,
-        @McpToolParam(required = false, description = "Page size (default 50).")
+        @McpToolParam(required = false, description = "Page size (default 50, maximum 500).")
         Integer size
     ) {
         User user = security.currentUser();
         UUID id = McpIds.parseUuid(listId, "listId");
         int effectivePage = page == null || page < 0 ? 0 : page;
-        int effectiveSize = size == null || size <= 0 ? DEFAULT_PAGE_SIZE : size;
+        int effectiveSize = McpLimits.requirePageSizeWithinLimit(size, DEFAULT_PAGE_SIZE, "size");
 
         ActivityPageResponse response = activityLogService.getActivities(id, user.getId(), effectivePage, effectiveSize);
         var entries = response.content().stream().map(this::toSummary).toList();

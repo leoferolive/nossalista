@@ -243,6 +243,76 @@ class McpServerIntegrationTest {
     }
 
     @Test
+    @DisplayName("add_items com item nulo na lista reporta falha acionável para aquele item, sem derrubar o lote")
+    void addItemsWithNullElementReportsActionableFailure() {
+        User user = newUser();
+        McpSyncClient client = connectedClient(issueToken(user, TokenScope.READ_WRITE));
+        String listId = createShoppingList(client);
+
+        List<Map<String, Object>> items = new ArrayList<>();
+        items.add(Map.of("name", "Válido"));
+        items.add(null);
+
+        CallToolResult result = call(client, "add_items", Map.of("listId", listId, "items", items));
+
+        // Aceita tanto rejeição pelo próprio schema de entrada quanto o guard
+        // defensivo em ListItemMcpTools.addOneItem — em ambos os casos o
+        // requisito é o mesmo: nunca um NPE cru, sempre isError com mensagem.
+        if (Boolean.TRUE.equals(result.isError())) {
+            assertThat(textOf(result)).doesNotContain("NullPointerException", "at br.com.leoferolive");
+        } else {
+            Map<String, Object> structuredResult = structured(result);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> outcomes = (List<Map<String, Object>>) structuredResult.get("results");
+            assertThat(outcomes.get(1).get("success")).isEqualTo(false);
+            assertThat(outcomes.get(1).get("error")).isEqualTo("item não pode ser nulo");
+        }
+    }
+
+    @Test
+    @DisplayName("update_item sem nenhum campo informado retorna erro acionável em vez de um no-op silencioso")
+    void updateItemWithNoFieldsReturnsActionableError() {
+        User user = newUser();
+        McpSyncClient client = connectedClient(issueToken(user, TokenScope.READ_WRITE));
+        String listId = createShoppingList(client);
+        String itemId = addOneItem(client, listId);
+
+        assertError(
+            call(client, "update_item", Map.of("listId", listId, "itemId", itemId)),
+            "Informe ao menos um campo");
+    }
+
+    @Test
+    @DisplayName("lotes acima do teto de 200 itens são rejeitados com erro acionável")
+    void batchesAboveLimitAreRejected() {
+        User user = newUser();
+        McpSyncClient client = connectedClient(issueToken(user, TokenScope.READ_WRITE));
+        String listId = createShoppingList(client);
+        String itemId = addOneItem(client, listId);
+
+        List<Map<String, Object>> tooManyItems = java.util.stream.IntStream.range(0, 201)
+            .mapToObj(i -> Map.<String, Object>of("name", "Item " + i))
+            .toList();
+        assertError(call(client, "add_items", Map.of("listId", listId, "items", tooManyItems)), "200");
+
+        List<String> tooManyIds = java.util.Collections.nCopies(201, itemId);
+        assertError(call(client, "set_items_checked", Map.of(
+            "listId", listId, "itemIds", tooManyIds, "checked", true)), "200");
+        assertError(call(client, "remove_items", Map.of("listId", listId, "itemIds", tooManyIds)), "200");
+    }
+
+    @Test
+    @DisplayName("páginas acima do teto de 500 são rejeitadas com erro acionável")
+    void pagesAboveLimitAreRejected() {
+        User user = newUser();
+        McpSyncClient client = connectedClient(issueToken(user, TokenScope.READ_WRITE));
+        String listId = createShoppingList(client);
+
+        assertError(call(client, "get_list", Map.of("listId", listId, "limit", 501)), "500");
+        assertError(call(client, "get_list_activity", Map.of("listId", listId, "size", 501)), "500");
+    }
+
+    @Test
     @DisplayName("update_item, set_items_checked e remove_items em lote operam sobre itens existentes")
     void itemBatchToolsHappyPath() {
         User user = newUser();
