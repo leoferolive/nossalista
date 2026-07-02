@@ -94,14 +94,15 @@ public class PersonalAccessTokenService {
     }
 
     /**
-     * Lista os tokens (metadados, sem hash) do usuário informado.
+     * Lista os tokens NÃO revogados (metadados, sem hash) do usuário informado.
+     * Tokens revogados são filtrados — não aparecem na listagem.
      *
      * @param userId ID do usuário
-     * @return lista de tokens, mais recentes primeiro
+     * @return lista de tokens não revogados, mais recentes primeiro
      */
     @Transactional(readOnly = true)
     public List<PersonalAccessTokenResponse> list(UUID userId) {
-        return repository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
+        return repository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtDesc(userId).stream()
             .map(mapper::toResponse)
             .toList();
     }

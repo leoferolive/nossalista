@@ -24,12 +24,15 @@ public interface PersonalAccessTokenRepository extends JpaRepository<PersonalAcc
     Optional<PersonalAccessToken> findByTokenHash(String tokenHash);
 
     /**
-     * Lista os tokens de um usuário, mais recentes primeiro.
+     * Lista os tokens NÃO revogados de um usuário, mais recentes primeiro.
+     * Tokens revogados são omitidos da listagem — a UI não exibe histórico de
+     * revogados, apenas os tokens atualmente utilizáveis (ou expirados, que o
+     * usuário ainda pode identificar/limpar explicitamente).
      *
      * @param userId ID do usuário dono dos tokens
-     * @return lista de tokens (metadados)
+     * @return lista de tokens ativos/expirados-mas-não-revogados (metadados)
      */
-    List<PersonalAccessToken> findAllByUserIdOrderByCreatedAtDesc(UUID userId);
+    List<PersonalAccessToken> findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtDesc(UUID userId);
 
     /**
      * Busca um token pelo id garantindo que pertence ao usuário informado.

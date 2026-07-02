@@ -139,6 +139,45 @@ class PersonalAccessTokenControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("GET não retorna tokens revogados")
+    void listDoesNotIncludeRevokedTokens() throws Exception {
+        String body = mockMvc.perform(post("/api/users/me/tokens")
+                .header("Authorization", bearerA)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createTokenPayload("A ser revogado", TokenScope.READ, null)))
+            .andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsString();
+        UUID id = UUID.fromString(objectMapper.readTree(body).get("id").asText());
+
+        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).header("Authorization", bearerA))
+            .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/users/me/tokens").header("Authorization", bearerA))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("GET não retorna tokens de outros usuários")
+    void listDoesNotReturnOtherUsersTokens() throws Exception {
+        mockMvc.perform(post("/api/users/me/tokens")
+                .header("Authorization", bearerA)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createTokenPayload("Da Usuária A", TokenScope.READ, null)))
+            .andExpect(status().isCreated());
+
+        User userB = userService.createUser(
+            "tokenlistintruder", "listintruder@example.com", "hashed", "List Intruder", AuthProvider.EMAIL);
+        String bearerB = "Bearer " + jwtService.generateToken(userB);
+
+        mockMvc.perform(get("/api/users/me/tokens").header("Authorization", bearerB))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
     @DisplayName("DELETE revoga o token do próprio usuário")
     void revokeOwnTokenSucceeds() throws Exception {
         String body = mockMvc.perform(post("/api/users/me/tokens")

@@ -141,7 +141,7 @@ class PersonalAccessTokenServiceTest {
         token.setName("Token A");
         token.setPrefix("nlmcp_abc123");
         token.setScope(TokenScope.READ);
-        when(repository.findAllByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of(token));
+        when(repository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtDesc(userId)).thenReturn(List.of(token));
 
         var responses = service.list(userId);
 

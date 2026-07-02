@@ -112,7 +112,7 @@ class PersonalAccessTokenAuthorizationIntegrationTest {
     @DisplayName("PAT revogado retorna 401")
     void revokedPatReturns401() throws Exception {
         String token = issueToken(TokenScope.READ);
-        var stored = tokenRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId()).get(0);
+        var stored = tokenRepository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtDesc(user.getId()).get(0);
         stored.setRevokedAt(LocalDateTime.now());
         tokenRepository.save(stored);
 
@@ -124,7 +124,7 @@ class PersonalAccessTokenAuthorizationIntegrationTest {
     @DisplayName("PAT expirado retorna 401")
     void expiredPatReturns401() throws Exception {
         String token = issueToken(TokenScope.READ);
-        var stored = tokenRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId()).get(0);
+        var stored = tokenRepository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtDesc(user.getId()).get(0);
         stored.setExpiresAt(LocalDateTime.now().minusMinutes(1));
         tokenRepository.save(stored);
 
@@ -176,7 +176,7 @@ class PersonalAccessTokenAuthorizationIntegrationTest {
     @DisplayName("uso do PAT atualiza last_used_at")
     void patUsageUpdatesLastUsedAt() throws Exception {
         String token = issueToken(TokenScope.READ);
-        UUID tokenId = tokenRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId()).get(0).getId();
+        UUID tokenId = tokenRepository.findAllByUserIdAndRevokedAtIsNullOrderByCreatedAtDesc(user.getId()).get(0).getId();
 
         mockMvc.perform(get("/api/lists").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk());
