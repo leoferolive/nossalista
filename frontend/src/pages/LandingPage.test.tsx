@@ -64,21 +64,21 @@ describe('LandingPage', () => {
     renderLanding()
 
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Criar conta gratis/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /criar conta grátis/i }).length).toBeGreaterThan(0)
   })
 
-  it('abre o modal de cadastro ao clicar em Criar conta gratis', () => {
+  it('abre o modal de cadastro ao clicar em Criar conta grátis', () => {
     renderLanding()
 
-    fireEvent.click(screen.getByRole('button', { name: /Criar conta gratis/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /criar conta grátis/i })[0])
 
     expect(screen.getByTestId('register-modal')).toBeInTheDocument()
   })
 
-  it('abre o modal de login ao clicar em Ja tenho conta', () => {
+  it('abre o modal de login ao clicar em Já tenho conta', () => {
     renderLanding()
 
-    fireEvent.click(screen.getByRole('button', { name: /Ja tenho conta/i }))
+    fireEvent.click(screen.getByRole('link', { name: /já tenho conta/i }))
 
     expect(screen.getByTestId('login-modal')).toBeInTheDocument()
   })
@@ -86,7 +86,7 @@ describe('LandingPage', () => {
   it('fecha o modal ao chamar onClose', () => {
     renderLanding()
 
-    fireEvent.click(screen.getByRole('button', { name: /Criar conta gratis/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /criar conta grátis/i })[0])
     expect(screen.getByTestId('register-modal')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Fechar cadastro' }))
@@ -94,12 +94,12 @@ describe('LandingPage', () => {
     expect(screen.getByTestId('location-search')).toHaveTextContent('')
   })
 
-  it('renderiza elementos de valor na landing', () => {
+  it('renderiza as secoes de valor da landing', () => {
     renderLanding()
 
-    expect(screen.getByText('Sync instantaneo')).toBeInTheDocument()
-    expect(screen.getByText('Convite por link ou username')).toBeInTheDocument()
-    expect(screen.getByText('Compras, tarefas e desejos')).toBeInTheDocument()
+    expect(screen.getByText('Três passos e pronto')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tempo real de verdade' })).toBeInTheDocument()
+    expect(screen.getByText('Organize junto, hoje')).toBeInTheDocument()
   })
 
   it('abre login via query string e repassa estado de cadastro concluido', () => {

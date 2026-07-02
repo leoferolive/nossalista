@@ -64,6 +64,7 @@ npm run dev:mock
 - Direcao visual base: `Playful Editorial`
 - Identidade unificada: `leoferolive design`
 - Paleta principal: `violeta + teal` (`--nl-accent` violeta `#7c3aed` = acao/CTA; `--nl-primary` teal `#14b8a6` = status/progresso)
+- Tokens de apoio: `--nl-info` (azul `#2f6fed` / dark `#6398f0`, ex.: "convite por link") e `--nl-text-faint` (texto/ícones sutis; light `#968fa8` / dark `#6f6982`)
 - Fonte display: `Fraunces` (self-hosted, `woff2` variavel com subset latino)
 - Fonte de interface: `Plus Jakarta Sans` (self-hosted, `woff2` variavel com subset latino)
 - Tokens globais vivem em `src/index.css` e cobrem `light` e `dark` com paridade de superficie, borda, foco, sombra e overlays
@@ -71,6 +72,8 @@ npm run dev:mock
 - O switch de tema e parte do produto e deve aparecer nas telas publicas e na area autenticada principal
 - Em mobile autenticado, o switch de tema sai do topo e vai para o sheet da conta para reduzir ruído visual
 - A landing publica deve ficar mais leve que o produto autenticado: um hero, um preview principal e apoio curto
+- Na landing (`LandingPage.tsx`), o hero e o CTA final sao **sempre escuros** (hex fixos, nao respondem ao tema); apenas as secoes claras "Como funciona", "Recursos" e o rodape mudam com `data-theme`
+- Cada secao da landing tem **um unico CTA solido** (`nl-btn-primary`) + um link de texto secundario; os recursos aparecem como lista de icone+texto, nunca como botoes
 - Headers autenticados no mobile seguem um shell compacto de 3 zonas:
   - linha 1 com contexto e utilidades
   - linha 2 com titulo/subtitulo
