@@ -1,5 +1,7 @@
 package br.com.leoferolive.nossalista.config;
 
+import br.com.leoferolive.nossalista.apitoken.exception.PersonalAccessTokenLimitExceededException;
+import br.com.leoferolive.nossalista.apitoken.exception.PersonalAccessTokenNotFoundException;
 import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.exception.EmailNotVerifiedException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
@@ -225,6 +227,47 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata exceção de limite de Personal Access Tokens ativos atingido
+     * Retorna 409 Conflict com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(PersonalAccessTokenLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handlePersonalAccessTokenLimitExceeded(
+        PersonalAccessTokenLimitExceededException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.CONFLICT,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/pat-limit-exceeded"));
+        problem.setTitle("Limite de tokens atingido");
+        problem.setProperty("maxTokens", ex.getMaxTokens());
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
+    /**
+     * Trata exceção de Personal Access Token não encontrado (inexistente ou de outro usuário)
+     * Retorna 404 Not Found com RFC 7807 Problem Details
+     */
+    @ExceptionHandler(PersonalAccessTokenNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handlePersonalAccessTokenNotFound(
+        PersonalAccessTokenNotFoundException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.NOT_FOUND,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/pat-not-found"));
+        problem.setTitle("Token não encontrado");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
     }
 
     /**

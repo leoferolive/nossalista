@@ -43,6 +43,17 @@ type MockActivity = {
   createdAt: string
 }
 
+type MockToken = {
+  id: string
+  userId: string
+  name: string
+  prefix: string
+  scope: 'READ' | 'READ_WRITE'
+  expiresAt: string | null
+  lastUsedAt: string | null
+  createdAt: string
+}
+
 const listTypes = [
   { id: 1, name: 'Compras', slug: 'compras' },
   { id: 2, name: 'Tarefas', slug: 'tarefas' },
@@ -177,6 +188,7 @@ const state = {
       ],
     ],
   ]),
+  tokens: new Map<string, MockToken[]>(),
 }
 
 function getType(typeId: number) {
@@ -414,6 +426,63 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
     if (pathname === '/api/users/me/onboarding/complete' && method === 'POST') {
       const completedAt = now()
       state.users.set(currentUser.id, { ...currentUser, onboardingCompletedAt: completedAt })
+      noContent(res)
+      return
+    }
+
+    if (pathname === '/api/users/me/tokens' && method === 'GET') {
+      const tokens = state.tokens.get(currentUser.id) ?? []
+      json(
+        res,
+        200,
+        tokens.map(({ id, name, prefix, scope, expiresAt, lastUsedAt, createdAt }) => ({
+          id,
+          name,
+          prefix,
+          scope,
+          expiresAt,
+          lastUsedAt,
+          createdAt,
+        }))
+      )
+      return
+    }
+
+    if (pathname === '/api/users/me/tokens' && method === 'POST') {
+      const body = (await readJsonBody(req)) as {
+        name: string
+        scope: 'READ' | 'READ_WRITE'
+        expiresInDays?: number
+      }
+      const secret = crypto.randomUUID().replace(/-/g, '')
+      const token: MockToken = {
+        id: mockId('token'),
+        userId: currentUser.id,
+        name: body.name,
+        prefix: `nlmcp_${secret.slice(0, 6)}`,
+        scope: body.scope,
+        expiresAt: body.expiresInDays
+          ? new Date(Date.now() + body.expiresInDays * 86400000).toISOString()
+          : null,
+        lastUsedAt: null,
+        createdAt: now(),
+      }
+      state.tokens.set(currentUser.id, [token, ...(state.tokens.get(currentUser.id) ?? [])])
+      json(res, 201, { ...token, token: `nlmcp_${secret}` })
+      return
+    }
+
+    const tokenDeleteMatch = pathname.match(/^\/api\/users\/me\/tokens\/([^/]+)$/)
+    if (tokenDeleteMatch && method === 'DELETE') {
+      const tokens = state.tokens.get(currentUser.id) ?? []
+      if (!tokens.some((t) => t.id === tokenDeleteMatch[1])) {
+        notFound(res)
+        return
+      }
+      state.tokens.set(
+        currentUser.id,
+        tokens.filter((t) => t.id !== tokenDeleteMatch[1])
+      )
       noContent(res)
       return
     }

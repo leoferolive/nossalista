@@ -4,11 +4,14 @@ import br.com.leoferolive.nossalista.auth.OAuth2SuccessHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -29,6 +32,7 @@ public class SecurityConfig {
     private String[] allowedOrigins;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final PersonalAccessTokenAuthenticationFilter personalAccessTokenAuthenticationFilter;
     private final OAuth2SuccessHandler oauth2SuccessHandler;
     private final Http401UnauthorizedEntryPoint unauthorizedEntryPoint;
     private final Http403AccessDeniedHandler accessDeniedHandler;
@@ -36,12 +40,14 @@ public class SecurityConfig {
 
     public SecurityConfig(
         JwtAuthenticationFilter jwtAuthenticationFilter,
+        PersonalAccessTokenAuthenticationFilter personalAccessTokenAuthenticationFilter,
         OAuth2SuccessHandler oauth2SuccessHandler,
         Http401UnauthorizedEntryPoint unauthorizedEntryPoint,
         Http403AccessDeniedHandler accessDeniedHandler,
         CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.personalAccessTokenAuthenticationFilter = personalAccessTokenAuthenticationFilter;
         this.oauth2SuccessHandler = oauth2SuccessHandler;
         this.unauthorizedEntryPoint = unauthorizedEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
@@ -59,16 +65,23 @@ public class SecurityConfig {
 
                 // Configurar autorização de endpoints
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints públicos - não requerem autenticação
-                        .requestMatchers("/api/auth/**", "/api/health", "/actuator/health", "/actuator/prometheus").permitAll()
+                        // Gestão de PATs (/api/users/me/tokens/**) exige sessão JWT normal —
+                        // um PAT não pode criar/listar/revogar tokens (nem o seu próprio).
+                        .requestMatchers("/api/users/me/tokens/**").access(sessionOnlyManager())
+                        // Endpoints públicos - não requerem autenticação. Um PAT nunca pode
+                        // ser usado aqui (ex.: login/registro), mesmo que o endpoint seja público.
+                        .requestMatchers(
+                            "/api/auth/**", "/api/health", "/actuator/health", "/actuator/prometheus", "/actuator/info")
+                        .access(publicUnlessPatManager())
                         // OAuth2 endpoints (Spring Security gerencia automaticamente)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         // Endpoint de join via convite - GET é público (read-only), POST requer auth
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/lists/join/**").permitAll()
                         // WebSocket endpoint - auth feita pelo WebSocketAuthInterceptor
                         .requestMatchers("/ws/**").permitAll()
-                        // Endpoints da API requerem autenticação
-                        .requestMatchers("/api/**").authenticated()
+                        // Endpoints da API requerem autenticação. Um PAT de escopo READ só
+                        // pode usar métodos seguros (GET/HEAD/OPTIONS) — ver PatAuthorizationSupport.
+                        .requestMatchers("/api/**").access(apiAccessManager())
                         // Rotas do SPA embutido (/, /listas, /perfil, assets, etc)
                         .anyRequest().permitAll()
                 )
@@ -100,10 +113,59 @@ public class SecurityConfig {
                         .successHandler(oauth2SuccessHandler)
                 )
 
-                // Adicionar JWT Authentication Filter ANTES de UsernamePasswordAuthenticationFilter
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                // Adicionar JWT Authentication Filter ANTES de UsernamePasswordAuthenticationFilter.
+                // Precisa ser registrado ANTES da linha abaixo: o Spring Security só aceita
+                // JwtAuthenticationFilter.class como âncora de addFilterBefore depois que a
+                // própria posição dele já foi registrada nesta cadeia.
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // PAT roda ANTES do JWT: só age em tokens com prefixo nlmcp_, deixando
+                // qualquer outro valor (incluindo JWTs normais) intocado para o filtro seguinte.
+                .addFilterBefore(personalAccessTokenAuthenticationFilter, JwtAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * Permite a requisição a menos que tenha sido autenticada via PAT.
+     * Usado nos endpoints públicos ({@code /api/auth/**}, health checks):
+     * anônimos e sessões JWT passam normalmente; PATs são bloqueados (403).
+     */
+    private AuthorizationManager<RequestAuthorizationContext> publicUnlessPatManager() {
+        return (authentication, context) ->
+            new AuthorizationDecision(!PatAuthorizationSupport.isPersonalAccessToken(authentication.get()));
+    }
+
+    /**
+     * Exige sessão JWT autenticada e bloqueia PATs. Usado na gestão de tokens
+     * ({@code /api/users/me/tokens/**}): um PAT nunca pode gerenciar tokens.
+     */
+    private AuthorizationManager<RequestAuthorizationContext> sessionOnlyManager() {
+        return (authentication, context) -> {
+            var auth = authentication.get();
+            boolean granted = PatAuthorizationSupport.isAuthenticatedUser(auth)
+                && !PatAuthorizationSupport.isPersonalAccessToken(auth);
+            return new AuthorizationDecision(granted);
+        };
+    }
+
+    /**
+     * Regra geral de {@code /api/**}: exige autenticação e, quando a
+     * autenticação é um PAT de escopo READ, restringe a métodos HTTP seguros
+     * (GET/HEAD/OPTIONS). PATs de escopo READ_WRITE e sessões JWT não sofrem
+     * essa restrição adicional.
+     */
+    private AuthorizationManager<RequestAuthorizationContext> apiAccessManager() {
+        return (authentication, context) -> {
+            var auth = authentication.get();
+            if (!PatAuthorizationSupport.isAuthenticatedUser(auth)) {
+                return new AuthorizationDecision(false);
+            }
+            if (PatAuthorizationSupport.isPersonalAccessToken(auth) && PatAuthorizationSupport.hasReadOnlyScope(auth)) {
+                boolean safeMethod = PatAuthorizationSupport.isSafeMethod(context.getRequest().getMethod());
+                return new AuthorizationDecision(safeMethod);
+            }
+            return new AuthorizationDecision(true);
+        };
     }
 
     /**

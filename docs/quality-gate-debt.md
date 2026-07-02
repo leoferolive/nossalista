@@ -68,20 +68,31 @@ em `frontend/eslint.config.js` (último bloco do array exportado).
 ## Remediação de CVEs — gate `security-and-compliance` (registrada em 2026-06-10)
 
 Override de versões no `backend/pom.xml` para passar o OWASP dependency-check
-(`failBuildOnCVSS=7`), mantendo o `spring-boot-starter-parent` em **4.0.6**
-(não existe Spring Boot 4.0.7 no Maven Central). Detalhe arquitetural em
-`docs/DECISIONS.md` (D-013).
+(`failBuildOnCVSS=7`). Detalhe arquitetural em `docs/DECISIONS.md` (D-013, D-019).
 
-| Dependência | De → Para | Mecanismo no pom | CVEs corrigidas | Quando remover override |
+| Dependência | De → Para | Mecanismo no pom | CVEs corrigidas | Status |
 |---|---|---|---|---|
-| `org.springframework:spring-framework` | gerido pelo Boot 4.0.6 → **7.0.8** | propriedade `<spring-framework.version>` | CVE-2026-41842, CVE-2026-41850, CVE-2026-41851 (CVSS 7.5, DoS recursos estáticos MVC/WebFlux) | ao sair **Spring Boot 4.0.7+** (passará a gerir 7.0.8+ pelo parent) |
-| `org.asynchttpclient:async-http-client` | 2.10.4 (transitivo de `web-push:5.1.1`) → **2.15.0** | `<dependencyManagement>` | CVE-2026-45300 (vazamento de Cookie em redirect cross-origin) | quando `web-push` atualizar o transitivo |
+| `org.springframework:spring-framework` | gerido pelo Boot 4.0.6 → **7.0.8** | propriedade `<spring-framework.version>` | CVE-2026-41842, CVE-2026-41850, CVE-2026-41851 (CVSS 7.5, DoS recursos estáticos MVC/WebFlux) | **Resolvido em 2026-07-02** — override removido; Spring Boot 4.0.7 passou a gerir 7.0.8 nativamente pelo parent (D-019) |
+| `org.asynchttpclient:async-http-client` | 2.10.4 (transitivo de `web-push:5.1.1`) → **2.15.0** | `<dependencyManagement>` | CVE-2026-45300 (vazamento de Cookie em redirect cross-origin) | Pendente — remover quando `web-push` atualizar o transitivo |
 
 - `async-http-client-netty-utils` sobe para 2.15.0 automaticamente (dependência
   interna do próprio `async-http-client`) — não precisa de entrada extra.
-- Validação: `dependency:tree` confirma `spring-core:7.0.8`, `spring-web:7.0.8`,
+- Validação (2026-06-10): `dependency:tree` confirma `spring-core:7.0.8`, `spring-web:7.0.8`,
   `async-http-client:2.15.0` e `async-http-client-netty-utils:2.15.0`, sem
   resíduo asynchttpclient em 2.10.4. Suite de testes: 484 testes, 0 falhas.
+
+### Bump para Spring Boot 4.0.7 (registrado em 2026-07-02, ver D-019)
+
+Feed NVD passou a reportar CVSS ≥ 7.0 em dependências geridas pelo BOM do Spring Boot 4.0.6
+(nenhuma delas adicionada pelo PR que disparou o alerta): `jackson-databind` 2.21.2 /
+`tools.jackson.core:jackson-databind` 3.1.2 (CVE-2026-54512, CVE-2026-54513) e
+`spring-security-{core,web,oauth2-core,config,crypto}` 7.0.5 (CVE-2026-40988, CVE-2026-40993).
+
+Resolvido subindo `spring-boot-starter-parent` de **4.0.6** para **4.0.7**, que já gerencia
+`jackson-2-bom` 2.21.4, `jackson-bom` 3.1.4 e `spring-security.version` 7.0.6 — sem overrides
+individuais. Validação: `dependency:tree` confirma `jackson-databind:2.21.4`,
+`tools.jackson.core:jackson-databind:3.1.4`, `spring-security-*:7.0.6`. Suite de testes completa
+sem regressão (ver resultado real no PR #50).
 
 ---
 
