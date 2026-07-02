@@ -55,6 +55,7 @@
   /* texto */
   --nl-text: #1e1a2b;
   --nl-text-muted: #564f68;
+  --nl-text-faint: #968fa8;
 
   /* MARCA: accent = Violeta (ação/CTA) · primary = Teal (status/progresso) */
   --nl-accent: #7c3aed;
@@ -62,10 +63,12 @@
   --nl-accent-soft: rgba(124, 58, 237, 0.12);
   --nl-primary: #14b8a6;
   --nl-primary-strong: #0d9488;
+  --nl-primary-text: #0a7d6f;
 
   /* semânticas */
   --nl-danger: #e5484d;
   --nl-success: #15a06e;
+  --nl-info: #2f6fed;
   --nl-focus: rgba(124, 58, 237, 0.3);
   --nl-btn-text: #ffffff;
 
@@ -92,13 +95,16 @@
   --nl-border-strong: rgba(255, 255, 255, 0.17);
   --nl-text: #ece9f4;
   --nl-text-muted: #a39db5;
+  --nl-text-faint: #6f6982;
   --nl-accent: #a78bfa;
   --nl-accent-strong: #8b5cf6;
   --nl-accent-soft: rgba(167, 139, 250, 0.16);
   --nl-primary: #2dd4bf;
   --nl-primary-strong: #14b8a6;
+  --nl-primary-text: #2dd4bf;
   --nl-danger: #ff6b6f;
   --nl-success: #2dd4a7;
+  --nl-info: #6398f0;
   --nl-focus: rgba(167, 139, 250, 0.34);
   --nl-btn-text: #160f29;
   --nl-grid: transparent;
