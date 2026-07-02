@@ -67,7 +67,7 @@ public class MemberMcpTools {
         if ("link".equalsIgnoreCase(mode)) {
             return shareByLink(id, user);
         }
-        throw new InvalidInputException("mode inválido: \"" + mode + "\". Use \"username\" ou \"link\"");
+        throw new InvalidInputException("Invalid mode: \"" + mode + "\". Use \"username\" or \"link\"");
     }
 
     @McpTool(
@@ -118,7 +118,7 @@ public class MemberMcpTools {
 
     private ShareListResult shareByUsername(UUID listId, String username, User user) {
         if (username == null || username.isBlank()) {
-            throw new InvalidInputException("username é obrigatório quando mode=\"username\"");
+            throw new InvalidInputException("username is required when mode=\"username\"");
         }
         InviteByUsernameResponse response = memberService.inviteByUsername(listId, user.getId(), username);
         return new ShareListResult("username", response.invitedUsername(), response.message(), null, null, null);

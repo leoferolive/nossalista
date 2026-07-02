@@ -14,14 +14,22 @@ import br.com.leoferolive.nossalista.common.exception.InvalidInputException;
  * travar o pod para todos, e nenhum rate limit hoje cobre requisições
  * autenticadas válidas (só tentativas de autenticação inválida). Achado do
  * review sênior do PR da Fase B — ver {@code docs/DECISIONS.md} D-020.</p>
+ *
+ * <p>Mensagens em inglês: são geradas por este módulo (mcp), consistentes
+ * com o idioma das descrições/parâmetros das tools — diferente das
+ * mensagens de exceções de negócio vindas dos services (essas continuam em
+ * português, compartilhadas com a API REST/SPA).</p>
  */
 public final class McpLimits {
 
     /** Máximo de itens por chamada em lote (add_items/set_items_checked/remove_items). */
     public static final int MAX_BATCH_SIZE = 200;
 
-    /** Máximo de itens/entradas por página (get_list/get_list_activity). */
-    public static final int MAX_PAGE_SIZE = 500;
+    /** Máximo de itens por página em {@code get_list}. */
+    public static final int MAX_LIST_ITEMS_PAGE_SIZE = 500;
+
+    /** Máximo de entradas por página em {@code get_list_activity}. */
+    public static final int MAX_ACTIVITY_PAGE_SIZE = 100;
 
     private McpLimits() {
     }
@@ -32,7 +40,8 @@ public final class McpLimits {
     public static void requireBatchSizeWithinLimit(int size, String fieldName) {
         if (size > MAX_BATCH_SIZE) {
             throw new InvalidInputException(
-                fieldName + " excede o máximo de " + MAX_BATCH_SIZE + " itens por chamada (recebido: " + size + ")");
+                fieldName + " must not exceed " + MAX_BATCH_SIZE + " items per call (received " + size
+                    + "). Split the request into multiple batches.");
         }
     }
 
@@ -40,15 +49,16 @@ public final class McpLimits {
      * Resolve o tamanho de página efetivo: {@code defaultSize} se {@code requested}
      * for nulo ou não-positivo, o próprio {@code requested} caso contrário.
      *
-     * @throws InvalidInputException se {@code requested} exceder {@link #MAX_PAGE_SIZE}
+     * @throws InvalidInputException se {@code requested} exceder {@code maxSize}
      */
-    public static int requirePageSizeWithinLimit(Integer requested, int defaultSize, String fieldName) {
+    public static int requirePageSizeWithinLimit(Integer requested, int defaultSize, int maxSize, String fieldName) {
         if (requested == null || requested <= 0) {
             return defaultSize;
         }
-        if (requested > MAX_PAGE_SIZE) {
+        if (requested > maxSize) {
             throw new InvalidInputException(
-                fieldName + " excede o máximo de " + MAX_PAGE_SIZE + " (recebido: " + requested + ")");
+                fieldName + " must not exceed " + maxSize + " (received " + requested
+                    + "). Use pagination to fetch the rest across multiple calls.");
         }
         return requested;
     }

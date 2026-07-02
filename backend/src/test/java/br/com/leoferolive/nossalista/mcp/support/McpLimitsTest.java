@@ -19,36 +19,48 @@ class McpLimitsTest {
     }
 
     @Test
-    @DisplayName("requireBatchSizeWithinLimit lança InvalidInputException acima do teto")
+    @DisplayName("requireBatchSizeWithinLimit lança InvalidInputException acima do teto, em inglês, sugerindo dividir em lotes")
     void requireBatchSizeWithinLimitThrowsAboveLimit() {
         assertThatThrownBy(() -> McpLimits.requireBatchSizeWithinLimit(McpLimits.MAX_BATCH_SIZE + 1, "items"))
             .isInstanceOf(InvalidInputException.class)
             .hasMessageContaining("items")
-            .hasMessageContaining(String.valueOf(McpLimits.MAX_BATCH_SIZE));
+            .hasMessageContaining(String.valueOf(McpLimits.MAX_BATCH_SIZE))
+            .hasMessageContaining("Split the request into multiple batches");
     }
 
     @Test
     @DisplayName("requirePageSizeWithinLimit usa o default quando nulo ou não-positivo")
     void requirePageSizeWithinLimitUsesDefaultWhenAbsent() {
-        assertThat(McpLimits.requirePageSizeWithinLimit(null, 50, "size")).isEqualTo(50);
-        assertThat(McpLimits.requirePageSizeWithinLimit(0, 50, "size")).isEqualTo(50);
-        assertThat(McpLimits.requirePageSizeWithinLimit(-5, 50, "size")).isEqualTo(50);
+        assertThat(McpLimits.requirePageSizeWithinLimit(null, 50, 500, "size")).isEqualTo(50);
+        assertThat(McpLimits.requirePageSizeWithinLimit(0, 50, 500, "size")).isEqualTo(50);
+        assertThat(McpLimits.requirePageSizeWithinLimit(-5, 50, 500, "size")).isEqualTo(50);
     }
 
     @Test
     @DisplayName("requirePageSizeWithinLimit retorna o valor pedido quando dentro do teto")
     void requirePageSizeWithinLimitReturnsRequestedWhenWithinLimit() {
-        assertThat(McpLimits.requirePageSizeWithinLimit(200, 50, "size")).isEqualTo(200);
-        assertThat(McpLimits.requirePageSizeWithinLimit(McpLimits.MAX_PAGE_SIZE, 50, "size"))
-            .isEqualTo(McpLimits.MAX_PAGE_SIZE);
+        assertThat(McpLimits.requirePageSizeWithinLimit(200, 50, 500, "size")).isEqualTo(200);
+        assertThat(McpLimits.requirePageSizeWithinLimit(500, 50, 500, "size")).isEqualTo(500);
     }
 
     @Test
-    @DisplayName("requirePageSizeWithinLimit lança InvalidInputException acima do teto")
+    @DisplayName("requirePageSizeWithinLimit lança InvalidInputException acima do teto informado, em inglês")
     void requirePageSizeWithinLimitThrowsAboveLimit() {
-        assertThatThrownBy(() -> McpLimits.requirePageSizeWithinLimit(McpLimits.MAX_PAGE_SIZE + 1, 50, "size"))
+        assertThatThrownBy(
+            () -> McpLimits.requirePageSizeWithinLimit(101, 50, McpLimits.MAX_ACTIVITY_PAGE_SIZE, "size"))
             .isInstanceOf(InvalidInputException.class)
             .hasMessageContaining("size")
-            .hasMessageContaining(String.valueOf(McpLimits.MAX_PAGE_SIZE));
+            .hasMessageContaining(String.valueOf(McpLimits.MAX_ACTIVITY_PAGE_SIZE))
+            .hasMessageContaining("pagination");
+    }
+
+    @Test
+    @DisplayName("requirePageSizeWithinLimit respeita tetos diferentes por chamador (get_list vs get_list_activity)")
+    void requirePageSizeWithinLimitSupportsDifferentCapsPerCaller() {
+        assertThatNoException().isThrownBy(
+            () -> McpLimits.requirePageSizeWithinLimit(500, 100, McpLimits.MAX_LIST_ITEMS_PAGE_SIZE, "limit"));
+        assertThatThrownBy(
+            () -> McpLimits.requirePageSizeWithinLimit(101, 50, McpLimits.MAX_ACTIVITY_PAGE_SIZE, "size"))
+            .isInstanceOf(InvalidInputException.class);
     }
 }

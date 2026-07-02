@@ -34,7 +34,7 @@ public class ListNameResolver {
         boolean hasName = name != null && !name.isBlank();
 
         if (!hasId && !hasName) {
-            throw new InvalidInputException("Informe listId ou name para identificar a lista");
+            throw new InvalidInputException("Provide listId or name to identify the list");
         }
         if (hasId) {
             return listService.getListById(McpIds.parseUuid(listId, "listId"), currentUserId);
@@ -59,7 +59,7 @@ public class ListNameResolver {
             .filter(list -> list.getName().toLowerCase(Locale.ROOT).contains(name.toLowerCase(Locale.ROOT)))
             .toList();
         if (partialMatches.isEmpty()) {
-            throw new ListNotFoundException("Nenhuma lista encontrada com o nome \"" + name + "\"");
+            throw new ListNotFoundException("No list found with name \"" + name + "\"");
         }
         if (partialMatches.size() > 1) {
             throw ambiguous(name, partialMatches);
@@ -72,7 +72,7 @@ public class ListNameResolver {
             .map(list -> list.getId() + " (\"" + list.getName() + "\")")
             .collect(Collectors.joining(", "));
         return new InvalidInputException(
-            "Mais de uma lista corresponde a \"" + name + "\". Use listId para desambiguar. Candidatas: "
+            "More than one list matches \"" + name + "\". Use listId to disambiguate. Candidates: "
                 + candidateList);
     }
 }

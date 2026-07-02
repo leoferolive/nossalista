@@ -56,7 +56,8 @@ public class ListItemMcpTools {
 
     @McpTool(
         name = "add_items",
-        description = "Adds one or more items to a list in a single batch call. Each item may "
+        description = "Adds one or more items to a list in a single batch call (maximum "
+            + McpLimits.MAX_BATCH_SIZE + " items per call). Each item may "
             + "include quantity (SHOPPING lists), dueDate (TASK lists, ISO-8601) or url (WISHLIST "
             + "lists) — fields not supported by the list's type are rejected for that item. If some "
             + "items in the batch are invalid, the valid ones are still added and each item's "
@@ -67,8 +68,8 @@ public class ListItemMcpTools {
     public AddItemsResult addItems(
         @McpToolParam(description = "UUID of the list to add items to.")
         String listId,
-        @McpToolParam(description = "Items to add. Each item needs a name; quantity, dueDate and url "
-            + "are optional and depend on the list type.")
+        @McpToolParam(description = "Items to add (maximum " + McpLimits.MAX_BATCH_SIZE + " per call). "
+            + "Each item needs a name; quantity, dueDate and url are optional and depend on the list type.")
         List<AddItemInput> items
     ) {
         User user = security.currentUser();
@@ -77,7 +78,7 @@ public class ListItemMcpTools {
         UUID id = McpIds.parseUuid(listId, "listId");
         listService.getListById(id, user.getId());
         if (items == null || items.isEmpty()) {
-            throw new InvalidInputException("items não pode ser vazio");
+            throw new InvalidInputException("items must not be empty");
         }
         McpLimits.requireBatchSizeWithinLimit(items.size(), "items");
 
@@ -120,14 +121,14 @@ public class ListItemMcpTools {
 
     @McpTool(
         name = "set_items_checked",
-        description = "Marks or unmarks a batch of items as checked/done in a single call. Reports "
-            + "success/failure per item id.",
+        description = "Marks or unmarks a batch of items as checked/done in a single call (maximum "
+            + McpLimits.MAX_BATCH_SIZE + " items per call). Reports success/failure per item id.",
         generateOutputSchema = true
     )
     public SetItemsCheckedResult setItemsChecked(
         @McpToolParam(description = "UUID of the list containing the items.")
         String listId,
-        @McpToolParam(description = "Item UUIDs to update.")
+        @McpToolParam(description = "Item UUIDs to update (maximum " + McpLimits.MAX_BATCH_SIZE + " per call).")
         List<String> itemIds,
         @McpToolParam(description = "Target checked state to apply to all the given items.")
         boolean checked
@@ -151,14 +152,15 @@ public class ListItemMcpTools {
 
     @McpTool(
         name = "remove_items",
-        description = "Removes a batch of items from a list in a single call. Reports success/failure "
+        description = "Removes a batch of items from a list in a single call (maximum "
+            + McpLimits.MAX_BATCH_SIZE + " items per call). Reports success/failure "
             + "per item id. This cannot be undone — confirm with the user before calling this tool.",
         generateOutputSchema = true
     )
     public RemoveItemsResult removeItems(
         @McpToolParam(description = "UUID of the list containing the items.")
         String listId,
-        @McpToolParam(description = "Item UUIDs to remove.")
+        @McpToolParam(description = "Item UUIDs to remove (maximum " + McpLimits.MAX_BATCH_SIZE + " per call).")
         List<String> itemIds
     ) {
         User user = security.currentUser();
@@ -177,7 +179,7 @@ public class ListItemMcpTools {
 
     private BatchItemOutcome addOneItem(UUID listId, AddItemInput item, User user) {
         if (item == null) {
-            return new BatchItemOutcome(null, null, false, "item não pode ser nulo");
+            return new BatchItemOutcome(null, null, false, "item must not be null");
         }
         try {
             LocalDateTime dueDate = McpIds.parseDateTime(item.dueDate(), "dueDate");
@@ -241,7 +243,7 @@ public class ListItemMcpTools {
     private void requireAtLeastOneFieldToUpdate(String name, Integer quantity, String dueDate, String url) {
         if (name == null && quantity == null && dueDate == null && url == null) {
             throw new InvalidInputException(
-                "Informe ao menos um campo para atualizar (name, quantity, dueDate ou url)");
+                "Nothing to update: provide at least one field (name, quantity, dueDate or url)");
         }
     }
 
@@ -264,7 +266,7 @@ public class ListItemMcpTools {
 
     private void requireValidItemIdsBatch(List<String> itemIds) {
         if (itemIds == null || itemIds.isEmpty()) {
-            throw new InvalidInputException("itemIds não pode ser vazio");
+            throw new InvalidInputException("itemIds must not be empty");
         }
         McpLimits.requireBatchSizeWithinLimit(itemIds.size(), "itemIds");
     }

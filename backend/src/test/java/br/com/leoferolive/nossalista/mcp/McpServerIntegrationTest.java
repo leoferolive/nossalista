@@ -3,6 +3,7 @@ package br.com.leoferolive.nossalista.mcp;
 import br.com.leoferolive.nossalista.apitoken.domain.TokenScope;
 import br.com.leoferolive.nossalista.apitoken.dto.CreatePersonalAccessTokenRequest;
 import br.com.leoferolive.nossalista.apitoken.service.PersonalAccessTokenService;
+import br.com.leoferolive.nossalista.mcp.support.McpLimits;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
@@ -265,7 +266,7 @@ class McpServerIntegrationTest {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> outcomes = (List<Map<String, Object>>) structuredResult.get("results");
             assertThat(outcomes.get(1).get("success")).isEqualTo(false);
-            assertThat(outcomes.get(1).get("error")).isEqualTo("item não pode ser nulo");
+            assertThat(outcomes.get(1).get("error")).isEqualTo("item must not be null");
         }
     }
 
@@ -279,37 +280,61 @@ class McpServerIntegrationTest {
 
         assertError(
             call(client, "update_item", Map.of("listId", listId, "itemId", itemId)),
-            "Informe ao menos um campo");
+            "Nothing to update");
     }
 
-    @Test
-    @DisplayName("lotes acima do teto de 200 itens são rejeitados com erro acionável")
-    void batchesAboveLimitAreRejected() {
+    /**
+     * Um caso por teto: {@code add_items}/{@code set_items_checked}/{@code remove_items}
+     * (200 itens), {@code get_list} (limit 500) e {@code get_list_activity} (size 100).
+     * Os tetos vêm de {@link McpLimits} (não hardcoded aqui) para o teste nunca
+     * dessincronizar da implementação.
+     */
+    private static Stream<Arguments> batchAndPageLimitToolCalls() {
+        BiFunction<String, String, Map<String, Object>> addItemsOverLimit = (listId, itemId) -> Map.of(
+            "listId", listId,
+            "items", java.util.stream.IntStream.range(0, McpLimits.MAX_BATCH_SIZE + 1)
+                .mapToObj(i -> Map.<String, Object>of("name", "Item " + i))
+                .toList()
+        );
+        BiFunction<String, String, Map<String, Object>> setItemsCheckedOverLimit = (listId, itemId) -> Map.of(
+            "listId", listId,
+            "itemIds", java.util.Collections.nCopies(McpLimits.MAX_BATCH_SIZE + 1, itemId),
+            "checked", true
+        );
+        BiFunction<String, String, Map<String, Object>> removeItemsOverLimit = (listId, itemId) -> Map.of(
+            "listId", listId,
+            "itemIds", java.util.Collections.nCopies(McpLimits.MAX_BATCH_SIZE + 1, itemId)
+        );
+        BiFunction<String, String, Map<String, Object>> getListOverLimit = (listId, itemId) -> Map.of(
+            "listId", listId, "limit", McpLimits.MAX_LIST_ITEMS_PAGE_SIZE + 1
+        );
+        BiFunction<String, String, Map<String, Object>> getListActivityOverLimit = (listId, itemId) -> Map.of(
+            "listId", listId, "size", McpLimits.MAX_ACTIVITY_PAGE_SIZE + 1
+        );
+
+        return Stream.of(
+            Arguments.of("add_items", addItemsOverLimit, String.valueOf(McpLimits.MAX_BATCH_SIZE)),
+            Arguments.of("set_items_checked", setItemsCheckedOverLimit, String.valueOf(McpLimits.MAX_BATCH_SIZE)),
+            Arguments.of("remove_items", removeItemsOverLimit, String.valueOf(McpLimits.MAX_BATCH_SIZE)),
+            Arguments.of("get_list", getListOverLimit, String.valueOf(McpLimits.MAX_LIST_ITEMS_PAGE_SIZE)),
+            Arguments.of(
+                "get_list_activity", getListActivityOverLimit, String.valueOf(McpLimits.MAX_ACTIVITY_PAGE_SIZE))
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("batchAndPageLimitToolCalls")
+    @DisplayName("lotes/páginas acima do teto são rejeitados com erro acionável mencionando o teto excedido")
+    void batchAndPageLimitsAreRejected(
+            String toolName,
+            BiFunction<String, String, Map<String, Object>> argsBuilder,
+            String expectedCapInMessage) {
         User user = newUser();
         McpSyncClient client = connectedClient(issueToken(user, TokenScope.READ_WRITE));
         String listId = createShoppingList(client);
         String itemId = addOneItem(client, listId);
 
-        List<Map<String, Object>> tooManyItems = java.util.stream.IntStream.range(0, 201)
-            .mapToObj(i -> Map.<String, Object>of("name", "Item " + i))
-            .toList();
-        assertError(call(client, "add_items", Map.of("listId", listId, "items", tooManyItems)), "200");
-
-        List<String> tooManyIds = java.util.Collections.nCopies(201, itemId);
-        assertError(call(client, "set_items_checked", Map.of(
-            "listId", listId, "itemIds", tooManyIds, "checked", true)), "200");
-        assertError(call(client, "remove_items", Map.of("listId", listId, "itemIds", tooManyIds)), "200");
-    }
-
-    @Test
-    @DisplayName("páginas acima do teto de 500 são rejeitadas com erro acionável")
-    void pagesAboveLimitAreRejected() {
-        User user = newUser();
-        McpSyncClient client = connectedClient(issueToken(user, TokenScope.READ_WRITE));
-        String listId = createShoppingList(client);
-
-        assertError(call(client, "get_list", Map.of("listId", listId, "limit", 501)), "500");
-        assertError(call(client, "get_list_activity", Map.of("listId", listId, "size", 501)), "500");
+        assertError(call(client, toolName, argsBuilder.apply(listId, itemId)), expectedCapInMessage);
     }
 
     @Test
@@ -408,7 +433,7 @@ class McpServerIntegrationTest {
 
         assertError(call(strangerClient, "delete_list", Map.of("listId", listId)), "dono");
         assertError(call(ownerClient, "get_list", Map.of("listId", UUID.randomUUID().toString())), "não encontrada");
-        assertError(call(ownerClient, "create_list", Map.of("name", "X", "type", "NOT_A_TYPE")), "type inválido");
+        assertError(call(ownerClient, "create_list", Map.of("name", "X", "type", "NOT_A_TYPE")), "Invalid type");
 
         // nunca deve conter indícios de stack trace java
         assertThat(textOf(call(strangerClient, "delete_list", Map.of("listId", listId))))

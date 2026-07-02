@@ -101,7 +101,8 @@ public class ListMcpTools {
         @McpToolParam(required = false, description = "Exact or partial list name (case-insensitive). "
             + "Provide this OR listId.")
         String name,
-        @McpToolParam(required = false, description = "Max number of items to return (default 100, maximum 500).")
+        @McpToolParam(required = false, description = "Max number of items to return (default 100, maximum "
+            + McpLimits.MAX_LIST_ITEMS_PAGE_SIZE + ").")
         Integer limit,
         @McpToolParam(required = false, description = "Number of items to skip before returning "
             + "results (default 0).")
@@ -187,13 +188,13 @@ public class ListMcpTools {
 
     private Integer resolveTypeId(String type) {
         if (type == null || type.isBlank()) {
-            throw new InvalidInputException("type é obrigatório: SHOPPING, TASK, WISHLIST ou GENERIC");
+            throw new InvalidInputException("type is required: SHOPPING, TASK, WISHLIST or GENERIC");
         }
         try {
             return ListType.valueOf(type.trim().toUpperCase(Locale.ROOT)).ordinal() + 1;
         } catch (IllegalArgumentException ex) {
             throw new InvalidInputException(
-                "type inválido: \"" + type + "\". Use SHOPPING, TASK, WISHLIST ou GENERIC");
+                "Invalid type: \"" + type + "\". Use SHOPPING, TASK, WISHLIST or GENERIC");
         }
     }
 
@@ -231,7 +232,8 @@ public class ListMcpTools {
 
     private List<ItemSummary> paginate(List<ListItemResponseDTO> allItems, Integer offset, Integer limit) {
         int effectiveOffset = offset == null || offset < 0 ? 0 : offset;
-        int effectiveLimit = McpLimits.requirePageSizeWithinLimit(limit, DEFAULT_ITEM_LIMIT, "limit");
+        int effectiveLimit = McpLimits.requirePageSizeWithinLimit(
+            limit, DEFAULT_ITEM_LIMIT, McpLimits.MAX_LIST_ITEMS_PAGE_SIZE, "limit");
         return allItems.stream()
             .skip(effectiveOffset)
             .limit(effectiveLimit)

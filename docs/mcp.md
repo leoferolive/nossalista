@@ -113,6 +113,16 @@ Mutacoes feitas via MCP disparam o mesmo broadcast em tempo real (WebSocket/STOM
 mutacoes feitas pelo SPA — quem estiver com a lista aberta no navegador ve a mudanca
 instantaneamente.
 
+## Idioma
+
+Descricoes e parametros das tools sao em ingles (convencao MCP). Mensagens de erro geradas
+pelo proprio modulo `mcp` (parsing de UUID/data em `McpIds`, tetos em `McpLimits`, validacoes
+de `add_items`/`update_item`/`share_list` etc.) tambem sao em ingles, para consistencia. Erros
+de negocio que vem dos services (`ForbiddenException`, `ListNotFoundException`,
+`ValidationException` e mensagens de `@NotBlank`/`@Size` nos DTOs compartilhados com a API
+REST) continuam em portugues — sao os mesmos services e DTOs usados pelo SPA, e traduzi-los so
+para o MCP exigiria uma camada de mapeamento de mensagens fora do escopo desta fase.
+
 ## Tetos de lote e pagina
 
 Para evitar que uma unica chamada (de um token valido ou de um modelo induzido por prompt
@@ -120,7 +130,11 @@ injection) sobrecarregue o backend — que roda com 1 replica — as tools em lo
 tem tetos, retornados como erro de tool (`isError: true`) quando excedidos:
 
 - `add_items`, `set_items_checked`, `remove_items`: no maximo 200 itens por chamada.
-- `get_list` (`limit`) e `get_list_activity` (`size`): no maximo 500 por pagina.
+- `get_list` (`limit`): no maximo 500 itens por pagina.
+- `get_list_activity` (`size`): no maximo 100 entradas por pagina.
+
+O erro de estouro (`InvalidInputException`, em ingles — ver secao "Idioma" abaixo) informa o
+teto exato e orienta dividir a chamada em varias (lotes menores ou paginacao).
 
 ## Limitacoes conhecidas
 

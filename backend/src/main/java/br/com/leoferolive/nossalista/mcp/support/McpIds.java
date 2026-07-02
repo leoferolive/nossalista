@@ -20,13 +20,13 @@ public final class McpIds {
 
     public static UUID parseUuid(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new InvalidInputException(fieldName + " é obrigatório");
+            throw new InvalidInputException(fieldName + " is required");
         }
         try {
             return UUID.fromString(value.trim());
         } catch (IllegalArgumentException ex) {
             throw new InvalidInputException(
-                fieldName + " inválido: deve ser um UUID válido (recebido: \"" + value + "\")");
+                fieldName + " is invalid: it must be a valid UUID (received \"" + value + "\")");
         }
     }
 
@@ -41,7 +41,7 @@ public final class McpIds {
             return LocalDateTime.parse(value.trim());
         } catch (DateTimeParseException ex) {
             throw new InvalidInputException(
-                fieldName + " inválido: use o formato ISO-8601 (ex.: 2026-12-31T23:59:00). Recebido: \""
+                fieldName + " is invalid: use ISO-8601 format (e.g. 2026-12-31T23:59:00). Received \""
                     + value + "\"");
         }
     }

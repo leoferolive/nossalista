@@ -387,43 +387,60 @@
   assistentes de IA as proprias listas com credenciais de longa duracao, escopo de leitura
   ou leitura/escrita, e broadcast em tempo real automatico (as tools reusam os services
   existentes, que ja publicam eventos STOMP).
-- **Apontamentos do review senior do PR aplicados:**
+- **Apontamentos do review senior do PR aplicados (duas rodadas):**
   - **IMPORTANTE (pre-merge) — lote/pagina sem teto (DoS por payload gigante):**
     `add_items`/`set_items_checked`/`remove_items` nao limitavam o numero de itens por
     chamada, e `get_list`/`get_list_activity` nao limitavam `limit`/`size` — num backend de
     1 replica, uma unica chamada grande (de um token valido ou de um modelo induzido por
     prompt injection) executaria N inserts/toggles/deletes/broadcasts ou uma consulta
     pesada, sem nenhum rate limit cobrindo requisicoes autenticadas validas. Corrigido com
-    `McpLimits` (`mcp/support/McpLimits.java`): teto de 200 itens por lote, teto de 500 por
-    pagina, ambos retornando `InvalidInputException` acionavel quando excedidos.
+    `McpLimits` (`mcp/support/McpLimits.java`): teto de 200 itens por lote
+    (`add_items`/`set_items_checked`/`remove_items`), teto de 500 por pagina em `get_list`
+    (`limit`) e teto de 100 por pagina em `get_list_activity` (`size`) — tetos diferentes por
+    chamador (ajustado na segunda rodada do review; a primeira versao usava 500 para os
+    dois). `InvalidInputException` acionavel quando excedido, informando o teto exato e
+    orientando dividir a chamada em varias. Constantes nomeadas e documentadas nas
+    descricoes das proprias tools. `McpLimitsTest` + teste parametrizado em
+    `McpServerIntegrationTest` cobrindo os 5 casos (um por tool/teto).
   - **MINOR — contrato de ordenacao implicito em `McpSecurityContext`:**
     `requireWriteAccess()` so era seguro porque `currentUser()` era sempre chamado antes; com
     autenticacao `null`/anonima, `isPersonalAccessToken(null)` retornava `false` e o metodo
     liberava a escrita por omissao. Sem impacto real hoje (`/mcp` ja exige `authenticated()`
     no HTTP antes de qualquer tool ser despachada), mas era footgun latente para uma tool
     futura que chamasse `requireWriteAccess()` sem `currentUser()` antes. Corrigido:
-    `requireWriteAccess()` agora asseveram autenticacao por conta propria.
+    `requireWriteAccess()` agora assevera autenticacao por conta propria (lanca
+    `McpAuthenticationException` se ausente/anonima, antes de checar escopo).
+    `McpSecurityContextTest` cobre auth ausente/anonima/JWT/PAT READ/PAT READ_WRITE.
   - **MINOR — prompt injection via conteudo de terceiros:** registrado como limitacao
     conhecida em `docs/mcp.md` (nao corrigivel nesta camada — inerente ao MCP). Descricoes de
     `remove_items` e `remove_member` passaram a orientar confirmacao com o usuario antes de
     chamar, no mesmo padrao ja usado por `delete_list`.
-  - **NIT — `add_items` com elemento nulo na lista `items`:** confirmado empiricamente que o
-    proprio schema de entrada do SDK MCP ja rejeita um elemento `null` num array de objetos
-    antes de a tool ser invocada (`isError: true`, "null found, object expected" — nunca
-    chega ao Java). Mesmo assim, adicionado um guard defensivo em
-    `ListItemMcpTools.addOneItem` (retorna outcome `"item nao pode ser nulo"` em vez de
-    propagar NPE) para robustez caso essa validacao de schema mude de comportamento no SDK.
-  - **NIT — `update_item` com todos os campos nulos:** antes era um no-op silencioso
-    (broadcast + activity log sem nenhuma mudanca real). Agora lanca `InvalidInputException`
-    ("Informe ao menos um campo para atualizar") quando `name`, `quantity`, `dueDate` e `url`
-    vêm todos nulos.
-  - **NIT — nao aplicados nesta rodada (documentados como decisao, nao esquecimento):**
-    idioma inconsistente entre descricoes das tools (ingles) e mensagens de erro retornadas
-    ao modelo (portugues) — as mensagens vêm das excecoes de negocio compartilhadas com a API
-    REST (`ForbiddenException`, `ListNotFoundException`, `ValidationException` etc.),
-    usadas pelo SPA em portugues; traduzir so para o MCP exigiria uma camada de mapeamento de
-    mensagens especifica do modulo `mcp`, fora do escopo desta correcao pontual. E o regex
-    catch-all do `SpaController` (`(?!api|ws|...|mcp)`) nao tem boundary de segmento de path,
-    entao tambem exclui rotas SPA que comecem com esses prefixos (ex.: `/mcpx`) — pre-existente
-    para `api`/`assets`/etc. mesmo antes desta fase, risco baixo (nenhuma rota do SPA hoje
-    comeca com esses prefixos), registrado para follow-up caso uma rota assim seja criada.
+  - **`add_items` com elemento nulo na lista `items`:** confirmado empiricamente (capturada a
+    resposta real de uma chamada de teste) que o proprio schema de entrada do SDK MCP ja
+    rejeita um elemento `null` num array de objetos antes de a tool ser invocada
+    (`isError: true`, "null found, object expected" — nunca chega ao Java). Mesmo assim,
+    adicionado um guard defensivo em `ListItemMcpTools.addOneItem` (retorna outcome
+    `"item must not be null"` em vez de propagar NPE) para robustez caso essa validacao de
+    schema mude de comportamento no SDK.
+  - **`update_item` com todos os campos nulos:** antes era um no-op silencioso (broadcast +
+    activity log sem nenhuma mudanca real). Agora lanca `InvalidInputException`
+    ("Nothing to update: provide at least one field...") quando `name`, `quantity`,
+    `dueDate` e `url` vêm todos nulos.
+  - **Idioma (aplicado na segunda rodada):** mensagens de erro geradas pelo proprio modulo
+    `mcp` (`McpIds`, `McpLimits`, `ListNameResolver`, e as validacoes de
+    `add_items`/`update_item`/`share_list` acima) foram traduzidas para ingles, consistente
+    com as descricoes/parametros das tools (convencao MCP). Deliberadamente NAO tocado:
+    mensagens de excecoes de negocio vindas dos services (`ForbiddenException`,
+    `ListNotFoundException` lancada por `ListService`, `ValidationException`,
+    `@NotBlank`/`@Size` dos DTOs compartilhados como `CreateListRequest`/
+    `CreateItemRequestDTO`) — essas permanecem em portugues porque sao os mesmos
+    services/DTOs usados pela API REST/SPA; traduzir so para o MCP exigiria uma camada de
+    mapeamento de mensagens especifica do modulo, fora de escopo. Documentado em
+    `docs/mcp.md` (secao "Idioma") para quem for adicionar uma tool nova saber onde a
+    mensagem deve ficar em cada idioma.
+  - **NIT — nao aplicado (decisao explicita, nao esquecimento):** o regex catch-all do
+    `SpaController` (`(?!api|ws|...|mcp)`) nao tem boundary de segmento de path, entao tambem
+    exclui rotas SPA que comecem com esses prefixos (ex.: `/mcpx`) — pre-existente para
+    `api`/`assets`/etc. mesmo antes desta fase, risco baixo (nenhuma rota do SPA hoje comeca
+    com esses prefixos), registrado para follow-up caso uma rota assim seja criada. O
+    reviewer confirmou explicitamente que este item fica como esta.

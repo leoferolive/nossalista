@@ -44,13 +44,15 @@ public class ActivityMcpTools {
         String listId,
         @McpToolParam(required = false, description = "Zero-based page number (default 0).")
         Integer page,
-        @McpToolParam(required = false, description = "Page size (default 50, maximum 500).")
+        @McpToolParam(required = false, description = "Page size (default 50, maximum "
+            + McpLimits.MAX_ACTIVITY_PAGE_SIZE + ").")
         Integer size
     ) {
         User user = security.currentUser();
         UUID id = McpIds.parseUuid(listId, "listId");
         int effectivePage = page == null || page < 0 ? 0 : page;
-        int effectiveSize = McpLimits.requirePageSizeWithinLimit(size, DEFAULT_PAGE_SIZE, "size");
+        int effectiveSize =
+            McpLimits.requirePageSizeWithinLimit(size, DEFAULT_PAGE_SIZE, McpLimits.MAX_ACTIVITY_PAGE_SIZE, "size");
 
         ActivityPageResponse response = activityLogService.getActivities(id, user.getId(), effectivePage, effectiveSize);
         var entries = response.content().stream().map(this::toSummary).toList();
