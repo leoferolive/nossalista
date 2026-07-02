@@ -118,7 +118,7 @@ const state = {
         {
           id: 'item-demo-1',
           listId: shoppingListId,
-          name: 'Tomate sweet grape',
+          name: 'Tomate cereja',
           checked: true,
           quantity: 2,
           dueDate: null,
@@ -170,7 +170,7 @@ const state = {
           id: 'activity-1',
           type: 'ITEM_CHECKED',
           actorName: 'Leo Oliveira',
-          itemName: 'Tomate sweet grape',
+          itemName: 'Tomate cereja',
           createdAt: now(),
         },
       ],
