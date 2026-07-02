@@ -329,16 +329,16 @@
   deixam suas excecoes de negocio (`ForbiddenException`, `ListNotFoundException`,
   `ValidationException`, `InvalidInputException`, `McpScopeException` etc.) propagarem
   normalmente — nunca stack trace, sempre mensagem acionavel do dominio.
-- **Schema de saida — limitacao aceita:** o gerador de JSON Schema do Spring AI
-  (`generateOutputSchema = true`) so preenche `outputSchema` quando o tipo de retorno do
-  metodo NAO e `CallToolResult` — retornar `CallToolResult` manualmente (para forcar um
-  bloco de texto redundante junto do `structuredContent`) desativa a geracao de
-  `outputSchema`. Decisao: priorizar `outputSchema` + `structuredContent` (mais valioso
-  para clientes MCP modernos) em vez do texto redundante nas tools de leitura — a forma do
-  retorno fica documentada na `description` da tool. Efeito colateral descoberto e
-  corrigido: todo componente de record e tratado como obrigatorio por padrao pelo gerador;
-  campos opcionais precisam de `@Nullable` (jspecify) para sair do `required`, e
-  `@JsonInclude(NON_NULL)` para nao serializar `null` explicito (que falha a validacao de
+- **Schema de saida:** `@McpTool(generateOutputSchema = true)` gera `outputSchema` a partir
+  do tipo de retorno do metodo (quando nao e `CallToolResult`/void/tipo primitivo), e o
+  `CallToolResult` resultante ja vem, por padrao do SDK, com `structuredContent` (o objeto
+  tipado) **e** um bloco `content` de texto redundante (JSON serializado) — confirmado
+  capturando uma chamada real de tool em teste. As 13 tools deste modulo tem `outputSchema`
+  + `structuredContent` + texto simultaneamente, sem necessidade de construir
+  `CallToolResult` manualmente. Efeito colateral descoberto e corrigido: todo componente de
+  record e tratado como obrigatorio por padrao pelo gerador; campos opcionais precisam de
+  `@Nullable` (jspecify) para sair do `required`, e `@JsonInclude(NON_NULL)` para nao
+  serializar `null` explicito (que falha a validacao de
   tipo do schema mesmo fora do `required`).
 - **Fix TOCTOU (MENOR-1 da Fase A):** `PersonalAccessTokenService.create` tinha uma janela
   entre contar tokens ativos e inserir um novo — duas requisicoes concorrentes do mesmo
