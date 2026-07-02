@@ -289,3 +289,85 @@
 - **Validacao:** `spring-security-{core,web,oauth2-core,config,crypto}:7.0.6`,
   `jackson-databind:2.21.4`, `tools.jackson.core:jackson-databind:3.1.4` confirmados via
   `dependency:tree`. Suite de testes completa sem regressao (ver resultado no PR #50).
+
+## D-020 Servidor MCP embutido no backend (Streamable HTTP)
+
+- **Contexto:** Fase B do plano MCP — expor as listas do NossaLista como tools MCP para
+  Claude Code/Desktop/Cursor, autenticadas pelos PATs da Fase A (D-018) ou por JWT.
+- **Decisao de dependencia (Passo 0):** usar o starter oficial
+  `org.springframework.ai:spring-ai-starter-mcp-server-webmvc:2.0.0` (via
+  `spring-ai-bom:2.0.0`), protocolo `STREAMABLE`, montado em `/mcp`. Spring AI 2.0.0 GA
+  (lancado 2026-06-12, poucas semanas antes desta Fase) e o primeiro trem estavel
+  desenhado especificamente para Spring Boot 4.0/4.1 + Spring Framework 7 — confirmado
+  publicando de verdade contra Boot 4.0.7 deste projeto (`dependency:tree` sem conflito de
+  versao: `spring-boot-starter-web` fica mediado em 4.0.7 mesmo com o starter do MCP
+  pedindo 4.1.0 transitivamente, por ser dependencia mais proxima). O SDK Java oficial puro
+  (`io.modelcontextprotocol.sdk:mcp`) ficou como fallback nao usado — o starter Spring AI
+  cobriu tudo via anotacao `@McpTool` sem necessidade de registrar transporte manualmente.
+  Tools implementadas como `@Component` com metodos `@McpTool` em `mcp/tool/*McpTools`,
+  descobertas automaticamente pelo annotation scanner do starter (nenhum registro manual).
+- **Roteamento — exclusao do SpaController:** `SpaController` (fallback do SPA) usava um
+  regex catch-all (`^(?!api|ws|actuator|v3|swagger-ui|assets)[^\.]*`) que capturava `/mcp`
+  via `@GetMapping` antes do `RouterFunction` do MCP ser considerado, causando 405 em toda
+  chamada `POST /mcp`. Corrigido excluindo `mcp` do regex negativo. Mantido mesmo o
+  `RouterFunctionMapping` (order -1) ja tendo prioridade teorica sobre
+  `RequestMappingHandlerMapping` (order 0) — defesa em profundidade.
+- **Seguranca:** `/mcp/**` exige autenticacao (`authenticated()`) em `SecurityConfig`, sem
+  aplicar o `apiAccessManager()` de `/api/**` — todo o protocolo MCP trafega via `POST
+  /mcp`, entao a restricao de metodos seguros para PAT `READ` bloquearia 100% das chamadas.
+  O enforcement de escopo passou para a camada de tool: `McpSecurityContext.requireWriteAccess()`
+  chamado no inicio de toda tool de mutacao, lancando `McpScopeException` (mensagem
+  acionavel) se o PAT for `READ`-only. Os filtros `JwtAuthenticationFilter`/
+  `PersonalAccessTokenAuthenticationFilter` da Fase A ja rodam para toda requisicao (nao sao
+  scoped por path), entao cobrem `/mcp` sem alteracao. Identidade sempre resolvida por
+  requisicao via `SecurityContextHolder` (`McpSecurityContext.currentUser()`) — nenhum
+  estado de usuario e cacheado no processo do servidor MCP.
+- **Tratamento de erro:** o `SyncMcpToolMethodCallback` do SDK ja converte qualquer
+  excecao lancada por um metodo `@McpTool` em `CallToolResult.isError(true)` (texto:
+  `"Error invoking method: <nome>\n<mensagem da causa raiz>"`) — confirmado lendo o
+  fonte do SDK (`spring-ai-mcp-annotations:2.0.0`). Por isso as tools deste modulo apenas
+  deixam suas excecoes de negocio (`ForbiddenException`, `ListNotFoundException`,
+  `ValidationException`, `InvalidInputException`, `McpScopeException` etc.) propagarem
+  normalmente — nunca stack trace, sempre mensagem acionavel do dominio.
+- **Schema de saida — limitacao aceita:** o gerador de JSON Schema do Spring AI
+  (`generateOutputSchema = true`) so preenche `outputSchema` quando o tipo de retorno do
+  metodo NAO e `CallToolResult` — retornar `CallToolResult` manualmente (para forcar um
+  bloco de texto redundante junto do `structuredContent`) desativa a geracao de
+  `outputSchema`. Decisao: priorizar `outputSchema` + `structuredContent` (mais valioso
+  para clientes MCP modernos) em vez do texto redundante nas tools de leitura — a forma do
+  retorno fica documentada na `description` da tool. Efeito colateral descoberto e
+  corrigido: todo componente de record e tratado como obrigatorio por padrao pelo gerador;
+  campos opcionais precisam de `@Nullable` (jspecify) para sair do `required`, e
+  `@JsonInclude(NON_NULL)` para nao serializar `null` explicito (que falha a validacao de
+  tipo do schema mesmo fora do `required`).
+- **Fix TOCTOU (MENOR-1 da Fase A):** `PersonalAccessTokenService.create` tinha uma janela
+  entre contar tokens ativos e inserir um novo — duas requisicoes concorrentes do mesmo
+  usuario podiam ambas passar pela checagem de limite (10) antes de qualquer insercao,
+  ultrapassando o limite. Corrigido com `UserRepository.findByIdForUpdate` (`SELECT ... FOR
+  UPDATE` via `@Lock(PESSIMISTIC_WRITE)`), travando a linha do usuario antes de contar —
+  serializa chamadas concorrentes do mesmo usuario (usuarios diferentes nao se bloqueiam).
+  Funciona identicamente em H2 e PostgreSQL.
+- **Regressao de teste causada pela nova dependencia (achado e corrigido nesta fase):**
+  adicionar `spring-ai-starter-mcp-server-webmvc` traz `reactor-core` transitivamente pela
+  primeira vez neste projeto (SDK MCP usa `Mono`/`Flux` internamente mesmo no client/server
+  sincrono). A mera presenca de `reactor-core` no classpath — bisseccionado e confirmado
+  isoladamente, sem nenhuma outra mudanca de codigo — quebrou o padrao de teste usado em 5
+  suites (`ListControllerIntegrationTest`, `ListItemControllerTest`,
+  `MemberControllerIntegrationTest`, `PushControllerTest`, `UserControllerTest`) que
+  populam `SecurityContextHolder.getContext().setAuthentication(...)` manualmente antes de
+  `mockMvc.perform(...)`: o `SecurityContextHolderFilter` moderno passou a descartar essa
+  autenticacao pre-definida, autenticando a requisicao como anonima (401). O idioma correto
+  para isso e `TestSecurityContextHolder` (do `spring-security-test`), que integra
+  corretamente com `springSecurity()` independentemente da presenca de `reactor-core` — as
+  5 suites foram migradas para `TestSecurityContextHolder.getContext().setAuthentication(...)`
+  (mantendo `SecurityContextHolder.clearContext()` onde existia, agora espelhado com
+  `TestSecurityContextHolder.clearContext()`). Nao foi feita nenhuma mudanca em
+  `SecurityConfig` de producao para "consertar" isso — o problema era so nos testes.
+  Excluida tambem a dependencia transitiva `io.micrometer:context-propagation` do starter
+  do MCP (nao usada pelo client/server sincrono deste projeto; sua mera presenca registra
+  um `ThreadLocalAccessor` de `SecurityContext` no `ContextRegistry` global do Micrometer,
+  reduzindo superficie de interacao nao intencional sem necessidade funcional).
+- **Motivo:** entrega a Fase B do roadmap MCP — usuarios do NossaLista podem conectar
+  assistentes de IA as proprias listas com credenciais de longa duracao, escopo de leitura
+  ou leitura/escrita, e broadcast em tempo real automatico (as tools reusam os services
+  existentes, que ja publicam eventos STOMP).

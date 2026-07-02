@@ -25,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -97,6 +98,7 @@ class ListControllerIntegrationTest {
 
         // Limpar SecurityContext antes de cada teste
         SecurityContextHolder.clearContext();
+        TestSecurityContextHolder.clearContext();
 
         // Criar usuário de teste
         testUser = userService.createUser(
@@ -118,7 +120,7 @@ class ListControllerIntegrationTest {
                         null,
                         java.util.Collections.emptyList()
                 );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        TestSecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @Nested
@@ -655,6 +657,7 @@ class ListControllerIntegrationTest {
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
 
             // Act & Assert
             mockMvc.perform(get("/api/lists/{id}", createdList.getId()))
@@ -807,6 +810,7 @@ class ListControllerIntegrationTest {
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
 
             UpdateListNameRequest request = new UpdateListNameRequest("Novo Nome");
 
@@ -964,6 +968,7 @@ class ListControllerIntegrationTest {
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
 
             // Act & Assert
             mockMvc.perform(delete("/api/lists/{id}", createdList.getId()))
@@ -1142,6 +1147,7 @@ class ListControllerIntegrationTest {
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
 
             // Act & Assert
             mockMvc.perform(post("/api/lists/{id}/invite-link", createdList.getId()))

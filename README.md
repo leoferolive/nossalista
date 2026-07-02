@@ -55,6 +55,13 @@ nossalista/
 |- AGENTS.md -> CLAUDE.md
 ```
 
+## Servidor MCP
+
+O backend expoe um servidor [MCP](https://modelcontextprotocol.io) embutido em `POST /mcp`
+(Streamable HTTP), autenticado por Personal Access Token (`nlmcp_...`) ou JWT, para
+conectar assistentes de IA (Claude Code, Claude Desktop, Cursor) as listas do usuario. Guia
+de conexao, tools disponiveis e modelo de seguranca em `docs/mcp.md`.
+
 ## Skills locais
 
 - `.agents/skills/interface-design`: skill local para projetar e auditar interfaces de produto com memoria em `.interface-design/system.md`, mantendo consistencia de espacamento, profundidade, superficies e padroes de componentes.

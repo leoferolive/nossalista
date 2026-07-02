@@ -37,6 +37,19 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 
+  ai:
+    mcp:
+      server:
+        # Precisa ser repetido aqui: este arquivo SUBSTITUI (não mescla com)
+        # src/main/resources/application.yml no classpath de teste — sem
+        # isso, o autoconfigure do Spring AI cai no protocolo SSE legado por
+        # padrão (protocol=STREAMABLE não tem matchIfMissing=true).
+        protocol: STREAMABLE
+        type: SYNC
+        name: nossalista-mcp
+        version: 1.0.0
+        endpoint: /mcp
+
 cors:
   allowed-origins: http://localhost:5173,http://localhost:8080
 
