@@ -186,6 +186,24 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 <span>Meu perfil</span>
               </span>
             </button>
+
+            <button
+              type="button"
+              role={actionRole}
+              onClick={() => {
+                setIsMenuOpen(false)
+                navigate('/connections')
+              }}
+              className="nl-action-row"
+            >
+              <span className="flex items-center gap-3">
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M12.232 4.232a2.5 2.5 0 013.536 3.536l-1.225 1.224a.75.75 0 001.061 1.06l1.224-1.224a4 4 0 00-5.657-5.656l-3 3a4 4 0 00.225 5.865.75.75 0 00.977-1.138 2.5 2.5 0 01-.142-3.667l3-3z" />
+                  <path d="M11.603 7.963a.75.75 0 00-.977 1.138 2.5 2.5 0 01.142 3.667l-3 3a2.5 2.5 0 01-3.536-3.536l1.225-1.224a.75.75 0 00-1.061-1.06l-1.224 1.224a4 4 0 105.657 5.656l3-3a4 4 0 00-.225-5.865z" />
+                </svg>
+                <span>Conexões (API/Assistentes)</span>
+              </span>
+            </button>
           </div>
         </section>
 
