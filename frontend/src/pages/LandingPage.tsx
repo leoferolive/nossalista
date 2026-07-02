@@ -119,7 +119,7 @@ const heroFeatures = [
 ] as const
 
 const listPreview = [
-  { name: 'Tomate sweet grape', done: true },
+  { name: 'Tomate cereja', done: true },
   { name: 'Queijo minas', done: false },
   { name: 'Iogurte natural', done: false },
   { name: 'Lembrete de feira', done: false },
