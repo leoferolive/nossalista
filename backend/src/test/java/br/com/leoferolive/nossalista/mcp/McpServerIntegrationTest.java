@@ -17,6 +17,9 @@ import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -31,6 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -341,8 +346,8 @@ class McpServerIntegrationTest {
     }
 
     @Test
-    @DisplayName("PAT com escopo READ pode ler mas não pode chamar tools de mutação")
-    void readOnlyScopeBlocksMutationTools() {
+    @DisplayName("PAT com escopo READ pode chamar todas as tools de leitura")
+    void readOnlyScopeAllowsReadTools() {
         User user = newUser();
         McpSyncClient writeClient = connectedClient(issueToken(user, TokenScope.READ_WRITE));
         String listId = createShoppingList(writeClient);
@@ -353,33 +358,115 @@ class McpServerIntegrationTest {
         assertSuccess(call(readClient, "get_list", Map.of("listId", listId)));
         assertSuccess(call(readClient, "list_members", Map.of("listId", listId)));
         assertSuccess(call(readClient, "get_list_activity", Map.of("listId", listId)));
+    }
 
-        assertError(call(readClient, "create_list", Map.of("name", "X", "type", "SHOPPING")), "read-only scope");
-        assertError(call(readClient, "rename_list", Map.of("listId", listId, "name", "Y")), "read-only scope");
-        assertError(call(readClient, "delete_list", Map.of("listId", listId)), "read-only scope");
-        assertError(
-            call(readClient, "add_items", Map.of("listId", listId, "items", List.of(Map.of("name", "X")))),
-            "read-only scope");
+    /**
+     * Argumentos mínimos (valores fictícios, nunca resolvidos de verdade) para
+     * cada uma das 9 tools de mutação. {@code McpSecurityContext.requireWriteAccess()}
+     * é chamado logo após resolver o usuário, antes de qualquer parsing/validação
+     * de listId/itemId — por isso o escopo é sempre a primeira coisa checada,
+     * e valores fictícios são suficientes para provar o bloqueio.
+     */
+    private static Stream<Arguments> allMutationToolCalls() {
+        String dummyId = "00000000-0000-0000-0000-000000000000";
+        return Stream.of(
+            Arguments.of("create_list", Map.of("name", "X", "type", "SHOPPING")),
+            Arguments.of("rename_list", Map.of("listId", dummyId, "name", "Y")),
+            Arguments.of("delete_list", Map.of("listId", dummyId)),
+            Arguments.of("add_items", Map.of("listId", dummyId, "items", List.of(Map.of("name", "X")))),
+            Arguments.of("update_item", Map.of("listId", dummyId, "itemId", dummyId, "name", "Y")),
+            Arguments.of("set_items_checked",
+                Map.of("listId", dummyId, "itemIds", List.of(dummyId), "checked", true)),
+            Arguments.of("remove_items", Map.of("listId", dummyId, "itemIds", List.of(dummyId))),
+            Arguments.of("share_list", Map.of("listId", dummyId, "mode", "link")),
+            Arguments.of("remove_member", Map.of("listId", dummyId, "userId", dummyId))
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("allMutationToolCalls")
+    @DisplayName("PAT com escopo READ bloqueia todas as 9 tools de mutação")
+    void readOnlyScopeBlocksAllMutationTools(String toolName, Map<String, Object> arguments) {
+        User user = newUser();
+        McpSyncClient readClient = connectedClient(issueToken(user, TokenScope.READ));
+
+        assertError(call(readClient, toolName, arguments), "read-only scope");
     }
 
     @Test
-    @DisplayName("isolamento multi-tenant: usuário B não vê nem edita lista do usuário A via MCP")
-    void multiTenantIsolation() {
+    @DisplayName("isolamento multi-tenant: list_my_lists do usuário B nunca inclui lista do usuário A")
+    void multiTenantIsolationHidesListFromOthersLists() {
         User userA = newUser();
         User userB = newUser();
         McpSyncClient clientA = connectedClient(issueToken(userA, TokenScope.READ_WRITE));
         McpSyncClient clientB = connectedClient(issueToken(userB, TokenScope.READ_WRITE));
         String listAId = createShoppingList(clientA);
 
-        assertError(call(clientB, "get_list", Map.of("listId", listAId)), "permissão");
-        assertError(call(clientB, "add_items", Map.of(
-            "listId", listAId, "items", List.of(Map.of("name", "invasor")))), "permissão");
-        assertError(call(clientB, "delete_list", Map.of("listId", listAId)), "dono");
-
         Map<String, Object> myListsB = structured(call(clientB, "list_my_lists", Map.of()));
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> listsB = (List<Map<String, Object>>) myListsB.get("lists");
         assertThat(listsB).noneMatch(l -> listAId.equals(l.get("id")));
+    }
+
+    /**
+     * Uma tool por linha, cobrindo toda tool que recebe {@code listId}/{@code itemId}.
+     * O argsBuilder recebe (listId, itemId) da lista/item reais do usuário A e
+     * devolve os argumentos da chamada feita pelo usuário B (estranho à lista).
+     * A mensagem esperada varia conforme a regra de negócio da tool: "permissão"
+     * para checagens de participante (owner OU membro), "dono" para checagens
+     * estritas de owner-only.
+     */
+    private static Stream<Arguments> crossTenantToolCalls() {
+        BiFunction<String, String, Map<String, Object>> getList = (listId, itemId) -> Map.of("listId", listId);
+        BiFunction<String, String, Map<String, Object>> renameList =
+            (listId, itemId) -> Map.of("listId", listId, "name", "Hackeado");
+        BiFunction<String, String, Map<String, Object>> deleteList = (listId, itemId) -> Map.of("listId", listId);
+        BiFunction<String, String, Map<String, Object>> addItems = (listId, itemId) ->
+            Map.of("listId", listId, "items", List.of(Map.of("name", "invasor")));
+        BiFunction<String, String, Map<String, Object>> updateItem = (listId, itemId) ->
+            Map.of("listId", listId, "itemId", itemId, "name", "Hackeado");
+        BiFunction<String, String, Map<String, Object>> setItemsChecked = (listId, itemId) ->
+            Map.of("listId", listId, "itemIds", List.of(itemId), "checked", true);
+        BiFunction<String, String, Map<String, Object>> removeItems = (listId, itemId) ->
+            Map.of("listId", listId, "itemIds", List.of(itemId));
+        BiFunction<String, String, Map<String, Object>> shareList =
+            (listId, itemId) -> Map.of("listId", listId, "mode", "link");
+        BiFunction<String, String, Map<String, Object>> listMembers = (listId, itemId) -> Map.of("listId", listId);
+        BiFunction<String, String, Map<String, Object>> removeMember = (listId, itemId) ->
+            Map.of("listId", listId, "userId", UUID.randomUUID().toString());
+        BiFunction<String, String, Map<String, Object>> getListActivity =
+            (listId, itemId) -> Map.of("listId", listId);
+
+        return Stream.of(
+            Arguments.of("get_list", getList, "permissão"),
+            Arguments.of("rename_list", renameList, "dono"),
+            Arguments.of("delete_list", deleteList, "dono"),
+            Arguments.of("add_items", addItems, "permissão"),
+            Arguments.of("update_item", updateItem, "permissão"),
+            Arguments.of("set_items_checked", setItemsChecked, "permissão"),
+            Arguments.of("remove_items", removeItems, "permissão"),
+            Arguments.of("share_list", shareList, "dono"),
+            Arguments.of("list_members", listMembers, "permissão"),
+            Arguments.of("remove_member", removeMember, "dono"),
+            Arguments.of("get_list_activity", getListActivity, "permissão")
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("crossTenantToolCalls")
+    @DisplayName("isolamento multi-tenant: usuário B não acessa lista/itens do usuário A em nenhuma tool")
+    void multiTenantIsolationAcrossAllTools(
+            String toolName,
+            BiFunction<String, String, Map<String, Object>> argsBuilder,
+            String expectedError) {
+        User userA = newUser();
+        User userB = newUser();
+        McpSyncClient clientA = connectedClient(issueToken(userA, TokenScope.READ_WRITE));
+        McpSyncClient clientB = connectedClient(issueToken(userB, TokenScope.READ_WRITE));
+        String listId = createShoppingList(clientA);
+        String itemId = addOneItem(clientA, listId);
+
+        assertError(call(clientB, toolName, argsBuilder.apply(listId, itemId)), expectedError);
     }
 
     @Test
@@ -400,5 +487,14 @@ class McpServerIntegrationTest {
             "name", "Lista MCP " + UUID.randomUUID(), "type", "SHOPPING"
         )));
         return (String) created.get("id");
+    }
+
+    private String addOneItem(McpSyncClient client, String listId) {
+        Map<String, Object> result = structured(call(client, "add_items", Map.of(
+            "listId", listId, "items", List.of(Map.of("name", "Item de teste"))
+        )));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> outcomes = (List<Map<String, Object>>) result.get("results");
+        return (String) outcomes.get(0).get("itemId");
     }
 }

@@ -367,6 +367,22 @@
   do MCP (nao usada pelo client/server sincrono deste projeto; sua mera presenca registra
   um `ThreadLocalAccessor` de `SecurityContext` no `ContextRegistry` global do Micrometer,
   reduzindo superficie de interacao nao intencional sem necessidade funcional).
+- **Bug bloqueante encontrado no QA e corrigido (commit `1af9d07`):** `application.yml`
+  de producao nao tinha `spring.ai.mcp.server.protocol: STREAMABLE` — so
+  `src/test/resources/application.yml` tinha. Como esse arquivo de teste SUBSTITUI (nao
+  mescla com) o de producao no classpath de teste, `McpServerIntegrationTest` sempre
+  passou normalmente enquanto qualquer execucao real (`mvnw spring-boot:run` ou o jar
+  empacotado, fora do `@SpringBootTest`) resolvia o transporte SSE legado (endpoint
+  `POST /mcp/message`, nao `/mcp`) e respondia `500` em toda chamada real ao endpoint
+  documentado. O QA confirmou o fix com um cliente MCP real
+  (`@modelcontextprotocol/sdk`) contra o jar empacotado, antes e depois da correcao.
+  **Licao registrada:** toda config nova de producao precisa existir nos DOIS arquivos
+  (`src/main/resources/application.yml` e `src/test/resources/application.yml`) — a
+  suite de testes, rodando exclusivamente sob `@SpringBootTest`, nao detecta ausencia no
+  arquivo de producao. Nenhum smoke test do jar empacotado roda hoje em CI; adicionar um
+  (build do jar + subida real + `curl`/chamada MCP minima contra `/mcp` antes do deploy)
+  fica registrado aqui como follow-up para fechar essa lacuna estruturalmente, em vez de
+  depender de revisao manual de "toda config nova esta nos dois arquivos".
 - **Motivo:** entrega a Fase B do roadmap MCP — usuarios do NossaLista podem conectar
   assistentes de IA as proprias listas com credenciais de longa duracao, escopo de leitura
   ou leitura/escrita, e broadcast em tempo real automatico (as tools reusam os services
