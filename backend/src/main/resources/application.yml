@@ -2,6 +2,27 @@ spring:
   application:
     name: nossalista
 
+  ai:
+    mcp:
+      server:
+        # Fixa o transporte em STREAMABLE explicitamente. Sem isso, a
+        # resolução do protocolo padrão do spring-ai-starter-mcp-server-webmvc
+        # 2.0.0 é instável fora do contexto de @SpringBootTest: em uma
+        # aplicação real (mvnw spring-boot:run ou jar empacotado), o
+        # RouterFunction registrado acaba sendo o do transporte SSE
+        # (deprecated, POST /mcp/message + GET /sse) em vez do Streamable
+        # HTTP em POST /mcp documentado — quebrando qualquer cliente MCP
+        # (Claude Code, Cursor) que siga docs/mcp.md, apesar de
+        # McpServerIntegrationTest passar 100% (ver achado do QA da Fase B).
+        # src/test/resources/application.yml já tinha esse mesmo fix, mas
+        # esse arquivo SUBSTITUI (não mescla com) este no classpath de teste
+        # — por isso os testes sempre passaram enquanto a app real quebrava.
+        protocol: STREAMABLE
+        type: SYNC
+        name: nossalista-mcp
+        version: 1.0.0
+        endpoint: /mcp
+
   jpa:
     open-in-view: false
     hibernate:
