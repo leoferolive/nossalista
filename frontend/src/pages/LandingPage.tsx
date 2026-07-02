@@ -134,7 +134,7 @@ const steps = [
   {
     title: 'Convide quem quiser',
     desc: 'Mande um link ou o usuário. A pessoa entra e já edita.',
-    color: 'var(--nl-primary-strong)',
+    color: 'var(--nl-primary-text)',
   },
   {
     title: 'Marquem juntos',
@@ -236,7 +236,7 @@ export function LandingPage() {
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[var(--nl-bg)] text-[var(--nl-text)]">
       {/* ===== HERO (sempre escuro) ===== */}
-      <div className="relative overflow-hidden" style={{ background: HERO_BG }}>
+      <div className="nl-dark-section relative overflow-hidden" style={{ background: HERO_BG }}>
         {/* Nav */}
         <nav className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-4 px-10 py-[22px]">
           <span className="inline-flex items-center gap-[10px]">
@@ -455,12 +455,12 @@ export function LandingPage() {
                 </span>
               </div>
 
-              <h3
-                className="mb-1 mt-[14px] text-[24px]"
+              <p
+                className="mb-1 mt-[14px] font-display text-[24px] font-bold"
                 style={{ letterSpacing: '-0.02em', color: '#ece9f4' }}
               >
                 Mercado da semana
-              </h3>
+              </p>
 
               <div className="mt-2">
                 {listPreview.map((item) => (
@@ -571,6 +571,7 @@ export function LandingPage() {
         id="recursos"
         className="mx-auto grid max-w-[1120px] gap-5 px-10 pb-2 pt-[56px] [grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))]"
       >
+        <h2 className="sr-only">Recursos</h2>
         {features.map(({ title, desc, tint, color, Icon }) => (
           <div
             key={title}
@@ -591,7 +592,7 @@ export function LandingPage() {
       {/* ===== CTA final (sempre escuro) ===== */}
       <section className="mx-auto mt-[56px] max-w-[1120px] px-10 pb-[56px]">
         <div
-          className="relative overflow-hidden rounded-[16px] px-8 py-[52px] text-center"
+          className="nl-dark-section relative overflow-hidden rounded-[16px] px-8 py-[52px] text-center"
           style={{ background: CTA_BG }}
         >
           <h2

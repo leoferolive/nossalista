@@ -63,6 +63,7 @@
   --nl-accent-soft: rgba(124, 58, 237, 0.12);
   --nl-primary: #14b8a6;
   --nl-primary-strong: #0d9488;
+  --nl-primary-text: #0a7d6f;
 
   /* semânticas */
   --nl-danger: #e5484d;
@@ -100,6 +101,7 @@
   --nl-accent-soft: rgba(167, 139, 250, 0.16);
   --nl-primary: #2dd4bf;
   --nl-primary-strong: #14b8a6;
+  --nl-primary-text: #2dd4bf;
   --nl-danger: #ff6b6f;
   --nl-success: #2dd4a7;
   --nl-info: #6398f0;
