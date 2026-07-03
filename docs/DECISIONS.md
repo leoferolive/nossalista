@@ -507,3 +507,9 @@
   próxima PR de backend.
 - **Nota de tolerância a versão:** o guard procura `*.mv.db` (wildcard) em vez do nome fixo
   `odc.mv.db`, para não quebrar se o dependency-check renomear o banco H2 numa versão futura.
+- **Resiliência a NVD throttled:** em dias de rate-limit severo da NVD (visto em 02-03/07/2026)
+  o download completo passa de 30 min. O warmer tem `timeout-minutes: 60` no step de update
+  e salva o cache com `if: always()` sob chave por-run (`...-<run_id>-<run_attempt>`), de modo
+  que o progresso parcial é preservado e o `restore-keys` (prefixo) o retoma no run seguinte,
+  convergindo em poucas execuções (cron noturno + re-dispatch). As PRs restauram o mesmo cache
+  por prefixo `nvd-db-<os>-`, então a chave por-run é transparente para elas.
