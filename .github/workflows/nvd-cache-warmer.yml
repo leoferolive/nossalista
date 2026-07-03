@@ -66,13 +66,14 @@ jobs:
           chmod +x mvnw
           ./mvnw -B org.owasp:dependency-check-maven:update-only
 
-      # if: always() → salva mesmo se o update-only estourar o timeout (NVD throttled),
-      # preservando o progresso parcial. Chave por-run (run_id+attempt) porque o cache é
-      # imutável: cada tentativa salva sob chave única e o restore-keys (prefixo) pega a
-      # mais recente, convergindo em poucos runs. Rodando no main, o cache é herdável por
-      # todas as PRs (que restauram por prefixo nvd-db-<os>-).
-      - name: Salvar cache NVD (mesmo em timeout — preserva progresso parcial)
-        if: always()
+      # Salva SÓ em sucesso (comportamento default do step, sem if:always). O
+      # dependency-check re-baixa os 363k registros inteiros a cada run; um timeout no
+      # download persiste 0 lotes, e salvar esse banco VAZIO passaria no guard das PRs e
+      # faria a checagem rodar contra nada (falso-negativo de segurança). Só um banco
+      # COMPLETO vira cache; daí os runs seguintes fazem update incremental contra ele.
+      # Chave por-run (cache é imutável — evita colisão de 2 runs no mesmo dia); as PRs
+      # herdam por prefixo nvd-db-<os>-.
+      - name: Salvar cache NVD (somente em sucesso — banco completo)
         uses: actions/cache/save@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
