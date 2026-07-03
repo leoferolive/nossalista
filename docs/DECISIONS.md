@@ -762,12 +762,16 @@
   `PkceValidatorTest`, `McpOAuthClientRegistryTest` (inclui a regra de
   loopback) e `McpOAuthJwtServiceTest` (fail-fast da chave, expiracao,
   audience, chave errada) isolados. Suite completa do backend: **651 testes,
-  0 falhas** (`./mvnw clean test`, verificado com `clean` explicito, executado
-  duas vezes para confirmar estabilidade — nao usar numeros de execucoes
-  parciais/incrementais, que podem sub-contar suites). Frontend:
-  `OAuthConsent.test.tsx` (novo) e `Connections.test.tsx` (ampliado com a
-  secao OAuth) — suite completa 494 testes/51 arquivos, 0 falhas
-  (`npx vitest run`).
+  0 falhas** (`./mvnw clean test`, com `clean` explicito). Numero
+  contra-verificado contando os elementos `<testcase>` nos XML do Surefire
+  (`grep -o "<testcase " target/surefire-reports/*.xml | wc -l` = 651,
+  identico ao total agregado do Maven) — a linha "Tests run" do `.txt`/stdout
+  de uma classe isolada pode reportar 0 para classes com metodos
+  `@ParameterizedTest`/`@Nested`, o que já gerou contagem incorreta numa
+  medicao anterior; contar os `<testcase>` do XML é o metodo confiavel.
+  Frontend: `OAuthConsent.test.tsx` (novo) e `Connections.test.tsx`
+  (ampliado com a secao OAuth) — suite completa 494 testes/51 arquivos,
+  0 falhas (`npx vitest run`).
 
 - **Novas variaveis de ambiente:** `MCP_OAUTH_SIGNING_KEY` (obrigatoria,
   fail-fast, >= 32 bytes, DIFERENTE de `JWT_SECRET`), `MCP_OAUTH_ISSUER` e
