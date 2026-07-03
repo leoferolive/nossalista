@@ -46,7 +46,7 @@ jobs:
       # Restaura o banco mais recente (match por prefixo) para que o update seja
       # INCREMENTAL, e não um rebuild dos 363k registros a cada noite.
       - name: Restaurar cache NVD anterior
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -74,7 +74,7 @@ jobs:
       # Chave por-run (cache é imutável — evita colisão de 2 runs no mesmo dia); as PRs
       # herdam por prefixo nvd-db-<os>-.
       - name: Salvar cache NVD (somente em sucesso — banco completo)
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}-${{ github.run_id }}-${{ github.run_attempt }}
