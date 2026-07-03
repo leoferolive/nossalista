@@ -16,6 +16,7 @@ import { ListView } from './pages/ListView.tsx'
 import { JoinListPage } from './pages/JoinListPage.tsx'
 import { Profile } from './pages/Profile.tsx'
 import { Connections } from './pages/Connections.tsx'
+import { OAuthConsent } from './pages/OAuthConsent.tsx'
 import { LegacyLoginRedirect } from './pages/LegacyLoginRedirect.tsx'
 import { Register } from './pages/Register.tsx'
 import { ForgotPassword } from './pages/ForgotPassword.tsx'
@@ -90,6 +91,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Connections />
+          </ProtectedRoute>
+        }
+      />
+      {/* Consentimento OAuth 2.1 do servidor MCP (claude.ai, Claude Code) — ver docs/mcp.md */}
+      <Route
+        path="/oauth/consent"
+        element={
+          <ProtectedRoute>
+            <OAuthConsent />
           </ProtectedRoute>
         }
       />

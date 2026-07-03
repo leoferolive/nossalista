@@ -6,11 +6,20 @@ import { ThemeProvider } from '../contexts/ThemeContext'
 import { ToastProvider } from '../contexts/ToastContext'
 import { tokensApi } from '../api/tokensApi'
 import type { PersonalAccessToken, PersonalAccessTokenCreated } from '../api/tokensApi'
+import { oauthConnectionsApi } from '../api/oauthConnectionsApi'
+import type { OAuthConnection } from '../api/oauthConnectionsApi'
 
 vi.mock('../api/tokensApi', () => ({
   tokensApi: {
     list: vi.fn(),
     create: vi.fn(),
+    revoke: vi.fn(),
+  },
+}))
+
+vi.mock('../api/oauthConnectionsApi', () => ({
+  oauthConnectionsApi: {
+    list: vi.fn(),
     revoke: vi.fn(),
   },
 }))
@@ -50,10 +59,19 @@ const existingToken: PersonalAccessToken = {
   createdAt: '2026-01-01T00:00:00.000Z',
 }
 
+const existingConnection: OAuthConnection = {
+  clientId: 'claude-ai',
+  clientName: 'Claude (claude.ai)',
+  scope: 'READ_WRITE',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  lastUsedAt: '2026-01-02T00:00:00.000Z',
+}
+
 describe('Connections', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ;(tokensApi.list as any).mockResolvedValue([existingToken])
+    ;(oauthConnectionsApi.list as any).mockResolvedValue([existingConnection])
   })
 
   afterEach(() => {
@@ -136,6 +154,42 @@ describe('Connections', () => {
     })
     await waitFor(() => {
       expect(screen.queryByText('Claude Desktop')).not.toBeInTheDocument()
+    })
+  })
+
+  it('carrega e exibe os assistentes conectados via OAuth', async () => {
+    renderConnections()
+
+    await waitFor(() => {
+      expect(screen.getByText('Claude (claude.ai)')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Leitura e escrita')).toBeInTheDocument()
+  })
+
+  it('exibe estado vazio quando não há conexões OAuth', async () => {
+    ;(oauthConnectionsApi.list as any).mockResolvedValue([])
+    renderConnections()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Nenhum assistente conectado via OAuth/)).toBeInTheDocument()
+    })
+  })
+
+  it('desconecta um assistente OAuth após confirmação', async () => {
+    ;(oauthConnectionsApi.revoke as any).mockResolvedValue(undefined)
+    renderConnections()
+
+    await waitFor(() => expect(screen.getByText('Claude (claude.ai)')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByLabelText('Desconectar Claude (claude.ai)'))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByText('Desconectar'))
+
+    await waitFor(() => {
+      expect(oauthConnectionsApi.revoke).toHaveBeenCalledWith('claude-ai')
+    })
+    await waitFor(() => {
+      expect(screen.queryByText('Claude (claude.ai)')).not.toBeInTheDocument()
     })
   })
 })
