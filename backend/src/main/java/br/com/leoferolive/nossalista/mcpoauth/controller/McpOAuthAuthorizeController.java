@@ -140,16 +140,39 @@ public class McpOAuthAuthorizeController {
         httpResponse.sendRedirect(consentUrl);
     }
 
+    /**
+     * {@code scope} e uma lista separada por espaco(s), nao um valor atomico
+     * (RFC 6749 §3.3) — e assim que o claude.ai efetivamente envia
+     * ({@code scope=read read_write}). {@code read_write} e o superset de
+     * {@code read}; o escopo EFETIVO concedido e sempre o mais amplo entre os
+     * tokens pedidos, independente da ordem (nunca escala alem do que foi
+     * pedido). Qualquer token desconhecido invalida o pedido inteiro.
+     *
+     * @return o escopo efetivo, ou {@code null} se algum token for desconhecido
+     *         ou se nao houver nenhum token valido (scope nulo/vazio/so espacos)
+     */
     private TokenScope parseScope(String scopeParam) {
         if (scopeParam == null) {
             return null;
         }
-        String normalized = scopeParam.trim().toLowerCase(Locale.ROOT);
-        return switch (normalized) {
-            case "read" -> TokenScope.READ;
-            case "read_write" -> TokenScope.READ_WRITE;
-            default -> null;
-        };
+        TokenScope effective = null;
+        for (String token : scopeParam.trim().split("\\s+")) {
+            if (token.isBlank()) {
+                continue;
+            }
+            TokenScope parsed = switch (token.toLowerCase(Locale.ROOT)) {
+                case "read" -> TokenScope.READ;
+                case "read_write" -> TokenScope.READ_WRITE;
+                default -> null;
+            };
+            if (parsed == null) {
+                return null;
+            }
+            if (parsed == TokenScope.READ_WRITE || effective == null) {
+                effective = parsed;
+            }
+        }
+        return effective;
     }
 
     private void redirectWithError(
