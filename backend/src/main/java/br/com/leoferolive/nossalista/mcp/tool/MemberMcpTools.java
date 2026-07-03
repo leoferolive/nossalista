@@ -11,6 +11,7 @@ import br.com.leoferolive.nossalista.mcp.dto.MemberSummary;
 import br.com.leoferolive.nossalista.mcp.dto.RemoveMemberResult;
 import br.com.leoferolive.nossalista.mcp.dto.ShareListResult;
 import br.com.leoferolive.nossalista.mcp.interceptor.McpMutationRateLimiter;
+import br.com.leoferolive.nossalista.mcp.interceptor.McpToolMetrics;
 import br.com.leoferolive.nossalista.mcp.security.McpSecurityContext;
 import br.com.leoferolive.nossalista.mcp.support.McpIds;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -34,6 +35,7 @@ public class MemberMcpTools {
     private final MemberService memberService;
     private final McpSecurityContext security;
     private final McpMutationRateLimiter mutationRateLimiter;
+    private final McpToolMetrics metrics;
 
     @Value("${frontend.url}")
     private String frontendBaseUrl;
@@ -42,12 +44,14 @@ public class MemberMcpTools {
         ListService listService,
         MemberService memberService,
         McpSecurityContext security,
-        McpMutationRateLimiter mutationRateLimiter
+        McpMutationRateLimiter mutationRateLimiter,
+        McpToolMetrics metrics
     ) {
         this.listService = listService;
         this.memberService = memberService;
         this.security = security;
         this.mutationRateLimiter = mutationRateLimiter;
+        this.metrics = metrics;
     }
 
     @McpTool(
@@ -65,18 +69,20 @@ public class MemberMcpTools {
         @McpToolParam(required = false, description = "Username to invite. Required when mode=\"username\".")
         String username
     ) {
-        User user = security.currentUser();
-        security.requireWriteAccess();
-        mutationRateLimiter.enforce();
+        return metrics.record("share_list", () -> {
+            User user = security.currentUser();
+            security.requireWriteAccess();
+            mutationRateLimiter.enforce();
 
-        UUID id = McpIds.parseUuid(listId, "listId");
-        if ("username".equalsIgnoreCase(mode)) {
-            return shareByUsername(id, username, user);
-        }
-        if ("link".equalsIgnoreCase(mode)) {
-            return shareByLink(id, user);
-        }
-        throw new InvalidInputException("Invalid mode: \"" + mode + "\". Use \"username\" or \"link\"");
+            UUID id = McpIds.parseUuid(listId, "listId");
+            if ("username".equalsIgnoreCase(mode)) {
+                return shareByUsername(id, username, user);
+            }
+            if ("link".equalsIgnoreCase(mode)) {
+                return shareByLink(id, user);
+            }
+            throw new InvalidInputException("Invalid mode: \"" + mode + "\". Use \"username\" or \"link\"");
+        });
     }
 
     @McpTool(
@@ -88,13 +94,15 @@ public class MemberMcpTools {
         @McpToolParam(description = "UUID of the list.")
         String listId
     ) {
-        User user = security.currentUser();
-        UUID id = McpIds.parseUuid(listId, "listId");
+        return metrics.record("list_members", () -> {
+            User user = security.currentUser();
+            UUID id = McpIds.parseUuid(listId, "listId");
 
-        List<MemberSummary> members = memberService.getMembers(id, user.getId()).stream()
-            .map(this::toMemberSummary)
-            .toList();
-        return new ListMembersResult(members);
+            List<MemberSummary> members = memberService.getMembers(id, user.getId()).stream()
+                .map(this::toMemberSummary)
+                .toList();
+            return new ListMembersResult(members);
+        });
     }
 
     @McpTool(
@@ -111,19 +119,21 @@ public class MemberMcpTools {
         @McpToolParam(description = "UUID of the user to remove.")
         String userId
     ) {
-        User user = security.currentUser();
-        security.requireWriteAccess();
-        mutationRateLimiter.enforce();
+        return metrics.record("remove_member", () -> {
+            User user = security.currentUser();
+            security.requireWriteAccess();
+            mutationRateLimiter.enforce();
 
-        UUID id = McpIds.parseUuid(listId, "listId");
-        UUID targetUserId = McpIds.parseUuid(userId, "userId");
+            UUID id = McpIds.parseUuid(listId, "listId");
+            UUID targetUserId = McpIds.parseUuid(userId, "userId");
 
-        if (targetUserId.equals(user.getId())) {
-            memberService.leaveList(id, user.getId());
-            return new RemoveMemberResult(targetUserId.toString(), "LEFT");
-        }
-        memberService.removeMember(id, user.getId(), targetUserId);
-        return new RemoveMemberResult(targetUserId.toString(), "REMOVED");
+            if (targetUserId.equals(user.getId())) {
+                memberService.leaveList(id, user.getId());
+                return new RemoveMemberResult(targetUserId.toString(), "LEFT");
+            }
+            memberService.removeMember(id, user.getId(), targetUserId);
+            return new RemoveMemberResult(targetUserId.toString(), "REMOVED");
+        });
     }
 
     private ShareListResult shareByUsername(UUID listId, String username, User user) {

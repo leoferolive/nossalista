@@ -18,6 +18,7 @@ import br.com.leoferolive.nossalista.mcp.dto.ListSummary;
 import br.com.leoferolive.nossalista.mcp.dto.OwnerSummary;
 import br.com.leoferolive.nossalista.mcp.dto.RenameListResult;
 import br.com.leoferolive.nossalista.mcp.interceptor.McpMutationRateLimiter;
+import br.com.leoferolive.nossalista.mcp.interceptor.McpToolMetrics;
 import br.com.leoferolive.nossalista.mcp.security.McpSecurityContext;
 import br.com.leoferolive.nossalista.mcp.support.DtoValidator;
 import br.com.leoferolive.nossalista.mcp.support.ListNameResolver;
@@ -53,6 +54,7 @@ public class ListMcpTools {
     private final DtoValidator validator;
     private final ListNameResolver listNameResolver;
     private final McpMutationRateLimiter mutationRateLimiter;
+    private final McpToolMetrics metrics;
 
     public ListMcpTools(
         ListService listService,
@@ -61,7 +63,8 @@ public class ListMcpTools {
         McpSecurityContext security,
         DtoValidator validator,
         ListNameResolver listNameResolver,
-        McpMutationRateLimiter mutationRateLimiter
+        McpMutationRateLimiter mutationRateLimiter,
+        McpToolMetrics metrics
     ) {
         this.listService = listService;
         this.listItemService = listItemService;
@@ -70,6 +73,7 @@ public class ListMcpTools {
         this.validator = validator;
         this.listNameResolver = listNameResolver;
         this.mutationRateLimiter = mutationRateLimiter;
+        this.metrics = metrics;
     }
 
     @McpTool(
@@ -80,14 +84,16 @@ public class ListMcpTools {
         generateOutputSchema = true
     )
     public ListMyListsResult listMyLists() {
-        User user = security.currentUser();
-        List<SharedList> lists = listService.getAllListsForUser(user.getId());
-        Map<UUID, Integer> counts = countItems(lists);
+        return metrics.record("list_my_lists", () -> {
+            User user = security.currentUser();
+            List<SharedList> lists = listService.getAllListsForUser(user.getId());
+            Map<UUID, Integer> counts = countItems(lists);
 
-        List<ListSummary> summaries = lists.stream()
-            .map(list -> toSummary(list, user.getId(), counts.getOrDefault(list.getId(), 0)))
-            .toList();
-        return new ListMyListsResult(summaries, summaries.size());
+            List<ListSummary> summaries = lists.stream()
+                .map(list -> toSummary(list, user.getId(), counts.getOrDefault(list.getId(), 0)))
+                .toList();
+            return new ListMyListsResult(summaries, summaries.size());
+        });
     }
 
     @McpTool(
@@ -112,20 +118,22 @@ public class ListMcpTools {
             + "results (default 0).")
         Integer offset
     ) {
-        User user = security.currentUser();
-        SharedList list = listNameResolver.resolve(listId, name, user.getId());
-        List<ListItemResponseDTO> allItems = listItemService.getItemsByListId(list.getId(), user);
-        List<ItemSummary> page = paginate(allItems, offset, limit);
+        return metrics.record("get_list", () -> {
+            User user = security.currentUser();
+            SharedList list = listNameResolver.resolve(listId, name, user.getId());
+            List<ListItemResponseDTO> allItems = listItemService.getItemsByListId(list.getId(), user);
+            List<ItemSummary> page = paginate(allItems, offset, limit);
 
-        return new GetListResult(
-            list.getId().toString(),
-            list.getName(),
-            typeName(list),
-            list.getOwner().getId().equals(user.getId()),
-            toOwnerSummary(list),
-            allItems.size(),
-            page
-        );
+            return new GetListResult(
+                list.getId().toString(),
+                list.getName(),
+                typeName(list),
+                list.getOwner().getId().equals(user.getId()),
+                toOwnerSummary(list),
+                allItems.size(),
+                page
+            );
+        });
     }
 
     @McpTool(
@@ -140,15 +148,18 @@ public class ListMcpTools {
         @McpToolParam(description = "Type of list: SHOPPING, TASK, WISHLIST or GENERIC.")
         String type
     ) {
-        User user = security.currentUser();
-        security.requireWriteAccess();
-        mutationRateLimiter.enforce();
+        return metrics.record("create_list", () -> {
+            User user = security.currentUser();
+            security.requireWriteAccess();
+            mutationRateLimiter.enforce();
 
-        CreateListRequest request = new CreateListRequest(name, resolveTypeId(type));
-        validator.validate(request);
-        SharedList list = listService.createList(request, user);
+            CreateListRequest request = new CreateListRequest(name, resolveTypeId(type));
+            validator.validate(request);
+            SharedList list = listService.createList(request, user);
 
-        return new CreateListResult(list.getId().toString(), list.getName(), typeName(list), list.getInviteCode());
+            return new CreateListResult(
+                list.getId().toString(), list.getName(), typeName(list), list.getInviteCode());
+        });
     }
 
     @McpTool(
@@ -162,15 +173,18 @@ public class ListMcpTools {
         @McpToolParam(description = "New name for the list, 3-100 characters.")
         String name
     ) {
-        User user = security.currentUser();
-        security.requireWriteAccess();
-        mutationRateLimiter.enforce();
+        return metrics.record("rename_list", () -> {
+            User user = security.currentUser();
+            security.requireWriteAccess();
+            mutationRateLimiter.enforce();
 
-        UpdateListNameRequest request = new UpdateListNameRequest(name);
-        validator.validate(request);
-        SharedList updated = listService.updateListName(McpIds.parseUuid(listId, "listId"), user.getId(), request);
+            UpdateListNameRequest request = new UpdateListNameRequest(name);
+            validator.validate(request);
+            SharedList updated =
+                listService.updateListName(McpIds.parseUuid(listId, "listId"), user.getId(), request);
 
-        return new RenameListResult(updated.getId().toString(), updated.getName());
+            return new RenameListResult(updated.getId().toString(), updated.getName());
+        });
     }
 
     @McpTool(
@@ -184,13 +198,15 @@ public class ListMcpTools {
         @McpToolParam(description = "UUID of the list to delete.")
         String listId
     ) {
-        User user = security.currentUser();
-        security.requireWriteAccess();
-        mutationRateLimiter.enforce();
+        return metrics.record("delete_list", () -> {
+            User user = security.currentUser();
+            security.requireWriteAccess();
+            mutationRateLimiter.enforce();
 
-        UUID id = McpIds.parseUuid(listId, "listId");
-        listService.deleteList(id, user.getId());
-        return new DeleteListResult(listId, true);
+            UUID id = McpIds.parseUuid(listId, "listId");
+            listService.deleteList(id, user.getId());
+            return new DeleteListResult(listId, true);
+        });
     }
 
     private Integer resolveTypeId(String type) {
