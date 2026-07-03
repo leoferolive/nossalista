@@ -277,6 +277,12 @@ public class McpOAuthTokenService {
     }
 
     private TokenResponse issueTokenPair(UUID userId, String clientId, TokenScope scope, String resource, UUID familyId) {
+        // "usado" (Fase C.1, D-024; movido para cá pelo achado I-1 do review): só a
+        // troca code->token ou refresh->token — nunca GET /oauth/authorize, que é
+        // público e não prova posse nenhuma — marca um client_id DINÂMICO como
+        // usado. Ver Javadoc de McpOAuthClientRegistry#touchIfDynamic.
+        clientRegistry.touchIfDynamic(clientId);
+
         String accessToken = jwtService.issueAccessToken(userId, clientId, scope, resource);
 
         String rawRefreshSecret = generateRefreshTokenSecret();

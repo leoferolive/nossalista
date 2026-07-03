@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.mcpoauth.web;
 
+import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthClientRegistrationException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthConsentForbiddenException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthInvalidRedirectUriException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthTokenException;
@@ -11,6 +12,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -38,6 +40,8 @@ import java.util.Map;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class McpOAuthExceptionHandler {
 
+    private static final String REGISTER_PATH = "/oauth/register";
+
     /**
      * Erros de {@code POST /oauth/token} e {@code POST /oauth/revoke} — corpo
      * no formato OAuth padrão, consumido por SDKs de cliente OAuth genéricos.
@@ -46,6 +50,46 @@ public class McpOAuthExceptionHandler {
     public ResponseEntity<Map<String, String>> handleOAuthTokenException(OAuthTokenException ex) {
         return ResponseEntity.status(ex.getStatus())
             .body(Map.of("error", ex.getErrorCode(), "error_description", ex.getMessage()));
+    }
+
+    /**
+     * Erros de {@code POST /oauth/register} (Dynamic Client Registration, RFC
+     * 7591 §3.2.2) — mesmo formato de corpo de {@link OAuthTokenException}.
+     */
+    @ExceptionHandler(OAuthClientRegistrationException.class)
+    public ResponseEntity<Map<String, String>> handleClientRegistrationException(OAuthClientRegistrationException ex) {
+        return ResponseEntity.status(ex.getStatus())
+            .body(Map.of("error", ex.getErrorCode(), "error_description", ex.getMessage()));
+    }
+
+    /**
+     * Corpo JSON mal-formado ou com um campo de tipo errado (ex.: {@code redirect_uris}
+     * como string em vez de array) em {@code POST /oauth/register} — achado do QA:
+     * sem este handler, caía no catch-all de {@code Exception} do
+     * {@code GlobalExceptionHandler} e virava um 500 genérico em vez de um 400
+     * tratado.
+     *
+     * <p>Este bean não é escopado por controller/pacote (é o mesmo padrão dos
+     * demais handlers da classe), então esta declaração de
+     * {@code @ExceptionHandler(HttpMessageNotReadableException.class)} passa a
+     * ser a mais ESPECÍFICA para esse tipo em toda a aplicação — mais específica
+     * que o catch-all de {@code Exception} do {@code GlobalExceptionHandler}
+     * (que não tem handler dedicado para esse tipo), então venceria de qualquer
+     * forma. Por isso o corpo da resposta é decidido EXPLICITAMENTE por rota:
+     * formato OAuth (RFC 7591 §3.2.2) só em {@code /oauth/register}; para
+     * qualquer outro endpoint, um {@code ProblemDetail} 400 genérico — mesma
+     * melhoria (400 em vez do 500 de antes), mas sem impor um código de erro
+     * OAuth a um endpoint que não é OAuth.</p>
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<?> handleMessageNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        if (REGISTER_PATH.equals(request.getRequestURI())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", "invalid_client_metadata", "error_description", "Malformed JSON request body."));
+        }
+        return problem(
+            HttpStatus.BAD_REQUEST, "Malformed request body.", "malformed-request-body",
+            "Corpo da requisição inválido", request);
     }
 
     /**

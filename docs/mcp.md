@@ -34,16 +34,28 @@ vale **apenas** para `/mcp` — nunca para `/api/**` (a API REST do SPA).
 ## Conectando via OAuth (claude.ai, Claude Code)
 
 O servidor implementa um servidor de autorizacao OAuth 2.1 embutido (Authorization Code +
-PKCE, S256 obrigatorio) com clientes registrados estaticamente — sem exigir Dynamic Client
-Registration. Ver o design completo e as fontes da pesquisa em `docs/DECISIONS.md` (D-022).
+PKCE, S256 obrigatorio). Ver o design completo e as fontes da pesquisa em
+`docs/DECISIONS.md` (D-022 e D-024).
+
+Dois caminhos de credencial coexistem:
+
+- **Dynamic Client Registration (DCR, RFC 7591)** — `POST /oauth/register`, publico e
+  endurecido (rate limit por IP, validacao de `redirect_uris`, teto de clientes). E o que o
+  botao **"Add connector"** do claude.ai usa automaticamente — nenhuma configuracao manual
+  necessaria. Ver `docs/DECISIONS.md` (D-024).
+- **Clientes estaticos** (`claude-ai`, `claude-code`) — continuam funcionando como fallback,
+  para quem prefere um `client_id` fixo e auditavel em vez de um gerado dinamicamente.
 
 ### claude.ai (web e app mobile)
 
 1. Em claude.ai, va em **Settings → Connectors → Add connector**.
 2. URL do servidor: `https://nossalista.leoferolive.com.br/mcp`.
-3. Em **Advanced settings**, informe o **OAuth Client ID**: `claude-ai` (nenhum
-   client secret e necessario — e um cliente publico PKCE-only).
-4. O claude.ai descobre os endpoints via `/.well-known/oauth-authorization-server` e
+3. Nao e preciso preencher nada em **Advanced settings**: o claude.ai registra um cliente
+   dinamicamente via `POST /oauth/register` automaticamente. (Alternativa: informar o OAuth
+   Client ID estatico `claude-ai` — nenhum client secret e necessario em nenhum dos dois
+   casos, sao sempre clientes publicos PKCE-only.)
+4. O claude.ai descobre os endpoints via `/.well-known/oauth-authorization-server` (que
+   anuncia `registration_endpoint` quando DCR esta habilitado) e
    `/.well-known/oauth-protected-resource`, inicia o fluxo, e voce e redirecionado para
    fazer login no NossaLista (se ainda nao estiver) e depois para a tela de consentimento,
    onde escolhe o escopo (leitura ou leitura/escrita) e aprova.
