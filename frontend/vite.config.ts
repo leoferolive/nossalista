@@ -26,7 +26,11 @@ export default defineConfig(({ mode }) => {
           display: 'standalone',
           theme_color: '#14101e',
           background_color: '#14101e',
-          icons: [{ src: '/favicon.ico', sizes: '64x64', type: 'image/x-icon' }],
+          icons: [
+            { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: '/maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          ],
         },
         injectManifest: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
