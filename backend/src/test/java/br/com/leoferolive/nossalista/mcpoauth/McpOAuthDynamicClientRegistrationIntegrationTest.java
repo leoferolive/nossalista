@@ -400,6 +400,10 @@ class McpOAuthDynamicClientRegistrationIntegrationTest {
         String location = authorizeResponse.getHeaders().getLocation().toString();
         UUID requestId = UUID.fromString(location.substring(location.indexOf("request_id=") + "request_id=".length()));
 
+        // Achado do review (I-1): GET /oauth/authorize sozinho NUNCA marca "usado" —
+        // só a troca code->token, mais abaixo, faz isso.
+        assertThat(registeredClientRepository.findByClientId(clientId).orElseThrow().getLastUsedAt()).isNull();
+
         String sessionJwt = sessionJwt(user);
         PendingAuthorizationView view = restClient.get()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId)
@@ -427,6 +431,30 @@ class McpOAuthDynamicClientRegistrationIntegrationTest {
         McpSyncClient mcpClient = connectedMcpClient(tokens.get("access_token"));
         CallToolResult listResult = mcpClient.callTool(CallToolRequest.builder("list_my_lists").arguments(Map.of()).build());
         assertThat(listResult.isError()).isNotEqualTo(Boolean.TRUE);
+    }
+
+    @Test
+    @DisplayName("achado do review (I-1): GET /oauth/authorize repetido, sem nunca completar o fluxo, NÃO imuniza o client contra o cleanup")
+    void repeatedAuthorizeWithoutCompletingFlowNeverMarksClientAsUsed() {
+        // PoC do ataque: um client dinâmico registrado (o próprio atacante), sem
+        // NENHUMA credencial de sessão, chama /oauth/authorize repetidamente —
+        // isso sozinho não deveria conseguir "imunizar" o client contra
+        // McpOAuthCleanupScheduler (que só remove last_used_at IS NULL).
+        String redirectUri = "http://127.0.0.1:58424/callback";
+        ClientRegistrationResponse registration = register(Map.of("redirect_uris", List.of(redirectUri)));
+        String clientId = registration.clientId();
+
+        for (int i = 0; i < 5; i++) {
+            Pkce pkce = newPkce();
+            URI uri = authorizeUri(clientId, redirectUri, "read", "state-" + i, pkce.challenge(), "S256",
+                properties.getResource());
+            ResponseEntity<Void> response = callAuthorize(uri);
+            assertThat(response.getStatusCode().value()).isEqualTo(302);
+        }
+
+        assertThat(registeredClientRepository.findByClientId(clientId).orElseThrow().getLastUsedAt())
+            .as("last_used_at deve continuar NULL — o client permanece elegível para a varredura de limpeza")
+            .isNull();
     }
 
     @Test

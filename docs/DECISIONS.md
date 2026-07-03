@@ -991,6 +991,15 @@
   `{authorization_code, refresh_token}` e rejeitado (`invalid_client_metadata`); `response_types`
   e sempre `["code"]` na resposta (nao persistido — este servidor so implementa Authorization
   Code + PKCE).
+  - **`client_id_issued_at` UTC-safe (achado do review, M-3):** e um Unix timestamp (instante
+    absoluto), mas `createdAt` e um `LocalDateTime` de parede (mesmo padrao do resto do modulo,
+    ex. `McpOAuthCode`/`PendingAuthorization`), capturado no fuso REAL da JVM — nunca
+    necessariamente UTC. A primeira versao convertia com `toEpochSecond(ZoneOffset.UTC)`, que
+    reinterpreta essa hora de parede COMO SE ja fosse UTC — produz o epoch ERRADO (deslocado
+    pelo offset do fuso real) sempre que a JVM nao roda com `TZ=UTC` (nao ha `TZ=UTC` fixado em
+    Dockerfile/k8s neste projeto). Corrigido com `createdAt.atZone(ZoneId.systemDefault())
+    .toEpochSecond()` em `ClientRegistrationResponse.from`, que converte a partir do fuso em que
+    o valor foi de fato capturado.
 
 - **Persistencia:** nova tabela `mcp_oauth_registered_clients` (migration V14) —
   `client_id UNIQUE`, `redirect_uris`/`grant_types` como texto delimitado (uma URI por linha /
@@ -1007,33 +1016,41 @@
   `McpOAuthProperties.ClientDefinition` ja usado pelos clientes estaticos — zero mudanca de
   assinatura em `McpOAuthAuthorizeController`, `McpOAuthTokenService`,
   `McpOAuthAuthorizationService` ou `McpOAuthConnectionService`. `find()`/`require()` consultam
-  primeiro os estaticos (precedencia por id), depois o banco. `require()` tambem marca
-  `last_used_at` do cliente dinamico a cada resolucao bem-sucedida (usado tanto em
-  `/oauth/authorize` quanto em `/oauth/token`).
+  primeiro os estaticos (precedencia por id), depois o banco — leitura pura, sem efeito colateral.
   - **Match de `redirect_uri` para clientes dinamicos e sempre EXATO**, sem a excecao de porta
     variavel do RFC 8252 §7.3 que os clientes ESTATICOS loopback (`claude-code`) tem: o
     hardening do registro ja exige porta EXPLICITA em `redirect_uris` loopback, e o fluxo tipico
     de um cliente DCR e registrar-se e usar o `client_id` retornado NA MESMA sessao (a porta
     real ja e conhecida no momento do registro) — diferente do caso estatico pre-configurado,
     onde o `client_id` e fixo entre sessoes mas a porta varia a cada conexao.
-  - **Achado de concorrencia/transacao (bloqueio do desenvolvimento, corrigido antes do commit):**
-    a primeira versao de `require()` nao tinha `@Transactional` proprio — quebrou com
-    `TransactionRequiredException` ao resolver um cliente dinamico a partir de
-    `McpOAuthAuthorizeController#authorize` (sem transacao ativa nenhuma, e `touchLastUsedAt` e
-    um `@Modifying @Query` que EXIGE uma). Adicionar `@Transactional` simples resolveu isso mas
-    quebrou um teste PRE-EXISTENTE (`tokenRejectsUnknownClientWithOAuthErrorFormat`) com
-    `UnexpectedRollbackException`: quando `require()` e chamado de DENTRO da transacao de
-    `McpOAuthTokenService#exchangeAuthorizationCode` (que tem
-    `noRollbackFor = OAuthTokenException.class`) e lanca `OAuthUnknownClientException`, o PROPRIO
-    advice transacional de `require()` marca a transacao (compartilhada, por participar dela)
-    como rollback-only — mesmo o chamador capturando essa excecao e convertendo para
-    `OAuthTokenException` (coberta pelo `noRollbackFor` de la), o commit final falha porque a
-    flag ja foi setada por `require()`. Fix: `@Transactional(noRollbackFor = OAuthUnknownClientException.class)`
-    em `require()` — garante uma transacao ativa (resolve o primeiro problema) sem propagar a
-    marca de rollback-only para um `OAuthUnknownClientException` que sera tratado a seguir pelo
-    chamador (resolve o segundo). Fechado com um teste de regressao ponta-a-ponta cobrindo o
-    fluxo completo (registrar -> authorize -> consent -> token -> chamada `/mcp` real) alem do
-    caso de client_id desconhecido que ja existia.
+  - **`last_used_at` marcado SO na troca code->token, NUNCA em `GET /oauth/authorize` (achado
+    do review, I-1 — DoS que anulava o TTL):** a primeira versao marcava "usado" dentro de
+    `require()`, disparado tanto pelo authorize quanto pelo token. Mas `GET /oauth/authorize` e
+    PUBLICO e nao exige NENHUMA prova de posse (nem consentimento ainda) — um atacante
+    nao-autenticado podia registrar um cliente DCR e imediatamente chamar authorize com o
+    `client_id` dele mesmo (sem nunca completar o fluxo), "imunizando" esse cliente contra
+    `McpOAuthCleanupScheduler` (que so remove `last_used_at IS NULL`). Repetindo isso ate encher
+    `app.mcp-oauth.dcr.max-registered-clients`, o atacante criava clientes-zumbi que o cleanup
+    NUNCA removeria, bloqueando `/oauth/register` (`503`) indefinidamente para clientes
+    legitimos — o TTL curto de 24h (ver hardening abaixo) nao ajudava em nada porque os clientes
+    nunca ficavam elegiveis para a varredura. Fix: a marcacao foi movida para
+    `McpOAuthTokenService#issueTokenPair` — chamado SO apos a troca completa e bem-sucedida do
+    `code`+`code_verifier` (PKCE) por tokens, ou de um refresh token valido — provas reais de
+    posse, nao uma chamada anonima. `McpOAuthClientRegistry.touchIfDynamic(clientId)` substitui
+    a logica que antes vivia dentro de `require()`.
+    - Como consequencia direta, `require()` deixou de precisar de `@Transactional` (nao ha mais
+      nenhum `@Modifying` disparado ali) — o `@Transactional(noRollbackFor =
+      OAuthUnknownClientException.class)` de uma iteracao anterior (necessario so por causa do
+      `touchLastUsedAt` que rodava dentro de `require()`, e do bug de `UnexpectedRollbackException`
+      que isso causava quando `require()` era chamado de dentro da transacao de
+      `McpOAuthTokenService#exchangeAuthorizationCode`) foi removido junto — `require()`/`find()`
+      voltaram a ser leituras simples, sem efeito colateral nem necessidade de demarcacao
+      transacional propria.
+    - Teste de regressao dedicado: um `GET /oauth/authorize` com um `client_id` dinamico NAO seta
+      `last_used_at` (o cliente continua elegivel para o cleanup); so um fluxo completo ate
+      `/oauth/token` marca como usado. O teste E2E existente (registrar -> authorize -> consent
+      -> token -> chamada `/mcp` real) continua passando e agora tambem afirma
+      `last_used_at != null` SO depois do `/oauth/token`.
 
 - **Hardening (RFC 7591 §5 e alem, decisao deliberada de nao seguir a RFC "aberta" ao pe da
   letra):**
@@ -1089,6 +1106,15 @@
     verifica o path da requisicao antes de escolher o formato — nao faz sentido impor um codigo
     de erro OAuth a um endpoint que nao e OAuth, mesmo esse handler sendo, por especificidade de
     tipo, o unico candidato para essa excecao em toda a aplicacao).
+    - **Mudanca de contrato app-wide, intencional (nota do review, M-1):** por essa mesma
+      especificidade, este handler passa a valer para `HttpMessageNotReadableException` em
+      QUALQUER endpoint da aplicacao, nao so `/oauth/register` — um corpo mal-formado em
+      `/api/lists`, por exemplo, agora responde `400 ProblemDetail` em vez do `500` generico de
+      antes. Decisao deliberada de manter global (em vez de escopar o handler só ao controller
+      de registro): e uma melhoria estrita (400 correto em vez de 500) em toda a API, nenhum
+      teste pre-existente assumia o 500 como comportamento esperado, e um handler
+      dedicado/escopado so para este caso duplicaria logica sem ganho real. Registrado aqui por
+      ser uma mudanca de contrato que nao nasceu do escopo original desta fase (DCR).
   - **Guards de tamanho em `client_name`/`scope` (achado do QA):** nenhuma validacao de tamanho
     antes do `repository.save()` permitia um `client_name`/`scope` maior que a coluna
     (VARCHAR(200)/VARCHAR(50), migration V14) estourar `DataIntegrityViolationException` — 500

@@ -16,10 +16,13 @@
 -- ou coluna JSON — a cardinalidade e pequena (poucas URIs por cliente) e o
 -- projeto nao usa colunas JSON em nenhuma outra tabela (achado do design).
 --
--- last_used_at NULL identifica um cliente que nunca completou o fluxo
--- authorize->token: varrido por McpOAuthCleanupScheduler apos N dias sem uso
--- (app.mcp-oauth.dcr.unused-client-ttl, default 30d) para nao acumular
--- registros de clientes que nunca voltaram a se conectar. expires_at fica
+-- last_used_at NULL identifica um cliente que nunca completou a troca
+-- code->token (ou refresh->token) — NUNCA setado em GET /oauth/authorize,
+-- publico e sem prova de posse (achado do review, I-1: setar no authorize
+-- permitia a um atacante nao-autenticado imunizar clientes-zumbi contra esta
+-- varredura). Varrido por McpOAuthCleanupScheduler apos tempo sem uso
+-- (app.mcp-oauth.dcr.unused-client-ttl, default 24h) para nao acumular
+-- registros de clientes que nunca completaram um fluxo. expires_at fica
 -- disponivel para uma TTL rigida futura, mas nao e preenchido nesta fase.
 CREATE TABLE mcp_oauth_registered_clients (
     id UUID PRIMARY KEY,

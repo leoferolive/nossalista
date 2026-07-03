@@ -7,7 +7,6 @@ import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthInvalidRedirectUriE
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthUnknownClientException;
 import br.com.leoferolive.nossalista.mcpoauth.repository.McpOAuthRegisteredClientRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -56,34 +55,8 @@ public class McpOAuthClientRegistry {
      * @return a definição do cliente
      * @throws OAuthUnknownClientException se o {@code client_id} não estiver registrado
      */
-    // @Transactional é NECESSÁRIO aqui: touchLastUsedAt (@Modifying) exige uma
-    // transação ATIVA, e chamadores como McpOAuthAuthorizeController#authorize
-    // não abrem nenhuma. noRollbackFor(OAuthUnknownClientException) evita um
-    // segundo problema (achado deste bloqueio): SEM essa exclusão, um client_id
-    // desconhecido, ao lançar essa exceção de dentro do advice transacional
-    // deste método, marca a transação como rollback-only — mesmo quando este
-    // método está PARTICIPANDO da transação de um chamador já-transacional
-    // (ex.: McpOAuthTokenService#exchangeAuthorizationCode), que captura a
-    // exceção logo em seguida e a converte para OAuthTokenException (coberta
-    // pelo noRollbackFor de lá); o commit final falharia com
-    // UnexpectedRollbackException porque a flag já teria sido setada aqui.
-    @Transactional(noRollbackFor = OAuthUnknownClientException.class)
     public ClientDefinition require(String clientId) {
-        Optional<ClientDefinition> staticClient = findStatic(clientId);
-        if (staticClient.isPresent()) {
-            return staticClient.get();
-        }
-        if (clientId != null) {
-            Optional<McpOAuthRegisteredClient> dynamicClient = dynamicClientRepository.findByClientId(clientId);
-            if (dynamicClient.isPresent()) {
-                // "usado" (Fase C.1, D-024): a cada resolução bem-sucedida de um
-                // client_id dinâmico em authorize/token, marca last_used_at — o
-                // scheduler de limpeza só remove clientes NUNCA usados.
-                dynamicClientRepository.touchLastUsedAt(clientId, LocalDateTime.now());
-                return toClientDefinition(dynamicClient.get());
-            }
-        }
-        throw new OAuthUnknownClientException(clientId);
+        return find(clientId).orElseThrow(() -> new OAuthUnknownClientException(clientId));
     }
 
     public Optional<ClientDefinition> find(String clientId) {
@@ -95,6 +68,32 @@ public class McpOAuthClientRegistry {
             return staticClient;
         }
         return dynamicClientRepository.findByClientId(clientId).map(this::toClientDefinition);
+    }
+
+    /**
+     * Marca um cliente DINÂMICO como "usado" ({@code last_used_at}) — no-op
+     * silencioso para clientes estáticos ou {@code client_id} desconhecido.
+     *
+     * <p><b>Chamado SÓ na troca code→token (achado do review, I-1), NUNCA em
+     * {@code GET /oauth/authorize}:</b> a primeira versão marcava aqui, dentro de
+     * {@link #require}, disparado tanto pelo authorize quanto pelo token — mas
+     * {@code GET /oauth/authorize} é PÚBLICO e não exige nenhuma prova de posse
+     * (nem consentimento ainda). Um atacante não-autenticado podia chamar
+     * authorize com o {@code client_id} de um cliente DCR recém-registrado (o seu
+     * próprio, sem nunca completar o fluxo) e "imunizar" esse cliente contra
+     * {@code McpOAuthCleanupScheduler} (que só remove {@code last_used_at IS
+     * NULL}) — repetindo isso até encher o teto global de clientes
+     * ({@code app.mcp-oauth.dcr.max-registered-clients}), um cliente-zumbi por
+     * vez, o cleanup nunca os remove e {@code /oauth/register} fica bloqueado
+     * (503) indefinidamente para clientes legítimos. Marcar só na troca por
+     * token exige o {@code code}+{@code code_verifier} corretos (ou um refresh
+     * token válido) — prova de posse real, não uma chamada anônima.</p>
+     */
+    public void touchIfDynamic(String clientId) {
+        if (clientId == null || findStatic(clientId).isPresent()) {
+            return;
+        }
+        dynamicClientRepository.touchLastUsedAt(clientId, LocalDateTime.now());
     }
 
     private Optional<ClientDefinition> findStatic(String clientId) {

@@ -177,19 +177,46 @@ class McpOAuthClientRegistryTest {
     }
 
     @Test
-    void requireTouchesLastUsedAtForDynamicClient() {
+    void requireNeverTouchesLastUsedAtForDynamicClient() {
+        // Achado do review (I-1, DoS que anulava o TTL): require() é chamado por
+        // GET /oauth/authorize, PÚBLICO e sem prova de posse nenhuma — marcar
+        // "usado" ali permitia imunizar um cliente-zumbi contra o cleanup com uma
+        // única chamada anônima. touchLastUsedAt só acontece via
+        // McpOAuthClientRegistry#touchIfDynamic, chamado na troca code->token
+        // (ver McpOAuthTokenService#issueTokenPair).
         McpOAuthRegisteredClient dynamic = dynamicClient(
             "dcr_touch", "Touch Test", List.of("https://app.example.com/callback"));
         when(dynamicClientRepository.findByClientId("dcr_touch")).thenReturn(Optional.of(dynamic));
 
         registry.require("dcr_touch");
 
-        verify(dynamicClientRepository, times(1)).touchLastUsedAt(eq("dcr_touch"), any(LocalDateTime.class));
+        verify(dynamicClientRepository, times(0)).touchLastUsedAt(any(), any());
     }
 
     @Test
     void requireDoesNotTouchDynamicRepositoryForStaticClient() {
         registry.require("claude-ai");
+
+        verify(dynamicClientRepository, times(0)).touchLastUsedAt(any(), any());
+    }
+
+    @Test
+    void touchIfDynamicMarksLastUsedAtForDynamicClient() {
+        registry.touchIfDynamic("dcr_touch");
+
+        verify(dynamicClientRepository, times(1)).touchLastUsedAt(eq("dcr_touch"), any(LocalDateTime.class));
+    }
+
+    @Test
+    void touchIfDynamicIsNoOpForStaticClient() {
+        registry.touchIfDynamic("claude-ai");
+
+        verify(dynamicClientRepository, times(0)).touchLastUsedAt(any(), any());
+    }
+
+    @Test
+    void touchIfDynamicIsNoOpForNullClientId() {
+        registry.touchIfDynamic(null);
 
         verify(dynamicClientRepository, times(0)).touchLastUsedAt(any(), any());
     }
