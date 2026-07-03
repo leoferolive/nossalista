@@ -75,6 +75,20 @@ npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
 
 - O gitleaks usa `.gitleaks.toml` para ignorar apenas artefatos internos gerados em `_bmad/` e `_bmad-output/`.
 
+## Banco de vulnerabilidades NVD (dependency-check na CI)
+
+O gate `security-and-compliance` roda o OWASP dependency-check contra o banco NVD. Para as PRs de backend serem rápidas (<1 min), o banco é mantido "quente" num cache do `main` pelo workflow `nvd-cache-warmer.yml`; as PRs só leem esse cache e rodam com `-DautoUpdate=false` (não baixam a NVD). Ver **D-021** em `docs/DECISIONS.md`.
+
+**Semear / atualizar o cache manualmente** (necessário 1x após o merge inicial, ou se o cache for *evicted*):
+
+```bash
+gh workflow run nvd-cache-warmer.yml
+gh run watch   # acompanha (~15 min no 1o pull; incremental nos seguintes)
+```
+
+- O warmer também roda sozinho todo dia (cron 06:00 UTC) e em push que altere `backend/pom.xml`.
+- Se uma PR de backend falhar com `Banco NVD ausente no cache (cache frio)`, o próprio job já disparou o warmer — basta reexecutar a PR após ~15 min.
+
 ## Operacao em Kubernetes
 
 ```bash
