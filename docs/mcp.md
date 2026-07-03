@@ -71,6 +71,11 @@ imediatamente.
 
 ## Conectando um cliente
 
+> O app tem uma página de ajuda equivalente, com blocos de código copiáveis, em
+> **Conexões (API/Assistentes) → "Como conectar?"** (rota `/connections/help`,
+> `frontend/src/pages/ConnectAssistant.tsx`). Este documento é a fonte técnica completa
+> (inclui a lista de tools e limitações); a página em app é o atalho para o usuário final.
+
 ### Claude Code
 
 ```bash

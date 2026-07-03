@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { CreateTokenModal } from '../components/CreateTokenModal'
 import { TokenCreatedModal } from '../components/TokenCreatedModal'
@@ -263,6 +263,11 @@ export const Connections: React.FC = () => {
             <button type="button" onClick={modal.openCreateModal} className="nl-btn-primary">
               Criar token
             </button>
+          }
+          secondaryActions={
+            <Link to="/connections/help" className="nl-btn-ghost">
+              Como conectar?
+            </Link>
           }
         />
 
