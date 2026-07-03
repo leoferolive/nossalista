@@ -889,6 +889,24 @@
     funcionara ate um DCR minimo ser adicionado — fora do escopo desta fase por
     decisao explicita do Passo 0.
 
+- **Correcao pos-lancamento (evidencia de PRODUCAO): `scope` tratado como valor
+  atomico em vez de lista separada por espaco.** `GET /oauth/authorize` com
+  `scope=read read_write` — exatamente como o claude.ai envia — retornava
+  `error=invalid_scope`, quebrando a conexao do connector. `parseScope` fazia
+  um `switch` fixo no valor bruto do parametro (`"read"`/`"read_write"`/resto ->
+  invalido) em vez de tokenizar por espaco(s), como a RFC 6749 §3.3 exige.
+  Corrigido em `McpOAuthAuthorizeController.parseScope`: tokeniza por
+  `\s+`, ignora tokens em branco, e cada token precisa ser `read` ou
+  `read_write` (qualquer token desconhecido invalida o pedido inteiro, mesmo
+  comportamento de erro de antes). Escopo EFETIVO concedido — o que vai para o
+  consentimento, para o authorization code e para o access token emitido — e
+  sempre o mais amplo entre os tokens pedidos, **sem escalonamento**:
+  `read_write` implica `read` (e vence independente da ordem: `"read
+  read_write"` e `"read_write read"` concedem `read_write`); pedir so `read`
+  nunca concede `read_write`. `scope` ausente continua usando o default
+  `read` do `@RequestParam`; `scope` vazio ou so espacos continua invalido
+  (nenhum comportamento de default novo introduzido, so o parsing de lista).
+
 ## D-023 Fase D — rate limit por usuario, metricas Prometheus e smoke test do jar no CI
 
 - **Contexto:** Fase D do plano MCP — polimento de produto e follow-ups da Fase B (D-020):
