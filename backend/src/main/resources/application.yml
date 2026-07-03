@@ -101,6 +101,38 @@ app:
     # bloqueado — evita deslogar contas pré-existentes e não afeta OAuth (Google).
     # Ligue (true) somente quando as contas relevantes já estiverem verificadas.
     require-email-verification: ${REQUIRE_EMAIL_VERIFICATION:false}
+  # Servidor de autorização OAuth 2.1 embutido para clientes do servidor MCP
+  # (Fase C do roadmap MCP — ver docs/DECISIONS.md D-021 e docs/mcp.md).
+  # Clientes são registrados ESTATICAMENTE (sem Dynamic Client Registration).
+  mcp-oauth:
+    issuer: ${MCP_OAUTH_ISSUER:http://localhost:8080}
+    resource: ${MCP_OAUTH_RESOURCE:http://localhost:8080/mcp}
+    # Sem default: MCP_OAUTH_SIGNING_KEY é obrigatório. McpOAuthJwtService faz
+    # fail-fast (mesmo padrão de JWT_SECRET) se ausente ou < 32 bytes. NUNCA
+    # deve ser igual a JWT_SECRET — chaves de assinatura independentes.
+    signing-key: ${MCP_OAUTH_SIGNING_KEY}
+    pending-authorization-ttl: 10m
+    code-ttl: 60s
+    access-token-ttl: 30m
+    refresh-token-ttl: 30d
+    clients:
+      - id: claude-ai
+        name: "Claude (claude.ai)"
+        redirect-uris:
+          - https://claude.ai/api/mcp/auth_callback
+          - https://claude.com/api/mcp/auth_callback
+        allow-loopback-redirect: false
+      - id: claude-code
+        name: "Claude Code"
+        redirect-uris: []
+        # Claude Code escolhe uma porta aleatória por padrão a cada conexão OAuth
+        # (a menos que --callback-port seja usado) — ver Passo 0 de D-021.
+        allow-loopback-redirect: true
+      - id: nossalista-local
+        name: "Cliente local de teste"
+        redirect-uris:
+          - http://localhost:8765/callback
+        allow-loopback-redirect: false
   email:
     from: ${EMAIL_FROM:no-reply@nossalista.leoferolive.com.br}
     from-name: ${EMAIL_FROM_NAME:NossaLista}

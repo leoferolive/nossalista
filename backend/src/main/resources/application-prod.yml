@@ -45,6 +45,9 @@ frontend:
   url: ${FRONTEND_URL:https://nossalista.leoferolive.com.br}
 
 app:
+  mcp-oauth:
+    issuer: ${MCP_OAUTH_ISSUER:https://nossalista.leoferolive.com.br}
+    resource: ${MCP_OAUTH_RESOURCE:https://nossalista.leoferolive.com.br/mcp}
   email:
     smtp:
       enabled: true

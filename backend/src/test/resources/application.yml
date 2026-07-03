@@ -60,6 +60,36 @@ jwt:
 frontend:
   url: http://localhost:5173
 
+app:
+  # Precisa ser repetido aqui pelo MESMO motivo documentado em docs/DECISIONS.md
+  # (D-020): este arquivo SUBSTITUI (não mescla com) src/main/resources/application.yml
+  # no classpath de teste. Sem isso, McpOAuthJwtService falha no @PostConstruct
+  # (signing-key ausente) e derruba TODO @SpringBootTest.
+  mcp-oauth:
+    issuer: http://localhost:8080
+    resource: http://localhost:8080/mcp
+    signing-key: test-mcp-oauth-signing-key-minimum-32-bytes-for-hmac-testing
+    pending-authorization-ttl: 10m
+    code-ttl: 60s
+    access-token-ttl: 30m
+    refresh-token-ttl: 30d
+    clients:
+      - id: claude-ai
+        name: "Claude (claude.ai)"
+        redirect-uris:
+          - https://claude.ai/api/mcp/auth_callback
+          - https://claude.com/api/mcp/auth_callback
+        allow-loopback-redirect: false
+      - id: claude-code
+        name: "Claude Code"
+        redirect-uris: []
+        allow-loopback-redirect: true
+      - id: nossalista-local
+        name: "Cliente local de teste"
+        redirect-uris:
+          - http://localhost:8765/callback
+        allow-loopback-redirect: false
+
 vapid:
   public-key: ""
   private-key: ""
