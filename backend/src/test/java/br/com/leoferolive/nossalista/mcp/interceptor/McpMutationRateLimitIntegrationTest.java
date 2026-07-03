@@ -228,9 +228,10 @@ class McpMutationRateLimitIntegrationTest {
     }
 
     /**
-     * Uma tupla por tool de mutação, com argumentos dummy — o aspecto
-     * intercepta e bloqueia ANTES de qualquer parsing/lookup real, então
-     * IDs fictícios bastam para provar o bloqueio (mesmo raciocínio de
+     * Uma tupla por tool de mutação, com argumentos dummy — o
+     * {@code mutationRateLimiter.enforce()} chamado no início de cada tool
+     * bloqueia ANTES de qualquer parsing/lookup real, então IDs fictícios
+     * bastam para provar o bloqueio (mesmo raciocínio de
      * {@code McpServerIntegrationTest.allMutationToolCalls}).
      */
     private static Stream<Arguments> allMutationToolCalls() {
