@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Access Denied Handler que retorna erro 403 no formato RFC 7807 Problem Details
@@ -21,6 +22,15 @@ import java.net.URI;
  */
 @Component
 public class Http403AccessDeniedHandler implements AccessDeniedHandler {
+
+    // Charset embutido no próprio Content-Type (uma única chamada a
+    // setContentType), em vez de setContentType()+setCharacterEncoding()
+    // separados: quando a AccessDeniedException nasce de @PreAuthorize
+    // (lançada durante o dispatch do MVC, não pelo filtro de autorização),
+    // um setCharacterEncoding() chamado depois do setContentType() não é
+    // sempre refletido no header Content-Type já escrito por essa via.
+    private static final String PROBLEM_JSON_UTF8 =
+        new MediaType(MediaType.APPLICATION_PROBLEM_JSON, StandardCharsets.UTF_8).toString();
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -39,7 +49,7 @@ public class Http403AccessDeniedHandler implements AccessDeniedHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         response.setStatus(HttpStatus.FORBIDDEN.value());
-        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+        response.setContentType(PROBLEM_JSON_UTF8);
 
         objectMapper.writeValue(response.getWriter(), problem);
     }
