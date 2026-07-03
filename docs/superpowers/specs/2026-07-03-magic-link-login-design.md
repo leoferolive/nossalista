@@ -3,7 +3,7 @@
 - **Data:** 2026-07-03
 - **Status:** Aprovado (design), pronto para plano de implementação
 - **Branch:** `worktree-feat+magic-link-login`
-- **Decisão relacionada:** D-024 (a registrar em `docs/DECISIONS.md`)
+- **Decisão relacionada:** D-025 (a registrar em `docs/DECISIONS.md`; D-024 já existe — DCR/RFC 7591)
 
 ## 1. Contexto e motivação
 
@@ -128,8 +128,10 @@ código; não há fonte única compartilhada hoje, assim como reset usa 60 em do
 
 ## 6. Design — Frontend
 
-- **`api/authApi.ts`**: `requestMagicLink(email: string): Promise<void>` (POST `/api/auth/magic-link`)
-  e `magicLogin(token: string): Promise<OAuthExchangeResponse>` (POST `/api/auth/magic-login`).
+- **`api/authApi.ts`**: adicionar como **métodos do objeto `authApi`** (é um object literal com métodos,
+  ex. `authApi.exchangeOAuthCode`): `requestMagicLink(email: string): Promise<void>`
+  (POST `/api/auth/magic-link`) e `magicLogin(token: string): Promise<OAuthExchangeResponse>`
+  (POST `/api/auth/magic-login`).
   **Não existe** um tipo `LoginResponse` compartilhado no frontend (é uma `interface` privada duplicada
   em `Login.tsx`/`LoginModal.tsx`). O tipo correto a reusar é **`OAuthExchangeResponse`** — já
   exportado em `authApi.ts` e usado por `exchangeOAuthCode`, carregando `token` + `expiresAt` + user,
@@ -176,8 +178,8 @@ código; não há fonte única compartilhada hoje, assim como reset usa 60 em do
 
 ## 8. Documentação (governança obrigatória)
 
-- **`docs/DECISIONS.md`**: registrar **D-024** (login por magic link — escopo login-only, marca
-  e-mail verificado, token stateful de 10 min).
+- **`docs/DECISIONS.md`**: registrar **D-025** (login por magic link — escopo login-only, marca
+  e-mail verificado, token stateful de 10 min). **D-024 já está em uso** (DCR/RFC 7591); usar D-025.
 - Atualizar a documentação de auth/fluxos de e-mail que enumere os fluxos existentes (localizar a doc
   canônica de autenticação em `docs/**`; incluir o magic link junto de reset e verificação).
 - Revisar `backend/.env.example` / `README.md` se listarem os fluxos de e-mail transacional.
