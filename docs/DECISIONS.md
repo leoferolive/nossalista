@@ -750,28 +750,94 @@
   EXPLICITAMENTE esse comportamento esperado (para nao ser lido como bug
   nao-intencional numa leitura futura do codigo).
 
-- **Testes:** `McpOAuthFlowIntegrationTest` (22 casos, H2 dedicado
+- **Testes:** `McpOAuthFlowIntegrationTest` (23 casos, H2 dedicado
   `mcp-oauth-it` — mesmo padrao de isolamento de `McpServerIntegrationTest`,
   D-020) cobre o fluxo completo autorize→consentimento→code→token→chamada MCP
   real via SDK, PKCE incorreto, code replay, redirect_uri/resource divergentes,
   refresh rotation + reuso, escopo READ bloqueando mutacao via token OAuth,
   bloqueio em `/api/**`, audience errada, endpoints well-known, o header
   `WWW-Authenticate`, o PoC de sequestro de consentimento cross-user (bloqueado
-  com e sem cookie), a trava por usuario, e a sobrevivencia do access token a
-  revogacao de familia (limitacao documentada, nao bug). Mais
-  `PkceValidatorTest`, `McpOAuthClientRegistryTest` (inclui a regra de
-  loopback) e `McpOAuthJwtServiceTest` (fail-fast da chave, expiracao,
-  audience, chave errada) isolados. Suite completa do backend: **651 testes,
-  0 falhas** (`./mvnw clean test`, com `clean` explicito). Numero
-  contra-verificado contando os elementos `<testcase>` nos XML do Surefire
-  (`grep -o "<testcase " target/surefire-reports/*.xml | wc -l` = 651,
-  identico ao total agregado do Maven) — a linha "Tests run" do `.txt`/stdout
-  de uma classe isolada pode reportar 0 para classes com metodos
+  com e sem cookie), a trava por usuario, `client_id` desconhecido em
+  `/oauth/token` (formato `invalid_client`, ver review abaixo), e a
+  sobrevivencia do access token a revogacao de familia (limitacao documentada,
+  nao bug). Mais `PkceValidatorTest`, `McpOAuthClientRegistryTest` (inclui a
+  regra de loopback), `McpOAuthJwtServiceTest` (fail-fast da chave, expiracao,
+  audience, chave errada), `McpOAuthAtomicUpdatesRepositoryTest` e
+  `McpOAuthTokenServiceTest` (ver review abaixo) isolados. Suite completa do
+  backend: **657 testes, 0 falhas** (`./mvnw clean test`, com `clean`
+  explicito). Numero contra-verificado contando os elementos `<testcase>` nos
+  XML do Surefire (`grep -o "<testcase " target/surefire-reports/*.xml | wc -l`
+  = 657, identico ao total agregado do Maven) — a linha "Tests run" do
+  `.txt`/stdout de uma classe isolada pode reportar 0 para classes com metodos
   `@ParameterizedTest`/`@Nested`, o que já gerou contagem incorreta numa
   medicao anterior; contar os `<testcase>` do XML é o metodo confiavel.
   Frontend: `OAuthConsent.test.tsx` (novo) e `Connections.test.tsx`
   (ampliado com a secao OAuth) — suite completa 494 testes/51 arquivos,
   0 falhas (`npx vitest run`).
+
+- **Review senior pos-implementacao (aplicado antes do merge do PR #56):**
+  - **I-1/M-1 — consumo/rotacao/reivindicacao ATOMICOS (achado do review):** o
+    padrao original de "ler o estado em Java, decidir, gravar" para consumir um
+    authorization code, rotacionar um refresh token, e reivindicar um
+    `PendingAuthorization` tinha uma janela de corrida sob READ COMMITTED —
+    duas transacoes concorrentes liam o MESMO snapshot "ainda nao
+    consumido/revogado/reivindicado" e ambas prosseguiam, emitindo DOIS pares
+    de token do mesmo code (ou deixando uma conta diferente roubar uma
+    reivindicacao) sem disparar a revogacao de replay. Corrigido substituindo
+    cada leitura-decisao-gravacao por um UPDATE condicional
+    (`WHERE consumed_at/revoked_at/claimed_by_user_id IS NULL`) que devolve o
+    numero de linhas afetadas: `McpOAuthCodeRepository#markConsumed`,
+    `McpOAuthRefreshTokenRepository#markRotated`,
+    `PendingAuthorizationRepository#claimIfUnclaimed`. Quando o UPDATE afeta 0
+    linhas, o SERVICO trata como corrida perdida (replay/reuso/sequestro) e
+    revoga a familia certa, exatamente como no ramo de replay sequencial ja
+    existente. **Achado de implementacao (cache de 1o nivel do Hibernate):** ao
+    reler o `token_family_id`/`claimed_by_user_id` VENCEDOR apos o UPDATE
+    condicional falhar, um `findByCode`/`findById` comum devolveria a MESMA
+    entidade ja gerenciada nesta transacao (carregada antes do UPDATE em
+    massa), com os campos NUNCA mutados em Java — nao o valor persistido pela
+    transacao vencedora. Corrigido com projecoes ESCALARES dedicadas
+    (`findTokenFamilyIdByCode`, `findClaimedByUserId`), que sempre disparam um
+    SELECT novo contra o banco. Testado em dois niveis:
+    `McpOAuthAtomicUpdatesRepositoryTest` prova, chamando cada UPDATE
+    condicional duas vezes em sequencia, que a segunda chamada SEMPRE afeta 0
+    linhas (a propria query e o compare-and-swap); `McpOAuthTokenServiceTest`
+    (mocks) forca o UPDATE condicional a "perder a corrida" mesmo com o
+    snapshot inicial "nao consumido", provando que o SERVICO revoga a familia
+    VENCEDORA (nao a local) e nunca emite um segundo par de tokens — cenario
+    inatingivel chamando o endpoint HTTP duas vezes em sequencia, porque o
+    atalho de replay sequencial (baseado no snapshot ja lido) sempre
+    intercepta antes.
+  - **M-2 — `client_id` desconhecido em `/oauth/token`:** respondia um
+    `ProblemDetail` RFC 7807 (formato usado por `/oauth/authorize`), nao o
+    formato de erro OAuth padrao (`{"error": "invalid_client"}`, RFC 6749 §5.2)
+    esperado por SDKs de cliente OAuth genericos. Corrigido convertendo
+    `OAuthUnknownClientException` para `OAuthTokenException.invalidClient` em
+    `McpOAuthTokenService` (`requireKnownClient`), mantendo o `ProblemDetail`
+    intocado em `/oauth/authorize` (onde faz sentido — o erro e antes de haver
+    um redirect_uri confiavel). Teste dedicado:
+    `tokenRejectsUnknownClientWithOAuthErrorFormat`.
+  - **M-3 — cliente de teste local (`nossalista-local`) NAO deve existir em
+    prod:** estava registrado em `application.yml` (base, compartilhada por
+    TODOS os profiles, inclusive prod). Corrigido movendo o registro para
+    `application-dev.yml` (listas em `@ConfigurationProperties` NAO mesclam
+    entre profiles — o bloco em `application-dev.yml` redeclara a lista
+    INTEIRA, claude-ai/claude-code + nossalista-local); `application.yml`
+    (base, herdada por prod) mantem so claude-ai/claude-code.
+    `application-prod.yml` comentado explicitamente para nao reintroduzir esse
+    cliente ali.
+  - **M-4 — summary de `/oauth/revoke` superestimava o efeito:** dizia revogar
+    "um refresh (ou access) token"; na pratica so revoga a familia de refresh
+    tokens — o access token OAuth, por ser JWT stateless, sobrevive ate expirar
+    (ver limitacao MEDIUM acima). Summary/descricao do endpoint corrigidos para
+    refletir isso.
+  - **NITs:** `McpOAuthJwtService.validate()` envolve a checagem de
+    `getAudience()` num try/catch para um NPE teorico (token malformado de
+    origem externa); `McpOAuthConsentController` limpa o cookie de
+    consentimento (Max-Age=0) apos approve/deny (ja sem uso depois da
+    decisao); `McpOAuthAuthorizeController` valida o tamanho de `state`
+    (limite da coluna VARCHAR(512)) antes de persistir, evitando um 500 de
+    truncamento do banco.
 
 - **Novas variaveis de ambiente:** `MCP_OAUTH_SIGNING_KEY` (obrigatoria,
   fail-fast, >= 32 bytes, DIFERENTE de `JWT_SECRET`), `MCP_OAUTH_ISSUER` e
