@@ -24,7 +24,7 @@ tool (`ListMcpTools`, `ListItemMcpTools`, `MemberMcpTools`, `ActivityMcpTools`),
 `spring-ai-starter-mcp-server-webmvc` não tolera isso bem: ele invoca o método via reflection
 sobre a instância exata capturada no seu scanner de anotações, e a segunda passagem pelos
 filtros de segurança no completamento assíncrono do transporte Streamable HTTP deixa de
-autenticar a requisição. Ver `docs/DECISIONS.md` D-022 para o histórico completo.
+autenticar a requisição. Ver `docs/DECISIONS.md` D-023 para o histórico completo.
 
 ## Importando o dashboard
 

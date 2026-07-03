@@ -22,12 +22,12 @@ import java.time.Duration;
  * exata registrada no scanner de anotações) quebra o dispatch assíncrono do
  * transporte Streamable HTTP (a segunda passagem pelos filtros de segurança,
  * no completamento assíncrono, deixa de autenticar a requisição). Ver
- * {@code docs/DECISIONS.md} D-022.</p>
+ * {@code docs/DECISIONS.md} D-023.</p>
  */
 @Component
 public class McpMutationRateLimiter {
 
-    /** Mutações permitidas por usuário, por janela — ver docs/DECISIONS.md D-022. */
+    /** Mutações permitidas por usuário, por janela — ver docs/DECISIONS.md D-023. */
     static final int MAX_MUTATIONS_PER_WINDOW = 60;
 
     static final Duration WINDOW = Duration.ofMinutes(1);

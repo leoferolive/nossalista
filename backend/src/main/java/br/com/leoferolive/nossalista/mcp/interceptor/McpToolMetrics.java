@@ -20,7 +20,7 @@ import java.util.function.Supplier;
  * original — uma linha por tool, sem duplicar a lógica de métricas 13 vezes.
  * Não é feito via Spring AOP: ver {@code McpMutationRateLimiter} para o porquê
  * de evitar proxies CGLIB nas classes de tool (quebra o dispatch assíncrono
- * do SDK Spring AI MCP). Ver {@code docs/DECISIONS.md} D-022.</p>
+ * do SDK Spring AI MCP). Ver {@code docs/DECISIONS.md} D-023.</p>
  *
  * <p>{@code denied} cobre autenticação/escopo/rate-limit (o chamador não
  * chegou a executar a operação); {@code business_error} cobre qualquer outra
