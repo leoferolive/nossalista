@@ -27,6 +27,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.web.client.RestClient;
 
@@ -53,9 +54,20 @@ import static org.mockito.Mockito.verify;
  * classe — chamadas via HTTP real rodam em outra thread, então o rollback de
  * {@code @Transactional} do JUnit não se aplica (limitação conhecida de
  * testes {@code RANDOM_PORT}).</p>
+ *
+ * <p>A classe usa uma URL de H2 dedicada ({@code mcp-it}, distinta da
+ * {@code testdb} compartilhada por padrão pelo {@code application.yml} de
+ * teste), forçando o Spring a criar um {@code ApplicationContext} próprio
+ * com um banco isolado. Sem isso, as dezenas de listas criadas aqui
+ * poluíam o {@code testdb} global e quebravam asserts de contagem absoluta
+ * (ex.: {@code listRepository.count()}) em outras classes de teste, com o
+ * efeito visível apenas quando o Surefire mudava a ordem de execução.</p>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@TestPropertySource(properties = {
+    "spring.datasource.url=jdbc:h2:mem:mcp-it;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH"
+})
 class McpServerIntegrationTest {
 
     private static final List<String> EXPECTED_TOOL_NAMES = List.of(

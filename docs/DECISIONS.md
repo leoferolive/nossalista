@@ -444,3 +444,31 @@
     `api`/`assets`/etc. mesmo antes desta fase, risco baixo (nenhuma rota do SPA hoje comeca
     com esses prefixos), registrado para follow-up caso uma rota assim seja criada. O
     reviewer confirmou explicitamente que este item fica como esta.
+- **CI vermelho pos-push, dois bugs de isolamento de teste encontrados e corrigidos:**
+  o pipeline do PR reprovou `ListControllerIntegrationTest` (14 falhas de
+  `listRepository.count()`) porque a ordem do Surefire no CI difere da local. Dois
+  problemas distintos, ambos so visiveis com ordem de execucao diferente:
+  1. **Poluicao de dados entre classes:** `McpServerIntegrationTest` (`@SpringBootTest`
+     `RANDOM_PORT`) cria dezenas de listas via chamadas HTTP reais (sem `@Transactional`,
+     que nao ajudaria mesmo — a chamada roda em outra thread) e compartilhava o mesmo H2
+     em memoria (`testdb`) usado pelas suites de `MockMvc`. Corrigido isolando a classe
+     com uma URL de H2 dedicada via `@TestPropertySource`
+     (`jdbc:h2:mem:mcp-it;MODE=PostgreSQL;...`), o que forca o Spring a criar um
+     `ApplicationContext` (e portanto um datasource/Flyway) proprio, nao compartilhado com
+     nenhuma outra classe de teste.
+  2. **Vazamento de autenticacao entre classes:** `PushControllerTest` (migrada para
+     `TestSecurityContextHolder` no fix do `reactor-core` desta mesma fase, ver acima) seta
+     autenticacao no `@BeforeEach` mas nao tinha `@AfterEach` de limpeza, ao contrario das
+     outras 4 suites migradas. Como `TestSecurityContextHolder.getContext()` retorna o
+     mesmo objeto `SecurityContext` que `SecurityContextHolder` usa internamente (confirmado
+     lendo o fonte de `spring-security-test`), mutar esse objeto sem limpar depois deixa uma
+     autenticacao "presa" no `SecurityContextHolder` do processo — visivel quando outra
+     classe roda depois na mesma JVM/thread e espera nenhuma autenticacao (`McpSecurityContextTest`).
+     Corrigido adicionando `@AfterEach` com `SecurityContextHolder.clearContext()` +
+     `TestSecurityContextHolder.clearContext()`, no mesmo padrao das outras 4 suites.
+  Validado localmente com `./mvnw clean test` em ordem normal, `-Dsurefire.runOrder=reversealphabetical`
+  e `-Dsurefire.runOrder=random` (duas seeds diferentes) — 608/608 nas quatro execucoes.
+  **Licao:** qualquer teste `@SpringBootTest` que persista dados via HTTP real, ou que
+  manipule `SecurityContextHolder`/`TestSecurityContextHolder` diretamente, precisa de
+  isolamento explicito (datasource dedicado ou limpeza simetrica) — a ordem padrao do
+  Surefire local pode mascarar o problema indefinidamente.

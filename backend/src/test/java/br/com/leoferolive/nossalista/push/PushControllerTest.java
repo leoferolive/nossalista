@@ -2,6 +2,7 @@ package br.com.leoferolive.nossalista.push;
 
 import br.com.leoferolive.nossalista.user.domain.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,12 @@ class PushControllerTest {
         TestSecurityContextHolder.getContext().setAuthentication(
             new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList())
         );
+    }
+
+    @AfterEach
+    void clearContext() {
+        SecurityContextHolder.clearContext();
+        TestSecurityContextHolder.clearContext();
     }
 
     @Test
