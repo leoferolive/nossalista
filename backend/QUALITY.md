@@ -38,6 +38,14 @@ Este documento define os gates obrigatorios de qualidade do backend.
 ./mvnw -B -Pregression-tests test
 ```
 
+## Contagem de testes
+
+- Para reportar quantos testes rodaram, conte os elementos `<testcase>` nos XMLs de
+  `backend/target/surefire-reports/*.xml` (`grep -c '<testcase' *.xml` ou equivalente),
+  nunca a linha "Tests run" do console/`.txt` do Surefire. Classes com `@Nested` fazem o
+  Surefire reportar `Tests run: 0` para a classe externa, subestimando o total real — licao
+  recorrente das Fases B/C/D deste roadmap.
+
 ## Checkstyle
 
 - Configuracao: `backend/checkstyle/checkstyle.xml`
@@ -144,5 +152,6 @@ java -jar target/nossalista-0.0.1-SNAPSHOT.jar --spring.profiles.active=ci
 ```
 
 - O profile `ci` usa H2 e permite validar `GET /actuator/health` localmente.
-- Metricas Prometheus expostas em `GET /actuator/prometheus` (Micrometer; HTTP + JVM, tag `application=nossalista`) para scrape do kube-prometheus-stack.
+- Metricas Prometheus expostas em `GET /actuator/prometheus` (Micrometer; HTTP + JVM, tag `application=nossalista`) para scrape do kube-prometheus-stack — inclui `mcp_tool_calls_total`/`mcp_tool_duration_seconds` por tool MCP (ver `docs/observability/`).
 - O endpoint tecnico `GET /api/health` tambem deve responder com `version`, `gitSha`, `gitTag`, `environment` e `buildTime` coerentes com os metadados de build/deploy.
+- O CI (`backend-quality`, step "Backend runtime smoke") automatiza este smoke test contra o jar empacotado e ainda valida `POST /mcp` sem token, esperando `401` (rota Streamable existente e autenticacao ativa) — ver D-020/D-023 em `docs/DECISIONS.md` sobre por que essa checagem existe (config de protocolo MCP presente so no profile de teste ja causou 500 em producao).

@@ -883,3 +883,75 @@
     Code) precisar se conectar sem suporte a client_id estatico, ele nao
     funcionara ate um DCR minimo ser adicionado — fora do escopo desta fase por
     decisao explicita do Passo 0.
+
+## D-023 Fase D — rate limit por usuario, metricas Prometheus e smoke test do jar no CI
+
+- **Contexto:** Fase D do plano MCP — polimento de produto e follow-ups da Fase B (D-020):
+  charset UTF-8 nos handlers de erro manuais, rate limiting das tools de mutacao, metricas
+  Prometheus por tool, pagina de ajuda no frontend e o smoke test do jar empacotado
+  registrado como divida em D-020.
+- **Charset UTF-8 nos handlers de erro manuais:** `Http401UnauthorizedEntryPoint`,
+  `Http403AccessDeniedHandler` e o 429 de `PersonalAccessTokenAuthenticationFilter`
+  escreviam `ProblemDetail` via `response.getWriter()` sem declarar charset — o Tomcat cai
+  em ISO-8859-1 por padrao e mensagens acentuadas chegavam corrompidas. Corrigido embutindo
+  o charset UTF-8 diretamente na string de `Content-Type` (`new
+  MediaType(MediaType.APPLICATION_PROBLEM_JSON, StandardCharsets.UTF_8).toString()`), numa
+  unica chamada a `setContentType`. **Descoberta durante o teste do 403:**
+  `setContentType()` seguido de `setCharacterEncoding()` (duas chamadas separadas) funciona
+  para 401 e 429, mas nao e refletido de forma confiavel no header quando a
+  `AccessDeniedException` nasce de `@PreAuthorize` (lancada durante o dispatch do MVC, no
+  meio da invocacao do controller) — por isso a forma de uma unica chamada, imune a essa
+  diferenca de fluxo, foi adotada nos 3 pontos por consistencia.
+- **Rate limit de mutacao por usuario — decisao de NAO usar Spring AOP:** a abordagem
+  inicial foi um `@Aspect` com `@Around("@annotation(McpTool)")`, interceptando as 13 tools
+  genericamente (sem tocar cada uma). Isso **quebrou reproduzivelmente** o
+  `McpServerIntegrationTest` pre-existente (nenhuma mudanca de logica, so a presenca do
+  aspecto): toda chamada MCP passou a falhar com `AuthorizationDeniedException` no segundo
+  passo pelos filtros de seguranca, durante o completamento assincrono do transporte
+  Streamable HTTP (`AsyncContext.dispatch()` redisparando o `FilterChainProxy` inteiro).
+  Causa raiz: `@McpTool` exige que o SDK Spring AI MCP invoque o metodo via reflection sobre
+  a instancia exata capturada no seu `BeanPostProcessor` de scanner de anotacoes; como esse
+  scanner roda plano (nao `Ordered`) depois do `AnnotationAwareAspectJAutoProxyCreator`, a
+  instancia capturada e um proxy CGLIB (as classes de tool nao implementam interface) — o
+  SDK nao foi desenhado para tolerar essa indirecao. Confirmado eliminando o aspecto (mesma
+  suite volta a passar 100%) e novamente adicionando-o (quebra 100% das vezes). Decisao:
+  **nenhum `@Aspect`/proxy Spring AOP nas classes `mcp/tool/*McpTools`** — instrumentacao via
+  chamada explicita e centralizada num componente comum:
+  - `McpMutationRateLimiter.enforce()` — uma linha logo apos
+    `McpSecurityContext.requireWriteAccess()` nas 9 tools de mutacao (mesmo padrao de
+    guard-clause ja usado nelas). Teto de 60 mutacoes/usuario/minuto via
+    `RateLimiterService` (chave `mcp-mutation:user:<userId>`, distinta da chave por IP usada
+    para tentativas invalidas de PAT). Estouro lanca `McpRateLimitExceededException`
+    (mensagem em ingles, convencao do modulo `mcp`), convertida pelo SDK no mesmo mecanismo
+    generico que ja converte `McpAuthenticationException`/`McpScopeException` em
+    `isError: true`. Leituras nunca contam.
+  - `McpToolMetrics.record(toolName, () -> ...)` — wrapper comum chamado por uma linha em
+    cada uma das 13 tools (corpo original passado como lambda), registrando via Micrometer o
+    counter `mcp_tool_calls_total{tool, outcome}` (`success`/`business_error`/`denied`) e o
+    timer `mcp_tool_duration_seconds{tool}` (com `publishPercentileHistogram()`, necessario
+    para `histogram_quantile` no Grafana). `denied` cobre autenticacao/escopo/rate-limit;
+    `business_error` cobre qualquer outra excecao que o SDK converte em `isError: true`.
+  - Dashboard Grafana pronto para importar em `docs/observability/grafana-mcp-dashboard.json`
+    (calls/min por tool, taxa de erro, p95, top tools) — provisionamento automatico no
+    cluster fica como follow-up (ver `docs/observability/README.md`).
+- **Pagina de ajuda no frontend:** `/connections/help`
+  (`frontend/src/pages/ConnectAssistant.tsx`) com passo a passo para Claude Code, Claude
+  Desktop e Cursor, blocos de codigo copiaveis (`CopyableCode`, mesmo padrao de clipboard de
+  `TokenCreatedModal`) e explicacao dos escopos READ/READ_WRITE. Link discreto "Como
+  conectar?" adicionado a tela de Conexoes (`AppHeader.secondaryActions`) — deliberadamente
+  o unico ponto tocado nessa tela nesta fase, para nao colidir com a secao de OAuth que a
+  Fase C (D-022, em paralelo) esta adicionando na mesma pagina.
+- **Smoke test do jar empacotado no CI — fecha o follow-up registrado em D-020:** o step
+  "Backend runtime smoke" do job `backend-quality` (`.github/workflows/ci.yml`), que ja
+  subia o jar empacotado com `--spring.profiles.active=ci` e validava `/actuator/health`,
+  ganhou uma validacao adicional: `POST /mcp` sem token deve retornar `401` (rota existe E
+  seguranca ativa). Um `404`/`405` indicaria a mesma classe de bug do D-020 (config de
+  protocolo `STREAMABLE` ausente do profile real, presente so no de teste); um `500`
+  indicaria erro de inicializacao do servidor MCP nao detectado pelo health check generico.
+  Ensaiado localmente nesta worktree (`mvnw package` + jar real + `curl -X POST /mcp`) antes
+  do commit, confirmando `401` e a mensagem UTF-8 correta (`"Não autenticado"`) — validando
+  tambem o fix de charset acima ponta a ponta, fora do `@SpringBootTest`.
+- **Motivo:** fecha a Fase D do roadmap MCP — protege o backend (replica unica) de abuso via
+  tools de mutacao, da visibilidade operacional real (Prometheus/Grafana) ao servidor MCP, e
+  reduz a barreira de entrada para o usuario final conectar um assistente, sem depender de
+  ler `docs/mcp.md`.

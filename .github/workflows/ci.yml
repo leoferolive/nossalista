@@ -373,6 +373,29 @@ jobs:
             kill "$APP_PID" 2>/dev/null || true
             exit 1
           fi
+
+          # Valida o servidor MCP real (POST /mcp, Streamable HTTP): sem token,
+          # a rota /mcp/** exige autenticação (SecurityConfig) — 401 confirma que
+          # a rota existe E que a segurança está ativa. Um 404 (rota ausente) ou
+          # 405 (protocolo STREAMABLE não configurado, só SSE) indicaria a mesma
+          # classe de bug do D-020 (config presente só em application.yml de
+          # teste, ausente do profile "ci"/prod real). 500 indicaria erro de
+          # inicialização do servidor MCP não detectado pelo health check.
+          MCP_STATUS=$(curl -s -o /tmp/mcp-smoke-response.json -w '%{http_code}' -X POST \
+            http://127.0.0.1:8080/mcp \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}')
+          if [ "$MCP_STATUS" != "401" ]; then
+            echo "::error::POST /mcp sem token deveria retornar 401, retornou ${MCP_STATUS}"
+            echo "--- Resposta ---"
+            cat /tmp/mcp-smoke-response.json || true
+            echo "--- Smoke log: last 30 lines ---"
+            tail -30 /tmp/backend-smoke.log
+            kill "$APP_PID" 2>/dev/null || true
+            exit 1
+          fi
+          echo "MCP smoke check passed (POST /mcp sem token -> 401)"
+
           kill "$APP_PID"
 
   # backend-smoke job removed — smoke test is now the last step in backend-quality

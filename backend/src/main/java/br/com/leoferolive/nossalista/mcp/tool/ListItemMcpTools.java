@@ -13,6 +13,8 @@ import br.com.leoferolive.nossalista.mcp.dto.BatchItemOutcome;
 import br.com.leoferolive.nossalista.mcp.dto.RemoveItemsResult;
 import br.com.leoferolive.nossalista.mcp.dto.SetItemsCheckedResult;
 import br.com.leoferolive.nossalista.mcp.dto.UpdateItemResult;
+import br.com.leoferolive.nossalista.mcp.interceptor.McpMutationRateLimiter;
+import br.com.leoferolive.nossalista.mcp.interceptor.McpToolMetrics;
 import br.com.leoferolive.nossalista.mcp.security.McpSecurityContext;
 import br.com.leoferolive.nossalista.mcp.support.DtoValidator;
 import br.com.leoferolive.nossalista.mcp.support.McpIds;
@@ -41,17 +43,23 @@ public class ListItemMcpTools {
     private final ListItemService listItemService;
     private final McpSecurityContext security;
     private final DtoValidator validator;
+    private final McpMutationRateLimiter mutationRateLimiter;
+    private final McpToolMetrics metrics;
 
     public ListItemMcpTools(
         ListService listService,
         ListItemService listItemService,
         McpSecurityContext security,
-        DtoValidator validator
+        DtoValidator validator,
+        McpMutationRateLimiter mutationRateLimiter,
+        McpToolMetrics metrics
     ) {
         this.listService = listService;
         this.listItemService = listItemService;
         this.security = security;
         this.validator = validator;
+        this.mutationRateLimiter = mutationRateLimiter;
+        this.metrics = metrics;
     }
 
     @McpTool(
@@ -72,19 +80,22 @@ public class ListItemMcpTools {
             + "Each item needs a name; quantity, dueDate and url are optional and depend on the list type.")
         List<AddItemInput> items
     ) {
-        User user = security.currentUser();
-        security.requireWriteAccess();
+        return metrics.record("add_items", () -> {
+            User user = security.currentUser();
+            security.requireWriteAccess();
+            mutationRateLimiter.enforce();
 
-        UUID id = McpIds.parseUuid(listId, "listId");
-        listService.getListById(id, user.getId());
-        if (items == null || items.isEmpty()) {
-            throw new InvalidInputException("items must not be empty");
-        }
-        McpLimits.requireBatchSizeWithinLimit(items.size(), "items");
+            UUID id = McpIds.parseUuid(listId, "listId");
+            listService.getListById(id, user.getId());
+            if (items == null || items.isEmpty()) {
+                throw new InvalidInputException("items must not be empty");
+            }
+            McpLimits.requireBatchSizeWithinLimit(items.size(), "items");
 
-        List<BatchItemOutcome> outcomes = items.stream().map(item -> addOneItem(id, item, user)).toList();
-        int added = (int) outcomes.stream().filter(BatchItemOutcome::success).count();
-        return new AddItemsResult(added, outcomes.size() - added, outcomes);
+            List<BatchItemOutcome> outcomes = items.stream().map(item -> addOneItem(id, item, user)).toList();
+            int added = (int) outcomes.stream().filter(BatchItemOutcome::success).count();
+            return new AddItemsResult(added, outcomes.size() - added, outcomes);
+        });
     }
 
     @McpTool(
@@ -108,15 +119,18 @@ public class ListItemMcpTools {
         @McpToolParam(required = false, description = "New URL (WISHLIST lists only).")
         String url
     ) {
-        User user = security.currentUser();
-        security.requireWriteAccess();
+        return metrics.record("update_item", () -> {
+            User user = security.currentUser();
+            security.requireWriteAccess();
+            mutationRateLimiter.enforce();
 
-        UUID listUuid = McpIds.parseUuid(listId, "listId");
-        UUID itemUuid = McpIds.parseUuid(itemId, "itemId");
-        UpdateItemRequest request = buildAndValidatePartialUpdate(name, quantity, dueDate, url);
+            UUID listUuid = McpIds.parseUuid(listId, "listId");
+            UUID itemUuid = McpIds.parseUuid(itemId, "itemId");
+            UpdateItemRequest request = buildAndValidatePartialUpdate(name, quantity, dueDate, url);
 
-        ListItemResponseDTO updated = listItemService.updateItem(listUuid, itemUuid, request, user);
-        return toUpdateItemResult(updated);
+            ListItemResponseDTO updated = listItemService.updateItem(listUuid, itemUuid, request, user);
+            return toUpdateItemResult(updated);
+        });
     }
 
     @McpTool(
@@ -133,21 +147,24 @@ public class ListItemMcpTools {
         @McpToolParam(description = "Target checked state to apply to all the given items.")
         boolean checked
     ) {
-        User user = security.currentUser();
-        security.requireWriteAccess();
+        return metrics.record("set_items_checked", () -> {
+            User user = security.currentUser();
+            security.requireWriteAccess();
+            mutationRateLimiter.enforce();
 
-        UUID listUuid = McpIds.parseUuid(listId, "listId");
-        listService.getListById(listUuid, user.getId());
-        requireValidItemIdsBatch(itemIds);
+            UUID listUuid = McpIds.parseUuid(listId, "listId");
+            listService.getListById(listUuid, user.getId());
+            requireValidItemIdsBatch(itemIds);
 
-        Map<UUID, ListItemResponseDTO> currentItems = listItemService.getItemsByListId(listUuid, user).stream()
-            .collect(Collectors.toMap(ListItemResponseDTO::id, item -> item));
+            Map<UUID, ListItemResponseDTO> currentItems = listItemService.getItemsByListId(listUuid, user).stream()
+                .collect(Collectors.toMap(ListItemResponseDTO::id, item -> item));
 
-        List<BatchItemOutcome> outcomes = itemIds.stream()
-            .map(rawId -> setOneItemChecked(listUuid, rawId, checked, currentItems, user))
-            .toList();
-        int updated = (int) outcomes.stream().filter(BatchItemOutcome::success).count();
-        return new SetItemsCheckedResult(updated, outcomes.size() - updated, outcomes);
+            List<BatchItemOutcome> outcomes = itemIds.stream()
+                .map(rawId -> setOneItemChecked(listUuid, rawId, checked, currentItems, user))
+                .toList();
+            int updated = (int) outcomes.stream().filter(BatchItemOutcome::success).count();
+            return new SetItemsCheckedResult(updated, outcomes.size() - updated, outcomes);
+        });
     }
 
     @McpTool(
@@ -163,18 +180,21 @@ public class ListItemMcpTools {
         @McpToolParam(description = "Item UUIDs to remove (maximum " + McpLimits.MAX_BATCH_SIZE + " per call).")
         List<String> itemIds
     ) {
-        User user = security.currentUser();
-        security.requireWriteAccess();
+        return metrics.record("remove_items", () -> {
+            User user = security.currentUser();
+            security.requireWriteAccess();
+            mutationRateLimiter.enforce();
 
-        UUID listUuid = McpIds.parseUuid(listId, "listId");
-        listService.getListById(listUuid, user.getId());
-        requireValidItemIdsBatch(itemIds);
+            UUID listUuid = McpIds.parseUuid(listId, "listId");
+            listService.getListById(listUuid, user.getId());
+            requireValidItemIdsBatch(itemIds);
 
-        List<BatchItemOutcome> outcomes = itemIds.stream()
-            .map(rawId -> removeOneItem(listUuid, rawId, user))
-            .toList();
-        int removed = (int) outcomes.stream().filter(BatchItemOutcome::success).count();
-        return new RemoveItemsResult(removed, outcomes.size() - removed, outcomes);
+            List<BatchItemOutcome> outcomes = itemIds.stream()
+                .map(rawId -> removeOneItem(listUuid, rawId, user))
+                .toList();
+            int removed = (int) outcomes.stream().filter(BatchItemOutcome::success).count();
+            return new RemoveItemsResult(removed, outcomes.size() - removed, outcomes);
+        });
     }
 
     private BatchItemOutcome addOneItem(UUID listId, AddItemInput item, User user) {

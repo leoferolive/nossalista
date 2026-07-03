@@ -17,6 +17,7 @@ import { JoinListPage } from './pages/JoinListPage.tsx'
 import { Profile } from './pages/Profile.tsx'
 import { Connections } from './pages/Connections.tsx'
 import { OAuthConsent } from './pages/OAuthConsent.tsx'
+import { ConnectAssistant } from './pages/ConnectAssistant.tsx'
 import { LegacyLoginRedirect } from './pages/LegacyLoginRedirect.tsx'
 import { Register } from './pages/Register.tsx'
 import { ForgotPassword } from './pages/ForgotPassword.tsx'
@@ -49,6 +50,15 @@ function NotificationWrapper({ children }: { children: React.ReactNode }) {
   return <NotificationProvider userId={user.id}>{children}</NotificationProvider>
 }
 
+// Evita repetir o wrapper <ProtectedRoute><X /></ProtectedRoute> em cada <Route> abaixo.
+function ProtectedPage({ Page }: { Page: React.ComponentType }) {
+  return (
+    <ProtectedRoute>
+      <Page />
+    </ProtectedRoute>
+  )
+}
+
 /**
  * Configuração de rotas da aplicação
  */
@@ -62,47 +72,13 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route
-        path="/home"
-        element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/lists/:id"
-        element={
-          <ProtectedRoute>
-            <ListView />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/connections"
-        element={
-          <ProtectedRoute>
-            <Connections />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/home" element={<ProtectedPage Page={Home} />} />
+      <Route path="/lists/:id" element={<ProtectedPage Page={ListView} />} />
+      <Route path="/profile" element={<ProtectedPage Page={Profile} />} />
+      <Route path="/connections" element={<ProtectedPage Page={Connections} />} />
       {/* Consentimento OAuth 2.1 do servidor MCP (claude.ai, Claude Code) — ver docs/mcp.md */}
-      <Route
-        path="/oauth/consent"
-        element={
-          <ProtectedRoute>
-            <OAuthConsent />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/oauth/consent" element={<ProtectedPage Page={OAuthConsent} />} />
+      <Route path="/connections/help" element={<ProtectedPage Page={ConnectAssistant} />} />
       {/* Rota pública para join via convite - NÃO usar ProtectedRoute */}
       <Route path="/join/:inviteCode" element={<JoinListPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

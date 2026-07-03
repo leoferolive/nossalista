@@ -22,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +58,12 @@ public class PersonalAccessTokenAuthenticationFilter extends OncePerRequestFilte
 
     static final int INVALID_ATTEMPTS_LIMIT = 20;
     static final Duration INVALID_ATTEMPTS_WINDOW = Duration.ofMinutes(5);
+
+    // Charset embutido no próprio Content-Type — ver nota em
+    // Http403AccessDeniedHandler sobre por que uma única chamada a
+    // setContentType() é mais robusta que setContentType()+setCharacterEncoding().
+    private static final String PROBLEM_JSON_UTF8 =
+        new MediaType(MediaType.APPLICATION_PROBLEM_JSON, StandardCharsets.UTF_8).toString();
 
     private final PersonalAccessTokenService tokenService;
     private final AuthenticatedUserCache userCache;
@@ -139,7 +146,7 @@ public class PersonalAccessTokenAuthenticationFilter extends OncePerRequestFilte
         problem.setInstance(URI.create(request.getRequestURI()));
 
         response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+        response.setContentType(PROBLEM_JSON_UTF8);
         objectMapper.writeValue(response.getWriter(), problem);
     }
 

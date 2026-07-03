@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Authentication Entry Point que retorna erro 401 no formato RFC 7807 Problem Details
@@ -19,6 +20,12 @@ import java.net.URI;
  */
 @Component
 public class Http401UnauthorizedEntryPoint implements AuthenticationEntryPoint {
+
+    // Charset embutido no próprio Content-Type — ver nota em
+    // Http403AccessDeniedHandler sobre por que uma única chamada a
+    // setContentType() é mais robusta que setContentType()+setCharacterEncoding().
+    private static final String PROBLEM_JSON_UTF8 =
+        new MediaType(MediaType.APPLICATION_PROBLEM_JSON, StandardCharsets.UTF_8).toString();
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -39,7 +46,7 @@ public class Http401UnauthorizedEntryPoint implements AuthenticationEntryPoint {
 
         // Configurar response
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+        response.setContentType(PROBLEM_JSON_UTF8);
 
         // Escrever JSON no response
         objectMapper.writeValue(response.getWriter(), problem);
