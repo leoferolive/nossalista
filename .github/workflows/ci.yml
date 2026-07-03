@@ -380,10 +380,11 @@ jobs:
   security-and-compliance:
     needs: changes
     runs-on: ubuntu-latest
-    # 40min: o update incremental do feed NVD no dependency-check leva ~10-14min
-    # em dias normais e já estourou 20min três vezes num único dia quando a API
-    # do NVD está throttled (02/07/2026) — o cancelamento por timeout bloqueia a release.
-    timeout-minutes: 40
+    # 50min como BACKSTOP apenas — o controle real é o timeout-minutes: 30 no step
+    # "Backend dependency check" (step estourado ainda permite salvar o cache NVD
+    # parcial via if: always(); job cancelado não). Histórico: NVD throttled estourou
+    # 20min 3x e 40min 2x em 02-03/07/2026.
+    timeout-minutes: 50
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -480,19 +481,38 @@ jobs:
         if: needs.changes.outputs.backend == 'true'
         run: echo "NVD_WEEK=$(date +'%Y-%U')" >> "$GITHUB_ENV"
 
-      - name: Cache NVD database
+      # Cache NVD em restore/save separados: o post-step do actions/cache não roda
+      # quando o job é cancelado por timeout, então o download parcial do feed NVD
+      # era descartado e cada run recomeçava do zero (ciclo vicioso em dias de NVD
+      # throttled — visto 5x em 02-03/07/2026). O save com if: always() + key única
+      # por tentativa preserva o progresso parcial; o restore-keys pega o cache mais
+      # recente e o update continua de onde parou, convergindo em poucos runs.
+      - name: Restore NVD database cache
         if: needs.changes.outputs.backend == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-${{ runner.os }}-week-${{ env.NVD_WEEK }}
-          restore-keys: nvd-${{ runner.os }}-
+          key: nvd-${{ runner.os }}-week-${{ env.NVD_WEEK }}-run-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            nvd-${{ runner.os }}-week-${{ env.NVD_WEEK }}-
+            nvd-${{ runner.os }}-
 
+      # timeout no STEP (menor que o do job): quando estoura, o step falha mas os
+      # steps seguintes com if: always() ainda rodam — é o que permite salvar o
+      # cache parcial. O timeout do job (50min) fica só como backstop.
       - name: Backend dependency check
         if: needs.changes.outputs.backend == 'true'
         working-directory: backend
+        timeout-minutes: 30
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           chmod +x mvnw
           ./mvnw -B org.owasp:dependency-check-maven:check
+
+      - name: Save NVD database cache (mesmo em falha/timeout do step)
+        if: always() && needs.changes.outputs.backend == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-${{ runner.os }}-week-${{ env.NVD_WEEK }}-run-${{ github.run_id }}-${{ github.run_attempt }}
