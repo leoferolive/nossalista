@@ -45,6 +45,8 @@ public class McpOAuthProperties {
 
     private List<ClientDefinition> clients = new ArrayList<>();
 
+    private Dcr dcr = new Dcr();
+
     public String getIssuer() {
         return issuer;
     }
@@ -109,6 +111,14 @@ public class McpOAuthProperties {
         this.clients = clients;
     }
 
+    public Dcr getDcr() {
+        return dcr;
+    }
+
+    public void setDcr(Dcr dcr) {
+        this.dcr = dcr;
+    }
+
     /**
      * Cliente OAuth estático (ex.: {@code claude-ai}, {@code claude-code}).
      *
@@ -156,6 +166,63 @@ public class McpOAuthProperties {
 
         public void setAllowLoopbackRedirect(boolean allowLoopbackRedirect) {
             this.allowLoopbackRedirect = allowLoopbackRedirect;
+        }
+    }
+
+    /**
+     * Dynamic Client Registration (RFC 7591 — Fase C.1, ver docs/DECISIONS.md
+     * D-024): destrava o "Add connector" do claude.ai, que tenta DCR automático
+     * e falha ({@code registration_endpoint_missing}) sem este endpoint.
+     * Complementa (não substitui) os {@link #clients} estáticos.
+     */
+    public static class Dcr {
+
+        /** Desliga o endpoint {@code /oauth/register} e o anúncio no discovery, por profile. */
+        private boolean enabled = true;
+
+        /** Rate limit por IP em {@code POST /oauth/register} (ver {@code RateLimiterService}). */
+        private int rateLimitPerIpPerHour = 10;
+
+        /** Teto global de clientes dinâmicos registrados — proteção contra flood do banco. */
+        private int maxRegisteredClients = 500;
+
+        /**
+         * TTL de um cliente dinâmico que NUNCA completou um fluxo authorize->token
+         * ({@code last_used_at IS NULL}) — varrido por {@code McpOAuthCleanupScheduler}.
+         * Clientes já usados alguma vez nunca são removidos por esta varredura.
+         */
+        private Duration unusedClientTtl = Duration.ofDays(30);
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getRateLimitPerIpPerHour() {
+            return rateLimitPerIpPerHour;
+        }
+
+        public void setRateLimitPerIpPerHour(int rateLimitPerIpPerHour) {
+            this.rateLimitPerIpPerHour = rateLimitPerIpPerHour;
+        }
+
+        public int getMaxRegisteredClients() {
+            return maxRegisteredClients;
+        }
+
+        public void setMaxRegisteredClients(int maxRegisteredClients) {
+            this.maxRegisteredClients = maxRegisteredClients;
+        }
+
+        public Duration getUnusedClientTtl() {
+            return unusedClientTtl;
+        }
+
+        public void setUnusedClientTtl(Duration unusedClientTtl) {
+            this.unusedClientTtl = unusedClientTtl;
         }
     }
 }

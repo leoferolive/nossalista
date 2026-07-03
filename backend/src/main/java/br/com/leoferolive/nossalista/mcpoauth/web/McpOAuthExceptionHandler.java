@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.mcpoauth.web;
 
+import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthClientRegistrationException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthConsentForbiddenException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthInvalidRedirectUriException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthTokenException;
@@ -44,6 +45,16 @@ public class McpOAuthExceptionHandler {
      */
     @ExceptionHandler(OAuthTokenException.class)
     public ResponseEntity<Map<String, String>> handleOAuthTokenException(OAuthTokenException ex) {
+        return ResponseEntity.status(ex.getStatus())
+            .body(Map.of("error", ex.getErrorCode(), "error_description", ex.getMessage()));
+    }
+
+    /**
+     * Erros de {@code POST /oauth/register} (Dynamic Client Registration, RFC
+     * 7591 §3.2.2) — mesmo formato de corpo de {@link OAuthTokenException}.
+     */
+    @ExceptionHandler(OAuthClientRegistrationException.class)
+    public ResponseEntity<Map<String, String>> handleClientRegistrationException(OAuthClientRegistrationException ex) {
         return ResponseEntity.status(ex.getStatus())
             .body(Map.of("error", ex.getErrorCode(), "error_description", ex.getMessage()));
     }

@@ -42,6 +42,16 @@ Importantes (com default em alguns cenarios):
 > OAuth apresentado a `/mcp` — um token emitido para outro resource e rejeitado
 > com `401`.
 
+> **`MCP_OAUTH_DCR_ENABLED` (Fase C.1 — Dynamic Client Registration, D-024):**
+> liga/desliga `POST /oauth/register` e o anuncio de `registration_endpoint`
+> no discovery (`/.well-known/oauth-authorization-server`). Default `true`.
+> Quando `false`, o endpoint responde `403 {"error":"access_denied"}` e o
+> discovery para de anunciar o endpoint — util para desativar DCR num
+> ambiente sem desativar o resto do OAuth. Demais parametros de DCR
+> (rate limit por IP, teto de clientes registrados, TTL de cliente nunca
+> usado) nao tem env var dedicada nesta fase — ajustar via
+> `app.mcp-oauth.dcr.*` em `application*.yml` se necessario.
+
 > **`REQUIRE_EMAIL_VERIFICATION` (Q2.7) — enforcement de verificacao de e-mail:**
 > Controla se o login email/senha bloqueia contas EMAIL ainda nao verificadas.
 > Default `false`: o status `email_verified` e registrado, mas o login **nao** e

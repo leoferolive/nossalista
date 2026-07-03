@@ -960,3 +960,132 @@
   tools de mutacao, da visibilidade operacional real (Prometheus/Grafana) ao servidor MCP, e
   reduz a barreira de entrada para o usuario final conectar um assistente, sem depender de
   ler `docs/mcp.md`.
+
+## D-024 Dynamic Client Registration (DCR, RFC 7591) — Fase C.1
+
+- **Contexto:** evidencia de PRODUCAO, nao antecipada pela pesquisa do Passo 0 de D-022. Ao
+  adicionar o servidor MCP como custom connector via **"Add connector"** no claude.ai/Claude
+  Desktop, o fluxo falha no primeiro passo (`start_error`) com
+  `oauth_error=registration_endpoint_missing`. Causa raiz: esse fluxo especifico do connector
+  tenta **Dynamic Client Registration automatico** antes de qualquer configuracao manual — ele
+  consulta `/.well-known/oauth-authorization-server` e, ao nao encontrar um
+  `registration_endpoint` anunciado (D-022 implementou so clientes ESTATICOS), aborta sem sequer
+  chegar a oferecer o campo manual de `client_id`/`client_secret` documentado no Passo 0 de
+  D-022. Ou seja: a pesquisa anterior identificou corretamente que DCR "nao e obrigatoria" no
+  sentido de existir uma alternativa (client_id estatico) — mas o fluxo *padrao* do botao "Add
+  connector" tenta DCR primeiro, e falhar nesse passo automatico impede o usuario de sequer
+  alcancar o formulario manual. **Decisao: implementar um DCR MINIMO e ENDURECIDO**, complementar
+  (nao substitui) aos clientes estaticos `claude-ai`/`claude-code`, que continuam funcionando
+  como fallback (ex.: Claude Code via `--client-id claude-code`).
+
+- **Formato do endpoint — `POST /oauth/register` (RFC 7591 §3):** publico, sem autenticacao
+  (conforme a RFC — o cliente ainda nao tem credencial nenhuma nesta etapa), mas ENDURECIDO (ver
+  hardening abaixo). Recebe client metadata JSON (`redirect_uris` obrigatorio,
+  `token_endpoint_auth_method`/`grant_types`/`response_types`/`scope`/`client_name`/`client_uri`
+  opcionais) e responde **201** ecoando a metadata registrada + `client_id` gerado
+  (`dcr_<16 bytes aleatorios em Base64 URL-safe>`) + `client_id_issued_at` (epoch seconds).
+  **Sem `client_secret` emitido**: todo cliente DCR aqui e PUBLICO — `token_endpoint_auth_method`
+  e sempre FIXADO em `"none"` no servidor (o valor pedido pelo cliente e ignorado
+  deliberadamente), alinhado com `token_endpoint_auth_methods_supported: ["none"]` que o
+  discovery ja anunciava desde D-022. `grant_types` fora de
+  `{authorization_code, refresh_token}` e rejeitado (`invalid_client_metadata`); `response_types`
+  e sempre `["code"]` na resposta (nao persistido — este servidor so implementa Authorization
+  Code + PKCE).
+
+- **Persistencia:** nova tabela `mcp_oauth_registered_clients` (migration V14) —
+  `client_id UNIQUE`, `redirect_uris`/`grant_types` como texto delimitado (uma URI por linha /
+  grant types por virgula — cardinalidade pequena, projeto nao usa colunas JSON em nenhuma outra
+  tabela), `scope`, `client_name`, `token_endpoint_auth_method`, `created_at`, `last_used_at`
+  nullable, `expires_at` nullable (reservado para uma TTL rigida futura, nao usado nesta fase).
+  Entity `McpOAuthRegisteredClient` + `McpOAuthRegisteredClientRepository` +
+  `McpOAuthDynamicClientService` (registro/hardening) seguem o mesmo padrao de camadas do resto
+  do modulo `mcpoauth`.
+
+- **Integracao com `McpOAuthClientRegistry` (achado do design):** em vez de introduzir um tipo
+  novo para representar "cliente" nos controllers/services de authorize/token, o registry
+  ADAPTA um `McpOAuthRegisteredClient` persistido para o MESMO shape de
+  `McpOAuthProperties.ClientDefinition` ja usado pelos clientes estaticos — zero mudanca de
+  assinatura em `McpOAuthAuthorizeController`, `McpOAuthTokenService`,
+  `McpOAuthAuthorizationService` ou `McpOAuthConnectionService`. `find()`/`require()` consultam
+  primeiro os estaticos (precedencia por id), depois o banco. `require()` tambem marca
+  `last_used_at` do cliente dinamico a cada resolucao bem-sucedida (usado tanto em
+  `/oauth/authorize` quanto em `/oauth/token`).
+  - **Match de `redirect_uri` para clientes dinamicos e sempre EXATO**, sem a excecao de porta
+    variavel do RFC 8252 §7.3 que os clientes ESTATICOS loopback (`claude-code`) tem: o
+    hardening do registro ja exige porta EXPLICITA em `redirect_uris` loopback, e o fluxo tipico
+    de um cliente DCR e registrar-se e usar o `client_id` retornado NA MESMA sessao (a porta
+    real ja e conhecida no momento do registro) — diferente do caso estatico pre-configurado,
+    onde o `client_id` e fixo entre sessoes mas a porta varia a cada conexao.
+  - **Achado de concorrencia/transacao (bloqueio do desenvolvimento, corrigido antes do commit):**
+    a primeira versao de `require()` nao tinha `@Transactional` proprio — quebrou com
+    `TransactionRequiredException` ao resolver um cliente dinamico a partir de
+    `McpOAuthAuthorizeController#authorize` (sem transacao ativa nenhuma, e `touchLastUsedAt` e
+    um `@Modifying @Query` que EXIGE uma). Adicionar `@Transactional` simples resolveu isso mas
+    quebrou um teste PRE-EXISTENTE (`tokenRejectsUnknownClientWithOAuthErrorFormat`) com
+    `UnexpectedRollbackException`: quando `require()` e chamado de DENTRO da transacao de
+    `McpOAuthTokenService#exchangeAuthorizationCode` (que tem
+    `noRollbackFor = OAuthTokenException.class`) e lanca `OAuthUnknownClientException`, o PROPRIO
+    advice transacional de `require()` marca a transacao (compartilhada, por participar dela)
+    como rollback-only — mesmo o chamador capturando essa excecao e convertendo para
+    `OAuthTokenException` (coberta pelo `noRollbackFor` de la), o commit final falha porque a
+    flag ja foi setada por `require()`. Fix: `@Transactional(noRollbackFor = OAuthUnknownClientException.class)`
+    em `require()` — garante uma transacao ativa (resolve o primeiro problema) sem propagar a
+    marca de rollback-only para um `OAuthUnknownClientException` que sera tratado a seguir pelo
+    chamador (resolve o segundo). Fechado com um teste de regressao ponta-a-ponta cobrindo o
+    fluxo completo (registrar -> authorize -> consent -> token -> chamada `/mcp` real) alem do
+    caso de client_id desconhecido que ja existia.
+
+- **Hardening (RFC 7591 §5 e alem, decisao deliberada de nao seguir a RFC "aberta" ao pe da
+  letra):**
+  - `redirect_uris` obrigatorio, nao-vazio, e cada URI deve ser **https** (com host) OU
+    **loopback** (`http://localhost`/`http://127.0.0.1`) com **porta explicita** — rejeita http
+    remoto, fragmentos (`#`), wildcards de host (`*`), e qualquer outro scheme (`javascript:`,
+    `data:` caem no mesmo fallback de rejeicao). Erro `400 {"error":"invalid_redirect_uri"}`.
+  - **Rate limit por IP** em `/oauth/register` via `RateLimiterService` (10/hora/IP, default) —
+    `429 {"error":"too_many_requests"}` (codigo pragmatico, RFC 7591 nao define um erro
+    especifico para rate limit; mesmo shape de corpo dos demais erros deste endpoint).
+  - **Teto global de clientes registrados** (`app.mcp-oauth.dcr.max-registered-clients`,
+    default 500) — acima do teto, `503 {"error":"temporarily_unavailable"}` (RFC 6749 §4.1.2.1
+    reaproveitado, ja que RFC 7591 tambem nao cobre esse caso).
+  - **TTL de cliente nunca usado**: `McpOAuthCleanupScheduler` (mesma varredura periodica de
+    codes/pending/refresh tokens expirados, D-022) agora tambem remove clientes dinamicos com
+    `last_used_at IS NULL` registrados ha mais de `app.mcp-oauth.dcr.unused-client-ttl`
+    (default 30 dias). Um cliente que **completou** ao menos um fluxo authorize->token nunca e
+    removido por esta varredura, independente de quanto tempo sem uso.
+  - Erros no formato OAuth padrao (`{"error", "error_description"}`, RFC 6749 §5.2/RFC 7591
+    §3.2.2) — o MESMO formato de `OAuthTokenException`, nunca `ProblemDetail` RFC 7807 usado pelo
+    resto da API. Nova excecao dedicada `OAuthClientRegistrationException`, tratada no MESMO
+    `McpOAuthExceptionHandler` (que ja isola esse formato do `GlobalExceptionHandler`
+    compartilhado, ver D-022).
+  - Nenhum segredo/token em log (nao ha segredo — clientes DCR sao publicos).
+  - **Consentimento nao enfraquecido:** o fluxo de consentimento existente (cookie de vinculo +
+    `claimed_by_user_id`, D-022) protege um cliente dinamico EXATAMENTE como um estatico — nenhum
+    codigo de `McpOAuthAuthorizationService` mudou. Confirmado com um teste de regressao
+    dedicado (sequestro de consentimento cross-user usando um `client_id` DCR).
+  - **Flag de habilitacao**: `app.mcp-oauth.dcr.enabled` (default `true`) — quando `false`,
+    `POST /oauth/register` responde `403 {"error":"access_denied"}` e o discovery PARA de
+    anunciar `registration_endpoint` (evita o mesmo bug de origem: um cliente tentando DCR contra
+    um endpoint que existe mas rejeita tudo).
+
+- **Testes:** `McpOAuthDynamicClientServiceTest` (hardening de `redirect_uris`, defaults de
+  metadata, teto de clientes — unitario, sem Spring), `McpOAuthClientRegistrationControllerTest`
+  (flag `dcr.enabled`/rate limit — unitario, mocks), `McpOAuthRegisteredClientTest` (round-trip
+  do texto delimitado), `McpOAuthRegisteredClientRepositoryTest` (`touchLastUsedAt`,
+  `deleteUnusedRegisteredBefore` com corte de data via `EntityManager`, mesmo padrao de
+  `McpOAuthAtomicUpdatesRepositoryTest`), testes adicionais em `McpOAuthClientRegistryTest`
+  (resolucao/`touch` de cliente dinamico) e um novo
+  `McpOAuthDynamicClientRegistrationIntegrationTest` (H2 dedicado, mesmo padrao de
+  `McpOAuthFlowIntegrationTest`) com o fluxo E2E completo (`POST /oauth/register` ->
+  `/oauth/authorize` com PKCE -> consentimento -> code -> `/oauth/token` -> chamada real ao
+  `/mcp` via SDK MCP), discovery com `registration_endpoint`, e a trava de sequestro de
+  consentimento cross-user aplicada a um cliente dinamico.
+
+- **Substitui parcialmente o cliente estatico `claude-ai`:** apos este DCR, o "Add connector" do
+  claude.ai funciona SEM nenhuma configuracao manual (nao precisa mais informar `client_id`
+  em "Advanced settings"). O cliente estatico `claude-ai` continua registrado em
+  `app.mcp-oauth.clients` como fallback documentado (ex.: integracoes que preferem um
+  `client_id` fixo e auditavel em vez de um gerado dinamicamente).
+
+- **Motivo:** destrava a via mais natural de conexao (o proprio botao "Add connector" do
+  claude.ai/Claude Desktop, sem exigir que o usuario final encontre e cole um `client_id` em
+  "Advanced settings"), fechando o gap de UX que a pesquisa do Passo 0 de D-022 nao previu.

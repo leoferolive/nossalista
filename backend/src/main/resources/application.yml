@@ -103,7 +103,8 @@ app:
     require-email-verification: ${REQUIRE_EMAIL_VERIFICATION:false}
   # Servidor de autorização OAuth 2.1 embutido para clientes do servidor MCP
   # (Fase C do roadmap MCP — ver docs/DECISIONS.md D-022 e docs/mcp.md).
-  # Clientes são registrados ESTATICAMENTE (sem Dynamic Client Registration).
+  # Clientes são registrados ESTATICAMENTE por padrão, complementados por
+  # Dynamic Client Registration (Fase C.1, D-024 — bloco `dcr` abaixo).
   mcp-oauth:
     issuer: ${MCP_OAUTH_ISSUER:http://localhost:8080}
     resource: ${MCP_OAUTH_RESOURCE:http://localhost:8080/mcp}
@@ -136,6 +137,14 @@ app:
       # compartilhada por TODOS os profiles, inclusive prod (achado do review,
       # M-3). Um cliente assim só deve existir em profiles não-prod — ver
       # `app.mcp-oauth.clients` em application-dev.yml.
+    # Dynamic Client Registration (RFC 7591, Fase C.1 — ver docs/DECISIONS.md
+    # D-024): destrava o "Add connector" do claude.ai, que tenta DCR automático
+    # e falha (oauth_error=registration_endpoint_missing) sem `POST /oauth/register`.
+    dcr:
+      enabled: ${MCP_OAUTH_DCR_ENABLED:true}
+      rate-limit-per-ip-per-hour: 10
+      max-registered-clients: 500
+      unused-client-ttl: 30d
   email:
     from: ${EMAIL_FROM:no-reply@nossalista.leoferolive.com.br}
     from-name: ${EMAIL_FROM_NAME:NossaLista}

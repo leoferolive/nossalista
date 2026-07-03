@@ -88,8 +88,11 @@ public class SecurityConfig {
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         // Servidor de autorização OAuth 2.1 do MCP (Fase C, D-022): authorize/token/
                         // revoke e discovery são públicos por natureza do protocolo (o cliente OAuth
-                        // ainda não tem credencial nenhuma nesta etapa).
-                        .requestMatchers("/oauth/authorize", "/oauth/token", "/oauth/revoke").permitAll()
+                        // ainda não tem credencial nenhuma nesta etapa). /oauth/register (Fase C.1,
+                        // D-024) é Dynamic Client Registration (RFC 7591) — público por definição da
+                        // RFC, endurecido com rate limit por IP e validação de redirect_uris.
+                        .requestMatchers("/oauth/authorize", "/oauth/token", "/oauth/revoke", "/oauth/register")
+                        .permitAll()
                         .requestMatchers("/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource")
                         .permitAll()
                         // Consentimento/gestão de conexões OAuth do MCP: exige sessão JWT normal —
