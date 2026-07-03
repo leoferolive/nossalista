@@ -60,8 +60,12 @@ nossalista/
 O backend expoe um servidor [MCP](https://modelcontextprotocol.io) embutido em `POST /mcp`
 (Streamable HTTP), autenticado por OAuth 2.1 (Authorization Code + PKCE — claude.ai e
 Claude Code conectam via "Add connector" sem copiar credencial manualmente), Personal
-Access Token (`nlmcp_...`) ou JWT, para conectar assistentes de IA as listas do usuario.
-Guia de conexao, tools disponiveis e modelo de seguranca em `docs/mcp.md`.
+Access Token (`nlmcp_...`) ou JWT, para conectar assistentes de IA (Claude Code, Claude
+Desktop, Cursor) as listas do usuario. Guia de conexao, tools disponiveis e modelo de
+seguranca em `docs/mcp.md`; passo a passo para o usuario final na propria tela **Conexoes
+(API/Assistentes) → "Como conectar?"** do app. As 13 tools sao instrumentadas com rate limit
+por usuario nas mutacoes e metricas Prometheus por tool (`mcp_tool_calls_total`,
+`mcp_tool_duration_seconds`) — ver `docs/observability/`.
 
 ## Skills locais
 
