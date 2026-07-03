@@ -24,6 +24,23 @@ Importantes (com default em alguns cenarios):
 - `DATABASE_USER` (default: `nossalista`)
 - `FRONTEND_URL` (default: `http://localhost:5173`)
 - `REQUIRE_EMAIL_VERIFICATION` -> `app.auth.require-email-verification` (default: `false`)
+- `MCP_OAUTH_SIGNING_KEY`, `MCP_OAUTH_ISSUER`, `MCP_OAUTH_RESOURCE` — ver secao dedicada abaixo
+
+> **`MCP_OAUTH_SIGNING_KEY` e fail-fast (obrigatoria em todos os ambientes):**
+> assina os access tokens OAuth do servidor de autorizacao do MCP (Fase C —
+> ver `docs/DECISIONS.md` D-021 e `docs/mcp.md`). `McpOAuthJwtService` valida o
+> secret na inicializacao e **a aplicacao nao sobe** se estiver ausente ou tiver
+> menos de 32 bytes (256 bits, minimo do HS256) — mesmo mecanismo de
+> `JWT_SECRET`, porem com uma chave PROPRIA e obrigatoriamente DIFERENTE (nunca
+> reuse o valor de `JWT_SECRET`: seriam dois tipos de token com o mesmo
+> segredo). Os perfis de teste/CI ja trazem uma chave de teste valida.
+>
+> `MCP_OAUTH_ISSUER` e `MCP_OAUTH_RESOURCE` tem default de desenvolvimento
+> (`http://localhost:8080` e `http://localhost:8080/mcp`) e sao sobrescritos
+> com o dominio real em `application-prod.yml` (mesmo padrao de `FRONTEND_URL`).
+> `MCP_OAUTH_RESOURCE` e a audience (RFC 8707) validada em todo access token
+> OAuth apresentado a `/mcp` — um token emitido para outro resource e rejeitado
+> com `401`.
 
 > **`REQUIRE_EMAIL_VERIFICATION` (Q2.7) — enforcement de verificacao de e-mail:**
 > Controla se o login email/senha bloqueia contas EMAIL ainda nao verificadas.

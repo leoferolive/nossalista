@@ -58,9 +58,10 @@ nossalista/
 ## Servidor MCP
 
 O backend expoe um servidor [MCP](https://modelcontextprotocol.io) embutido em `POST /mcp`
-(Streamable HTTP), autenticado por Personal Access Token (`nlmcp_...`) ou JWT, para
-conectar assistentes de IA (Claude Code, Claude Desktop, Cursor) as listas do usuario. Guia
-de conexao, tools disponiveis e modelo de seguranca em `docs/mcp.md`.
+(Streamable HTTP), autenticado por OAuth 2.1 (Authorization Code + PKCE — claude.ai e
+Claude Code conectam via "Add connector" sem copiar credencial manualmente), Personal
+Access Token (`nlmcp_...`) ou JWT, para conectar assistentes de IA as listas do usuario.
+Guia de conexao, tools disponiveis e modelo de seguranca em `docs/mcp.md`.
 
 ## Skills locais
 
