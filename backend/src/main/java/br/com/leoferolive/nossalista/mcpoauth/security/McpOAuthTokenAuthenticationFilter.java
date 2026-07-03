@@ -25,7 +25,7 @@ import java.util.Optional;
 
 /**
  * Filtro de autenticação via access token OAuth do servidor MCP (Fase C — ver
- * docs/DECISIONS.md D-021).
+ * docs/DECISIONS.md D-022).
  *
  * <p>Só atua em requisições a {@code /mcp/**} — os escopos OAuth do MCP valem
  * EXCLUSIVAMENTE para o servidor MCP, nunca para {@code /api/**} (reforçado em

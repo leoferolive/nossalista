@@ -86,7 +86,7 @@ public class SecurityConfig {
                         .access(publicUnlessPatManager())
                         // OAuth2 endpoints (Spring Security gerencia automaticamente)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        // Servidor de autorização OAuth 2.1 do MCP (Fase C, D-021): authorize/token/
+                        // Servidor de autorização OAuth 2.1 do MCP (Fase C, D-022): authorize/token/
                         // revoke e discovery são públicos por natureza do protocolo (o cliente OAuth
                         // ainda não tem credencial nenhuma nesta etapa).
                         .requestMatchers("/oauth/authorize", "/oauth/token", "/oauth/revoke").permitAll()
@@ -160,7 +160,7 @@ public class SecurityConfig {
                 // PAT roda ANTES do JWT: só age em tokens com prefixo nlmcp_, deixando
                 // qualquer outro valor (incluindo JWTs normais) intocado para o filtro seguinte.
                 .addFilterBefore(personalAccessTokenAuthenticationFilter, JwtAuthenticationFilter.class)
-                // Access token OAuth do MCP (Fase C, D-021): só age em /mcp/** e só quando o
+                // Access token OAuth do MCP (Fase C, D-022): só age em /mcp/** e só quando o
                 // Bearer valida como JWT assinado com MCP_OAUTH_SIGNING_KEY (chave própria,
                 // distinta do JWT_SECRET de sessão) — qualquer outro valor segue intocado.
                 .addFilterBefore(mcpOAuthTokenAuthenticationFilter, JwtAuthenticationFilter.class);
@@ -197,7 +197,7 @@ public class SecurityConfig {
      * (GET/HEAD/OPTIONS). PATs de escopo READ_WRITE e sessões JWT não sofrem
      * essa restrição adicional.
      *
-     * <p>Um access token OAuth do servidor MCP (Fase C, D-021) é sempre negado
+     * <p>Um access token OAuth do servidor MCP (Fase C, D-022) é sempre negado
      * aqui, mesmo em métodos seguros — diferente de um PAT, seu escopo só vale
      * para {@code /mcp}, nunca para a API REST do SPA (defesa em profundidade:
      * o filtro que autentica esse token já só atua em {@code /mcp/**}, mas essa

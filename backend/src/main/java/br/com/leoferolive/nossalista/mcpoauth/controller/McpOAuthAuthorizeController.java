@@ -31,7 +31,7 @@ import java.util.Locale;
  * <p>Por isso o endpoint SEMPRE redireciona para a tela de consentimento da
  * SPA ({@code {FRONTEND_URL}/oauth/consent?request_id=...}), que decide se o
  * usuário precisa logar primeiro (via o fluxo de login já existente) antes de
- * chamar os endpoints autenticados de consentimento. Ver docs/DECISIONS.md D-021.</p>
+ * chamar os endpoints autenticados de consentimento. Ver docs/DECISIONS.md D-022.</p>
  */
 @Controller
 @Tag(name = "OAuth (MCP)", description = "Servidor de autorização OAuth 2.1 para clientes do servidor MCP")
@@ -125,7 +125,7 @@ public class McpOAuthAuthorizeController {
             authorizationService.createPending(clientId, redirectUri, scope, state, codeChallenge, resource);
 
         // Vincula o pedido a ESTE browser (defesa contra sequestro de consentimento
-        // cross-user, achado do QA — ver Javadoc de PendingAuthorization/D-021):
+        // cross-user, achado do QA — ver Javadoc de PendingAuthorization/D-022):
         // approve/deny exigem esse cookie batendo com o nonce persistido.
         ResponseCookie cookie = ResponseCookie.from(McpOAuthAuthorizationService.CONSENT_COOKIE_NAME, pending.getNonce())
             .path("/")

@@ -23,7 +23,7 @@ public final class PatAuthorizationSupport {
     /**
      * Authority marcadora: presente em autenticações originadas de um PAT OU de
      * um access token OAuth do servidor MCP ({@code McpOAuthTokenAuthenticationFilter},
-     * Fase C — ver docs/DECISIONS.md D-021). Ambos são credenciais não-sessão com
+     * Fase C — ver docs/DECISIONS.md D-022). Ambos são credenciais não-sessão com
      * escopo explícito ({@link TokenScope}), então compartilham esta authority
      * para que o enforcement de escopo em {@code McpSecurityContext.requireWriteAccess()}
      * funcione igual para os dois sem precisar conhecer a origem do token.

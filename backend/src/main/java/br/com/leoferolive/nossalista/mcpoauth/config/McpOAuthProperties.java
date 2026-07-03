@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * Configuração estática do servidor de autorização OAuth 2.1 embutido para
- * clientes do servidor MCP (Fase C do roadmap MCP — ver docs/DECISIONS.md D-021).
+ * clientes do servidor MCP (Fase C do roadmap MCP — ver docs/DECISIONS.md D-022).
  *
  * <p>Clientes são registrados ESTATICAMENTE aqui (sem Dynamic Client
  * Registration) — decisão do Passo 0: o claude.ai e o Claude Code aceitam um
@@ -25,7 +25,7 @@ public class McpOAuthProperties {
      * invalida instantaneamente um access token já emitido — ele continua
      * válido até expirar. Um TTL curto é a defesa primária contra essa janela
      * de exposição; introspecção/blacklist de access tokens fica registrada
-     * como follow-up em docs/DECISIONS.md (D-021).
+     * como follow-up em docs/DECISIONS.md (D-022).
      */
     private static final Duration DEFAULT_ACCESS_TOKEN_TTL = Duration.ofMinutes(10);
 

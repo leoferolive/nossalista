@@ -1,6 +1,6 @@
 -- OAuth 2.1 (Authorization Code + PKCE) para clientes MCP externos (claude.ai,
 -- Claude Code) se conectarem ao servidor MCP (/mcp) do NossaLista sem depender
--- de Personal Access Tokens copiados manualmente. Ver docs/DECISIONS.md D-021.
+-- de Personal Access Tokens copiados manualmente. Ver docs/DECISIONS.md D-022.
 
 -- Passo 1: pedido de autorizacao pendente de consentimento do usuario. Criado em
 -- GET /oauth/authorize (antes do login/consentimento), consumido quando o

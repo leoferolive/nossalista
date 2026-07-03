@@ -85,7 +85,7 @@ public class McpOAuthExceptionHandler {
     /**
      * Cookie de vínculo ausente/incorreto, ou pedido reivindicado por outro
      * usuário — defesa contra sequestro de consentimento cross-user (achado do
-     * QA, ver Javadoc de {@code PendingAuthorization}/D-021).
+     * QA, ver Javadoc de {@code PendingAuthorization}/D-022).
      */
     @ExceptionHandler(OAuthConsentForbiddenException.class)
     public ResponseEntity<ProblemDetail> handleConsentForbidden(

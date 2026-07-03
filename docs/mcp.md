@@ -16,7 +16,7 @@ O servidor MCP aceita tres formas de autenticacao:
 
 - **OAuth 2.1 (Authorization Code + PKCE)** — recomendado para claude.ai (web e app) e
   Claude Code, que descobrem e usam esse fluxo automaticamente ao adicionar um connector.
-  Ver "Conectando via OAuth (claude.ai, Claude Code)" abaixo e `docs/DECISIONS.md` (D-021).
+  Ver "Conectando via OAuth (claude.ai, Claude Code)" abaixo e `docs/DECISIONS.md` (D-022).
 - **Personal Access Token (PAT)** — alternativa manual para outros clientes MCP (Cursor,
   Claude Desktop). Gerado em "Conexoes (API/Assistentes)" no menu da conta do app, com
   prefixo `nlmcp_...` e escopo `READ` ou `READ_WRITE`. Ver `docs/DECISIONS.md` (D-018).
@@ -35,7 +35,7 @@ vale **apenas** para `/mcp` — nunca para `/api/**` (a API REST do SPA).
 
 O servidor implementa um servidor de autorizacao OAuth 2.1 embutido (Authorization Code +
 PKCE, S256 obrigatorio) com clientes registrados estaticamente — sem exigir Dynamic Client
-Registration. Ver o design completo e as fontes da pesquisa em `docs/DECISIONS.md` (D-021).
+Registration. Ver o design completo e as fontes da pesquisa em `docs/DECISIONS.md` (D-022).
 
 ### claude.ai (web e app mobile)
 

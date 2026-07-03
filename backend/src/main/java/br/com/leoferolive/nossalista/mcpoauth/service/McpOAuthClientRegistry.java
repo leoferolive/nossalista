@@ -14,7 +14,7 @@ import java.util.Optional;
 
 /**
  * Resolve clientes OAuth estáticos (config, sem Dynamic Client Registration —
- * ver Passo 0 de docs/DECISIONS.md D-021) e valida {@code redirect_uri}.
+ * ver Passo 0 de docs/DECISIONS.md D-022) e valida {@code redirect_uri}.
  *
  * <p>Match de {@code redirect_uri} é sempre EXATO, exceto para clientes com
  * {@link ClientDefinition#isAllowLoopbackRedirect()}, que aceitam qualquer

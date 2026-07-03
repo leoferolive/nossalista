@@ -28,7 +28,7 @@ Importantes (com default em alguns cenarios):
 
 > **`MCP_OAUTH_SIGNING_KEY` e fail-fast (obrigatoria em todos os ambientes):**
 > assina os access tokens OAuth do servidor de autorizacao do MCP (Fase C —
-> ver `docs/DECISIONS.md` D-021 e `docs/mcp.md`). `McpOAuthJwtService` valida o
+> ver `docs/DECISIONS.md` D-022 e `docs/mcp.md`). `McpOAuthJwtService` valida o
 > secret na inicializacao e **a aplicacao nao sobe** se estiver ausente ou tiver
 > menos de 32 bytes (256 bits, minimo do HS256) — mesmo mecanismo de
 > `JWT_SECRET`, porem com uma chave PROPRIA e obrigatoriamente DIFERENTE (nunca

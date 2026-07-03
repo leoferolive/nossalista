@@ -70,7 +70,7 @@ public class McpOAuthAuthorizationService {
     /**
      * @return o {@link PendingAuthorization} criado — o chamador (controller)
      *         usa {@link PendingAuthorization#getNonce()} para setar o cookie
-     *         de vínculo no browser que originou o pedido (ver classe/D-021).
+     *         de vínculo no browser que originou o pedido (ver classe/D-022).
      */
     @Transactional
     public PendingAuthorization createPending(

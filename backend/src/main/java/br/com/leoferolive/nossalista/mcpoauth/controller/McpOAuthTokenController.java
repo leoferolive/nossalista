@@ -78,7 +78,7 @@ public class McpOAuthTokenController {
             + "(nunca revela se um token era válido). Revoga a família inteira de refresh tokens "
             + "originada pelo token informado. NÃO invalida o access token OAuth já emitido: por ser "
             + "um JWT stateless, ele permanece válido até expirar naturalmente (TTL curto, ver "
-            + "docs/DECISIONS.md D-021)."
+            + "docs/DECISIONS.md D-022)."
     )
     public ResponseEntity<Void> revoke(
         @RequestParam("token") String token,

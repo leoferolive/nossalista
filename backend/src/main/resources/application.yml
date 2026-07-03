@@ -102,7 +102,7 @@ app:
     # Ligue (true) somente quando as contas relevantes já estiverem verificadas.
     require-email-verification: ${REQUIRE_EMAIL_VERIFICATION:false}
   # Servidor de autorização OAuth 2.1 embutido para clientes do servidor MCP
-  # (Fase C do roadmap MCP — ver docs/DECISIONS.md D-021 e docs/mcp.md).
+  # (Fase C do roadmap MCP — ver docs/DECISIONS.md D-022 e docs/mcp.md).
   # Clientes são registrados ESTATICAMENTE (sem Dynamic Client Registration).
   mcp-oauth:
     issuer: ${MCP_OAUTH_ISSUER:http://localhost:8080}
@@ -115,7 +115,7 @@ app:
     code-ttl: 60s
     # Curto deliberadamente (achado do QA): access token é JWT stateless, então
     # revogar a família de refresh (replay/reuso) não o invalida instantaneamente
-    # — ele vale até expirar. Ver docs/DECISIONS.md (D-021).
+    # — ele vale até expirar. Ver docs/DECISIONS.md (D-022).
     access-token-ttl: 10m
     refresh-token-ttl: 30d
     clients:
@@ -129,7 +129,7 @@ app:
         name: "Claude Code"
         redirect-uris: []
         # Claude Code escolhe uma porta aleatória por padrão a cada conexão OAuth
-        # (a menos que --callback-port seja usado) — ver Passo 0 de D-021.
+        # (a menos que --callback-port seja usado) — ver Passo 0 de D-022.
         allow-loopback-redirect: true
       # NÃO registrar aqui um cliente de teste local (ex.: "nossalista-local",
       # redirect http://localhost:8765/callback): este arquivo é a base

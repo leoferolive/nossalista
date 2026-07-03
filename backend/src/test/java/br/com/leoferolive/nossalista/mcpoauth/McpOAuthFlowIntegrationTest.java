@@ -49,7 +49,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Testes de integração ponta-a-ponta do servidor de autorização OAuth 2.1 do
- * MCP (Fase C — docs/DECISIONS.md D-021): authorize → consentimento → code →
+ * MCP (Fase C — docs/DECISIONS.md D-022): authorize → consentimento → code →
  * token → chamada real ao servidor MCP com o access token emitido.
  *
  * <p>Segue o mesmo padrão de isolamento de {@code McpServerIntegrationTest}
@@ -707,7 +707,7 @@ class McpOAuthFlowIntegrationTest {
     }
 
     @Test
-    @DisplayName("LIMITAÇÃO CONHECIDA (D-021): access token OAuth continua válido até expirar mesmo após a família ser revogada")
+    @DisplayName("LIMITAÇÃO CONHECIDA (D-022): access token OAuth continua válido até expirar mesmo após a família ser revogada")
     void revokedFamilyAccessTokenRemainsValidUntilNaturalExpiry() {
         User user = newUser();
         Pkce pkce = newPkce();
@@ -729,7 +729,7 @@ class McpOAuthFlowIntegrationTest {
 
         // ...mas o ACCESS TOKEN já emitido, por ser um JWT stateless, PERMANECE
         // válido até expirar naturalmente — limitação conhecida e documentada em
-        // docs/DECISIONS.md (D-021), mitigada com um TTL curto (10min). Este teste
+        // docs/DECISIONS.md (D-022), mitigada com um TTL curto (10min). Este teste
         // documenta o comportamento esperado para não ser lido como bug no futuro.
         McpSyncClient client = connectedMcpClient(tokens.accessToken());
         CallToolResult listResult = client.callTool(CallToolRequest.builder("list_my_lists").arguments(Map.of()).build());
