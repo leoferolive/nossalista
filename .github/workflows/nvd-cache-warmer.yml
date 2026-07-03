@@ -1,0 +1,70 @@
+name: NVD cache warmer
+
+# Mantém o banco de vulnerabilidades da NVD "quente" num cache do MAIN. Como este
+# workflow roda na branch default, o cache que ele salva é legível por TODAS as PRs
+# (o isolamento de cache do GitHub Actions permite às PRs ler caches do main).
+#
+# Com isso, o job security-and-compliance do ci.yml roda o dependency-check com
+# -DautoUpdate=false: as PRs NUNCA baixam o feed NVD (~363k registros, ~14 min) —
+# elas só analisam contra este banco pré-baixado. O download pesado acontece aqui,
+# de madrugada, fora do caminho crítico das PRs.
+#
+# Semear pela 1ª vez (ou após eviction do cache): rode este workflow manualmente
+# pela aba Actions (workflow_dispatch).
+
+on:
+  schedule:
+    - cron: '0 6 * * *'      # 06:00 UTC = 03:00 America/Sao_Paulo — diário
+  workflow_dispatch: {}       # semear/atualizar sob demanda
+  push:
+    branches: [main]
+    paths:
+      - 'backend/pom.xml'     # bump de dependência no main → revalida o banco
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nvd-cache-warmer
+  cancel-in-progress: false   # nunca cancelar um update em andamento
+
+jobs:
+  warm-nvd-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30       # um rebuild completo da NVD pode levar ~15 min
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: ./.github/actions/setup-java
+
+      - name: Definir chave de cache por data
+        run: echo "NVD_DATE=$(date +'%Y-%m-%d')" >> "$GITHUB_ENV"
+
+      # Restaura o banco mais recente (match por prefixo) para que o update seja
+      # INCREMENTAL, e não um rebuild dos 363k registros a cada noite.
+      - name: Restaurar cache NVD anterior
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}
+          restore-keys: nvd-db-${{ runner.os }}-
+
+      # update-only: só atualiza o banco NVD, sem rodar a análise de dependências.
+      # Usa a config do plugin no backend/pom.xml (inclui <nvdApiKey>), garantindo
+      # a MESMA versão do plugin das PRs → mesmo schema de banco → cache compatível.
+      - name: Atualizar banco NVD (update-only)
+        working-directory: backend
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          chmod +x mvnw
+          ./mvnw -B org.owasp:dependency-check-maven:update-only
+
+      # Salva sob a chave do dia. Rodando no main, o cache é herdável por todas as PRs.
+      - name: Salvar cache NVD atualizado
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}

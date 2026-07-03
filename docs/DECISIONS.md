@@ -472,3 +472,38 @@
   manipule `SecurityContextHolder`/`TestSecurityContextHolder` diretamente, precisa de
   isolamento explicito (datasource dedicado ou limpeza simetrica) — a ordem padrao do
   Surefire local pode mascarar o problema indefinidamente.
+
+## D-021 Cache do banco NVD aquecido no main (dependency-check rápido nas PRs)
+
+- **Contexto:** o job `security-and-compliance` roda o OWASP dependency-check e as PRs de
+  backend levavam ~14 min (às vezes *timeout*/`cancelled`). Os logs do Actions mostraram o
+  step baixando o banco NVD inteiro — `NVD API has 363.026 records in this update` — em
+  quase toda PR, em vez de uma atualização incremental.
+- **Causa-raiz:** isolamento de cache do GitHub Actions. O banco NVD era cacheado por chave
+  semanal criada **na branch da PR** (`refs/pull/NN/merge`); PRs irmãs não enxergam o cache
+  uma da outra, e **não havia cache no `main`** (branch default — a única herdável por todas
+  as PRs). Resultado: cache frio em quase toda PR de backend → pull completo (~363k
+  registros, ~12-15 min). A abordagem "resumível" por-run (PR #55) só ajudava re-runs da
+  mesma PR, não PRs novas.
+- **Decisão:**
+  - **Workflow agendado `nvd-cache-warmer.yml`** (cron diário 06:00 UTC + `workflow_dispatch`
+    + push em `backend/pom.xml`): roda **no `main`** o goal `dependency-check:update-only` e
+    salva o banco NVD num cache com chave por data (`nvd-db-<os>-<AAAA-MM-DD>`). Rodando no
+    main, o cache é herdável por **todas** as PRs.
+  - **PRs (`security-and-compliance`)**: restauram o cache por prefixo
+    (`restore-keys: nvd-db-<os>-`, só leitura) e rodam `dependency-check:check` com
+    **`-DautoUpdate=false`** — nunca tocam a rede da NVD, só analisam contra o banco quente.
+    A propriedade `autoUpdate` foi confirmada via `dependency-check:help` no plugin 12.1.8.
+  - **Guard de cache frio**: se o banco NVD não estiver presente (diretório ausente ou sem
+    `*.mv.db`), o job dispara o warmer (`gh workflow run`, via `GHCR_PAT` — o `GITHUB_TOKEN`
+    não pode disparar `workflow_dispatch` em outro workflow) e falha com mensagem acionável,
+    pedindo re-execução após ~15 min.
+- **Motivo:** o dependency-check em si (goal, `failBuildOnCVSS=7`, suppressions — ver
+  **D-013**) fica **inalterado**; muda só o mecanismo de cache. A checagem de vulnerabilidade
+  permanece no gate, mas o download pesado sai do caminho crítico das PRs (~14 min → <1 min).
+- **Rollout / operação:** semear o cache uma vez após o merge (rodar `nvd-cache-warmer.yml`
+  via `workflow_dispatch`) — ver RUNBOOK. O warmer mantém o banco quente diariamente; um
+  cache *evicted* (limite de 10 GB do repo) é ressemeado automaticamente pelo guard na
+  próxima PR de backend.
+- **Nota de tolerância a versão:** o guard procura `*.mv.db` (wildcard) em vez do nome fixo
+  `odc.mv.db`, para não quebrar se o dependency-check renomear o banco H2 numa versão futura.
