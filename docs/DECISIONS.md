@@ -1047,11 +1047,24 @@
   - **Teto global de clientes registrados** (`app.mcp-oauth.dcr.max-registered-clients`,
     default 500) — acima do teto, `503 {"error":"temporarily_unavailable"}` (RFC 6749 §4.1.2.1
     reaproveitado, ja que RFC 7591 tambem nao cobre esse caso).
+    - **Trade-off conhecido (achado do QA):** o teto e GLOBAL, mas o rate limit e SO POR IP.
+      Um atacante distribuido (varios IPs, cada um abaixo do limite de 10/hora) consegue
+      encher os 500 slots e bloquear (`503`) registros LEGITIMOS ate o scheduler de limpeza
+      liberar espaco. Nao ha CAPTCHA, allowlist ou alerta operacional para esse cenario nesta
+      fase — mitigado de forma barata reduzindo drasticamente o TTL de cliente nunca usado
+      (proximo item), que e o unico mecanismo que libera slots ocupados por um ataque desse
+      tipo. Se este cenario se mostrar um problema real em producao, o proximo passo natural
+      e um teto por IP tambem (nao so global) ou um desafio (CAPTCHA/prova de trabalho) antes
+      do registro — fora do escopo desta fase.
   - **TTL de cliente nunca usado**: `McpOAuthCleanupScheduler` (mesma varredura periodica de
     codes/pending/refresh tokens expirados, D-022) agora tambem remove clientes dinamicos com
     `last_used_at IS NULL` registrados ha mais de `app.mcp-oauth.dcr.unused-client-ttl`
-    (default 30 dias). Um cliente que **completou** ao menos um fluxo authorize->token nunca e
-    removido por esta varredura, independente de quanto tempo sem uso.
+    (default **24 horas** — reduzido de um rascunho inicial de 30 dias justamente pelo
+    trade-off do item acima: um cliente LEGITIMO como o claude.ai completa o fluxo
+    authorize->token em minutos apos se registrar, entao 24h ja e folgado; um TTL de dias
+    deixaria slots ocupados por um ataque de flood vivos por tempo desproporcional). Um
+    cliente que **completou** ao menos um fluxo authorize->token nunca e removido por esta
+    varredura, independente de quanto tempo sem uso.
   - Erros no formato OAuth padrao (`{"error", "error_description"}`, RFC 6749 §5.2/RFC 7591
     §3.2.2) — o MESMO formato de `OAuthTokenException`, nunca `ProblemDetail` RFC 7807 usado pelo
     resto da API. Nova excecao dedicada `OAuthClientRegistrationException`, tratada no MESMO
@@ -1066,6 +1079,30 @@
     `POST /oauth/register` responde `403 {"error":"access_denied"}` e o discovery PARA de
     anunciar `registration_endpoint` (evita o mesmo bug de origem: um cliente tentando DCR contra
     um endpoint que existe mas rejeita tudo).
+  - **Corpo JSON mal-formado responde 400, nao 500 (achado do QA):** um corpo com um campo de
+    tipo errado (ex.: `redirect_uris` como string em vez de array) ou JSON invalido lancava
+    `HttpMessageNotReadableException`, sem handler dedicado em lugar nenhum da API — caia no
+    catch-all de `Exception` do `GlobalExceptionHandler` e virava um 500 generico. Corrigido com
+    um `@ExceptionHandler(HttpMessageNotReadableException.class)` no proprio
+    `McpOAuthExceptionHandler`: `400 {"error":"invalid_client_metadata"}` em `/oauth/register`;
+    para qualquer outro endpoint da aplicacao, um `ProblemDetail` 400 generico (o handler
+    verifica o path da requisicao antes de escolher o formato — nao faz sentido impor um codigo
+    de erro OAuth a um endpoint que nao e OAuth, mesmo esse handler sendo, por especificidade de
+    tipo, o unico candidato para essa excecao em toda a aplicacao).
+  - **Guards de tamanho em `client_name`/`scope` (achado do QA):** nenhuma validacao de tamanho
+    antes do `repository.save()` permitia um `client_name`/`scope` maior que a coluna
+    (VARCHAR(200)/VARCHAR(50), migration V14) estourar `DataIntegrityViolationException` — 500
+    generico. Corrigido com guards explicitos em `McpOAuthDynamicClientService` (mesmo racional
+    do `MAX_STATE_LENGTH` de `McpOAuthAuthorizeController`) — `400 {"error":"invalid_client_metadata"}`
+    se exceder. `grant_types` fechado por um conjunto de so 2 valores suportados; a lista agora e
+    DEDUPLICADA antes de persistir (fecha pela raiz, sem precisar de outro guard de tamanho, um
+    pedido repetindo o mesmo grant type dezenas de vezes para inflar a coluna).
+  - **Loopback IPv6 (`[::1]`)**: adicionado a `LOOPBACK_HOSTS` tanto em
+    `McpOAuthDynamicClientService` (validacao no registro) quanto em `McpOAuthClientRegistry`
+    (validacao de `redirect_uri` no authorize) — RFC 8252 §7.3 nao distingue IPv4/IPv6 para a
+    excecao de loopback. `java.net.URI#getHost()` preserva os colchetes de um literal IPv6 na
+    autoridade (`http://[::1]:8080/callback` → `getHost()` retorna `"[::1]"`, confirmado
+    empiricamente antes de codar), entao a entrada na lista precisa incluir os colchetes.
 
 - **Testes:** `McpOAuthDynamicClientServiceTest` (hardening de `redirect_uris`, defaults de
   metadata, teto de clientes — unitario, sem Spring), `McpOAuthClientRegistrationControllerTest`
@@ -1079,6 +1116,16 @@
   `/oauth/authorize` com PKCE -> consentimento -> code -> `/oauth/token` -> chamada real ao
   `/mcp` via SDK MCP), discovery com `registration_endpoint`, e a trava de sequestro de
   consentimento cross-user aplicada a um cliente dinamico.
+
+  **Rodada de correcoes do QA** (achados 1/2/4 acima): novo `McpOAuthExceptionHandlerTest`
+  (unitario, sem Spring) cobrindo `HttpMessageNotReadableException` tanto em `/oauth/register`
+  (formato OAuth) quanto em qualquer outro path (ProblemDetail generico). Novos casos em
+  `McpOAuthDynamicClientRegistrationIntegrationTest`: JSON sintaticamente invalido e campo com
+  tipo errado (`redirect_uris` como string) -> 400 (nao mais 500); `client_name`/`scope`
+  maiores que a coluna -> 400; `redirect_uri` loopback IPv6 (`[::1]`) com porta -> 201. Novos
+  casos em `McpOAuthDynamicClientServiceTest` (unitarios, espelhando os de integracao acima +
+  `grant_types` repetido deduplicado) e em `McpOAuthClientRegistryTest` (loopback IPv6 para o
+  cliente estatico `claude-code`).
 
 - **Substitui parcialmente o cliente estatico `claude-ai`:** apos este DCR, o "Add connector" do
   claude.ai funciona SEM nenhuma configuracao manual (nao precisa mais informar `client_id`

@@ -190,8 +190,16 @@ public class McpOAuthProperties {
          * TTL de um cliente dinâmico que NUNCA completou um fluxo authorize->token
          * ({@code last_used_at IS NULL}) — varrido por {@code McpOAuthCleanupScheduler}.
          * Clientes já usados alguma vez nunca são removidos por esta varredura.
+         *
+         * <p>CURTO deliberadamente (achado do QA sobre o teto global de clientes,
+         * ver docs/DECISIONS.md D-024): {@link #maxRegisteredClients} combinado com
+         * rate limit SÓ POR IP permite um atacante distribuído (múltiplos IPs)
+         * encher os slots e bloquear registros legítimos (503) até o TTL liberar
+         * espaço. Um cliente LEGÍTIMO (claude.ai) completa authorize→token em
+         * minutos após se registrar — 24h já é folgado para isso, e reduz
+         * drasticamente a janela de bloqueio em relação a um TTL de dias.</p>
          */
-        private Duration unusedClientTtl = Duration.ofDays(30);
+        private Duration unusedClientTtl = Duration.ofHours(24);
 
         public boolean isEnabled() {
             return enabled;

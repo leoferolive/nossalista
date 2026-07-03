@@ -102,6 +102,15 @@ class McpOAuthClientRegistryTest {
     }
 
     @Test
+    void validateRedirectUriAcceptsIpv6LoopbackForLoopbackClient() {
+        // RFC 8252 §7.3 não distingue IPv4/IPv6 para a exceção de loopback —
+        // achado NIT do QA (Fase C.1). java.net.URI#getHost() preserva os
+        // colchetes do literal IPv6 ("[::1]"), daí o formato exato aqui.
+        ClientDefinition client = registry.require("claude-code");
+        registry.validateRedirectUri(client, "http://[::1]:12345/callback");
+    }
+
+    @Test
     void validateRedirectUriRejectsLoopbackWithWrongPathForLoopbackClient() {
         ClientDefinition client = registry.require("claude-code");
         assertThatThrownBy(() -> registry.validateRedirectUri(client, "http://localhost:12345/other-path"))

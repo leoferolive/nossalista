@@ -36,7 +36,9 @@ import java.util.Optional;
 @Component
 public class McpOAuthClientRegistry {
 
-    private static final List<String> LOOPBACK_HOSTS = List.of("localhost", "127.0.0.1");
+    // "[::1]" (com colchetes): java.net.URI#getHost() preserva os colchetes de um
+    // literal IPv6 na autoridade — ver McpOAuthDynamicClientService, mesma lista.
+    private static final List<String> LOOPBACK_HOSTS = List.of("localhost", "127.0.0.1", "[::1]");
     private static final String LOOPBACK_PATH = "/callback";
 
     private final McpOAuthProperties properties;

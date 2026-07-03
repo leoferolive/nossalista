@@ -166,6 +166,66 @@ class McpOAuthDynamicClientServiceTest {
     }
 
     @Test
+    void registerAcceptsIpv6LoopbackRedirectUriWithExplicitPort() {
+        ClientRegistrationResponse response = service.register(
+            requestWithRedirectUris(List.of("http://[::1]:54321/callback")));
+
+        assertThat(response.redirectUris()).containsExactly("http://[::1]:54321/callback");
+    }
+
+    @Test
+    void registerRejectsIpv6LoopbackRedirectUriWithoutExplicitPort() {
+        assertThatThrownBy(() -> service.register(requestWithRedirectUris(List.of("http://[::1]/callback"))))
+            .isInstanceOf(OAuthClientRegistrationException.class)
+            .satisfies(ex -> assertThat(((OAuthClientRegistrationException) ex).getErrorCode())
+                .isEqualTo("invalid_redirect_uri"));
+    }
+
+    @Test
+    void registerRejectsOversizedClientName() {
+        ClientRegistrationRequest request = new ClientRegistrationRequest(
+            List.of("https://app.example.com/callback"), null, null, null, null, "x".repeat(201), null);
+
+        assertThatThrownBy(() -> service.register(request))
+            .isInstanceOf(OAuthClientRegistrationException.class)
+            .satisfies(ex -> assertThat(((OAuthClientRegistrationException) ex).getErrorCode())
+                .isEqualTo("invalid_client_metadata"));
+    }
+
+    @Test
+    void registerAcceptsClientNameAtExactMaxLength() {
+        ClientRegistrationRequest request = new ClientRegistrationRequest(
+            List.of("https://app.example.com/callback"), null, null, null, null, "x".repeat(200), null);
+
+        ClientRegistrationResponse response = service.register(request);
+
+        assertThat(response.clientName()).hasSize(200);
+    }
+
+    @Test
+    void registerRejectsOversizedScope() {
+        ClientRegistrationRequest request = new ClientRegistrationRequest(
+            List.of("https://app.example.com/callback"), null, null, null, "read ".repeat(15), null, null);
+
+        assertThatThrownBy(() -> service.register(request))
+            .isInstanceOf(OAuthClientRegistrationException.class)
+            .satisfies(ex -> assertThat(((OAuthClientRegistrationException) ex).getErrorCode())
+                .isEqualTo("invalid_client_metadata"));
+    }
+
+    @Test
+    void registerDeduplicatesRepeatedGrantTypes() {
+        ClientRegistrationRequest request = new ClientRegistrationRequest(
+            List.of("https://app.example.com/callback"), null,
+            List.of("authorization_code", "authorization_code", "refresh_token", "authorization_code"),
+            null, null, null, null);
+
+        ClientRegistrationResponse response = service.register(request);
+
+        assertThat(response.grantTypes()).containsExactly("authorization_code", "refresh_token");
+    }
+
+    @Test
     void registerRejectsWhenRegisteredClientCapReached() {
         McpOAuthProperties properties = new McpOAuthProperties();
         properties.getDcr().setMaxRegisteredClients(1);

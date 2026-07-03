@@ -153,6 +153,16 @@ class McpOAuthDynamicClientRegistrationIntegrationTest {
             .body(ClientRegistrationResponse.class);
     }
 
+    /** Envia o corpo cru (sem serializar via Jackson) — usado para JSON deliberadamente inválido. */
+    private void registerRaw(String rawJsonBody) {
+        restClient.post()
+            .uri(baseUrl() + "/oauth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(rawJsonBody)
+            .retrieve()
+            .toBodilessEntity();
+    }
+
     private URI authorizeUri(
         String clientId, String redirectUri, String scope, String state, String challenge, String method, String resource
     ) {
@@ -274,6 +284,73 @@ class McpOAuthDynamicClientRegistrationIntegrationTest {
                 assertThat(httpEx.getStatusCode().value()).isEqualTo(400);
                 assertThat(httpEx.getResponseBodyAsString()).contains("invalid_redirect_uri");
             });
+    }
+
+    @Test
+    @DisplayName("JSON sintaticamente inválido responde 400 invalid_client_metadata (achado do QA, não mais 500)")
+    void registerRejectsMalformedJsonWithBadRequest() {
+        assertThatThrownBy(() -> registerRaw("{ this is not valid json"))
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(ex -> {
+                HttpClientErrorException httpEx = (HttpClientErrorException) ex;
+                assertThat(httpEx.getStatusCode().value()).isEqualTo(400);
+                assertThat(httpEx.getResponseBodyAsString()).contains("invalid_client_metadata");
+            });
+    }
+
+    @Test
+    @DisplayName("redirect_uris com tipo errado (string em vez de array) responde 400 invalid_client_metadata (achado do QA, não mais 500)")
+    void registerRejectsWrongTypedField() {
+        assertThatThrownBy(() -> registerRaw("{\"redirect_uris\": \"https://app.example.com/callback\"}"))
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(ex -> {
+                HttpClientErrorException httpEx = (HttpClientErrorException) ex;
+                assertThat(httpEx.getStatusCode().value()).isEqualTo(400);
+                assertThat(httpEx.getResponseBodyAsString()).contains("invalid_client_metadata");
+            });
+    }
+
+    @Test
+    @DisplayName("client_name maior que a coluna (VARCHAR(200)) responde 400 invalid_client_metadata (achado do QA, não mais 500)")
+    void registerRejectsOversizedClientName() {
+        String oversizedName = "x".repeat(201);
+        assertThatThrownBy(() -> register(Map.of(
+            "redirect_uris", List.of("https://app.example.com/callback"),
+            "client_name", oversizedName
+        )))
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(ex -> {
+                HttpClientErrorException httpEx = (HttpClientErrorException) ex;
+                assertThat(httpEx.getStatusCode().value()).isEqualTo(400);
+                assertThat(httpEx.getResponseBodyAsString()).contains("invalid_client_metadata");
+            });
+    }
+
+    @Test
+    @DisplayName("scope maior que a coluna (VARCHAR(50)) responde 400 invalid_client_metadata (achado do QA, não mais 500)")
+    void registerRejectsOversizedScope() {
+        String oversizedScope = "read ".repeat(15);
+        assertThatThrownBy(() -> register(Map.of(
+            "redirect_uris", List.of("https://app.example.com/callback"),
+            "scope", oversizedScope
+        )))
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(ex -> {
+                HttpClientErrorException httpEx = (HttpClientErrorException) ex;
+                assertThat(httpEx.getStatusCode().value()).isEqualTo(400);
+                assertThat(httpEx.getResponseBodyAsString()).contains("invalid_client_metadata");
+            });
+    }
+
+    @Test
+    @DisplayName("redirect_uri loopback IPv6 ([::1]) com porta explícita é aceito (RFC 8252 §7.3, achado NIT do QA)")
+    void registerAcceptsIpv6LoopbackRedirectUriWithPort() {
+        ClientRegistrationResponse response = register(Map.of(
+            "redirect_uris", List.of("http://[::1]:54321/callback")
+        ));
+
+        assertThat(response.clientId()).startsWith("dcr_");
+        assertThat(response.redirectUris()).containsExactly("http://[::1]:54321/callback");
     }
 
     @Test

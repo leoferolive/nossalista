@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
@@ -37,11 +38,19 @@ public class McpOAuthDynamicClientService {
 
     private static final int CLIENT_ID_ENTROPY_BYTES = 16;
     private static final String CLIENT_ID_PREFIX = "dcr_";
-    private static final List<String> LOOPBACK_HOSTS = List.of("localhost", "127.0.0.1");
+    // "[::1]" (com colchetes): java.net.URI#getHost() preserva os colchetes de um
+    // literal IPv6 na autoridade — ver McpOAuthClientRegistry, mesma lista.
+    private static final List<String> LOOPBACK_HOSTS = List.of("localhost", "127.0.0.1", "[::1]");
     private static final List<String> SUPPORTED_GRANT_TYPES = List.of("authorization_code", "refresh_token");
     private static final List<String> DEFAULT_GRANT_TYPES = List.of("authorization_code", "refresh_token");
     private static final String DEFAULT_SCOPE = "read read_write";
     private static final String PUBLIC_CLIENT_AUTH_METHOD = "none";
+
+    /** Mesmo limite da coluna {@code mcp_oauth_registered_clients.client_name} (migration V14). */
+    private static final int MAX_CLIENT_NAME_LENGTH = 200;
+
+    /** Mesmo limite da coluna {@code mcp_oauth_registered_clients.scope} (migration V14). */
+    private static final int MAX_SCOPE_LENGTH = 50;
 
     private final McpOAuthRegisteredClientRepository repository;
     private final McpOAuthProperties properties;
@@ -67,6 +76,12 @@ public class McpOAuthDynamicClientService {
         List<String> redirectUris = request.redirectUris();
         validateRedirectUris(redirectUris);
         List<String> grantTypes = resolveGrantTypes(request.grantTypes());
+        // Sem isto, um client_name/scope maior que a coluna (achado do QA)
+        // estourava DataIntegrityViolationException no repository.save() —
+        // 500 genérico em vez de um 400 OAuth tratado, mesmo racional do
+        // MAX_STATE_LENGTH de McpOAuthAuthorizeController.
+        validateFieldLength(request.clientName(), MAX_CLIENT_NAME_LENGTH, "client_name");
+        validateFieldLength(request.scope(), MAX_SCOPE_LENGTH, "scope");
         enforceRegisteredClientCap();
 
         McpOAuthRegisteredClient entity = new McpOAuthRegisteredClient();
@@ -161,17 +176,41 @@ public class McpOAuthDynamicClientService {
      * Sem {@code grant_types} no pedido, assume o default (authorization_code +
      * refresh_token); qualquer grant type fora do conjunto suportado é rejeitado
      * (este servidor não implementa {@code client_credentials}, implicit, etc).
+     *
+     * <p>Deduplicado (preservando ordem) antes de persistir: sem isso, um pedido
+     * repetindo o MESMO grant type dezenas de vezes (cada valor individualmente
+     * válido) poderia inflar a coluna {@code grant_types} (VARCHAR(200)) além do
+     * limite mesmo passando na checagem elemento-a-elemento — mesma classe de
+     * achado do QA que motivou {@link #validateFieldLength}, fechada aqui pela
+     * raiz (o conjunto suportado tem só 2 valores, então deduplicado nunca
+     * chega perto do limite) em vez de mais uma checagem de tamanho.</p>
      */
     private List<String> resolveGrantTypes(List<String> requestedGrantTypes) {
         if (requestedGrantTypes == null || requestedGrantTypes.isEmpty()) {
             return DEFAULT_GRANT_TYPES;
         }
+        List<String> deduplicated = new ArrayList<>();
         for (String grantType : requestedGrantTypes) {
             if (!SUPPORTED_GRANT_TYPES.contains(grantType)) {
                 throw OAuthClientRegistrationException.invalidClientMetadata("Unsupported grant_type: " + grantType);
             }
+            if (!deduplicated.contains(grantType)) {
+                deduplicated.add(grantType);
+            }
         }
-        return requestedGrantTypes;
+        return deduplicated;
+    }
+
+    /**
+     * Rejeita um campo de metadata (opcional, texto livre do cliente) maior que
+     * o limite da coluna correspondente — ver {@link #MAX_CLIENT_NAME_LENGTH}/
+     * {@link #MAX_SCOPE_LENGTH} e a migration V14.
+     */
+    private void validateFieldLength(String value, int maxLength, String fieldName) {
+        if (value != null && value.length() > maxLength) {
+            throw OAuthClientRegistrationException.invalidClientMetadata(
+                fieldName + " exceeds the maximum supported length (" + maxLength + " characters).");
+        }
     }
 
     /**
