@@ -12,18 +12,62 @@ Ver a decisao arquitetural completa (dependencia escolhida, seguranca, limitacoe
 
 ## Autenticacao
 
-O servidor MCP aceita as duas formas de autenticacao ja suportadas pelo resto da API:
+O servidor MCP aceita tres formas de autenticacao:
 
-- **Personal Access Token (PAT)** — recomendado para assistentes de IA. Gerado em
-  "Conexoes (API/Assistentes)" no menu da conta do app, com prefixo `nlmcp_...` e escopo
-  `READ` ou `READ_WRITE`. Ver `docs/DECISIONS.md` (D-018).
+- **OAuth 2.1 (Authorization Code + PKCE)** — recomendado para claude.ai (web e app) e
+  Claude Code, que descobrem e usam esse fluxo automaticamente ao adicionar um connector.
+  Ver "Conectando via OAuth (claude.ai, Claude Code)" abaixo e `docs/DECISIONS.md` (D-022).
+- **Personal Access Token (PAT)** — alternativa manual para outros clientes MCP (Cursor,
+  Claude Desktop). Gerado em "Conexoes (API/Assistentes)" no menu da conta do app, com
+  prefixo `nlmcp_...` e escopo `READ` ou `READ_WRITE`. Ver `docs/DECISIONS.md` (D-018).
 - **JWT de sessao** — o mesmo token usado pelo SPA.
 
-Em ambos os casos, o header e `Authorization: Bearer <token>`. Requisicoes sem token valido
-recebem `401` (RFC 7807). Um PAT de escopo `READ` pode chamar apenas as tools de leitura
-(`list_my_lists`, `get_list`, `list_members`, `get_list_activity`) — qualquer tentativa de
-chamar uma tool de mutacao com um PAT `READ` retorna um erro de tool (`isError: true`)
-explicando que o token e somente-leitura.
+Em todos os casos, o header e `Authorization: Bearer <token>`. Requisicoes sem token valido
+recebem `401` (RFC 7807) com um header `WWW-Authenticate: Bearer resource_metadata="..."`
+apontando para o resource metadata OAuth (RFC 9728), usado por clientes que suportam
+descoberta automatica. Um PAT ou access token OAuth de escopo `READ` pode chamar apenas as
+tools de leitura (`list_my_lists`, `get_list`, `list_members`, `get_list_activity`) —
+qualquer tentativa de chamar uma tool de mutacao com escopo `READ` retorna um erro de tool
+(`isError: true`) explicando que o token e somente-leitura. Um access token OAuth do MCP
+vale **apenas** para `/mcp` — nunca para `/api/**` (a API REST do SPA).
+
+## Conectando via OAuth (claude.ai, Claude Code)
+
+O servidor implementa um servidor de autorizacao OAuth 2.1 embutido (Authorization Code +
+PKCE, S256 obrigatorio) com clientes registrados estaticamente — sem exigir Dynamic Client
+Registration. Ver o design completo e as fontes da pesquisa em `docs/DECISIONS.md` (D-022).
+
+### claude.ai (web e app mobile)
+
+1. Em claude.ai, va em **Settings → Connectors → Add connector**.
+2. URL do servidor: `https://nossalista.leoferolive.com.br/mcp`.
+3. Em **Advanced settings**, informe o **OAuth Client ID**: `claude-ai` (nenhum
+   client secret e necessario — e um cliente publico PKCE-only).
+4. O claude.ai descobre os endpoints via `/.well-known/oauth-authorization-server` e
+   `/.well-known/oauth-protected-resource`, inicia o fluxo, e voce e redirecionado para
+   fazer login no NossaLista (se ainda nao estiver) e depois para a tela de consentimento,
+   onde escolhe o escopo (leitura ou leitura/escrita) e aprova.
+5. Apos aprovar, o claude.ai recebe o access/refresh token automaticamente — nenhum PAT
+   precisa ser copiado manualmente.
+
+### Claude Code
+
+```bash
+claude mcp add --transport http nossalista https://nossalista.leoferolive.com.br/mcp \
+  --client-id claude-code
+```
+
+O Claude Code abre o browser para o fluxo de autorizacao (login + consentimento) e recebe o
+token automaticamente no callback local (`http://localhost:<porta>/callback` — porta
+variavel a cada conexao, aceita pelo servidor via regra de loopback do RFC 8252 §7.3). Em
+ambiente local (`dev`), troque a URL pela do backend local (ex.: `http://localhost:8080/mcp`).
+
+### Revogar acesso
+
+Em "Conexoes (API/Assistentes)" no menu da conta, a secao "Assistentes conectados via
+OAuth" lista cada assistente conectado (cliente, escopo, conectado em, ultimo uso) com um
+botao "Desconectar", que revoga toda a familia de refresh tokens daquele cliente
+imediatamente.
 
 ## Conectando um cliente
 

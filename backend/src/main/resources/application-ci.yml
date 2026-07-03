@@ -29,6 +29,11 @@ management:
       enabled: false
 
 app:
+  mcp-oauth:
+    issuer: http://127.0.0.1:4173
+    resource: http://127.0.0.1:4173/mcp
+    # Diferente de JWT_SECRET (mesmo propósito, chave distinta e obrigatória).
+    signing-key: ci-mcp-oauth-signing-key-minimum-32-bytes-for-hmac-test
   email:
     smtp:
       enabled: false

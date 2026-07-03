@@ -1,6 +1,8 @@
 package br.com.leoferolive.nossalista.config;
 
 import br.com.leoferolive.nossalista.auth.OAuth2SuccessHandler;
+import br.com.leoferolive.nossalista.mcpoauth.security.McpOAuthTokenAuthenticationFilter;
+import br.com.leoferolive.nossalista.mcpoauth.security.McpWwwAuthenticateEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +14,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import org.springframework.security.web.authentication.DelegatingAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcherEntry;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -33,24 +38,30 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final PersonalAccessTokenAuthenticationFilter personalAccessTokenAuthenticationFilter;
+    private final McpOAuthTokenAuthenticationFilter mcpOAuthTokenAuthenticationFilter;
     private final OAuth2SuccessHandler oauth2SuccessHandler;
     private final Http401UnauthorizedEntryPoint unauthorizedEntryPoint;
     private final Http403AccessDeniedHandler accessDeniedHandler;
+    private final McpWwwAuthenticateEntryPoint mcpWwwAuthenticateEntryPoint;
     private final CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
 
     public SecurityConfig(
         JwtAuthenticationFilter jwtAuthenticationFilter,
         PersonalAccessTokenAuthenticationFilter personalAccessTokenAuthenticationFilter,
+        McpOAuthTokenAuthenticationFilter mcpOAuthTokenAuthenticationFilter,
         OAuth2SuccessHandler oauth2SuccessHandler,
         Http401UnauthorizedEntryPoint unauthorizedEntryPoint,
         Http403AccessDeniedHandler accessDeniedHandler,
+        McpWwwAuthenticateEntryPoint mcpWwwAuthenticateEntryPoint,
         CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.personalAccessTokenAuthenticationFilter = personalAccessTokenAuthenticationFilter;
+        this.mcpOAuthTokenAuthenticationFilter = mcpOAuthTokenAuthenticationFilter;
         this.oauth2SuccessHandler = oauth2SuccessHandler;
         this.unauthorizedEntryPoint = unauthorizedEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.mcpWwwAuthenticateEntryPoint = mcpWwwAuthenticateEntryPoint;
         this.authorizationRequestRepository = authorizationRequestRepository;
     }
 
@@ -75,6 +86,16 @@ public class SecurityConfig {
                         .access(publicUnlessPatManager())
                         // OAuth2 endpoints (Spring Security gerencia automaticamente)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                        // Servidor de autorização OAuth 2.1 do MCP (Fase C, D-022): authorize/token/
+                        // revoke e discovery são públicos por natureza do protocolo (o cliente OAuth
+                        // ainda não tem credencial nenhuma nesta etapa).
+                        .requestMatchers("/oauth/authorize", "/oauth/token", "/oauth/revoke").permitAll()
+                        .requestMatchers("/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource")
+                        .permitAll()
+                        // Consentimento/gestão de conexões OAuth do MCP: exige sessão JWT normal —
+                        // um PAT ou um access token OAuth do MCP nunca pode aprovar um novo
+                        // consentimento nem gerenciar conexões em nome do usuário.
+                        .requestMatchers("/api/oauth/consent/**", "/api/oauth/connections/**").access(sessionOnlyManager())
                         // Endpoint de join via convite - GET é público (read-only), POST requer auth
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/lists/join/**").permitAll()
                         // WebSocket endpoint - auth feita pelo WebSocketAuthInterceptor
@@ -98,9 +119,21 @@ public class SecurityConfig {
                 )
 
                 // Exception Handling - RFC 7807 para APIs REST (não redirecionar):
-                // 401 quando não autenticado, 403 quando autenticado sem authority
+                // 401 quando não autenticado, 403 quando autenticado sem authority.
+                // /mcp/** usa um entry point específico que acrescenta o header
+                // WWW-Authenticate (descoberta OAuth do MCP, RFC 9728) antes de delegar ao
+                // entry point 401 padrão — ver McpWwwAuthenticateEntryPoint. Usa
+                // DelegatingAuthenticationEntryPoint diretamente (em vez de
+                // defaultAuthenticationEntryPointFor) porque este último só é considerado
+                // quando NENHUM authenticationEntryPoint explícito é definido — com os dois
+                // configurados, ExceptionHandlingConfigurer sempre usa o explícito e ignora
+                // silenciosamente o "default", nunca acrescentando o header.
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(unauthorizedEntryPoint)
+                        .authenticationEntryPoint(new DelegatingAuthenticationEntryPoint(
+                                unauthorizedEntryPoint,
+                                new RequestMatcherEntry<>(
+                                        PathPatternRequestMatcher.withDefaults().matcher("/mcp/**"),
+                                        mcpWwwAuthenticateEntryPoint)))
                         .accessDeniedHandler(accessDeniedHandler)
                 )
 
@@ -126,7 +159,11 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 // PAT roda ANTES do JWT: só age em tokens com prefixo nlmcp_, deixando
                 // qualquer outro valor (incluindo JWTs normais) intocado para o filtro seguinte.
-                .addFilterBefore(personalAccessTokenAuthenticationFilter, JwtAuthenticationFilter.class);
+                .addFilterBefore(personalAccessTokenAuthenticationFilter, JwtAuthenticationFilter.class)
+                // Access token OAuth do MCP (Fase C, D-022): só age em /mcp/** e só quando o
+                // Bearer valida como JWT assinado com MCP_OAUTH_SIGNING_KEY (chave própria,
+                // distinta do JWT_SECRET de sessão) — qualquer outro valor segue intocado.
+                .addFilterBefore(mcpOAuthTokenAuthenticationFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
@@ -159,11 +196,20 @@ public class SecurityConfig {
      * autenticação é um PAT de escopo READ, restringe a métodos HTTP seguros
      * (GET/HEAD/OPTIONS). PATs de escopo READ_WRITE e sessões JWT não sofrem
      * essa restrição adicional.
+     *
+     * <p>Um access token OAuth do servidor MCP (Fase C, D-022) é sempre negado
+     * aqui, mesmo em métodos seguros — diferente de um PAT, seu escopo só vale
+     * para {@code /mcp}, nunca para a API REST do SPA (defesa em profundidade:
+     * o filtro que autentica esse token já só atua em {@code /mcp/**}, mas essa
+     * checagem garante o bloqueio mesmo que isso mude).</p>
      */
     private AuthorizationManager<RequestAuthorizationContext> apiAccessManager() {
         return (authentication, context) -> {
             var auth = authentication.get();
             if (!PatAuthorizationSupport.isAuthenticatedUser(auth)) {
+                return new AuthorizationDecision(false);
+            }
+            if (PatAuthorizationSupport.isMcpOAuthToken(auth)) {
                 return new AuthorizationDecision(false);
             }
             if (PatAuthorizationSupport.isPersonalAccessToken(auth) && PatAuthorizationSupport.hasReadOnlyScope(auth)) {

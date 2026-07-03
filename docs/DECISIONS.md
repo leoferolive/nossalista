@@ -513,3 +513,373 @@
   que o progresso parcial é preservado e o `restore-keys` (prefixo) o retoma no run seguinte,
   convergindo em poucas execuções (cron noturno + re-dispatch). As PRs restauram o mesmo cache
   por prefixo `nvd-db-<os>-`, então a chave por-run é transparente para elas.
+
+## D-022 OAuth 2.1 (Authorization Code + PKCE) para clientes do servidor MCP (Fase C)
+
+- **Contexto:** Fase C do roadmap MCP — destravar o botao "Add connector" do
+  claude.ai (web e app mobile) e um fluxo OAuth nativo no Claude Code, evitando
+  que o usuario precise copiar manualmente um PAT (Fase A/D-018) para conectar
+  um assistente de IA ao servidor MCP (`/mcp`, Fase B/D-020).
+
+- **Passo 0 — o que o claude.ai exige de fato (pesquisado em 2026-07, fontes abaixo):**
+  - **Dynamic Client Registration (DCR, RFC 7591) NAO e obrigatoria.** O claude.ai
+    aceita 3 formas de credencial num custom connector: DCR automatico, Client ID
+    Metadata Documents (CIMD), e — a que importa aqui — **client_id/client_secret
+    estaticos informados manualmente em "Advanced settings"** ao adicionar o
+    conector (client_secret e opcional, cobrindo clientes publicos PKCE-only).
+    Confirmado por multiplas fontes independentes, incluindo um issue do proprio
+    tracker `anthropics/claude-ai-mcp` que descreve exatamente esse campo.
+    O Claude Code CLI tem o mesmo suporte explicito via
+    `claude mcp add --transport http --client-id <id> --client-secret <secret>
+    --callback-port <porta>`. **Decisao:** registrar clientes ESTATICAMENTE em
+    config (`app.mcp-oauth.clients` em `application.yml`), sem implementar DCR —
+    exatamente o caminho default previsto no plano desta fase.
+  - **Redirect URIs oficiais do claude.ai:** `https://claude.ai/api/mcp/auth_callback`
+    e `https://claude.com/api/mcp/auth_callback` (os dois dominios sao usados pela
+    Anthropic; registrados ambos para o cliente `claude-ai`).
+  - **Claude Code (CLI) usa redirect loopback de porta variavel:**
+    `http://localhost:<porta aleatoria>/callback` por padrao a cada conexao (fixavel
+    com `--callback-port`, mas isso exige coordenacao manual do usuario a cada
+    setup). **Decisao:** o cliente `claude-code` tem `allow-loopback-redirect: true`
+    — `McpOAuthClientRegistry` aceita qualquer porta em
+    `http://localhost|127.0.0.1/callback` para esse cliente especifico (RFC 8252
+    §7.3, excecao de loopback para apps nativos — nunca um wildcard de host ou
+    path). Nenhum outro cliente tem essa flag; match e sempre EXATO por padrao.
+  - **OAuth 2.1 exige PKCE S256** (implicit grant removido, match exato de
+    redirect_uri) — confirmado como requisito do proprio MCP Authorization spec.
+    `code_challenge_method=plain` e rejeitado explicitamente em `GET /oauth/authorize`
+    (redirect com `error=invalid_request`), nunca aceito silenciosamente.
+  - **Descoberta:** claude.ai consulta `/.well-known/oauth-authorization-server`
+    (RFC 8414) e `/.well-known/oauth-protected-resource` (RFC 9728) na raiz do
+    dominio antes de iniciar o fluxo — os dois sao publicos e implementados em
+    `WellKnownOAuthController`.
+  - **Fontes:** [Claude.ai docs — Authentication for connectors](https://claude.com/docs/connectors/building/authentication),
+    [Claude Help Center — Custom connectors via remote MCP](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp),
+    [anthropics/claude-ai-mcp#112 — client id/secret em advanced settings](https://github.com/anthropics/claude-ai-mcp/issues/112),
+    [Claude Code Docs — MCP](https://code.claude.com/docs/en/mcp),
+    [sunpeak.ai — Claude Connector Authentication (mai/2026)](https://sunpeak.ai/blogs/claude-connector-oauth-authentication/).
+
+- **Passo 0 — Spring Authorization Server vs. implementacao propria enxuta:**
+  **Decisao: implementacao propria enxuta** (Authorization Code + PKCE em
+  controllers/services dedicados no pacote `mcpoauth/`), NAO Spring Authorization
+  Server. Motivos, todos confirmados na pesquisa:
+  - O modulo de authorization server do Spring foi absorvido pelo proprio Spring
+    Security a partir da serie **7.1** (`org.springframework.security:
+    spring-security-oauth2-authorization-server`), NAO na 7.0.x. Este projeto fixa
+    `spring-security` em **7.0.6** via `spring-boot-starter-parent:4.0.7` (D-019);
+    puxar um artefato `7.1.0` sobre um `spring-security-core:7.0.6` seria um
+    skew de versao nao gerenciado pelo BOM do Boot atual — exatamente o tipo de
+    "integracao tortuosa" que o plano desta fase pede para evitar. Confirmado
+    consultando o Maven Central: a versao mais recente do artefato e `7.1.0`, sem
+    nenhuma `7.0.x` GA publicada.
+  - Relatos de terceiros descrevem o Authorization Server do Spring como exigindo
+    "esforco e tinkering" consideraveis para producao, com pagina de login como
+    SPA funcionando mas a tela de **consentimento sendo "mais dificil"**, e a
+    propria equipe do Spring Security recomendando **clientes confidenciais**
+    (nao publicos) — o oposto do que precisamos aqui (claude.ai/Claude Code sao
+    OBRIGATORIAMENTE clientes publicos, PKCE-only, sem `client_secret` verificado
+    no servidor).
+  - A superficie OAuth deste projeto e deliberadamente pequena (2 escopos, poucos
+    clientes estaticos, uma unica audience) — o overhead de adotar um
+    authorization server de proposito geral, orientado a sessao/formulario de
+    login, supera o beneficio. Uma implementacao propria enxuta, reaproveitando o
+    padrao ja revisado/testado de `OAuthCodeStore` (D-011) e `PersonalAccessToken`
+    (D-018) — code opaco de uso unico + TTL curto + hash-only para segredos —
+    mante controle total sobre a arquitetura stateless (JWT em `localStorage`,
+    sem `HttpSession`) sem reconciliar dois modelos de autenticacao concorrentes.
+
+- **Design da implementacao (pacote `br.com.leoferolive.nossalista.mcpoauth`):**
+  - **Fluxo de authorize sem exigir sessao no browser:** `GET /oauth/authorize` e
+    PUBLICO (o JWT de sessao vive em `localStorage`, que NAO acompanha uma
+    navegacao top-level de pagina inteira vinda do cliente OAuth). O endpoint
+    valida `client_id`/`redirect_uri` (erros aqui sao 400 DIRETO, nunca redirect —
+    evita open redirect com um redirect_uri nao confiavel), depois valida
+    `response_type=code`/`code_challenge_method=S256`/`resource` (erros aqui
+    redirecionam com `?error=` para o redirect_uri, ja confiavel nesse ponto),
+    persiste um `PendingAuthorization` (tabela `mcp_oauth_pending_authorizations`,
+    TTL 10min) e redireciona para `{FRONTEND_URL}/oauth/consent?request_id=...`.
+  - **Tela de consentimento na SPA** (`frontend/src/pages/OAuthConsent.tsx`,
+    protegida por `ProtectedRoute` — reusa o fluxo de login existente com retorno
+    automatico via `redirect`/`postLoginRedirect`): busca o pedido pendente via
+    `GET /api/oauth/consent/{requestId}` (autenticado por JWT normal) e decide via
+    `POST /api/oauth/consent/{requestId}/approve|deny`, ambos restritos a sessao
+    JWT normal (`sessionOnlyManager()`, mesma regra ja usada para
+    `/api/users/me/tokens/**` — um PAT ou um access token OAuth do MCP nunca pode
+    aprovar um consentimento em nome do usuario). Na aprovacao, emite um
+    authorization code opaco (`mcp_oauth_codes`, SecureRandom 256 bits, TTL 60s) e
+    devolve `{redirectUrl}` para a SPA navegar o browser de volta ao cliente OAuth.
+  - **`POST /oauth/token` publico** (clientes suportados sao PUBLICOS — a prova de
+    posse e o `code_verifier` ou a posse do refresh token opaco, nao um
+    `client_secret`). Erros seguem o formato OAuth padrao
+    (`{"error": "...", "error_description": "..."}`, RFC 6749 §5.2) via
+    `McpOAuthExceptionHandler` — um `@RestControllerAdvice` ISOLADO do
+    `GlobalExceptionHandler` compartilhado, com `@Order(HIGHEST_PRECEDENCE)`
+    (achado de implementacao: quando dois beans `@RestControllerAdvice` existem, o
+    Spring resolve o handler dentro do PRIMEIRO bean, por ordem, que tiver
+    QUALQUER match — nao necessariamente o mais especifico entre todos os beans;
+    sem o `@Order`, o catch-all `Exception.class` do `GlobalExceptionHandler`
+    vencia antes deste bean ser sequer consultado, convertendo todo erro OAuth em
+    500 generico).
+  - **Access token:** JWT HS256 assinado com `MCP_OAUTH_SIGNING_KEY` — uma chave
+    PROPRIA, nunca `JWT_SECRET` (fail-fast identico ao `JwtService`, min. 32 bytes).
+    Claims: `sub` (userId), `scope` (`READ`/`READ_WRITE`, mesmos valores do PAT),
+    `aud` (resource/audience canonica, RFC 8707), `client_id`, `iss`, `iat`, `exp`
+    (30min default). `McpOAuthJwtService.validate()` rejeita assinatura invalida,
+    expiracao e AUDIENCE DIFERENTE da canonica configurada (`app.mcp-oauth.resource`).
+  - **Refresh token:** opaco (256 bits), hash-only (mesmo padrao PAT), com
+    ROTACAO obrigatoria por `family_id`: cada uso revoga o token atual e emite um
+    novo na MESMA familia. Reuso de um refresh JA revogado (rotacionado ou ja
+    detectado antes) revoga a familia INTEIRA — sinal classico de vazamento
+    (RFC 6749 §10.4). Reenvio do MESMO authorization code apos consumido (replay)
+    tambem revoga a familia de tokens que ele originou.
+  - **Achado de implementacao (`@Transactional` + `noRollbackFor`):** a revogacao
+    de seguranca nos ramos de replay/reuso acontece IMEDIATAMENTE ANTES de lancar
+    `OAuthTokenException` — como essa excecao e uma `RuntimeException`, o rollback
+    padrao do Spring para `@Transactional` desfazia a propria revogacao junto com
+    o resto da transacao, permitindo ao atacante continuar usando o token
+    supostamente revogado. Corrigido com
+    `@Transactional(noRollbackFor = OAuthTokenException.class)` em
+    `exchangeAuthorizationCode`/`refresh` — descoberto e confirmado com um teste de
+    integracao que falhava silenciosamente sem lancar excecao (o refresh
+    "revogado" continuava funcionando).
+  - **Enforcement de escopo reaproveita `PatAuthorizationSupport.PAT_AUTHORITY`:**
+    por instrucao do plano ("mapear para as MESMAS authorities `SCOPE_*` que o
+    PAT — `McpSecurityContext` nao deve precisar mudar"), o access token OAuth
+    recebe as MESMAS tres authorities que um PAT (`ROLE_*`, `PAT_AUTHORITY`,
+    `SCOPE_READ`/`SCOPE_READ_WRITE`) — isso faz `McpSecurityContext.requireWriteAccess()`
+    bloquear escopo READ tentando mutar SEM nenhuma mudanca nessa classe. Uma
+    authority adicional e exclusiva, `MCP_OAUTH_AUTHORITY`, identifica
+    positivamente a origem OAuth (usada para bloquear `/api/**` — ver abaixo).
+    Reinterpretacao documentada no Javadoc de `PatAuthorizationSupport`: a
+    authority `PAT_AUTHORITY` agora significa "credencial nao-sessao com escopo
+    explicito" (PAT OU OAuth), nao apenas "Personal Access Token" no sentido restrito.
+  - **`/mcp/**` como unico escopo valido do token OAuth:**
+    `McpOAuthTokenAuthenticationFilter` so tenta validar o Bearer como JWT OAuth
+    quando `request.getRequestURI()` comeca com `/mcp` — fora dai, o token nem
+    chega a ser autenticado (segue como anonimo). Defesa em profundidade em
+    `SecurityConfig.apiAccessManager()`: nega explicitamente qualquer autenticacao
+    com `MCP_OAUTH_AUTHORITY` em `/api/**`, mesmo que o filtro um dia deixe de
+    restringir por path. Testado: usar o access token OAuth em `/api/lists`
+    retorna **401** (nao 403 — o token nem e reconhecido como credencial fora de
+    `/mcp`, entao a negacao de autorizacao de um anonimo vira 401 pelo
+    `ExceptionTranslationFilter` do Spring Security, nao 403).
+  - **`WWW-Authenticate` no 401 de `/mcp` sem tocar `Http401UnauthorizedEntryPoint`:**
+    a exigencia de descoberta do MCP (RFC 9728) pede esse header apontando para
+    `/.well-known/oauth-protected-resource`. Implementado com
+    `DelegatingAuthenticationEntryPoint` (`McpWwwAuthenticateEntryPoint` para
+    `/mcp/**`, delegando ao `Http401UnauthorizedEntryPoint` global depois de
+    setar o header) passado como o UNICO `authenticationEntryPoint(...)` de
+    `SecurityConfig`. **Achado de implementacao:** `defaultAuthenticationEntryPointFor(...)`
+    (a API que parece feita para "adicionar" um entry point por path) e
+    SILENCIOSAMENTE IGNORADO quando `authenticationEntryPoint(...)` explicito
+    tambem esta configurado — confirmado lendo o fonte de
+    `ExceptionHandlingConfigurer.getAuthenticationEntryPoint(H)`, que retorna o
+    explicito e nunca chega a construir o `DelegatingAuthenticationEntryPoint`
+    interno nesse caso. `Http401UnauthorizedEntryPoint` continua INTOCADO (Fase D
+    mexe nesse arquivo em paralelo).
+  - **Migration `V13__create_mcp_oauth_tables.sql`:** `mcp_oauth_pending_authorizations`,
+    `mcp_oauth_codes` (nao apaga ao consumir — precisa do registro pos-consumo
+    para detectar replay), `mcp_oauth_refresh_tokens`. Limpeza agendada em
+    `McpOAuthCleanupScheduler` (scheduler PROPRIO, nao reaproveitando
+    `RateLimiterCleanupScheduler` — Fase D mexe em rate limiting em paralelo).
+  - **Tela "Conexoes":** nova secao "Assistentes conectados via OAuth"
+    (`OAuthConnectionsPanel`, autocontido) ao lado dos PATs existentes — lista uma
+    conexao por `client_id` (familia de refresh token mais recente ainda ativa) e
+    permite desconectar (revoga TODA a familia daquele cliente).
+  - **`mcp_oauth_codes.code` em claro (unica excecao ao padrao hash-only):**
+    diferente de refresh token e PAT (D-018, hash-only, sao a credencial
+    completa sozinhos), o authorization code sobrevive no maximo 60s (TTL
+    curto), e uso unico, e SOZINHO nao autentica nada — a troca por token exige
+    o `code_verifier` correto (PKCE), que nunca trafega nem e persistido no
+    banco. Mesma decisao de `OAuthCodeStore` (D-011). Um vazamento do banco
+    exporia o code, mas nao o verifier necessario para resgata-lo.
+
+- **CRITICO — sequestro de consentimento cross-user (achado do QA, corrigido
+  antes do merge):** sem vinculo nenhum a um browser/usuario, um atacante
+  NAO-LOGADO podia chamar `GET /oauth/authorize` com o PROPRIO
+  `code_challenge` (o endpoint e publico por design — ver acima), copiar a URL
+  de consentimento resultante (`{FRONTEND_URL}/oauth/consent?request_id=...`)
+  e envia-la por phishing para a vitima. A vitima, logada, abria o link,
+  aprovava o que parecia um pedido de conexao legitimo, e o authorization code
+  emitido saia com o `userId` da VITIMA mas o `code_challenge` do ATACANTE —
+  que so ele sabia resgatar com o `code_verifier` correspondente, obtendo
+  tokens OAuth (inclusive `READ_WRITE`) da conta da vitima. Reproduzido pelo QA
+  com PoC completo (curl + SDK). Corrigido com DUAS camadas independentes
+  (qualquer uma sozinha ja bloquearia o ataque descrito; as duas juntas cobrem
+  variantes onde uma das duas nao se aplicasse):
+  1. **Cookie de vinculo ao browser** (`PendingAuthorization.nonce` +
+     `McpOAuthAuthorizationService.CONSENT_COOKIE_NAME`): `GET /oauth/authorize`
+     gera um nonce de 256 bits, persiste no pedido, e devolve como cookie
+     `HttpOnly; Secure; SameSite=Lax` (TTL = TTL do pedido, 10min) no MESMO
+     browser que chamou o endpoint. `approve`/`deny` exigem esse cookie batendo
+     (comparacao em tempo constante) com o nonce persistido — o browser da
+     vitima, que nunca visitou `/oauth/authorize` (só recebeu o link do
+     `/oauth/consent`), nao possui esse cookie.
+  2. **Trava por usuario** (`PendingAuthorization.claimedByUserId`): o primeiro
+     `GET /api/oauth/consent/{id}` autenticado reivindica o pedido para aquele
+     `userId`; qualquer chamada subsequente (GET, approve ou deny) de um
+     usuario DIFERENTE responde 403 (`OAuthConsentForbiddenException`) — mesmo
+     que, por algum outro vetor, essa segunda conta tivesse o cookie certo.
+  Nenhuma trava exige o cookie no `GET` de visualizacao (so em `approve`/
+  `deny`) — ver dados do pedido (nome do cliente, escopo, host de retorno) nao
+  e sensivel e simplifica a UX (a SPA sempre faz `GET` antes de decidir).
+  Migration `V13` alterada (ainda nao mergeada) com as colunas `nonce`
+  (`NOT NULL`) e `claimed_by_user_id` (nullable, `FK users`). Testes de
+  integracao dedicados: `crossUserConsentHijackBlockedWithoutCookie`
+  (reproduz o PoC do QA ponta-a-ponta e confirma o bloqueio) e
+  `approveByDifferentUserThanClaimedIsForbidden` (trava por usuario isolada).
+
+- **MEDIUM — access token OAuth sobrevive a revogacao de familia ate expirar
+  (achado do QA, mitigado, nao eliminavel sem infra adicional):** o access
+  token e um JWT stateless (`McpOAuthJwtService`) — quando uma familia de
+  refresh tokens e revogada (replay de code, reuso de refresh, revoke manual,
+  ou desconectar em "Conexoes"), qualquer access token JA EMITIDO daquela
+  familia continua validando normalmente ate a propria expiracao, porque a
+  validacao (`McpOAuthTokenAuthenticationFilter`) so verifica assinatura +
+  `exp` + `aud`, nunca consulta o banco. **Mitigacao adotada:** TTL do access
+  token reduzido de 30min para **10min** (`McpOAuthProperties.DEFAULT_ACCESS_TOKEN_TTL`,
+  constante nomeada — nao mais um literal solto), limitando a janela de
+  exposicao. **Nao eliminavel nesta fase** sem introduzir estado por chamada
+  (introspeccao de token contra o banco, ou uma blacklist de JTIs revogados)
+  — o que reintroduziria uma consulta ao banco em toda chamada `/mcp`,
+  trade-off deliberadamente evitado pelo design stateless desta fase.
+  Registrado como **follow-up conhecido**: se o caso de uso exigir revogacao
+  instantanea de access tokens (nao so de refresh), avaliar introspeccao
+  (RFC 7662) ou reduzir ainda mais o TTL. Teste dedicado
+  `revokedFamilyAccessTokenRemainsValidUntilNaturalExpiry` documenta
+  EXPLICITAMENTE esse comportamento esperado (para nao ser lido como bug
+  nao-intencional numa leitura futura do codigo).
+
+- **Testes:** `McpOAuthFlowIntegrationTest` (23 casos, H2 dedicado
+  `mcp-oauth-it` — mesmo padrao de isolamento de `McpServerIntegrationTest`,
+  D-020) cobre o fluxo completo autorize→consentimento→code→token→chamada MCP
+  real via SDK, PKCE incorreto, code replay, redirect_uri/resource divergentes,
+  refresh rotation + reuso, escopo READ bloqueando mutacao via token OAuth,
+  bloqueio em `/api/**`, audience errada, endpoints well-known, o header
+  `WWW-Authenticate`, o PoC de sequestro de consentimento cross-user (bloqueado
+  com e sem cookie), a trava por usuario, `client_id` desconhecido em
+  `/oauth/token` (formato `invalid_client`, ver review abaixo), e a
+  sobrevivencia do access token a revogacao de familia (limitacao documentada,
+  nao bug). Mais `PkceValidatorTest`, `McpOAuthClientRegistryTest` (inclui a
+  regra de loopback), `McpOAuthJwtServiceTest` (fail-fast da chave, expiracao,
+  audience, chave errada), `McpOAuthAtomicUpdatesRepositoryTest` e
+  `McpOAuthTokenServiceTest` (ver review abaixo) isolados.
+
+  **Cobertura de branches (gate de nao-regressao do CI):** o PR original desta
+  fase caiu para 77.39% de branch (contra 79.20% da baseline da main) porque os
+  ramos defensivos do modulo `mcpoauth` (validacoes de PKCE/client/resource,
+  os ramos "perdeu a corrida" da atomicidade de code/refresh/consentimento, e
+  as combinacoes de parametro invalidas em `/oauth/authorize`/`/oauth/token`)
+  nao tinham teste dedicado — so o caminho feliz e os erros mais obvios eram
+  exercitados por `McpOAuthFlowIntegrationTest`. Fechado com 49 testes novos,
+  focados em mocks (rapidos, sem subir contexto Spring) chamando os metodos
+  publicos diretamente quando isso alcanca um ramo que o binding HTTP do
+  Spring nunca produziria isolado (`McpOAuthAuthorizeControllerTest`,
+  `McpOAuthTokenControllerTest`): `McpOAuthTokenServiceValidationTest`
+  (code/refresh expirado, `client_id` divergente da credencial, `resource`
+  omitido, `revoke()` sem dono/sem client_id), `McpOAuthAuthorizationServiceTest`
+  (pedido pendente expirado, corrida de reivindicacao sem dono rastreavel,
+  cookie de consentimento com valor errado, montagem da URL de redirect com
+  `?`/`&`/parametro nulo), `McpOAuthTokenAuthenticationFilterTest` (esquema de
+  auth diferente de Bearer, usuario do claim que nao existe mais, role nula),
+  mais testes de entidade (`McpOAuthCodeTest`, `PendingAuthorizationTest`,
+  `McpOAuthRefreshTokenTest`) e ampliacoes em `McpOAuthClientRegistryTest`/
+  `McpOAuthJwtServiceTest`. Resultado (branch/linha do `jacoco.xml`, total do
+  modulo `mcpoauth`): 77.39%→83.27% branch, 90.82%→91.96% linha no repositorio
+  inteiro; **zero branches sem cobertura restantes em `mcpoauth`** apos o
+  esforco (nenhum ramo morto/inatingivel encontrado).
+
+  Suite completa do backend: **706 testes, 0 falhas** (`./mvnw clean test`,
+  com `clean` explicito). Numero contra-verificado contando os elementos
+  `<testcase>` nos XML do Surefire
+  (`grep -o "<testcase " target/surefire-reports/*.xml | wc -l` = 706,
+  identico ao total agregado do Maven) — a linha "Tests run" do `.txt`/stdout
+  de uma classe isolada pode reportar 0 para classes com metodos
+  `@ParameterizedTest`/`@Nested`, o que já gerou contagem incorreta numa
+  medicao anterior; contar os `<testcase>` do XML é o metodo confiavel.
+  Frontend: `OAuthConsent.test.tsx` (novo) e `Connections.test.tsx`
+  (ampliado com a secao OAuth) — suite completa 494 testes/51 arquivos,
+  0 falhas (`npx vitest run`).
+
+- **Review senior pos-implementacao (aplicado antes do merge do PR #56):**
+  - **I-1/M-1 — consumo/rotacao/reivindicacao ATOMICOS (achado do review):** o
+    padrao original de "ler o estado em Java, decidir, gravar" para consumir um
+    authorization code, rotacionar um refresh token, e reivindicar um
+    `PendingAuthorization` tinha uma janela de corrida sob READ COMMITTED —
+    duas transacoes concorrentes liam o MESMO snapshot "ainda nao
+    consumido/revogado/reivindicado" e ambas prosseguiam, emitindo DOIS pares
+    de token do mesmo code (ou deixando uma conta diferente roubar uma
+    reivindicacao) sem disparar a revogacao de replay. Corrigido substituindo
+    cada leitura-decisao-gravacao por um UPDATE condicional
+    (`WHERE consumed_at/revoked_at/claimed_by_user_id IS NULL`) que devolve o
+    numero de linhas afetadas: `McpOAuthCodeRepository#markConsumed`,
+    `McpOAuthRefreshTokenRepository#markRotated`,
+    `PendingAuthorizationRepository#claimIfUnclaimed`. Quando o UPDATE afeta 0
+    linhas, o SERVICO trata como corrida perdida (replay/reuso/sequestro) e
+    revoga a familia certa, exatamente como no ramo de replay sequencial ja
+    existente. **Achado de implementacao (cache de 1o nivel do Hibernate):** ao
+    reler o `token_family_id`/`claimed_by_user_id` VENCEDOR apos o UPDATE
+    condicional falhar, um `findByCode`/`findById` comum devolveria a MESMA
+    entidade ja gerenciada nesta transacao (carregada antes do UPDATE em
+    massa), com os campos NUNCA mutados em Java — nao o valor persistido pela
+    transacao vencedora. Corrigido com projecoes ESCALARES dedicadas
+    (`findTokenFamilyIdByCode`, `findClaimedByUserId`), que sempre disparam um
+    SELECT novo contra o banco. Testado em dois niveis:
+    `McpOAuthAtomicUpdatesRepositoryTest` prova, chamando cada UPDATE
+    condicional duas vezes em sequencia, que a segunda chamada SEMPRE afeta 0
+    linhas (a propria query e o compare-and-swap); `McpOAuthTokenServiceTest`
+    (mocks) forca o UPDATE condicional a "perder a corrida" mesmo com o
+    snapshot inicial "nao consumido", provando que o SERVICO revoga a familia
+    VENCEDORA (nao a local) e nunca emite um segundo par de tokens — cenario
+    inatingivel chamando o endpoint HTTP duas vezes em sequencia, porque o
+    atalho de replay sequencial (baseado no snapshot ja lido) sempre
+    intercepta antes.
+  - **M-2 — `client_id` desconhecido em `/oauth/token`:** respondia um
+    `ProblemDetail` RFC 7807 (formato usado por `/oauth/authorize`), nao o
+    formato de erro OAuth padrao (`{"error": "invalid_client"}`, RFC 6749 §5.2)
+    esperado por SDKs de cliente OAuth genericos. Corrigido convertendo
+    `OAuthUnknownClientException` para `OAuthTokenException.invalidClient` em
+    `McpOAuthTokenService` (`requireKnownClient`), mantendo o `ProblemDetail`
+    intocado em `/oauth/authorize` (onde faz sentido — o erro e antes de haver
+    um redirect_uri confiavel). Teste dedicado:
+    `tokenRejectsUnknownClientWithOAuthErrorFormat`.
+  - **M-3 — cliente de teste local (`nossalista-local`) NAO deve existir em
+    prod:** estava registrado em `application.yml` (base, compartilhada por
+    TODOS os profiles, inclusive prod). Corrigido movendo o registro para
+    `application-dev.yml` (listas em `@ConfigurationProperties` NAO mesclam
+    entre profiles — o bloco em `application-dev.yml` redeclara a lista
+    INTEIRA, claude-ai/claude-code + nossalista-local); `application.yml`
+    (base, herdada por prod) mantem so claude-ai/claude-code.
+    `application-prod.yml` comentado explicitamente para nao reintroduzir esse
+    cliente ali.
+  - **M-4 — summary de `/oauth/revoke` superestimava o efeito:** dizia revogar
+    "um refresh (ou access) token"; na pratica so revoga a familia de refresh
+    tokens — o access token OAuth, por ser JWT stateless, sobrevive ate expirar
+    (ver limitacao MEDIUM acima). Summary/descricao do endpoint corrigidos para
+    refletir isso.
+  - **NITs:** `McpOAuthJwtService.validate()` envolve a checagem de
+    `getAudience()` num try/catch para um NPE teorico (token malformado de
+    origem externa); `McpOAuthConsentController` limpa o cookie de
+    consentimento (Max-Age=0) apos approve/deny (ja sem uso depois da
+    decisao); `McpOAuthAuthorizeController` valida o tamanho de `state`
+    (limite da coluna VARCHAR(512)) antes de persistir, evitando um 500 de
+    truncamento do banco.
+
+- **Novas variaveis de ambiente:** `MCP_OAUTH_SIGNING_KEY` (obrigatoria,
+  fail-fast, >= 32 bytes, DIFERENTE de `JWT_SECRET`), `MCP_OAUTH_ISSUER` e
+  `MCP_OAUTH_RESOURCE` (defaults localhost em dev/test, dominio real
+  hardcoded como default em `application-prod.yml`, mesmo padrao de
+  `frontend.url`). Ver `docs/ENVIRONMENT.md`.
+
+- **Pendencias/riscos conhecidos:**
+  - O redirect URI do app MOBILE do claude.ai nao foi confirmado
+    separadamente na pesquisa (assume-se o mesmo `claude.ai/api/mcp/auth_callback`
+    via deep link/webview do sistema, pratica padrao de OAuth em apps moveis) —
+    validar com um teste manual real do "Add connector" no app quando possivel.
+  - `createdAt` exibido na tela de Conexoes para uma conexao OAuth reflete a
+    ultima ROTACAO do refresh token, nao a conexao original (limitacao aceita:
+    `lastUsedAt` e a informacao mais acionavel de qualquer forma).
+  - DCR nao implementado: se um cliente OAuth generico (nao claude.ai/Claude
+    Code) precisar se conectar sem suporte a client_id estatico, ele nao
+    funcionara ate um DCR minimo ser adicionado — fora do escopo desta fase por
+    decisao explicita do Passo 0.

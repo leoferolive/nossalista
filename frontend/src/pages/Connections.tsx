@@ -4,6 +4,7 @@ import { AppHeader } from '../components/AppHeader'
 import { CreateTokenModal } from '../components/CreateTokenModal'
 import { TokenCreatedModal } from '../components/TokenCreatedModal'
 import { RevokeTokenModal } from '../components/RevokeTokenModal'
+import { OAuthConnectionsPanel } from '../components/OAuthConnectionsPanel'
 import { useToast } from '../contexts/ToastContext'
 import {
   tokensApi,
@@ -242,7 +243,8 @@ function TokenModals({ modal }: { modal: TokenModalsState }) {
 
 /**
  * Página "Conexões (API/Assistentes)": gestão de Personal Access Tokens
- * (PAT) usados para autenticar clientes MCP/API externos em nome da conta.
+ * (PAT) e de assistentes conectados via OAuth (claude.ai, Claude Code) usados
+ * para autenticar clientes MCP/API externos em nome da conta.
  */
 export const Connections: React.FC = () => {
   const navigate = useNavigate()
@@ -255,7 +257,7 @@ export const Connections: React.FC = () => {
         <AppHeader
           eyebrow="NossaLista"
           title="Conexões (API/Assistentes)"
-          subtitle="Gerencie os tokens de acesso pessoal usados por assistentes e integrações MCP/API."
+          subtitle="Gerencie os tokens de acesso pessoal e os assistentes conectados via OAuth."
           onBack={() => navigate(-1)}
           primaryAction={
             <button type="button" onClick={modal.openCreateModal} className="nl-btn-primary">
@@ -264,6 +266,11 @@ export const Connections: React.FC = () => {
           }
         />
 
+        <OAuthConnectionsPanel />
+
+        <h2 className="mb-3 mt-8 font-display text-lg font-semibold text-nl-text">
+          Personal Access Tokens
+        </h2>
         <TokenListSection
           tokens={tokens}
           loading={loading}

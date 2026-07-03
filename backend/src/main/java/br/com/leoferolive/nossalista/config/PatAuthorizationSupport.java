@@ -20,8 +20,24 @@ import java.util.Set;
  */
 public final class PatAuthorizationSupport {
 
-    /** Authority marcadora: presente somente em autenticações originadas de um PAT. */
+    /**
+     * Authority marcadora: presente em autenticações originadas de um PAT OU de
+     * um access token OAuth do servidor MCP ({@code McpOAuthTokenAuthenticationFilter},
+     * Fase C — ver docs/DECISIONS.md D-022). Ambos são credenciais não-sessão com
+     * escopo explícito ({@link TokenScope}), então compartilham esta authority
+     * para que o enforcement de escopo em {@code McpSecurityContext.requireWriteAccess()}
+     * funcione igual para os dois sem precisar conhecer a origem do token.
+     */
     public static final String PAT_AUTHORITY = "PAT_AUTH";
+
+    /**
+     * Authority marcadora exclusiva de access tokens OAuth do servidor MCP
+     * (distinta de {@link #PAT_AUTHORITY}, que os tokens OAuth TAMBÉM carregam).
+     * Usada para bloquear esses tokens em {@code /api/**} — diferente de um PAT,
+     * um token OAuth do MCP nunca deve acessar a API REST do SPA, nem em
+     * métodos seguros.
+     */
+    public static final String MCP_OAUTH_AUTHORITY = "MCP_OAUTH_AUTH";
 
     private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS");
 
@@ -52,6 +68,14 @@ public final class PatAuthorizationSupport {
      */
     public static boolean hasReadOnlyScope(Authentication authentication) {
         return hasAuthority(authentication, TokenScope.READ.authority());
+    }
+
+    /**
+     * @param authentication autenticação corrente (pode ser {@code null})
+     * @return true se a autenticação foi originada de um access token OAuth do servidor MCP
+     */
+    public static boolean isMcpOAuthToken(Authentication authentication) {
+        return hasAuthority(authentication, MCP_OAUTH_AUTHORITY);
     }
 
     /**

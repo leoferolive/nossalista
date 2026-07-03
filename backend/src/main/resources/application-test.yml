@@ -29,6 +29,10 @@ management:
       enabled: false
 
 app:
+  mcp-oauth:
+    issuer: http://localhost:8080
+    resource: http://localhost:8080/mcp
+    signing-key: test-mcp-oauth-signing-key-minimum-32-bytes-for-hmac-testing
   email:
     smtp:
       enabled: false
