@@ -13,7 +13,7 @@ const previewList = {
   title: 'Lista da Semana',
   status: 'Ao vivo',
   items: [
-    { label: 'Tomate sweet grape', done: true },
+    { label: 'Tomate cereja', done: true },
     { label: 'Separar presentes', done: false },
     { label: 'Fechar wishlist', done: false },
   ],

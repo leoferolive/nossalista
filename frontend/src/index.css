@@ -166,6 +166,11 @@ textarea {
   outline-offset: 2px;
 }
 
+/* Foco de alto contraste nas seções sempre-escuras da landing (hero/CTA) */
+.nl-dark-section :focus-visible {
+  outline-color: rgba(255, 255, 255, 0.8);
+}
+
 .font-tabular {
   font-variant-numeric: tabular-nums;
 }

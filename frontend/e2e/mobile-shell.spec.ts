@@ -76,7 +76,7 @@ test('shell autenticado mobile usa sheets e reduz ruido no topo', async ({ brows
         {
           id: 'item-1',
           listId: 'list-demo-1',
-          name: 'Tomate sweet grape',
+          name: 'Tomate cereja',
           checked: true,
           quantity: 2,
           position: 0,
