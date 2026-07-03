@@ -96,4 +96,32 @@ class McpOAuthClientRegistryTest {
         assertThatThrownBy(() -> registry.validateRedirectUri(client, "https://localhost:12345/callback"))
             .isInstanceOf(OAuthInvalidRedirectUriException.class);
     }
+
+    @Test
+    void validateRedirectUriRejectsNullRedirectUri() {
+        ClientDefinition client = registry.require("claude-ai");
+        assertThatThrownBy(() -> registry.validateRedirectUri(client, null))
+            .isInstanceOf(OAuthInvalidRedirectUriException.class);
+    }
+
+    @Test
+    void validateRedirectUriRejectsBlankRedirectUri() {
+        ClientDefinition client = registry.require("claude-ai");
+        assertThatThrownBy(() -> registry.validateRedirectUri(client, "   "))
+            .isInstanceOf(OAuthInvalidRedirectUriException.class);
+    }
+
+    @Test
+    void validateRedirectUriRejectsLoopbackUriWithoutHostForLoopbackClient() {
+        // "http:///callback" tem scheme=http e path=/callback, mas host nulo (sem
+        // autoridade) — não deve satisfazer a regra de loopback mesmo com path certo.
+        ClientDefinition client = registry.require("claude-code");
+        assertThatThrownBy(() -> registry.validateRedirectUri(client, "http:///callback"))
+            .isInstanceOf(OAuthInvalidRedirectUriException.class);
+    }
+
+    @Test
+    void findReturnsEmptyForNullClientId() {
+        assertThat(registry.find(null)).isEmpty();
+    }
 }

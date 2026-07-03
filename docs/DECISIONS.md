@@ -763,12 +763,38 @@
   nao bug). Mais `PkceValidatorTest`, `McpOAuthClientRegistryTest` (inclui a
   regra de loopback), `McpOAuthJwtServiceTest` (fail-fast da chave, expiracao,
   audience, chave errada), `McpOAuthAtomicUpdatesRepositoryTest` e
-  `McpOAuthTokenServiceTest` (ver review abaixo) isolados. Suite completa do
-  backend: **657 testes, 0 falhas** (`./mvnw clean test`, com `clean`
-  explicito). Numero contra-verificado contando os elementos `<testcase>` nos
-  XML do Surefire (`grep -o "<testcase " target/surefire-reports/*.xml | wc -l`
-  = 657, identico ao total agregado do Maven) — a linha "Tests run" do
-  `.txt`/stdout de uma classe isolada pode reportar 0 para classes com metodos
+  `McpOAuthTokenServiceTest` (ver review abaixo) isolados.
+
+  **Cobertura de branches (gate de nao-regressao do CI):** o PR original desta
+  fase caiu para 77.39% de branch (contra 79.20% da baseline da main) porque os
+  ramos defensivos do modulo `mcpoauth` (validacoes de PKCE/client/resource,
+  os ramos "perdeu a corrida" da atomicidade de code/refresh/consentimento, e
+  as combinacoes de parametro invalidas em `/oauth/authorize`/`/oauth/token`)
+  nao tinham teste dedicado — so o caminho feliz e os erros mais obvios eram
+  exercitados por `McpOAuthFlowIntegrationTest`. Fechado com 49 testes novos,
+  focados em mocks (rapidos, sem subir contexto Spring) chamando os metodos
+  publicos diretamente quando isso alcanca um ramo que o binding HTTP do
+  Spring nunca produziria isolado (`McpOAuthAuthorizeControllerTest`,
+  `McpOAuthTokenControllerTest`): `McpOAuthTokenServiceValidationTest`
+  (code/refresh expirado, `client_id` divergente da credencial, `resource`
+  omitido, `revoke()` sem dono/sem client_id), `McpOAuthAuthorizationServiceTest`
+  (pedido pendente expirado, corrida de reivindicacao sem dono rastreavel,
+  cookie de consentimento com valor errado, montagem da URL de redirect com
+  `?`/`&`/parametro nulo), `McpOAuthTokenAuthenticationFilterTest` (esquema de
+  auth diferente de Bearer, usuario do claim que nao existe mais, role nula),
+  mais testes de entidade (`McpOAuthCodeTest`, `PendingAuthorizationTest`,
+  `McpOAuthRefreshTokenTest`) e ampliacoes em `McpOAuthClientRegistryTest`/
+  `McpOAuthJwtServiceTest`. Resultado (branch/linha do `jacoco.xml`, total do
+  modulo `mcpoauth`): 77.39%→83.27% branch, 90.82%→91.96% linha no repositorio
+  inteiro; **zero branches sem cobertura restantes em `mcpoauth`** apos o
+  esforco (nenhum ramo morto/inatingivel encontrado).
+
+  Suite completa do backend: **706 testes, 0 falhas** (`./mvnw clean test`,
+  com `clean` explicito). Numero contra-verificado contando os elementos
+  `<testcase>` nos XML do Surefire
+  (`grep -o "<testcase " target/surefire-reports/*.xml | wc -l` = 706,
+  identico ao total agregado do Maven) — a linha "Tests run" do `.txt`/stdout
+  de uma classe isolada pode reportar 0 para classes com metodos
   `@ParameterizedTest`/`@Nested`, o que já gerou contagem incorreta numa
   medicao anterior; contar os `<testcase>` do XML é o metodo confiavel.
   Frontend: `OAuthConsent.test.tsx` (novo) e `Connections.test.tsx`

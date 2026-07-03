@@ -44,6 +44,15 @@ class McpOAuthJwtServiceTest {
     }
 
     @Test
+    void validateSigningKeyFailsFastWhenKeyIsNull() {
+        McpOAuthProperties properties = properties(Duration.ofMinutes(30));
+        properties.setSigningKey(null);
+        McpOAuthJwtService service = new McpOAuthJwtService(properties);
+
+        assertThatThrownBy(service::validateSigningKey).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
     void validateSigningKeyFailsFastWhenKeyIsTooShort() {
         McpOAuthProperties properties = properties(Duration.ofMinutes(30));
         properties.setSigningKey("too-short");
