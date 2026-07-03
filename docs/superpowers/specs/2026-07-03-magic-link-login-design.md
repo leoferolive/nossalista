@@ -29,11 +29,14 @@ e-mail marcado como verificado.
 
 1. **Escopo: login-only de contas existentes.** Se o e-mail não tem conta, é um no-op silencioso
    (anti-enumeração). Magic link **não** cria conta — cadastro continua por registro e Google OAuth.
-2. **Solicitação embutida na tela de login.** Não há rota nova de solicitação. Na tela de login (e no
-   `LoginModal`), o usuário reusa o campo de e-mail e aciona uma ação **secundária** "Enviar link
-   mágico". O botão "Entrar" (senha) permanece o CTA **primário** — a ação de link mágico é
-   visualmente secundária para não competir (o CLAUDE.md pede evitar CTAs ambíguos). A página de
-   **consumo** `/magic-login` é uma rota nova.
+2. **Solicitação embutida na superfície de login.** Não há rota nova de solicitação. A superfície de
+   login **viva** é o `components/LoginModal.tsx` — a rota `/login` apenas redireciona via
+   `LegacyLoginRedirect` para `/?auth=login`, que abre o modal na landing. `pages/Login.tsx` é
+   **código morto** (importado só pelo próprio teste) e **não** faz parte do escopo. No `LoginModal`, o
+   usuário reusa o campo de e-mail e aciona uma ação **secundária** "Enviar link mágico". O botão
+   "Entrar" (senha) permanece o CTA **primário** — a ação de link mágico é visualmente secundária para
+   não competir (o CLAUDE.md pede evitar CTAs ambíguos). A página de **consumo** `/magic-login` é uma
+   rota nova.
 3. **Consumo marca `email_verified=true` e loga.** Clicar no link comprova posse do e-mail (mesma
    prova que a verificação exige). Vale para **qualquer** conta existente, inclusive contas Google/OAuth
    e contas de e-mail ainda não verificadas. Se `REQUIRE_EMAIL_VERIFICATION=true`, o magic link também
@@ -42,7 +45,9 @@ e-mail marcado como verificado.
 5. **Token em plaintext no banco:** mantido consistente com `password_reset_tokens` e
    `email_verification` (mesmo nível dos outros dois fluxos). Hashear os três é uma melhoria futura
    separada, fora do escopo.
-6. **Botão também no `LoginModal`,** para paridade com a página de login.
+6. **Escopo de UI restrito ao `LoginModal`.** Como `pages/Login.tsx` é inalcançável (dead code), o
+   botão de magic link é adicionado **apenas** ao `LoginModal` (a superfície pública real), evitando
+   editar UI morta e produzir testes de falsa confiança.
 
 ## 4. Abordagem
 
@@ -55,23 +60,30 @@ fluxos, aumentando a carga cognitiva de manutenção.
 
 ### 5.1. Dados e domínio
 
-- **Migration `V14__create_magic_link_tokens.sql`** — tabela `magic_link_tokens` espelhando
+- **Migration `V15__create_magic_link_tokens.sql`** (V14 já existe — `V14__create_mcp_oauth_registered_clients.sql`;
+  V15 é o próximo número livre). Tabela `magic_link_tokens` espelhando **exatamente** o DDL de
   `V8__create_password_reset_tokens.sql`:
-  - `id UUID PRIMARY KEY`
-  - `user_id UUID NOT NULL`
-  - `token TEXT NOT NULL UNIQUE`
-  - `expires_at TIMESTAMP NOT NULL`
-  - `used BOOLEAN NOT NULL DEFAULT FALSE`
-  - `created_at TIMESTAMP NOT NULL`
-  - Índice em `token` (via UNIQUE) e, opcionalmente, em `user_id` (espelhar o que a V8 faz).
+  ```sql
+  CREATE TABLE magic_link_tokens (
+      id UUID PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token VARCHAR(255) NOT NULL UNIQUE,
+      expires_at TIMESTAMP NOT NULL,
+      used BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );
+  CREATE INDEX idx_magic_link_tokens_token ON magic_link_tokens(token);
+  CREATE INDEX idx_magic_link_tokens_user_id ON magic_link_tokens(user_id);
+  ```
 - **Entidade `MagicLinkToken`** (`auth/domain/`) — cópia estrutural de `PasswordResetToken`
   (`@Table(name = "magic_link_tokens")`, `@PrePersist` gerando `id` e `created_at`).
 - **`MagicLinkTokenRepository`** (`auth/repository/`) — métodos:
   - `Optional<MagicLinkToken> findByTokenAndUsedFalse(String token)`
   - `void deleteByUserIdAndUsedFalse(UUID userId)`
-- **`InvalidMagicLinkTokenException`** (`auth/exception/`) — espelha `InvalidResetTokenException`,
-  mapeada para HTTP 400 pelo handler global existente (verificar o `@RestControllerAdvice` de auth e
-  registrar o mapeamento se as exceptions de token forem tratadas caso a caso).
+- **`InvalidMagicLinkTokenException`** (`auth/exception/`) — espelha `InvalidResetTokenException`.
+  Registrar o mapeamento para HTTP 400 em **`config/GlobalExceptionHandler`** (linha ~115), que já
+  trata `InvalidResetTokenException` e `InvalidVerificationTokenException` da mesma forma — basta
+  adicionar um `@ExceptionHandler` análogo.
 
 ### 5.2. Serviço — `MagicLinkService` (`auth/service/`)
 
@@ -117,19 +129,23 @@ código; não há fonte única compartilhada hoje, assim como reset usa 60 em do
 ## 6. Design — Frontend
 
 - **`api/authApi.ts`**: `requestMagicLink(email: string): Promise<void>` (POST `/api/auth/magic-link`)
-  e `magicLogin(token: string): Promise<LoginResponse>` (POST `/api/auth/magic-login`). Reusar o tipo
-  `LoginResponse` já existente.
-- **`pages/Login.tsx` + `components/LoginModal.tsx`**: adicionar ação secundária **"Enviar link
-  mágico"** que reusa o e-mail digitado. Fluxo: valida que o e-mail não está vazio → chama
-  `requestMagicLink` → exibe mensagem genérica *"Se existe uma conta com esse e-mail, enviamos um link
-  de acesso."* (sempre, independente de o e-mail existir). "Entrar" continua primário; o link mágico é
-  secundário (link/botão-texto). Paridade `light`/`dark` usando os primitives/tokens existentes.
+  e `magicLogin(token: string): Promise<OAuthExchangeResponse>` (POST `/api/auth/magic-login`).
+  **Não existe** um tipo `LoginResponse` compartilhado no frontend (é uma `interface` privada duplicada
+  em `Login.tsx`/`LoginModal.tsx`). O tipo correto a reusar é **`OAuthExchangeResponse`** — já
+  exportado em `authApi.ts` e usado por `exchangeOAuthCode`, carregando `token` + `expiresAt` + user,
+  exatamente o formato do `LoginResponse` do backend.
+- **`components/LoginModal.tsx`** (única superfície de login viva; **não** editar `pages/Login.tsx`):
+  adicionar ação secundária **"Enviar link mágico"** que reusa o e-mail digitado. Fluxo: valida que o
+  e-mail não está vazio → chama `requestMagicLink` → exibe mensagem genérica *"Se existe uma conta com
+  esse e-mail, enviamos um link de acesso."* (sempre, independente de o e-mail existir). "Entrar"
+  continua primário; o link mágico é secundário (link/botão-texto). Paridade `light`/`dark` usando os
+  primitives/tokens existentes.
 - **`pages/MagicLogin.tsx`** (rota nova `/magic-login` registrada em `main.tsx`): espelha
   `pages/AuthCallback.tsx`.
   1. Lê `?token=` da query string.
   2. Estado `loading`: chama `authApi.magicLogin(token)`.
   3. Sucesso: injeta a sessão no `AuthContext` (mesmo mecanismo que o `AuthCallback` usa para o
-     `LoginResponse` do OAuth) e redireciona para a Home.
+     `OAuthExchangeResponse` — `login()` + `persistAuthToken`) e redireciona para a Home.
   4. Erro (token ausente/inválido/expirado, ou 400/429): estado de erro com mensagem amigável e link
      para a tela de login.
 
@@ -155,8 +171,8 @@ código; não há fonte única compartilhada hoje, assim como reset usa 60 em do
 **Frontend:**
 - `MagicLogin.test.tsx`: token válido → chama `magicLogin` → seta sessão → redireciona; token
   ausente/erro → estado de erro + link para login.
-- Teste do botão "Enviar link mágico" no login: chama `requestMagicLink` e exibe a mensagem genérica;
-  não vaza se o e-mail existe.
+- Teste do botão "Enviar link mágico" **no `LoginModal`** (não em `Login.tsx`): chama `requestMagicLink`
+  e exibe a mensagem genérica; não vaza se o e-mail existe.
 
 ## 8. Documentação (governança obrigatória)
 
@@ -181,8 +197,9 @@ código; não há fonte única compartilhada hoje, assim como reset usa 60 em do
 - **Sincronia da constante de expiração (10 min)** entre `MagicLinkService` e `SmtpEmailService` — se
   divergirem, o e-mail exibe um tempo errado. Mitigação: comentário cruzado; teste que verifica o
   valor.
-- **Mapeamento da exceção para 400** — confirmar como as `Invalid*TokenException` atuais são
-  convertidas (handler global vs por-controller) e seguir o mesmo mecanismo.
+- **Mapeamento da exceção para 400** — feito em `config/GlobalExceptionHandler`, que já converte
+  `InvalidResetTokenException` / `InvalidVerificationTokenException`; adicionar um `@ExceptionHandler`
+  análogo para `InvalidMagicLinkTokenException`.
 - **Injeção de sessão no `AuthContext`** — reusar exatamente o caminho do `AuthCallback` para evitar
   divergência de como o JWT é persistido (localStorage vs contexto).
 - **Quality gate**: rodar `./scripts/quality.sh --pre-commit` antes de cada commit e
