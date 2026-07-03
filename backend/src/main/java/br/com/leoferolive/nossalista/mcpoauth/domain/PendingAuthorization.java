@@ -20,6 +20,15 @@ import java.util.UUID;
  * resource) até o usuário aprovar ou negar na tela de consentimento da SPA. TTL
  * curto (ver {@code app.mcp-oauth.pending-authorization-ttl}); varrido pelo
  * {@code McpOAuthCleanupScheduler}.</p>
+ *
+ * <p><b>Sequestro de consentimento cross-user (achado do QA):</b> sem vínculo a
+ * um browser/usuário, um atacante não-logado podia gerar um {@code request_id}
+ * com o PRÓPRIO {@code code_challenge}, enviar o link por phishing à vítima, e a
+ * aprovação da vítima emitiria um code com o {@code userId} da vítima mas o
+ * challenge do atacante. Duas defesas: {@link #nonce} (cookie HttpOnly/Secure/
+ * SameSite=Lax devolvido só ao browser que chamou {@code /oauth/authorize},
+ * exigido em approve/deny) e {@link #claimedByUserId} (trava o pedido ao
+ * primeiro usuário autenticado que o visualizar).</p>
  */
 @Entity
 @Table(name = "mcp_oauth_pending_authorizations")
@@ -47,6 +56,12 @@ public class PendingAuthorization {
 
     @Column(name = "resource", nullable = false)
     private String resource;
+
+    @Column(name = "nonce", nullable = false)
+    private String nonce;
+
+    @Column(name = "claimed_by_user_id")
+    private UUID claimedByUserId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -120,6 +135,22 @@ public class PendingAuthorization {
 
     public void setResource(String resource) {
         this.resource = resource;
+    }
+
+    public String getNonce() {
+        return nonce;
+    }
+
+    public void setNonce(String nonce) {
+        this.nonce = nonce;
+    }
+
+    public UUID getClaimedByUserId() {
+        return claimedByUserId;
+    }
+
+    public void setClaimedByUserId(UUID claimedByUserId) {
+        this.claimedByUserId = claimedByUserId;
     }
 
     public LocalDateTime getCreatedAt() {

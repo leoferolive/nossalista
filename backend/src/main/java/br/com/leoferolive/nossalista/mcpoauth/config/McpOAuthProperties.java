@@ -18,6 +18,17 @@ import java.util.List;
 @ConfigurationProperties(prefix = "app.mcp-oauth")
 public class McpOAuthProperties {
 
+    /**
+     * Default do TTL do access token OAuth — CURTO deliberadamente (achado do
+     * QA): o access token é um JWT stateless, então revogar a família de
+     * refresh tokens (replay/reuso, ver {@code McpOAuthTokenService}) NÃO
+     * invalida instantaneamente um access token já emitido — ele continua
+     * válido até expirar. Um TTL curto é a defesa primária contra essa janela
+     * de exposição; introspecção/blacklist de access tokens fica registrada
+     * como follow-up em docs/DECISIONS.md (D-021).
+     */
+    private static final Duration DEFAULT_ACCESS_TOKEN_TTL = Duration.ofMinutes(10);
+
     /** Issuer (RFC 8414) — base URL do servidor de autorização. */
     private String issuer;
 
@@ -29,7 +40,7 @@ public class McpOAuthProperties {
 
     private Duration pendingAuthorizationTtl = Duration.ofMinutes(10);
     private Duration codeTtl = Duration.ofSeconds(60);
-    private Duration accessTokenTtl = Duration.ofMinutes(30);
+    private Duration accessTokenTtl = DEFAULT_ACCESS_TOKEN_TTL;
     private Duration refreshTokenTtl = Duration.ofDays(30);
 
     private List<ClientDefinition> clients = new ArrayList<>();

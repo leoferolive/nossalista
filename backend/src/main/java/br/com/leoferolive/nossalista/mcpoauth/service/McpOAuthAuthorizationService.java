@@ -6,6 +6,7 @@ import br.com.leoferolive.nossalista.mcpoauth.config.McpOAuthProperties.ClientDe
 import br.com.leoferolive.nossalista.mcpoauth.domain.McpOAuthCode;
 import br.com.leoferolive.nossalista.mcpoauth.domain.PendingAuthorization;
 import br.com.leoferolive.nossalista.mcpoauth.dto.PendingAuthorizationView;
+import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthConsentForbiddenException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.PendingAuthorizationNotFoundException;
 import br.com.leoferolive.nossalista.mcpoauth.repository.McpOAuthCodeRepository;
 import br.com.leoferolive.nossalista.mcpoauth.repository.PendingAuthorizationRepository;
@@ -16,6 +17,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -33,8 +35,18 @@ import java.util.UUID;
 @Service
 public class McpOAuthAuthorizationService {
 
+    /**
+     * Nome do cookie HttpOnly/Secure/SameSite=Lax que vincula o pedido de
+     * autorização ao browser que chamou {@code GET /oauth/authorize} — ver
+     * {@link PendingAuthorization#getNonce()} e o Javadoc da classe.
+     */
+    public static final String CONSENT_COOKIE_NAME = "mcp_oauth_consent";
+
     /** 32 bytes = 256 bits de entropia, mesmo padrão de {@code OAuthCodeStore} (D-011) e PAT (D-018). */
     private static final int CODE_BYTES = 32;
+
+    /** 32 bytes = 256 bits de entropia para o nonce de vínculo do cookie de consentimento. */
+    private static final int NONCE_BYTES = 32;
 
     private final McpOAuthProperties properties;
     private final McpOAuthClientRegistry clientRegistry;
@@ -55,6 +67,11 @@ public class McpOAuthAuthorizationService {
         this.codeRepository = codeRepository;
     }
 
+    /**
+     * @return o {@link PendingAuthorization} criado — o chamador (controller)
+     *         usa {@link PendingAuthorization#getNonce()} para setar o cookie
+     *         de vínculo no browser que originou o pedido (ver classe/D-021).
+     */
     @Transactional
     public PendingAuthorization createPending(
         String clientId, String redirectUri, TokenScope scope, String state, String codeChallenge, String resource
@@ -66,13 +83,22 @@ public class McpOAuthAuthorizationService {
         pending.setState(state);
         pending.setCodeChallenge(codeChallenge);
         pending.setResource(resource);
+        pending.setNonce(generateNonce());
         pending.setExpiresAt(LocalDateTime.now().plus(properties.getPendingAuthorizationTtl()));
         return pendingRepository.save(pending);
     }
 
-    @Transactional(readOnly = true)
-    public PendingAuthorizationView view(UUID requestId) {
+    /**
+     * Carrega os dados do pedido para a tela de consentimento. Reivindica o
+     * pedido para {@code userId} se ainda não reivindicado; se já reivindicado
+     * por OUTRO usuário, rejeita (403) — impede que a vítima de um link de
+     * phishing sequer veja os detalhes de um pedido gerado por um atacante.
+     */
+    @Transactional
+    public PendingAuthorizationView view(UUID requestId, UUID userId) {
         PendingAuthorization pending = requirePending(requestId);
+        claimOrVerifyOwnership(pending, userId);
+
         String clientName = clientRegistry.find(pending.getClientId())
             .map(ClientDefinition::getName)
             .orElse(pending.getClientId());
@@ -84,10 +110,16 @@ public class McpOAuthAuthorizationService {
      * Usuário aprovou o consentimento: emite o authorization code e devolve a
      * URL de redirect ({@code redirect_uri?code=...&state=...}) para a SPA
      * navegar o browser de volta ao cliente OAuth.
+     *
+     * @param cookieNonce valor do cookie de vínculo enviado pelo browser (ver
+     *                    {@link #createPending}); precisa bater com
+     *                    {@link PendingAuthorization#getNonce()}
      */
     @Transactional
-    public String approve(UUID requestId, UUID userId) {
+    public String approve(UUID requestId, UUID userId, String cookieNonce) {
         PendingAuthorization pending = requirePending(requestId);
+        requireValidCookie(pending, cookieNonce);
+        claimOrVerifyOwnership(pending, userId);
 
         McpOAuthCode code = new McpOAuthCode();
         code.setCode(generateCode());
@@ -111,10 +143,15 @@ public class McpOAuthAuthorizationService {
     /**
      * Usuário negou o consentimento: devolve a URL de redirect com
      * {@code error=access_denied} (RFC 6749 §4.1.2.1), sem emitir code algum.
+     *
+     * @param cookieNonce ver {@link #approve}
      */
     @Transactional
-    public String deny(UUID requestId) {
+    public String deny(UUID requestId, UUID userId, String cookieNonce) {
         PendingAuthorization pending = requirePending(requestId);
+        requireValidCookie(pending, cookieNonce);
+        claimOrVerifyOwnership(pending, userId);
+
         pendingRepository.delete(pending);
 
         Map<String, String> params = new LinkedHashMap<>();
@@ -134,8 +171,46 @@ public class McpOAuthAuthorizationService {
         return pending;
     }
 
+    /**
+     * Reivindica o pedido para {@code userId} na primeira chamada (view ou
+     * decisão direta); em chamadas seguintes, exige que seja o MESMO usuário —
+     * caso contrário, 403 (defesa contra sequestro de consentimento cross-user).
+     */
+    private void claimOrVerifyOwnership(PendingAuthorization pending, UUID userId) {
+        if (pending.getClaimedByUserId() == null) {
+            pending.setClaimedByUserId(userId);
+            pendingRepository.save(pending);
+            return;
+        }
+        if (!pending.getClaimedByUserId().equals(userId)) {
+            throw new OAuthConsentForbiddenException(
+                "This authorization request was already claimed by a different account.");
+        }
+    }
+
+    /**
+     * Exige que o cookie de vínculo do browser bata com o nonce persistido no
+     * pedido — só o browser que chamou {@code GET /oauth/authorize} o possui.
+     * Comparação em tempo constante (mesmo padrão de {@link PkceValidator}).
+     */
+    private void requireValidCookie(PendingAuthorization pending, String cookieNonce) {
+        boolean valid = cookieNonce != null
+            && MessageDigest.isEqual(
+                cookieNonce.getBytes(StandardCharsets.UTF_8), pending.getNonce().getBytes(StandardCharsets.UTF_8));
+        if (!valid) {
+            throw new OAuthConsentForbiddenException(
+                "Missing or invalid consent binding. Restart the connection from the OAuth client.");
+        }
+    }
+
     private String generateCode() {
         byte[] bytes = new byte[CODE_BYTES];
+        secureRandom.nextBytes(bytes);
+        return codeEncoder.encodeToString(bytes);
+    }
+
+    private String generateNonce() {
+        byte[] bytes = new byte[NONCE_BYTES];
         secureRandom.nextBytes(bytes);
         return codeEncoder.encodeToString(bytes);
     }

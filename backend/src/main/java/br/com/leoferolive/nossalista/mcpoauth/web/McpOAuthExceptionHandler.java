@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.mcpoauth.web;
 
+import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthConsentForbiddenException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthInvalidRedirectUriException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthTokenException;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthUnknownClientException;
@@ -79,6 +80,19 @@ public class McpOAuthExceptionHandler {
         return problem(
             HttpStatus.NOT_FOUND, ex.getMessage(), "oauth-authorization-request-not-found",
             "Pedido de autorização não encontrado", request);
+    }
+
+    /**
+     * Cookie de vínculo ausente/incorreto, ou pedido reivindicado por outro
+     * usuário — defesa contra sequestro de consentimento cross-user (achado do
+     * QA, ver Javadoc de {@code PendingAuthorization}/D-021).
+     */
+    @ExceptionHandler(OAuthConsentForbiddenException.class)
+    public ResponseEntity<ProblemDetail> handleConsentForbidden(
+        OAuthConsentForbiddenException ex, HttpServletRequest request
+    ) {
+        return problem(
+            HttpStatus.FORBIDDEN, ex.getMessage(), "oauth-consent-forbidden", "Consentimento não autorizado", request);
     }
 
     private ResponseEntity<ProblemDetail> problem(

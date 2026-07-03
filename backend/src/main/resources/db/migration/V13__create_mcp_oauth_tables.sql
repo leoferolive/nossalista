@@ -5,6 +5,19 @@
 -- Passo 1: pedido de autorizacao pendente de consentimento do usuario. Criado em
 -- GET /oauth/authorize (antes do login/consentimento), consumido quando o
 -- usuario aprova ou nega na tela de consentimento da SPA. TTL curto (10min).
+--
+-- Seguranca (achado do QA, sequestro de consentimento cross-user): sem
+-- vinculo nenhum a um browser/usuario, um atacante nao-logado podia gerar um
+-- request_id com o PROPRIO code_challenge, mandar o link por phishing para a
+-- vitima, e a aprovacao da vitima emitiria um code com o userId da vitima mas
+-- o challenge do atacante (que so ele sabe resgatar). Duas camadas de defesa:
+-- (1) `nonce`: valor de alta entropia devolvido como cookie HttpOnly/Secure/
+--     SameSite=Lax no PROPRIO browser que chamou /oauth/authorize; approve/deny
+--     exigem esse cookie batendo com o nonce do pedido — o browser da vitima
+--     (que nunca visitou /oauth/authorize) nao o possui.
+-- (2) `claimed_by_user_id`: preenchido no primeiro GET autenticado de
+--     /api/oauth/consent/{id}; approve/deny (e um segundo GET) de um usuario
+--     diferente do que reivindicou o pedido sao rejeitados (403).
 CREATE TABLE mcp_oauth_pending_authorizations (
     id UUID PRIMARY KEY,
     client_id VARCHAR(100) NOT NULL,
@@ -13,6 +26,8 @@ CREATE TABLE mcp_oauth_pending_authorizations (
     state VARCHAR(512),
     code_challenge VARCHAR(255) NOT NULL,
     resource VARCHAR(255) NOT NULL,
+    nonce VARCHAR(255) NOT NULL,
+    claimed_by_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMP NOT NULL
 );
@@ -24,6 +39,14 @@ CREATE INDEX idx_mcp_oauth_pending_authorizations_expires_at ON mcp_oauth_pendin
 -- token_family_id e preenchido na troca bem-sucedida para permitir revogar a
 -- familia inteira de refresh tokens caso o MESMO code seja reenviado depois
 -- (replay) — ver McpOAuthTokenService.
+--
+-- Nota (`code` em claro, exceto ao padrao hash-only de refresh/PAT): mesma
+-- decisao de OAuthCodeStore (D-011) — o code vive no maximo 60s (TTL curto),
+-- e uso unico, e SOZINHO nao autentica nada: a troca por token exige o
+-- code_verifier correto (PKCE), que nunca trafega nem e persistido aqui. Um
+-- vazamento do banco exporia o code, mas nao o verifier necessario para
+-- resgata-lo — diferente de um refresh/access token, que sozinho JA e a
+-- credencial completa (por isso esses sim sao hash-only).
 CREATE TABLE mcp_oauth_codes (
     id UUID PRIMARY KEY,
     code VARCHAR(255) NOT NULL UNIQUE,

@@ -7,6 +7,7 @@ import br.com.leoferolive.nossalista.mcpoauth.dto.ConsentDecisionResponse;
 import br.com.leoferolive.nossalista.mcpoauth.dto.OAuthConnectionSummary;
 import br.com.leoferolive.nossalista.mcpoauth.dto.PendingAuthorizationView;
 import br.com.leoferolive.nossalista.mcpoauth.dto.TokenResponse;
+import br.com.leoferolive.nossalista.mcpoauth.service.McpOAuthAuthorizationService;
 import br.com.leoferolive.nossalista.mcpoauth.service.McpOAuthJwtService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -135,6 +136,25 @@ class McpOAuthFlowIntegrationTest {
         return "http://localhost:" + port;
     }
 
+    /**
+     * Extrai o cookie de vínculo de consentimento (ver
+     * {@code McpOAuthAuthorizationService.CONSENT_COOKIE_NAME}) do header
+     * {@code Set-Cookie} da resposta de {@code GET /oauth/authorize}, no formato
+     * {@code name=value} pronto para reenviar num header {@code Cookie}.
+     */
+    private String extractConsentCookie(ResponseEntity<Void> authorizeResponse) {
+        List<String> setCookies = authorizeResponse.getHeaders().get(org.springframework.http.HttpHeaders.SET_COOKIE);
+        assertThat(setCookies).as("Set-Cookie presente na resposta de /oauth/authorize").isNotNull();
+        return setCookies.stream()
+            .filter(header -> header.startsWith(McpOAuthAuthorizationService.CONSENT_COOKIE_NAME + "="))
+            .map(header -> {
+                int semicolon = header.indexOf(';');
+                return semicolon == -1 ? header : header.substring(0, semicolon);
+            })
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Cookie de consentimento não encontrado em: " + setCookies));
+    }
+
     private String encode(String value) {
         return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
@@ -168,12 +188,14 @@ class McpOAuthFlowIntegrationTest {
         assertThat(authorizeResponse.getStatusCode().value()).isEqualTo(302);
         String location = authorizeResponse.getHeaders().getLocation().toString();
         assertThat(location).startsWith(frontendUrl + "/oauth/consent?request_id=");
+        String consentCookie = extractConsentCookie(authorizeResponse);
 
         UUID requestId = UUID.fromString(location.substring(location.indexOf("request_id=") + "request_id=".length()));
 
         PendingAuthorizationView view = restClient.get()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId)
             .header("Authorization", "Bearer " + sessionJwt)
+            .header("Cookie", consentCookie)
             .retrieve()
             .body(PendingAuthorizationView.class);
         assertThat(view.clientId()).isEqualTo(clientId);
@@ -182,6 +204,7 @@ class McpOAuthFlowIntegrationTest {
         ConsentDecisionResponse decision = restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
             .header("Authorization", "Bearer " + sessionJwt)
+            .header("Cookie", consentCookie)
             .retrieve()
             .body(ConsentDecisionResponse.class);
 
@@ -564,16 +587,138 @@ class McpOAuthFlowIntegrationTest {
         ResponseEntity<Void> authorizeResponse = callAuthorize(uri);
         String location = authorizeResponse.getHeaders().getLocation().toString();
         UUID requestId = UUID.fromString(location.substring(location.indexOf("request_id=") + "request_id=".length()));
+        String consentCookie = extractConsentCookie(authorizeResponse);
 
         ConsentDecisionResponse decision = restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/deny")
             .header("Authorization", "Bearer " + sessionJwt(user))
+            .header("Cookie", consentCookie)
             .retrieve()
             .body(ConsentDecisionResponse.class);
 
         assertThat(decision.redirectUrl()).startsWith(LOCAL_REDIRECT_URI);
         assertThat(decision.redirectUrl()).contains("error=access_denied");
         assertThat(decision.redirectUrl()).contains("state=" + state);
+    }
+
+    @Test
+    @DisplayName("sequestro de consentimento cross-user (PoC do QA): aprovar sem o cookie do browser originador é bloqueado")
+    void crossUserConsentHijackBlockedWithoutCookie() {
+        // Ataque: alguém não-logado gera o pedido com o PRÓPRIO code_challenge
+        // (nunca precisa logar para chamar /oauth/authorize) e manda só a URL de
+        // consentimento (com o request_id) para a vítima via phishing — a vítima
+        // jamais recebe o cookie que foi setado no browser de quem chamou authorize.
+        Pkce attackerPkce = newPkce();
+        String state = "hijack-" + UUID.randomUUID();
+        URI uri = authorizeUri(LOCAL_CLIENT_ID, LOCAL_REDIRECT_URI, "read_write", state,
+            attackerPkce.challenge(), "S256", properties.getResource());
+        ResponseEntity<Void> authorizeResponse = callAuthorize(uri);
+        String location = authorizeResponse.getHeaders().getLocation().toString();
+        UUID requestId = UUID.fromString(location.substring(location.indexOf("request_id=") + "request_id=".length()));
+
+        User victim = newUser();
+        String victimJwt = sessionJwt(victim);
+
+        // A vítima vê a tela de consentimento normalmente — GET não exige o cookie,
+        // só reivindica o pedido para a conta dela.
+        PendingAuthorizationView view = restClient.get()
+            .uri(baseUrl() + "/api/oauth/consent/" + requestId)
+            .header("Authorization", "Bearer " + victimJwt)
+            .retrieve()
+            .body(PendingAuthorizationView.class);
+        assertThat(view.clientId()).isEqualTo(LOCAL_CLIENT_ID);
+
+        // ...mas aprovar SEM o cookie do browser originador é bloqueado (403) — sem
+        // isso, o code sairia com o userId da vítima amarrado ao code_challenge de
+        // quem gerou o pedido, permitindo resgatar tokens READ_WRITE da vítima.
+        assertThatThrownBy(() -> restClient.post()
+            .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
+            .header("Authorization", "Bearer " + victimJwt)
+            .retrieve()
+            .toBodilessEntity())
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(ex -> assertThat(((HttpClientErrorException) ex).getStatusCode().value()).isEqualTo(403));
+
+        // Negar também exige o cookie.
+        assertThatThrownBy(() -> restClient.post()
+            .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/deny")
+            .header("Authorization", "Bearer " + victimJwt)
+            .retrieve()
+            .toBodilessEntity())
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(ex -> assertThat(((HttpClientErrorException) ex).getStatusCode().value()).isEqualTo(403));
+    }
+
+    @Test
+    @DisplayName("trava por usuário: ver/aprovar um pedido já reivindicado por OUTRA conta é bloqueado (403)")
+    void approveByDifferentUserThanClaimedIsForbidden() {
+        Pkce pkce = newPkce();
+        String state = "ownership-" + UUID.randomUUID();
+        URI uri = authorizeUri(LOCAL_CLIENT_ID, LOCAL_REDIRECT_URI, "read_write", state, pkce.challenge(), "S256",
+            properties.getResource());
+        ResponseEntity<Void> authorizeResponse = callAuthorize(uri);
+        String location = authorizeResponse.getHeaders().getLocation().toString();
+        UUID requestId = UUID.fromString(location.substring(location.indexOf("request_id=") + "request_id=".length()));
+        String consentCookie = extractConsentCookie(authorizeResponse);
+
+        User firstUser = newUser();
+        User secondUser = newUser();
+
+        // firstUser reivindica o pedido no primeiro GET autenticado.
+        restClient.get()
+            .uri(baseUrl() + "/api/oauth/consent/" + requestId)
+            .header("Authorization", "Bearer " + sessionJwt(firstUser))
+            .retrieve()
+            .body(PendingAuthorizationView.class);
+
+        // secondUser nem consegue mais VER o pedido — já reivindicado por outra conta.
+        assertThatThrownBy(() -> restClient.get()
+            .uri(baseUrl() + "/api/oauth/consent/" + requestId)
+            .header("Authorization", "Bearer " + sessionJwt(secondUser))
+            .retrieve()
+            .toBodilessEntity())
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(ex -> assertThat(((HttpClientErrorException) ex).getStatusCode().value()).isEqualTo(403));
+
+        // ...e mesmo tendo o cookie correto, secondUser não consegue aprovar.
+        assertThatThrownBy(() -> restClient.post()
+            .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
+            .header("Authorization", "Bearer " + sessionJwt(secondUser))
+            .header("Cookie", consentCookie)
+            .retrieve()
+            .toBodilessEntity())
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(ex -> assertThat(((HttpClientErrorException) ex).getStatusCode().value()).isEqualTo(403));
+    }
+
+    @Test
+    @DisplayName("LIMITAÇÃO CONHECIDA (D-021): access token OAuth continua válido até expirar mesmo após a família ser revogada")
+    void revokedFamilyAccessTokenRemainsValidUntilNaturalExpiry() {
+        User user = newUser();
+        Pkce pkce = newPkce();
+        Map<String, String> result = fullyAuthorize(
+            sessionJwt(user), LOCAL_CLIENT_ID, LOCAL_REDIRECT_URI, TokenScope.READ_WRITE, pkce);
+        TokenResponse tokens = exchangeCode(
+            result.get("code"), LOCAL_REDIRECT_URI, LOCAL_CLIENT_ID, pkce.verifier(), properties.getResource());
+
+        restClient.post()
+            .uri(baseUrl() + "/oauth/revoke")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .body("token=" + encode(tokens.refreshToken()) + "&client_id=" + encode(LOCAL_CLIENT_ID))
+            .retrieve()
+            .toBodilessEntity();
+
+        // O refresh já não funciona mais...
+        assertThatThrownBy(() -> refreshToken(tokens.refreshToken(), LOCAL_CLIENT_ID, properties.getResource()))
+            .isInstanceOf(HttpClientErrorException.class);
+
+        // ...mas o ACCESS TOKEN já emitido, por ser um JWT stateless, PERMANECE
+        // válido até expirar naturalmente — limitação conhecida e documentada em
+        // docs/DECISIONS.md (D-021), mitigada com um TTL curto (10min). Este teste
+        // documenta o comportamento esperado para não ser lido como bug no futuro.
+        McpSyncClient client = connectedMcpClient(tokens.accessToken());
+        CallToolResult listResult = client.callTool(CallToolRequest.builder("list_my_lists").arguments(Map.of()).build());
+        assertThat(listResult.isError()).isNotEqualTo(Boolean.TRUE);
     }
 
     @Test

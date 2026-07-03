@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -106,6 +108,18 @@ public class McpOAuthAuthorizeController {
 
         PendingAuthorization pending =
             authorizationService.createPending(clientId, redirectUri, scope, state, codeChallenge, resource);
+
+        // Vincula o pedido a ESTE browser (defesa contra sequestro de consentimento
+        // cross-user, achado do QA — ver Javadoc de PendingAuthorization/D-021):
+        // approve/deny exigem esse cookie batendo com o nonce persistido.
+        ResponseCookie cookie = ResponseCookie.from(McpOAuthAuthorizationService.CONSENT_COOKIE_NAME, pending.getNonce())
+            .path("/")
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("Lax")
+            .maxAge(properties.getPendingAuthorizationTtl())
+            .build();
+        httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         String consentUrl = frontendUrl + "/oauth/consent?request_id=" + pending.getId();
         httpResponse.sendRedirect(consentUrl);
