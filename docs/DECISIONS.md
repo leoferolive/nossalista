@@ -686,19 +686,88 @@
     (`OAuthConnectionsPanel`, autocontido) ao lado dos PATs existentes — lista uma
     conexao por `client_id` (familia de refresh token mais recente ainda ativa) e
     permite desconectar (revoga TODA a familia daquele cliente).
+  - **`mcp_oauth_codes.code` em claro (unica excecao ao padrao hash-only):**
+    diferente de refresh token e PAT (D-018, hash-only, sao a credencial
+    completa sozinhos), o authorization code sobrevive no maximo 60s (TTL
+    curto), e uso unico, e SOZINHO nao autentica nada — a troca por token exige
+    o `code_verifier` correto (PKCE), que nunca trafega nem e persistido no
+    banco. Mesma decisao de `OAuthCodeStore` (D-011). Um vazamento do banco
+    exporia o code, mas nao o verifier necessario para resgata-lo.
 
-- **Testes:** `McpOAuthFlowIntegrationTest` (19 casos, H2 dedicado
+- **CRITICO — sequestro de consentimento cross-user (achado do QA, corrigido
+  antes do merge):** sem vinculo nenhum a um browser/usuario, um atacante
+  NAO-LOGADO podia chamar `GET /oauth/authorize` com o PROPRIO
+  `code_challenge` (o endpoint e publico por design — ver acima), copiar a URL
+  de consentimento resultante (`{FRONTEND_URL}/oauth/consent?request_id=...`)
+  e envia-la por phishing para a vitima. A vitima, logada, abria o link,
+  aprovava o que parecia um pedido de conexao legitimo, e o authorization code
+  emitido saia com o `userId` da VITIMA mas o `code_challenge` do ATACANTE —
+  que so ele sabia resgatar com o `code_verifier` correspondente, obtendo
+  tokens OAuth (inclusive `READ_WRITE`) da conta da vitima. Reproduzido pelo QA
+  com PoC completo (curl + SDK). Corrigido com DUAS camadas independentes
+  (qualquer uma sozinha ja bloquearia o ataque descrito; as duas juntas cobrem
+  variantes onde uma das duas nao se aplicasse):
+  1. **Cookie de vinculo ao browser** (`PendingAuthorization.nonce` +
+     `McpOAuthAuthorizationService.CONSENT_COOKIE_NAME`): `GET /oauth/authorize`
+     gera um nonce de 256 bits, persiste no pedido, e devolve como cookie
+     `HttpOnly; Secure; SameSite=Lax` (TTL = TTL do pedido, 10min) no MESMO
+     browser que chamou o endpoint. `approve`/`deny` exigem esse cookie batendo
+     (comparacao em tempo constante) com o nonce persistido — o browser da
+     vitima, que nunca visitou `/oauth/authorize` (só recebeu o link do
+     `/oauth/consent`), nao possui esse cookie.
+  2. **Trava por usuario** (`PendingAuthorization.claimedByUserId`): o primeiro
+     `GET /api/oauth/consent/{id}` autenticado reivindica o pedido para aquele
+     `userId`; qualquer chamada subsequente (GET, approve ou deny) de um
+     usuario DIFERENTE responde 403 (`OAuthConsentForbiddenException`) — mesmo
+     que, por algum outro vetor, essa segunda conta tivesse o cookie certo.
+  Nenhuma trava exige o cookie no `GET` de visualizacao (so em `approve`/
+  `deny`) — ver dados do pedido (nome do cliente, escopo, host de retorno) nao
+  e sensivel e simplifica a UX (a SPA sempre faz `GET` antes de decidir).
+  Migration `V13` alterada (ainda nao mergeada) com as colunas `nonce`
+  (`NOT NULL`) e `claimed_by_user_id` (nullable, `FK users`). Testes de
+  integracao dedicados: `crossUserConsentHijackBlockedWithoutCookie`
+  (reproduz o PoC do QA ponta-a-ponta e confirma o bloqueio) e
+  `approveByDifferentUserThanClaimedIsForbidden` (trava por usuario isolada).
+
+- **MEDIUM — access token OAuth sobrevive a revogacao de familia ate expirar
+  (achado do QA, mitigado, nao eliminavel sem infra adicional):** o access
+  token e um JWT stateless (`McpOAuthJwtService`) — quando uma familia de
+  refresh tokens e revogada (replay de code, reuso de refresh, revoke manual,
+  ou desconectar em "Conexoes"), qualquer access token JA EMITIDO daquela
+  familia continua validando normalmente ate a propria expiracao, porque a
+  validacao (`McpOAuthTokenAuthenticationFilter`) so verifica assinatura +
+  `exp` + `aud`, nunca consulta o banco. **Mitigacao adotada:** TTL do access
+  token reduzido de 30min para **10min** (`McpOAuthProperties.DEFAULT_ACCESS_TOKEN_TTL`,
+  constante nomeada — nao mais um literal solto), limitando a janela de
+  exposicao. **Nao eliminavel nesta fase** sem introduzir estado por chamada
+  (introspeccao de token contra o banco, ou uma blacklist de JTIs revogados)
+  — o que reintroduziria uma consulta ao banco em toda chamada `/mcp`,
+  trade-off deliberadamente evitado pelo design stateless desta fase.
+  Registrado como **follow-up conhecido**: se o caso de uso exigir revogacao
+  instantanea de access tokens (nao so de refresh), avaliar introspeccao
+  (RFC 7662) ou reduzir ainda mais o TTL. Teste dedicado
+  `revokedFamilyAccessTokenRemainsValidUntilNaturalExpiry` documenta
+  EXPLICITAMENTE esse comportamento esperado (para nao ser lido como bug
+  nao-intencional numa leitura futura do codigo).
+
+- **Testes:** `McpOAuthFlowIntegrationTest` (22 casos, H2 dedicado
   `mcp-oauth-it` — mesmo padrao de isolamento de `McpServerIntegrationTest`,
   D-020) cobre o fluxo completo autorize→consentimento→code→token→chamada MCP
   real via SDK, PKCE incorreto, code replay, redirect_uri/resource divergentes,
   refresh rotation + reuso, escopo READ bloqueando mutacao via token OAuth,
-  bloqueio em `/api/**`, audience errada, endpoints well-known, e o header
-  `WWW-Authenticate`. Mais `PkceValidatorTest`, `McpOAuthClientRegistryTest`
-  (inclui a regra de loopback) e `McpOAuthJwtServiceTest` (fail-fast da chave,
-  expiracao, audience, chave errada) isolados. Suite completa do backend:
-  648 testes, 0 falhas (`./mvnw clean test`). Frontend: `OAuthConsent.test.tsx`
-  (novo) e `Connections.test.tsx` (ampliado com a secao OAuth) — suite completa
-  494 testes/51 arquivos, 0 falhas (`npx vitest run`).
+  bloqueio em `/api/**`, audience errada, endpoints well-known, o header
+  `WWW-Authenticate`, o PoC de sequestro de consentimento cross-user (bloqueado
+  com e sem cookie), a trava por usuario, e a sobrevivencia do access token a
+  revogacao de familia (limitacao documentada, nao bug). Mais
+  `PkceValidatorTest`, `McpOAuthClientRegistryTest` (inclui a regra de
+  loopback) e `McpOAuthJwtServiceTest` (fail-fast da chave, expiracao,
+  audience, chave errada) isolados. Suite completa do backend: **651 testes,
+  0 falhas** (`./mvnw clean test`, verificado com `clean` explicito, executado
+  duas vezes para confirmar estabilidade — nao usar numeros de execucoes
+  parciais/incrementais, que podem sub-contar suites). Frontend:
+  `OAuthConsent.test.tsx` (novo) e `Connections.test.tsx` (ampliado com a
+  secao OAuth) — suite completa 494 testes/51 arquivos, 0 falhas
+  (`npx vitest run`).
 
 - **Novas variaveis de ambiente:** `MCP_OAUTH_SIGNING_KEY` (obrigatoria,
   fail-fast, >= 32 bytes, DIFERENTE de `JWT_SECRET`), `MCP_OAUTH_ISSUER` e
