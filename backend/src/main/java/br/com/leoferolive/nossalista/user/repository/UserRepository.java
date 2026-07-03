@@ -1,7 +1,11 @@
 package br.com.leoferolive.nossalista.user.repository;
 
 import br.com.leoferolive.nossalista.user.domain.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -63,4 +67,20 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return Lista de até 20 usuários que contêm o termo no username
      */
     List<User> findTop20ByUsernameContainingIgnoreCase(String username);
+
+    /**
+     * Busca um usuário travando a linha (lock pessimista de escrita) até o fim
+     * da transação corrente. Usado para serializar operações que precisam
+     * checar-e-agir de forma atômica por usuário (ex.: limite de Personal
+     * Access Tokens ativos em {@code PersonalAccessTokenService.create}),
+     * evitando TOCTOU quando duas requisições concorrentes do mesmo usuário
+     * passam pela checagem de contagem antes de qualquer uma inserir.
+     * Funciona de forma equivalente em H2 e PostgreSQL ({@code SELECT ... FOR UPDATE}).
+     *
+     * @param id ID do usuário
+     * @return Optional contendo o usuário, com a linha travada até o commit/rollback
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdForUpdate(@Param("id") UUID id);
 }

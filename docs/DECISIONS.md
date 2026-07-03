@@ -289,3 +289,186 @@
 - **Validacao:** `spring-security-{core,web,oauth2-core,config,crypto}:7.0.6`,
   `jackson-databind:2.21.4`, `tools.jackson.core:jackson-databind:3.1.4` confirmados via
   `dependency:tree`. Suite de testes completa sem regressao (ver resultado no PR #50).
+
+## D-020 Servidor MCP embutido no backend (Streamable HTTP)
+
+- **Contexto:** Fase B do plano MCP — expor as listas do NossaLista como tools MCP para
+  Claude Code/Desktop/Cursor, autenticadas pelos PATs da Fase A (D-018) ou por JWT.
+- **Decisao de dependencia (Passo 0):** usar o starter oficial
+  `org.springframework.ai:spring-ai-starter-mcp-server-webmvc:2.0.0` (via
+  `spring-ai-bom:2.0.0`), protocolo `STREAMABLE`, montado em `/mcp`. Spring AI 2.0.0 GA
+  (lancado 2026-06-12, poucas semanas antes desta Fase) e o primeiro trem estavel
+  desenhado especificamente para Spring Boot 4.0/4.1 + Spring Framework 7 — confirmado
+  publicando de verdade contra Boot 4.0.7 deste projeto (`dependency:tree` sem conflito de
+  versao: `spring-boot-starter-web` fica mediado em 4.0.7 mesmo com o starter do MCP
+  pedindo 4.1.0 transitivamente, por ser dependencia mais proxima). O SDK Java oficial puro
+  (`io.modelcontextprotocol.sdk:mcp`) ficou como fallback nao usado — o starter Spring AI
+  cobriu tudo via anotacao `@McpTool` sem necessidade de registrar transporte manualmente.
+  Tools implementadas como `@Component` com metodos `@McpTool` em `mcp/tool/*McpTools`,
+  descobertas automaticamente pelo annotation scanner do starter (nenhum registro manual).
+- **Roteamento — exclusao do SpaController:** `SpaController` (fallback do SPA) usava um
+  regex catch-all (`^(?!api|ws|actuator|v3|swagger-ui|assets)[^\.]*`) que capturava `/mcp`
+  via `@GetMapping` antes do `RouterFunction` do MCP ser considerado, causando 405 em toda
+  chamada `POST /mcp`. Corrigido excluindo `mcp` do regex negativo. Mantido mesmo o
+  `RouterFunctionMapping` (order -1) ja tendo prioridade teorica sobre
+  `RequestMappingHandlerMapping` (order 0) — defesa em profundidade.
+- **Seguranca:** `/mcp/**` exige autenticacao (`authenticated()`) em `SecurityConfig`, sem
+  aplicar o `apiAccessManager()` de `/api/**` — todo o protocolo MCP trafega via `POST
+  /mcp`, entao a restricao de metodos seguros para PAT `READ` bloquearia 100% das chamadas.
+  O enforcement de escopo passou para a camada de tool: `McpSecurityContext.requireWriteAccess()`
+  chamado no inicio de toda tool de mutacao, lancando `McpScopeException` (mensagem
+  acionavel) se o PAT for `READ`-only. Os filtros `JwtAuthenticationFilter`/
+  `PersonalAccessTokenAuthenticationFilter` da Fase A ja rodam para toda requisicao (nao sao
+  scoped por path), entao cobrem `/mcp` sem alteracao. Identidade sempre resolvida por
+  requisicao via `SecurityContextHolder` (`McpSecurityContext.currentUser()`) — nenhum
+  estado de usuario e cacheado no processo do servidor MCP.
+- **Tratamento de erro:** o `SyncMcpToolMethodCallback` do SDK ja converte qualquer
+  excecao lancada por um metodo `@McpTool` em `CallToolResult.isError(true)` (texto:
+  `"Error invoking method: <nome>\n<mensagem da causa raiz>"`) — confirmado lendo o
+  fonte do SDK (`spring-ai-mcp-annotations:2.0.0`). Por isso as tools deste modulo apenas
+  deixam suas excecoes de negocio (`ForbiddenException`, `ListNotFoundException`,
+  `ValidationException`, `InvalidInputException`, `McpScopeException` etc.) propagarem
+  normalmente — nunca stack trace, sempre mensagem acionavel do dominio.
+- **Schema de saida:** `@McpTool(generateOutputSchema = true)` gera `outputSchema` a partir
+  do tipo de retorno do metodo (quando nao e `CallToolResult`/void/tipo primitivo), e o
+  `CallToolResult` resultante ja vem, por padrao do SDK, com `structuredContent` (o objeto
+  tipado) **e** um bloco `content` de texto redundante (JSON serializado) — confirmado
+  capturando uma chamada real de tool em teste. As 13 tools deste modulo tem `outputSchema`
+  + `structuredContent` + texto simultaneamente, sem necessidade de construir
+  `CallToolResult` manualmente. Efeito colateral descoberto e corrigido: todo componente de
+  record e tratado como obrigatorio por padrao pelo gerador; campos opcionais precisam de
+  `@Nullable` (jspecify) para sair do `required`, e `@JsonInclude(NON_NULL)` para nao
+  serializar `null` explicito (que falha a validacao de
+  tipo do schema mesmo fora do `required`).
+- **Fix TOCTOU (MENOR-1 da Fase A):** `PersonalAccessTokenService.create` tinha uma janela
+  entre contar tokens ativos e inserir um novo — duas requisicoes concorrentes do mesmo
+  usuario podiam ambas passar pela checagem de limite (10) antes de qualquer insercao,
+  ultrapassando o limite. Corrigido com `UserRepository.findByIdForUpdate` (`SELECT ... FOR
+  UPDATE` via `@Lock(PESSIMISTIC_WRITE)`), travando a linha do usuario antes de contar —
+  serializa chamadas concorrentes do mesmo usuario (usuarios diferentes nao se bloqueiam).
+  Funciona identicamente em H2 e PostgreSQL.
+- **Regressao de teste causada pela nova dependencia (achado e corrigido nesta fase):**
+  adicionar `spring-ai-starter-mcp-server-webmvc` traz `reactor-core` transitivamente pela
+  primeira vez neste projeto (SDK MCP usa `Mono`/`Flux` internamente mesmo no client/server
+  sincrono). A mera presenca de `reactor-core` no classpath — bisseccionado e confirmado
+  isoladamente, sem nenhuma outra mudanca de codigo — quebrou o padrao de teste usado em 5
+  suites (`ListControllerIntegrationTest`, `ListItemControllerTest`,
+  `MemberControllerIntegrationTest`, `PushControllerTest`, `UserControllerTest`) que
+  populam `SecurityContextHolder.getContext().setAuthentication(...)` manualmente antes de
+  `mockMvc.perform(...)`: o `SecurityContextHolderFilter` moderno passou a descartar essa
+  autenticacao pre-definida, autenticando a requisicao como anonima (401). O idioma correto
+  para isso e `TestSecurityContextHolder` (do `spring-security-test`), que integra
+  corretamente com `springSecurity()` independentemente da presenca de `reactor-core` — as
+  5 suites foram migradas para `TestSecurityContextHolder.getContext().setAuthentication(...)`
+  (mantendo `SecurityContextHolder.clearContext()` onde existia, agora espelhado com
+  `TestSecurityContextHolder.clearContext()`). Nao foi feita nenhuma mudanca em
+  `SecurityConfig` de producao para "consertar" isso — o problema era so nos testes.
+  Excluida tambem a dependencia transitiva `io.micrometer:context-propagation` do starter
+  do MCP (nao usada pelo client/server sincrono deste projeto; sua mera presenca registra
+  um `ThreadLocalAccessor` de `SecurityContext` no `ContextRegistry` global do Micrometer,
+  reduzindo superficie de interacao nao intencional sem necessidade funcional).
+- **Bug bloqueante encontrado no QA e corrigido (commit `1af9d07`):** `application.yml`
+  de producao nao tinha `spring.ai.mcp.server.protocol: STREAMABLE` — so
+  `src/test/resources/application.yml` tinha. Como esse arquivo de teste SUBSTITUI (nao
+  mescla com) o de producao no classpath de teste, `McpServerIntegrationTest` sempre
+  passou normalmente enquanto qualquer execucao real (`mvnw spring-boot:run` ou o jar
+  empacotado, fora do `@SpringBootTest`) resolvia o transporte SSE legado (endpoint
+  `POST /mcp/message`, nao `/mcp`) e respondia `500` em toda chamada real ao endpoint
+  documentado. O QA confirmou o fix com um cliente MCP real
+  (`@modelcontextprotocol/sdk`) contra o jar empacotado, antes e depois da correcao.
+  **Licao registrada:** toda config nova de producao precisa existir nos DOIS arquivos
+  (`src/main/resources/application.yml` e `src/test/resources/application.yml`) — a
+  suite de testes, rodando exclusivamente sob `@SpringBootTest`, nao detecta ausencia no
+  arquivo de producao. Nenhum smoke test do jar empacotado roda hoje em CI; adicionar um
+  (build do jar + subida real + `curl`/chamada MCP minima contra `/mcp` antes do deploy)
+  fica registrado aqui como follow-up para fechar essa lacuna estruturalmente, em vez de
+  depender de revisao manual de "toda config nova esta nos dois arquivos".
+- **Motivo:** entrega a Fase B do roadmap MCP — usuarios do NossaLista podem conectar
+  assistentes de IA as proprias listas com credenciais de longa duracao, escopo de leitura
+  ou leitura/escrita, e broadcast em tempo real automatico (as tools reusam os services
+  existentes, que ja publicam eventos STOMP).
+- **Apontamentos do review senior do PR aplicados (duas rodadas):**
+  - **IMPORTANTE (pre-merge) — lote/pagina sem teto (DoS por payload gigante):**
+    `add_items`/`set_items_checked`/`remove_items` nao limitavam o numero de itens por
+    chamada, e `get_list`/`get_list_activity` nao limitavam `limit`/`size` — num backend de
+    1 replica, uma unica chamada grande (de um token valido ou de um modelo induzido por
+    prompt injection) executaria N inserts/toggles/deletes/broadcasts ou uma consulta
+    pesada, sem nenhum rate limit cobrindo requisicoes autenticadas validas. Corrigido com
+    `McpLimits` (`mcp/support/McpLimits.java`): teto de 200 itens por lote
+    (`add_items`/`set_items_checked`/`remove_items`), teto de 500 por pagina em `get_list`
+    (`limit`) e teto de 100 por pagina em `get_list_activity` (`size`) — tetos diferentes por
+    chamador (ajustado na segunda rodada do review; a primeira versao usava 500 para os
+    dois). `InvalidInputException` acionavel quando excedido, informando o teto exato e
+    orientando dividir a chamada em varias. Constantes nomeadas e documentadas nas
+    descricoes das proprias tools. `McpLimitsTest` + teste parametrizado em
+    `McpServerIntegrationTest` cobrindo os 5 casos (um por tool/teto).
+  - **MINOR — contrato de ordenacao implicito em `McpSecurityContext`:**
+    `requireWriteAccess()` so era seguro porque `currentUser()` era sempre chamado antes; com
+    autenticacao `null`/anonima, `isPersonalAccessToken(null)` retornava `false` e o metodo
+    liberava a escrita por omissao. Sem impacto real hoje (`/mcp` ja exige `authenticated()`
+    no HTTP antes de qualquer tool ser despachada), mas era footgun latente para uma tool
+    futura que chamasse `requireWriteAccess()` sem `currentUser()` antes. Corrigido:
+    `requireWriteAccess()` agora assevera autenticacao por conta propria (lanca
+    `McpAuthenticationException` se ausente/anonima, antes de checar escopo).
+    `McpSecurityContextTest` cobre auth ausente/anonima/JWT/PAT READ/PAT READ_WRITE.
+  - **MINOR — prompt injection via conteudo de terceiros:** registrado como limitacao
+    conhecida em `docs/mcp.md` (nao corrigivel nesta camada — inerente ao MCP). Descricoes de
+    `remove_items` e `remove_member` passaram a orientar confirmacao com o usuario antes de
+    chamar, no mesmo padrao ja usado por `delete_list`.
+  - **`add_items` com elemento nulo na lista `items`:** confirmado empiricamente (capturada a
+    resposta real de uma chamada de teste) que o proprio schema de entrada do SDK MCP ja
+    rejeita um elemento `null` num array de objetos antes de a tool ser invocada
+    (`isError: true`, "null found, object expected" — nunca chega ao Java). Mesmo assim,
+    adicionado um guard defensivo em `ListItemMcpTools.addOneItem` (retorna outcome
+    `"item must not be null"` em vez de propagar NPE) para robustez caso essa validacao de
+    schema mude de comportamento no SDK.
+  - **`update_item` com todos os campos nulos:** antes era um no-op silencioso (broadcast +
+    activity log sem nenhuma mudanca real). Agora lanca `InvalidInputException`
+    ("Nothing to update: provide at least one field...") quando `name`, `quantity`,
+    `dueDate` e `url` vêm todos nulos.
+  - **Idioma (aplicado na segunda rodada):** mensagens de erro geradas pelo proprio modulo
+    `mcp` (`McpIds`, `McpLimits`, `ListNameResolver`, e as validacoes de
+    `add_items`/`update_item`/`share_list` acima) foram traduzidas para ingles, consistente
+    com as descricoes/parametros das tools (convencao MCP). Deliberadamente NAO tocado:
+    mensagens de excecoes de negocio vindas dos services (`ForbiddenException`,
+    `ListNotFoundException` lancada por `ListService`, `ValidationException`,
+    `@NotBlank`/`@Size` dos DTOs compartilhados como `CreateListRequest`/
+    `CreateItemRequestDTO`) — essas permanecem em portugues porque sao os mesmos
+    services/DTOs usados pela API REST/SPA; traduzir so para o MCP exigiria uma camada de
+    mapeamento de mensagens especifica do modulo, fora de escopo. Documentado em
+    `docs/mcp.md` (secao "Idioma") para quem for adicionar uma tool nova saber onde a
+    mensagem deve ficar em cada idioma.
+  - **NIT — nao aplicado (decisao explicita, nao esquecimento):** o regex catch-all do
+    `SpaController` (`(?!api|ws|...|mcp)`) nao tem boundary de segmento de path, entao tambem
+    exclui rotas SPA que comecem com esses prefixos (ex.: `/mcpx`) — pre-existente para
+    `api`/`assets`/etc. mesmo antes desta fase, risco baixo (nenhuma rota do SPA hoje comeca
+    com esses prefixos), registrado para follow-up caso uma rota assim seja criada. O
+    reviewer confirmou explicitamente que este item fica como esta.
+- **CI vermelho pos-push, dois bugs de isolamento de teste encontrados e corrigidos:**
+  o pipeline do PR reprovou `ListControllerIntegrationTest` (14 falhas de
+  `listRepository.count()`) porque a ordem do Surefire no CI difere da local. Dois
+  problemas distintos, ambos so visiveis com ordem de execucao diferente:
+  1. **Poluicao de dados entre classes:** `McpServerIntegrationTest` (`@SpringBootTest`
+     `RANDOM_PORT`) cria dezenas de listas via chamadas HTTP reais (sem `@Transactional`,
+     que nao ajudaria mesmo — a chamada roda em outra thread) e compartilhava o mesmo H2
+     em memoria (`testdb`) usado pelas suites de `MockMvc`. Corrigido isolando a classe
+     com uma URL de H2 dedicada via `@TestPropertySource`
+     (`jdbc:h2:mem:mcp-it;MODE=PostgreSQL;...`), o que forca o Spring a criar um
+     `ApplicationContext` (e portanto um datasource/Flyway) proprio, nao compartilhado com
+     nenhuma outra classe de teste.
+  2. **Vazamento de autenticacao entre classes:** `PushControllerTest` (migrada para
+     `TestSecurityContextHolder` no fix do `reactor-core` desta mesma fase, ver acima) seta
+     autenticacao no `@BeforeEach` mas nao tinha `@AfterEach` de limpeza, ao contrario das
+     outras 4 suites migradas. Como `TestSecurityContextHolder.getContext()` retorna o
+     mesmo objeto `SecurityContext` que `SecurityContextHolder` usa internamente (confirmado
+     lendo o fonte de `spring-security-test`), mutar esse objeto sem limpar depois deixa uma
+     autenticacao "presa" no `SecurityContextHolder` do processo — visivel quando outra
+     classe roda depois na mesma JVM/thread e espera nenhuma autenticacao (`McpSecurityContextTest`).
+     Corrigido adicionando `@AfterEach` com `SecurityContextHolder.clearContext()` +
+     `TestSecurityContextHolder.clearContext()`, no mesmo padrao das outras 4 suites.
+  Validado localmente com `./mvnw clean test` em ordem normal, `-Dsurefire.runOrder=reversealphabetical`
+  e `-Dsurefire.runOrder=random` (duas seeds diferentes) — 608/608 nas quatro execucoes.
+  **Licao:** qualquer teste `@SpringBootTest` que persista dados via HTTP real, ou que
+  manipule `SecurityContextHolder`/`TestSecurityContextHolder` diretamente, precisa de
+  isolamento explicito (datasource dedicado ou limpeza simetrica) — a ordem padrao do
+  Surefire local pode mascarar o problema indefinidamente.

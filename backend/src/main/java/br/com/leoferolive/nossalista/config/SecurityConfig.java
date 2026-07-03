@@ -79,6 +79,12 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/lists/join/**").permitAll()
                         // WebSocket endpoint - auth feita pelo WebSocketAuthInterceptor
                         .requestMatchers("/ws/**").permitAll()
+                        // Servidor MCP (Streamable HTTP, POST /mcp): exige PAT ou JWT válido.
+                        // Diferente de /api/**, aqui NÃO aplicamos apiAccessManager — todo o
+                        // protocolo MCP trafega por POST, então a restrição de escopo READ
+                        // (métodos seguros) seria bloqueio total. O enforcement de escopo é
+                        // feito por tool em McpSecurityContext (ver módulo mcp/).
+                        .requestMatchers("/mcp/**").authenticated()
                         // Endpoints da API requerem autenticação. Um PAT de escopo READ só
                         // pode usar métodos seguros (GET/HEAD/OPTIONS) — ver PatAuthorizationSupport.
                         .requestMatchers("/api/**").access(apiAccessManager())

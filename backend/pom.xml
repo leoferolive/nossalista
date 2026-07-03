@@ -36,10 +36,20 @@
         <checkstyle.config.file>checkstyle/checkstyle.xml</checkstyle.config.file>
         <checkstyle.failsOnError>true</checkstyle.failsOnError>
         <testGroups/>
+        <!-- Spring AI 2.0.0 GA (2026-06-12) é o primeiro trem estável desenhado para
+             Spring Boot 4.0/4.1 — ver D-020 em docs/DECISIONS.md. -->
+        <spring-ai.version>2.0.0</spring-ai.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.webjars</groupId>
                 <artifactId>swagger-ui</artifactId>
@@ -93,6 +103,27 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- MCP server (Streamable HTTP) — ver docs/DECISIONS.md D-020.
+             Exclui io.micrometer:context-propagation: sua mera presença no
+             classpath faz o Spring Security registrar um ThreadLocalAccessor
+             de SecurityContext no ContextRegistry global do Micrometer, que
+             interfere na captura/restauração de thread-locals ao redor de
+             Observations HTTP (actuator) — quebrando testes que populam
+             SecurityContextHolder manualmente antes do MockMvc.perform (ver
+             docs/quality-gate-debt.md). O SDK MCP usa reactor-core apenas
+             internamente (client/server síncronos bloqueiam no Mono), então
+             reactor-core continua necessário e é mantido. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.micrometer</groupId>
+                    <artifactId>context-propagation</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Micrometer Prometheus registry — expõe /actuator/prometheus -->

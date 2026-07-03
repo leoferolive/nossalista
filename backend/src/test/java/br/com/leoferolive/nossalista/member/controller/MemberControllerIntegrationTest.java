@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -69,6 +70,7 @@ class MemberControllerIntegrationTest {
             .build();
 
         SecurityContextHolder.clearContext();
+        TestSecurityContextHolder.clearContext();
 
         owner = userService.createUser("owner", "owner@example.com", "hashed", "Owner", AuthProvider.EMAIL);
         member = userService.createUser("member", "member@example.com", "hashed", "Member", AuthProvider.EMAIL);
@@ -96,7 +98,7 @@ class MemberControllerIntegrationTest {
     private void authenticateUser(User user) {
         UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        TestSecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @Test

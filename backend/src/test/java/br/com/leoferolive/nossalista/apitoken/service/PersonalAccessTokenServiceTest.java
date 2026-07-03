@@ -8,6 +8,9 @@ import br.com.leoferolive.nossalista.apitoken.dto.PersonalAccessTokenMapper;
 import br.com.leoferolive.nossalista.apitoken.exception.PersonalAccessTokenLimitExceededException;
 import br.com.leoferolive.nossalista.apitoken.exception.PersonalAccessTokenNotFoundException;
 import br.com.leoferolive.nossalista.apitoken.repository.PersonalAccessTokenRepository;
+import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.exception.UserNotFoundException;
+import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,11 +43,19 @@ class PersonalAccessTokenServiceTest {
     @Mock
     private PersonalAccessTokenRepository repository;
 
+    @Mock
+    private UserRepository userRepository;
+
     private PersonalAccessTokenService service;
 
     @BeforeEach
     void setUp() {
-        service = new PersonalAccessTokenService(repository, new PersonalAccessTokenMapper());
+        service = new PersonalAccessTokenService(repository, userRepository, new PersonalAccessTokenMapper());
+        lenient().when(userRepository.findByIdForUpdate(any())).thenAnswer(invocation -> {
+            User user = new User();
+            user.setId(invocation.getArgument(0));
+            return Optional.of(user);
+        });
     }
 
     private static String sha256Hex(String value) {
@@ -128,6 +140,40 @@ class PersonalAccessTokenServiceTest {
         assertThatThrownBy(() -> service.create(userId, request))
             .isInstanceOf(PersonalAccessTokenLimitExceededException.class);
 
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("create trava a linha do usuário (FOR UPDATE) antes de checar o limite, evitando TOCTOU")
+    void createLocksUserRowBeforeCountingActiveTokens() {
+        UUID userId = UUID.randomUUID();
+        when(repository.countByUserIdAndRevokedAtIsNull(userId)).thenReturn(0L);
+        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreatePersonalAccessTokenRequest request =
+            new CreatePersonalAccessTokenRequest("Token", TokenScope.READ, null);
+
+        service.create(userId, request);
+
+        var inOrder = org.mockito.Mockito.inOrder(userRepository, repository);
+        inOrder.verify(userRepository).findByIdForUpdate(userId);
+        inOrder.verify(repository).countByUserIdAndRevokedAtIsNull(userId);
+        inOrder.verify(repository).save(any());
+    }
+
+    @Test
+    @DisplayName("create lança UserNotFoundException quando o usuário não existe mais")
+    void createThrowsWhenUserNotFound() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findByIdForUpdate(userId)).thenReturn(Optional.empty());
+
+        CreatePersonalAccessTokenRequest request =
+            new CreatePersonalAccessTokenRequest("Token", TokenScope.READ, null);
+
+        assertThatThrownBy(() -> service.create(userId, request))
+            .isInstanceOf(UserNotFoundException.class);
+
+        verify(repository, never()).countByUserIdAndRevokedAtIsNull(any());
         verify(repository, never()).save(any());
     }
 

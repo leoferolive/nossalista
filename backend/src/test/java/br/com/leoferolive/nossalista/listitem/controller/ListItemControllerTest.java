@@ -22,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -96,6 +97,7 @@ class ListItemControllerTest {
 
         // Limpar SecurityContext antes de cada teste
         SecurityContextHolder.clearContext();
+        TestSecurityContextHolder.clearContext();
 
         // Criar usuário de teste
         testUser = userService.createUser(
@@ -126,7 +128,7 @@ class ListItemControllerTest {
                         null,
                         java.util.Collections.emptyList()
                 );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        TestSecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @Nested
@@ -196,6 +198,7 @@ class ListItemControllerTest {
 
             // Limpar e autenticar como outro usuário
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
             authenticateUser(otherUser);
 
             Map<String, Object> request = new HashMap<>();
@@ -260,6 +263,7 @@ class ListItemControllerTest {
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
 
             Map<String, Object> request = new HashMap<>();
             request.put("name", "Arroz");
@@ -450,6 +454,7 @@ class ListItemControllerTest {
 
             // Limpar e autenticar como outro usuário
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
             authenticateUser(otherUser);
 
             // When & Then
@@ -469,6 +474,7 @@ class ListItemControllerTest {
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
 
             // When & Then
             mockMvc.perform(get("/api/lists/{listId}/items", testList.getId()))
@@ -621,6 +627,7 @@ class ListItemControllerTest {
 
             // Limpar e autenticar como outro usuário
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
             authenticateUser(otherUser);
 
             // Act & Assert
@@ -648,6 +655,7 @@ class ListItemControllerTest {
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
 
             // Act & Assert
             mockMvc.perform(patch("/api/lists/{listId}/items/{itemId}/check", testList.getId(), item.getId()))
@@ -781,6 +789,7 @@ class ListItemControllerTest {
 
             // Limpar e autenticar como outro usuário
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
             authenticateUser(otherUser);
 
             // Act & Assert
@@ -808,6 +817,7 @@ class ListItemControllerTest {
 
             // Limpar autenticação
             SecurityContextHolder.clearContext();
+            TestSecurityContextHolder.clearContext();
 
             // Act & Assert
             mockMvc.perform(delete("/api/lists/{listId}/items/{itemId}", testList.getId(), item.getId()))
