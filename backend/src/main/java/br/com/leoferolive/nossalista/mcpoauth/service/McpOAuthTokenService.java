@@ -6,6 +6,7 @@ import br.com.leoferolive.nossalista.mcpoauth.domain.McpOAuthCode;
 import br.com.leoferolive.nossalista.mcpoauth.domain.McpOAuthRefreshToken;
 import br.com.leoferolive.nossalista.mcpoauth.dto.TokenResponse;
 import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthTokenException;
+import br.com.leoferolive.nossalista.mcpoauth.exception.OAuthUnknownClientException;
 import br.com.leoferolive.nossalista.mcpoauth.repository.McpOAuthCodeRepository;
 import br.com.leoferolive.nossalista.mcpoauth.repository.McpOAuthRefreshTokenRepository;
 import org.springframework.stereotype.Service;
@@ -66,6 +67,15 @@ public class McpOAuthTokenService {
      * refresh tokens que ele originou, em vez de apenas falhar — sinal de que o
      * code pode ter vazado (ex.: interceptado no redirect).</p>
      *
+     * <p><b>Consumo atômico (achado do review, I-1):</b> a marcação de
+     * {@code consumed_at} é feita por um UPDATE condicional
+     * ({@link McpOAuthCodeRepository#markConsumed}), não por um
+     * ler-decidir-gravar em Java — sob READ COMMITTED, duas trocas do MESMO code
+     * quase simultâneas (ambas veem {@code consumed_at IS NULL} no SELECT
+     * inicial) só permitem que UMA delas efetivamente consuma o code; a outra
+     * detecta a corrida pelo retorno {@code 0} do UPDATE e trata como replay,
+     * revogando a família recém-emitida pela vencedora.</p>
+     *
      * <p>{@code noRollbackFor}: a revogação da família no ramo de replay precisa
      * ser PERSISTIDA mesmo o método terminando em exceção — sem isso, o rollback
      * padrão do Spring para {@link RuntimeException} desfaria a própria
@@ -75,7 +85,7 @@ public class McpOAuthTokenService {
     public TokenResponse exchangeAuthorizationCode(
         String code, String redirectUri, String clientId, String codeVerifier, String resource
     ) {
-        clientRegistry.require(clientId);
+        requireKnownClient(clientId);
 
         McpOAuthCode entity = codeRepository.findByCode(code)
             .orElseThrow(() -> OAuthTokenException.invalidGrant("Unknown authorization code."));
@@ -88,16 +98,20 @@ public class McpOAuthTokenService {
         }
 
         UUID familyId = UUID.randomUUID();
-        entity.setConsumedAt(now);
-        entity.setTokenFamilyId(familyId);
-        codeRepository.save(entity);
+        int consumed = codeRepository.markConsumed(entity.getId(), familyId, now);
+        if (consumed == 0) {
+            rejectConcurrentCodeReplay(entity.getCode());
+        }
 
         return issueTokenPair(entity.getUserId(), entity.getClientId(), entity.getScope(), entity.getResource(), familyId);
     }
 
     /**
-     * Um code JÁ CONSUMIDO reenviado é replay: revoga a família de tokens que
-     * ele originou (se houver) e rejeita.
+     * Um code JÁ CONSUMIDO (na leitura inicial, antes de qualquer tentativa de
+     * consumo) é replay: revoga a família de tokens que ele originou (se
+     * houver) e rejeita. Atalho rápido para o caso não-concorrente (replay
+     * sequencial); a corrida CONCORRENTE é fechada pelo UPDATE condicional em
+     * {@link #exchangeAuthorizationCode} — ver {@link #rejectConcurrentCodeReplay}.
      */
     private void rejectIfReplayed(McpOAuthCode entity) {
         if (!entity.isConsumed()) {
@@ -108,6 +122,43 @@ public class McpOAuthTokenService {
         }
         throw OAuthTokenException.invalidGrant(
             "Authorization code already used. This is a replay attempt — issued tokens were revoked.");
+    }
+
+    /**
+     * O UPDATE condicional de {@link McpOAuthCodeRepository#markConsumed} não
+     * afetou nenhuma linha: outra transação consumiu o MESMO code entre o
+     * SELECT inicial e este UPDATE. Usa
+     * {@link McpOAuthCodeRepository#findTokenFamilyIdByCode} — uma projeção
+     * ESCALAR, não a entidade — para ler o {@code token_family_id} gravado pela
+     * vencedora da corrida: {@code entity} já está no cache de 1º nível desta
+     * transação, então um {@code findByCode} comum devolveria a MESMA instância
+     * cacheada, com {@code tokenFamilyId} nunca mutado em Java (o consumo é só
+     * via UPDATE em massa) — nunca o valor persistido pela vencedora.
+     */
+    private void rejectConcurrentCodeReplay(String code) {
+        UUID winningFamilyId = codeRepository.findTokenFamilyIdByCode(code).orElse(null);
+        if (winningFamilyId != null) {
+            refreshTokenRepository.revokeFamily(winningFamilyId, LocalDateTime.now());
+        }
+        throw OAuthTokenException.invalidGrant(
+            "Authorization code already used. This is a replay attempt — issued tokens were revoked.");
+    }
+
+    /**
+     * {@code client_id} desconhecido em {@code /oauth/token} deve responder o
+     * formato de erro OAuth padrão ({@code invalid_client}, RFC 6749 §5.2), não
+     * o {@code ProblemDetail} RFC 7807 usado em {@code /oauth/authorize} (achado
+     * do review, M-2) — {@link McpOAuthClientRegistry#require} lança
+     * {@link OAuthUnknownClientException}, pensada para o fluxo de
+     * authorize/redirect; aqui ela é convertida para o formato esperado pelos
+     * SDKs de cliente OAuth genéricos.
+     */
+    private void requireKnownClient(String clientId) {
+        try {
+            clientRegistry.require(clientId);
+        } catch (OAuthUnknownClientException e) {
+            throw OAuthTokenException.invalidClient(e.getMessage());
+        }
     }
 
     private void validateCodeAgainstRequest(
@@ -144,25 +195,36 @@ public class McpOAuthTokenService {
      * detecção de reuso prévia) revoga a família inteira — reuso é o sinal
      * clássico de vazamento de refresh token (RFC 6749 §10.4).</p>
      *
+     * <p><b>Rotação atômica (achado do review, M-1):</b> mesmo padrão aplicado a
+     * {@link #exchangeAuthorizationCode} — a revogação do token atual usa um
+     * UPDATE condicional ({@link McpOAuthRefreshTokenRepository#markRotated}),
+     * fechando a corrida em que duas rotações do MESMO refresh token quase
+     * simultâneas veriam ambas {@code revoked_at IS NULL} no SELECT inicial.</p>
+     *
      * <p>{@code noRollbackFor}: mesmo motivo de {@link #exchangeAuthorizationCode} —
      * a revogação da família no ramo de reuso precisa sobreviver à exceção lançada
      * em seguida.</p>
      */
     @Transactional(noRollbackFor = OAuthTokenException.class)
     public TokenResponse refresh(String refreshToken, String clientId, String resource) {
-        clientRegistry.require(clientId);
+        requireKnownClient(clientId);
 
         String hash = sha256Hex(refreshToken);
         McpOAuthRefreshToken existing = refreshTokenRepository.findByTokenHash(hash)
             .orElseThrow(() -> OAuthTokenException.invalidGrant("Unknown refresh token."));
 
         LocalDateTime now = LocalDateTime.now();
-        rejectIfReused(existing, now);
+        rejectIfReused(existing);
         validateRefreshTokenAgainstRequest(existing, clientId, resource, now);
 
-        existing.setRevokedAt(now);
-        existing.setLastUsedAt(now);
-        refreshTokenRepository.save(existing);
+        int rotated = refreshTokenRepository.markRotated(existing.getId(), now);
+        if (rotated == 0) {
+            // Corrida: outra rotação consumiu este refresh token entre o SELECT
+            // acima e este UPDATE. familyId é imutável, então não precisa
+            // recarregar a entidade para revogar a família correta.
+            refreshTokenRepository.revokeFamily(existing.getFamilyId(), LocalDateTime.now());
+            throw OAuthTokenException.invalidGrant("Refresh token reuse detected. Token family revoked.");
+        }
 
         return issueTokenPair(
             existing.getUserId(), existing.getClientId(), existing.getScope(), existing.getResource(),
@@ -172,12 +234,15 @@ public class McpOAuthTokenService {
     /**
      * Reapresentar um refresh token JÁ revogado (rotação anterior ou reuso
      * prévio) é o sinal clássico de vazamento: revoga a família inteira.
+     * {@code familyId} é imutável, então não precisa ser recarregado do banco
+     * mesmo quando esta chamada é disparada pela corrida detectada em
+     * {@link #refresh} (o UPDATE condicional que falhou não altera esse campo).
      */
-    private void rejectIfReused(McpOAuthRefreshToken existing, LocalDateTime now) {
+    private void rejectIfReused(McpOAuthRefreshToken existing) {
         if (existing.getRevokedAt() == null) {
             return;
         }
-        refreshTokenRepository.revokeFamily(existing.getFamilyId(), now);
+        refreshTokenRepository.revokeFamily(existing.getFamilyId(), LocalDateTime.now());
         throw OAuthTokenException.invalidGrant("Refresh token reuse detected. Token family revoked.");
     }
 

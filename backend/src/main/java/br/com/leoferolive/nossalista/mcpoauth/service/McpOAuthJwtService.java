@@ -107,7 +107,15 @@ public class McpOAuthJwtService {
             return Optional.empty();
         }
 
-        if (!claims.getAudience().contains(properties.getResource())) {
+        // getAudience() nunca deveria devolver null para um token emitido por
+        // issueAccessToken (sempre seta um `aud`), mas um token malformado de
+        // origem externa poderia teoricamente cair aqui — trata como inválido
+        // em vez de propagar NPE (achado do review, NIT).
+        try {
+            if (!claims.getAudience().contains(properties.getResource())) {
+                return Optional.empty();
+            }
+        } catch (NullPointerException e) {
             return Optional.empty();
         }
 

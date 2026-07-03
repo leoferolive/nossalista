@@ -131,11 +131,11 @@ app:
         # Claude Code escolhe uma porta aleatória por padrão a cada conexão OAuth
         # (a menos que --callback-port seja usado) — ver Passo 0 de D-021.
         allow-loopback-redirect: true
-      - id: nossalista-local
-        name: "Cliente local de teste"
-        redirect-uris:
-          - http://localhost:8765/callback
-        allow-loopback-redirect: false
+      # NÃO registrar aqui um cliente de teste local (ex.: "nossalista-local",
+      # redirect http://localhost:8765/callback): este arquivo é a base
+      # compartilhada por TODOS os profiles, inclusive prod (achado do review,
+      # M-3). Um cliente assim só deve existir em profiles não-prod — ver
+      # `app.mcp-oauth.clients` em application-dev.yml.
   email:
     from: ${EMAIL_FROM:no-reply@nossalista.leoferolive.com.br}
     from-name: ${EMAIL_FROM_NAME:NossaLista}

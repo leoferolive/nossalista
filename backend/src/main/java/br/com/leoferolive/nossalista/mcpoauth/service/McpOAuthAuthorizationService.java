@@ -175,14 +175,27 @@ public class McpOAuthAuthorizationService {
      * Reivindica o pedido para {@code userId} na primeira chamada (view ou
      * decisão direta); em chamadas seguintes, exige que seja o MESMO usuário —
      * caso contrário, 403 (defesa contra sequestro de consentimento cross-user).
+     *
+     * <p><b>Reivindicação atômica (achado do review, M-1):</b> o UPDATE
+     * condicional {@link PendingAuthorizationRepository#claimIfUnclaimed} evita
+     * que duas contas diferentes, chamando quase simultaneamente para o MESMO
+     * pedido ainda não reivindicado, acabem ambas "vencendo" a reivindicação em
+     * sequência (a segunda `save()` sobrescrevendo silenciosamente a primeira,
+     * sob o padrão anterior de ler-decidir-gravar em Java). Quando o UPDATE não
+     * afeta nenhuma linha, a leitura de conferência usa
+     * {@link PendingAuthorizationRepository#findClaimedByUserId} — uma projeção
+     * ESCALAR, não a entidade — porque {@code pending} já está no contexto de
+     * persistência desta transação e um `findById` comum devolveria a instância
+     * em cache do 1º nível, sem refletir o UPDATE que acabou de rodar.</p>
      */
     private void claimOrVerifyOwnership(PendingAuthorization pending, UUID userId) {
-        if (pending.getClaimedByUserId() == null) {
+        int claimed = pendingRepository.claimIfUnclaimed(pending.getId(), userId);
+        if (claimed > 0) {
             pending.setClaimedByUserId(userId);
-            pendingRepository.save(pending);
             return;
         }
-        if (!pending.getClaimedByUserId().equals(userId)) {
+        UUID claimedBy = pendingRepository.findClaimedByUserId(pending.getId()).orElse(null);
+        if (claimedBy == null || !claimedBy.equals(userId)) {
             throw new OAuthConsentForbiddenException(
                 "This authorization request was already claimed by a different account.");
         }

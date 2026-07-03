@@ -73,9 +73,12 @@ public class McpOAuthTokenController {
 
     @PostMapping(value = "/oauth/revoke", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     @Operation(
-        summary = "Revogar um refresh (ou access) token",
+        summary = "Revogar um refresh token",
         description = "RFC 7009: sempre responde 200, mesmo para token desconhecido/já revogado "
-            + "(nunca revela se um token era válido). Revoga a família inteira do token informado."
+            + "(nunca revela se um token era válido). Revoga a família inteira de refresh tokens "
+            + "originada pelo token informado. NÃO invalida o access token OAuth já emitido: por ser "
+            + "um JWT stateless, ele permanece válido até expirar naturalmente (TTL curto, ver "
+            + "docs/DECISIONS.md D-021)."
     )
     public ResponseEntity<Void> revoke(
         @RequestParam("token") String token,

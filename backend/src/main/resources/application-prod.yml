@@ -48,6 +48,10 @@ app:
   mcp-oauth:
     issuer: ${MCP_OAUTH_ISSUER:https://nossalista.leoferolive.com.br}
     resource: ${MCP_OAUTH_RESOURCE:https://nossalista.leoferolive.com.br/mcp}
+    # Sem `clients:` aqui de propósito: prod herda a lista de application.yml
+    # (base), que contém só claude-ai/claude-code — o cliente de teste local
+    # ("nossalista-local") só existe em application-dev.yml (achado do
+    # review, M-3). NÃO adicionar clients de teste neste arquivo.
   email:
     smtp:
       enabled: true

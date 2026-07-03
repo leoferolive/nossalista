@@ -8,6 +8,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,19 +58,40 @@ public class McpOAuthConsentController {
     @PostMapping("/{requestId}/approve")
     @Operation(summary = "Aprovar o consentimento — emite o authorization code e devolve a URL de retorno ao cliente")
     public ResponseEntity<ConsentDecisionResponse> approve(
-        @PathVariable UUID requestId, @AuthenticationPrincipal User user, HttpServletRequest request
+        @PathVariable UUID requestId, @AuthenticationPrincipal User user, HttpServletRequest request,
+        HttpServletResponse response
     ) {
         String redirectUrl = authorizationService.approve(requestId, user.getId(), consentCookie(request));
+        clearConsentCookie(response);
         return ResponseEntity.ok(new ConsentDecisionResponse(redirectUrl));
     }
 
     @PostMapping("/{requestId}/deny")
     @Operation(summary = "Negar o consentimento — devolve a URL de retorno ao cliente com error=access_denied")
     public ResponseEntity<ConsentDecisionResponse> deny(
-        @PathVariable UUID requestId, @AuthenticationPrincipal User user, HttpServletRequest request
+        @PathVariable UUID requestId, @AuthenticationPrincipal User user, HttpServletRequest request,
+        HttpServletResponse response
     ) {
         String redirectUrl = authorizationService.deny(requestId, user.getId(), consentCookie(request));
+        clearConsentCookie(response);
         return ResponseEntity.ok(new ConsentDecisionResponse(redirectUrl));
+    }
+
+    /**
+     * O pedido já foi decidido (approve ou deny) e removido — o cookie de
+     * vínculo (ver {@code McpOAuthAuthorizationService.CONSENT_COOKIE_NAME}) não
+     * tem mais utilidade e é limpo do browser (Max-Age=0), em vez de deixá-lo
+     * expirar sozinho no TTL do pedido pendente.
+     */
+    private void clearConsentCookie(HttpServletResponse response) {
+        ResponseCookie cleared = ResponseCookie.from(McpOAuthAuthorizationService.CONSENT_COOKIE_NAME, "")
+            .path("/")
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("Lax")
+            .maxAge(0)
+            .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cleared.toString());
     }
 
     private String consentCookie(HttpServletRequest request) {

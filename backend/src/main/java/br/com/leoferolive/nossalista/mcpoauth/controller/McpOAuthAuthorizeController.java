@@ -37,6 +37,14 @@ import java.util.Locale;
 @Tag(name = "OAuth (MCP)", description = "Servidor de autorização OAuth 2.1 para clientes do servidor MCP")
 public class McpOAuthAuthorizeController {
 
+    /**
+     * Mesmo limite da coluna {@code mcp_oauth_pending_authorizations.state}
+     * (VARCHAR(512), migration V13) — sem este guard, um {@code state}
+     * excedendo o limite quebraria com uma exceção de truncamento do banco
+     * (500 genérico) em vez de um erro OAuth tratado (achado do review, NIT).
+     */
+    private static final int MAX_STATE_LENGTH = 512;
+
     private final McpOAuthClientRegistry clientRegistry;
     private final McpOAuthAuthorizationService authorizationService;
     private final McpOAuthProperties properties;
@@ -79,6 +87,13 @@ public class McpOAuthAuthorizeController {
 
         // A partir daqui redirect_uri é confiável: demais erros voltam como
         // ?error=...&state=... para o próprio cliente OAuth (RFC 6749 §4.1.2.1).
+        if (state != null && state.length() > MAX_STATE_LENGTH) {
+            // state não é ecoado aqui: um valor esse grande já não é o state
+            // legítimo do cliente, e ecoá-lo de volta não teria utilidade.
+            redirectWithError(httpResponse, redirectUri, null, "invalid_request",
+                "state exceeds the maximum supported length (" + MAX_STATE_LENGTH + " characters).");
+            return;
+        }
         if (!"code".equals(responseType)) {
             redirectWithError(httpResponse, redirectUri, state, "unsupported_response_type",
                 "Only response_type=code is supported.");

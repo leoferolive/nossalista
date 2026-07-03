@@ -37,6 +37,28 @@ app:
   auth:
     # Dev: enforcement desligado para não atrapalhar o fluxo local de testes.
     require-email-verification: ${REQUIRE_EMAIL_VERIFICATION:false}
+  mcp-oauth:
+    # Listas em @ConfigurationProperties NÃO mesclam entre profiles — este
+    # bloco SUBSTITUI por completo `app.mcp-oauth.clients` de application.yml,
+    # então precisa repetir claude-ai/claude-code e ACRESCENTAR o cliente de
+    # teste local. Mantém "nossalista-local" fora de application.yml (base,
+    # compartilhada com prod) — achado do review, M-3.
+    clients:
+      - id: claude-ai
+        name: "Claude (claude.ai)"
+        redirect-uris:
+          - https://claude.ai/api/mcp/auth_callback
+          - https://claude.com/api/mcp/auth_callback
+        allow-loopback-redirect: false
+      - id: claude-code
+        name: "Claude Code"
+        redirect-uris: []
+        allow-loopback-redirect: true
+      - id: nossalista-local
+        name: "Cliente local de teste"
+        redirect-uris:
+          - http://localhost:8765/callback
+        allow-loopback-redirect: false
   email:
     smtp:
       enabled: false

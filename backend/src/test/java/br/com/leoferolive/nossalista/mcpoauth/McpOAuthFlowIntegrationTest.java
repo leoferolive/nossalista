@@ -404,6 +404,21 @@ class McpOAuthFlowIntegrationTest {
     }
 
     @Test
+    @DisplayName("client_id desconhecido em /oauth/token responde o formato de erro OAuth padrão (invalid_client)")
+    void tokenRejectsUnknownClientWithOAuthErrorFormat() {
+        assertThatThrownBy(() -> exchangeCode(
+            "any-code", LOCAL_REDIRECT_URI, "does-not-exist", "any-verifier", properties.getResource()))
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(ex -> {
+                HttpClientErrorException httpEx = (HttpClientErrorException) ex;
+                // 401, não um ProblemDetail RFC 7807 (usado em /oauth/authorize) — SDKs
+                // de cliente OAuth genéricos esperam especificamente {"error": "..."}.
+                assertThat(httpEx.getStatusCode().value()).isEqualTo(401);
+                assertThat(httpEx.getResponseBodyAsString()).contains("\"error\":\"invalid_client\"");
+            });
+    }
+
+    @Test
     @DisplayName("reenvio do mesmo authorization code (replay) revoga os tokens já emitidos por ele")
     void tokenReplayRevokesIssuedTokens() {
         User user = newUser();
