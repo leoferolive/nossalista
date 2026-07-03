@@ -13,6 +13,7 @@ import br.com.leoferolive.nossalista.mcp.dto.BatchItemOutcome;
 import br.com.leoferolive.nossalista.mcp.dto.RemoveItemsResult;
 import br.com.leoferolive.nossalista.mcp.dto.SetItemsCheckedResult;
 import br.com.leoferolive.nossalista.mcp.dto.UpdateItemResult;
+import br.com.leoferolive.nossalista.mcp.interceptor.McpMutationRateLimiter;
 import br.com.leoferolive.nossalista.mcp.security.McpSecurityContext;
 import br.com.leoferolive.nossalista.mcp.support.DtoValidator;
 import br.com.leoferolive.nossalista.mcp.support.McpIds;
@@ -41,17 +42,20 @@ public class ListItemMcpTools {
     private final ListItemService listItemService;
     private final McpSecurityContext security;
     private final DtoValidator validator;
+    private final McpMutationRateLimiter mutationRateLimiter;
 
     public ListItemMcpTools(
         ListService listService,
         ListItemService listItemService,
         McpSecurityContext security,
-        DtoValidator validator
+        DtoValidator validator,
+        McpMutationRateLimiter mutationRateLimiter
     ) {
         this.listService = listService;
         this.listItemService = listItemService;
         this.security = security;
         this.validator = validator;
+        this.mutationRateLimiter = mutationRateLimiter;
     }
 
     @McpTool(
@@ -74,6 +78,7 @@ public class ListItemMcpTools {
     ) {
         User user = security.currentUser();
         security.requireWriteAccess();
+        mutationRateLimiter.enforce();
 
         UUID id = McpIds.parseUuid(listId, "listId");
         listService.getListById(id, user.getId());
@@ -110,6 +115,7 @@ public class ListItemMcpTools {
     ) {
         User user = security.currentUser();
         security.requireWriteAccess();
+        mutationRateLimiter.enforce();
 
         UUID listUuid = McpIds.parseUuid(listId, "listId");
         UUID itemUuid = McpIds.parseUuid(itemId, "itemId");
@@ -135,6 +141,7 @@ public class ListItemMcpTools {
     ) {
         User user = security.currentUser();
         security.requireWriteAccess();
+        mutationRateLimiter.enforce();
 
         UUID listUuid = McpIds.parseUuid(listId, "listId");
         listService.getListById(listUuid, user.getId());
@@ -165,6 +172,7 @@ public class ListItemMcpTools {
     ) {
         User user = security.currentUser();
         security.requireWriteAccess();
+        mutationRateLimiter.enforce();
 
         UUID listUuid = McpIds.parseUuid(listId, "listId");
         listService.getListById(listUuid, user.getId());

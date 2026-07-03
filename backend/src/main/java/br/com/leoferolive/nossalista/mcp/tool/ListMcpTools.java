@@ -17,6 +17,7 @@ import br.com.leoferolive.nossalista.mcp.dto.ListMyListsResult;
 import br.com.leoferolive.nossalista.mcp.dto.ListSummary;
 import br.com.leoferolive.nossalista.mcp.dto.OwnerSummary;
 import br.com.leoferolive.nossalista.mcp.dto.RenameListResult;
+import br.com.leoferolive.nossalista.mcp.interceptor.McpMutationRateLimiter;
 import br.com.leoferolive.nossalista.mcp.security.McpSecurityContext;
 import br.com.leoferolive.nossalista.mcp.support.DtoValidator;
 import br.com.leoferolive.nossalista.mcp.support.ListNameResolver;
@@ -51,6 +52,7 @@ public class ListMcpTools {
     private final McpSecurityContext security;
     private final DtoValidator validator;
     private final ListNameResolver listNameResolver;
+    private final McpMutationRateLimiter mutationRateLimiter;
 
     public ListMcpTools(
         ListService listService,
@@ -58,7 +60,8 @@ public class ListMcpTools {
         ListItemRepository listItemRepository,
         McpSecurityContext security,
         DtoValidator validator,
-        ListNameResolver listNameResolver
+        ListNameResolver listNameResolver,
+        McpMutationRateLimiter mutationRateLimiter
     ) {
         this.listService = listService;
         this.listItemService = listItemService;
@@ -66,6 +69,7 @@ public class ListMcpTools {
         this.security = security;
         this.validator = validator;
         this.listNameResolver = listNameResolver;
+        this.mutationRateLimiter = mutationRateLimiter;
     }
 
     @McpTool(
@@ -138,6 +142,7 @@ public class ListMcpTools {
     ) {
         User user = security.currentUser();
         security.requireWriteAccess();
+        mutationRateLimiter.enforce();
 
         CreateListRequest request = new CreateListRequest(name, resolveTypeId(type));
         validator.validate(request);
@@ -159,6 +164,7 @@ public class ListMcpTools {
     ) {
         User user = security.currentUser();
         security.requireWriteAccess();
+        mutationRateLimiter.enforce();
 
         UpdateListNameRequest request = new UpdateListNameRequest(name);
         validator.validate(request);
@@ -180,6 +186,7 @@ public class ListMcpTools {
     ) {
         User user = security.currentUser();
         security.requireWriteAccess();
+        mutationRateLimiter.enforce();
 
         UUID id = McpIds.parseUuid(listId, "listId");
         listService.deleteList(id, user.getId());

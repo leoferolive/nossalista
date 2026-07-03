@@ -10,6 +10,7 @@ import br.com.leoferolive.nossalista.mcp.dto.ListMembersResult;
 import br.com.leoferolive.nossalista.mcp.dto.MemberSummary;
 import br.com.leoferolive.nossalista.mcp.dto.RemoveMemberResult;
 import br.com.leoferolive.nossalista.mcp.dto.ShareListResult;
+import br.com.leoferolive.nossalista.mcp.interceptor.McpMutationRateLimiter;
 import br.com.leoferolive.nossalista.mcp.security.McpSecurityContext;
 import br.com.leoferolive.nossalista.mcp.support.McpIds;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -32,14 +33,21 @@ public class MemberMcpTools {
     private final ListService listService;
     private final MemberService memberService;
     private final McpSecurityContext security;
+    private final McpMutationRateLimiter mutationRateLimiter;
 
     @Value("${frontend.url}")
     private String frontendBaseUrl;
 
-    public MemberMcpTools(ListService listService, MemberService memberService, McpSecurityContext security) {
+    public MemberMcpTools(
+        ListService listService,
+        MemberService memberService,
+        McpSecurityContext security,
+        McpMutationRateLimiter mutationRateLimiter
+    ) {
         this.listService = listService;
         this.memberService = memberService;
         this.security = security;
+        this.mutationRateLimiter = mutationRateLimiter;
     }
 
     @McpTool(
@@ -59,6 +67,7 @@ public class MemberMcpTools {
     ) {
         User user = security.currentUser();
         security.requireWriteAccess();
+        mutationRateLimiter.enforce();
 
         UUID id = McpIds.parseUuid(listId, "listId");
         if ("username".equalsIgnoreCase(mode)) {
@@ -104,6 +113,7 @@ public class MemberMcpTools {
     ) {
         User user = security.currentUser();
         security.requireWriteAccess();
+        mutationRateLimiter.enforce();
 
         UUID id = McpIds.parseUuid(listId, "listId");
         UUID targetUserId = McpIds.parseUuid(userId, "userId");
