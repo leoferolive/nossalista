@@ -680,6 +680,42 @@ class MagicLinkControllerTest {
             .andExpect(jsonPath("$.type").value("https://api.nossalista.com/docs/errors/invalid-magic-link-token"))
             .andExpect(jsonPath("$.status").value(400));
     }
+
+    @Test
+    void requestMagicLinkReturns429AfterEmailRateLimit() throws Exception {
+        User user = persistUser("rl-" + UUID.randomUUID() + "@example.com");
+        Map<String, String> request = new HashMap<>();
+        request.put("email", user.getEmail());
+        String body = objectMapper.writeValueAsString(request);
+
+        // Limite por e-mail = 5/1h: as 5 primeiras passam, a 6ª estoura.
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/auth/magic-link")
+                    .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        }
+        mockMvc.perform(post("/api/auth/magic-link")
+                .contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void magicLoginReturns429AfterIpRateLimit() throws Exception {
+        Map<String, String> request = new HashMap<>();
+        request.put("token", "bogus-" + UUID.randomUUID());
+        String body = objectMapper.writeValueAsString(request);
+
+        // Limite por IP = 10/15min: as 10 primeiras respondem 400 (token inválido),
+        // a 11ª estoura o rate limit (o check ocorre antes do consume).
+        for (int i = 0; i < 10; i++) {
+            mockMvc.perform(post("/api/auth/magic-login")
+                    .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(post("/api/auth/magic-login")
+                .contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isTooManyRequests());
+    }
 }
 ```
 
@@ -803,7 +839,7 @@ Endpoints (após `resendVerification`):
 - [ ] **Step 6: Rodar e confirmar que passa**
 
 Run: `cd backend && ./mvnw -q test -Dtest=MagicLinkControllerTest`
-Expected: PASS (4 testes verdes).
+Expected: PASS (6 testes verdes, incluindo os dois de rate limit 429).
 
 - [ ] **Step 7: Commit**
 
