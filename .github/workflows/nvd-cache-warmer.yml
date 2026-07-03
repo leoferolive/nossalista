@@ -31,7 +31,8 @@ concurrency:
 jobs:
   warm-nvd-cache:
     runs-on: ubuntu-latest
-    timeout-minutes: 30       # um rebuild completo da NVD pode levar ~15 min
+    timeout-minutes: 75       # backstop acima do timeout do step de update (60min);
+                              # em dias de NVD throttled o download passa de 30min
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,23 +49,31 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}
-          restore-keys: nvd-db-${{ runner.os }}-
+          key: nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}-
+            nvd-db-${{ runner.os }}-
 
       # update-only: só atualiza o banco NVD, sem rodar a análise de dependências.
       # Usa a config do plugin no backend/pom.xml (inclui <nvdApiKey>), garantindo
       # a MESMA versão do plugin das PRs → mesmo schema de banco → cache compatível.
       - name: Atualizar banco NVD (update-only)
         working-directory: backend
+        timeout-minutes: 60       # em dias de NVD throttled o download completo passa de 30min
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           chmod +x mvnw
           ./mvnw -B org.owasp:dependency-check-maven:update-only
 
-      # Salva sob a chave do dia. Rodando no main, o cache é herdável por todas as PRs.
-      - name: Salvar cache NVD atualizado
+      # if: always() → salva mesmo se o update-only estourar o timeout (NVD throttled),
+      # preservando o progresso parcial. Chave por-run (run_id+attempt) porque o cache é
+      # imutável: cada tentativa salva sob chave única e o restore-keys (prefixo) pega a
+      # mais recente, convergindo em poucos runs. Rodando no main, o cache é herdável por
+      # todas as PRs (que restauram por prefixo nvd-db-<os>-).
+      - name: Salvar cache NVD (mesmo em timeout — preserva progresso parcial)
+        if: always()
         uses: actions/cache/save@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}
+          key: nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}-${{ github.run_id }}-${{ github.run_attempt }}
