@@ -59,9 +59,9 @@ describe('MagicLogin', () => {
     expect(magicLoginMock).not.toHaveBeenCalled()
   })
 
-  it('mostra erro quando o token é inválido/expirado', async () => {
-    magicLoginMock.mockRejectedValue(new Error('Token inválido'))
+  it('surfaca a mensagem real do backend quando o token é inválido/expirado', async () => {
+    magicLoginMock.mockRejectedValue(new Error('Token expirado'))
     renderAt('/magic-login?token=bad')
-    await waitFor(() => expect(screen.getByText(/não foi possível/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/token expirado/i)).toBeInTheDocument())
   })
 })

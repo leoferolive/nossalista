@@ -27,11 +27,7 @@ async function consumeMagicLinkToken(
     })
     navigate('/home', { replace: true })
   } catch (err) {
-    setError(
-      err instanceof Error
-        ? 'Não foi possível entrar. O link pode ter expirado ou já ter sido usado.'
-        : 'Não foi possível entrar com o link mágico.'
-    )
+    setError(err instanceof Error ? err.message : 'Não foi possível entrar com o link mágico.')
   }
 }
 
