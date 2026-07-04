@@ -240,4 +240,17 @@ describe('LoginModal', () => {
 
     expect(authApi.requestMagicLink).not.toHaveBeenCalled()
   })
+
+  it('mostra a mesma mensagem genérica mesmo quando o envio do magic link falha', async () => {
+    const { authApi } = await import('../api/authApi')
+    vi.mocked(authApi.requestMagicLink).mockRejectedValueOnce(new Error('boom'))
+
+    renderModal()
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'leo@test.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /link mágico/i }))
+
+    expect(await screen.findByText(/enviamos um link de acesso/i)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 })

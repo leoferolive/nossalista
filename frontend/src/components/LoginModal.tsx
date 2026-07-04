@@ -73,6 +73,7 @@ export function LoginModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setMagicMessage('')
     setLoading(true)
 
     try {
