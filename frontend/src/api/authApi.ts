@@ -116,4 +116,33 @@ export const authApi = {
       handleApiError(error)
     }
   },
+
+  /**
+   * Solicita um magic link de login. O backend sempre responde 200
+   * (anti-enumeração); a UI deve exibir sempre a mesma mensagem genérica.
+   * @param email - Email da conta
+   * @throws ApiError com status code em caso de falha (ex.: 429)
+   */
+  async requestMagicLink(email: string): Promise<void> {
+    try {
+      await client.post('/api/auth/magic-link', { email })
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  /**
+   * Consome um magic link e autentica, retornando o JWT + dados do usuário.
+   * @param token - Token recebido por e-mail
+   * @returns Promise com os dados do usuário e o JWT (mesmo formato do OAuth exchange)
+   * @throws ApiError com status code (ex.: 400 token inválido ou expirado)
+   */
+  async magicLogin(token: string): Promise<OAuthExchangeResponse> {
+    try {
+      const response = await client.post<OAuthExchangeResponse>('/api/auth/magic-login', { token })
+      return response.data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
 }
