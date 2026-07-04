@@ -4,6 +4,8 @@ import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.auth.dto.ForgotPasswordRequest;
 import br.com.leoferolive.nossalista.auth.dto.LoginRequest;
 import br.com.leoferolive.nossalista.auth.dto.LoginResponse;
+import br.com.leoferolive.nossalista.auth.dto.MagicLinkRequest;
+import br.com.leoferolive.nossalista.auth.dto.MagicLoginRequest;
 import br.com.leoferolive.nossalista.auth.dto.OAuthExchangeRequest;
 import br.com.leoferolive.nossalista.auth.dto.RegisterRequest;
 import br.com.leoferolive.nossalista.auth.dto.RegisterResponse;
@@ -13,6 +15,7 @@ import br.com.leoferolive.nossalista.auth.dto.UserMapper;
 import br.com.leoferolive.nossalista.auth.service.AuthService;
 import br.com.leoferolive.nossalista.auth.service.EmailVerificationService;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
+import br.com.leoferolive.nossalista.auth.service.MagicLinkService;
 import br.com.leoferolive.nossalista.auth.service.OAuthExchangeService;
 import br.com.leoferolive.nossalista.auth.service.PasswordResetService;
 import br.com.leoferolive.nossalista.common.exception.RateLimitExceededException;
@@ -56,6 +59,12 @@ public class AuthController {
     private static final Duration RESEND_VERIFICATION_WINDOW = Duration.ofHours(1);
     private static final int RESEND_VERIFICATION_LIMIT_PER_IP = 10;
     private static final Duration RESEND_VERIFICATION_IP_WINDOW = Duration.ofMinutes(15);
+    private static final int MAGIC_LINK_LIMIT_PER_EMAIL = 5;
+    private static final Duration MAGIC_LINK_WINDOW = Duration.ofHours(1);
+    private static final int MAGIC_LINK_LIMIT_PER_IP = 15;
+    private static final Duration MAGIC_LINK_IP_WINDOW = Duration.ofMinutes(15);
+    private static final int MAGIC_LOGIN_LIMIT_PER_IP = 10;
+    private static final Duration MAGIC_LOGIN_IP_WINDOW = Duration.ofMinutes(15);
 
     private final AuthService authService;
     private final JwtService jwtService;
@@ -65,13 +74,15 @@ public class AuthController {
     private final ClientIpResolver clientIpResolver;
     private final OAuthExchangeService oauthExchangeService;
     private final EmailVerificationService emailVerificationService;
+    private final MagicLinkService magicLinkService;
 
     public AuthController(AuthService authService, JwtService jwtService,
                           UserMapper userMapper, PasswordResetService passwordResetService,
                           RateLimiterService rateLimiterService,
                           ClientIpResolver clientIpResolver,
                           OAuthExchangeService oauthExchangeService,
-                          EmailVerificationService emailVerificationService) {
+                          EmailVerificationService emailVerificationService,
+                          MagicLinkService magicLinkService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
@@ -80,6 +91,7 @@ public class AuthController {
         this.clientIpResolver = clientIpResolver;
         this.oauthExchangeService = oauthExchangeService;
         this.emailVerificationService = emailVerificationService;
+        this.magicLinkService = magicLinkService;
     }
 
     /**
@@ -299,5 +311,64 @@ public class AuthController {
 
         emailVerificationService.resendVerification(request.email());
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Solicita um magic link de login. Sempre retorna 200 (anti-enumeração).
+     */
+    @PostMapping("/magic-link")
+    @Operation(
+        summary = "Solicitar magic link de login",
+        description = "Envia um link de acesso sem senha para o e-mail informado. Sempre retorna 200 para prevenir enumeração de e-mails."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Requisição processada (não confirma existência do e-mail)"),
+        @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+        @ApiResponse(responseCode = "429", description = "Muitas requisições — tente novamente mais tarde")
+    })
+    public ResponseEntity<Void> requestMagicLink(@Valid @RequestBody MagicLinkRequest request,
+                                                 HttpServletRequest httpRequest) {
+        String clientIp = clientIpResolver.resolve(httpRequest);
+        String email = request.email().trim().toLowerCase();
+
+        if (!rateLimiterService.isAllowed("magic-link:ip:" + clientIp,
+                MAGIC_LINK_LIMIT_PER_IP, MAGIC_LINK_IP_WINDOW)) {
+            throw new RateLimitExceededException("Muitas requisições. Tente novamente mais tarde.");
+        }
+        if (!rateLimiterService.isAllowed("magic-link:email:" + email,
+                MAGIC_LINK_LIMIT_PER_EMAIL, MAGIC_LINK_WINDOW)) {
+            throw new RateLimitExceededException("Muitas requisições para este e-mail. Tente novamente mais tarde.");
+        }
+
+        magicLinkService.requestMagicLink(request.email());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Consome um magic link e autentica o usuário, retornando o JWT.
+     */
+    @PostMapping("/magic-login")
+    @Operation(
+        summary = "Login por magic link",
+        description = "Consome o token do magic link (uso único, não expirado), marca o e-mail como verificado e retorna o JWT no formato do login."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Token válido — retorna JWT e dados do usuário"),
+        @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado"),
+        @ApiResponse(responseCode = "429", description = "Muitas requisições — tente novamente mais tarde")
+    })
+    public ResponseEntity<LoginResponse> magicLogin(@Valid @RequestBody MagicLoginRequest request,
+                                                    HttpServletRequest httpRequest) {
+        String clientIp = clientIpResolver.resolve(httpRequest);
+
+        if (!rateLimiterService.isAllowed("magic-login:ip:" + clientIp,
+                MAGIC_LOGIN_LIMIT_PER_IP, MAGIC_LOGIN_IP_WINDOW)) {
+            throw new RateLimitExceededException("Muitas tentativas. Tente novamente mais tarde.");
+        }
+
+        User user = magicLinkService.consume(request.token());
+        String token = jwtService.generateToken(user);
+        LoginResponse response = userMapper.toLoginResponse(user, token, jwtService.getExpirationTime());
+        return ResponseEntity.ok(response);
     }
 }
