@@ -26,16 +26,29 @@ sobre a instância exata capturada no seu scanner de anotações, e a segunda pa
 filtros de segurança no completamento assíncrono do transporte Streamable HTTP deixa de
 autenticar a requisição. Ver `docs/DECISIONS.md` D-023 para o histórico completo.
 
-## Importando o dashboard
+## Provisionamento do dashboard no cluster
 
-`grafana-mcp-dashboard.json` é um dashboard Grafana exportado no formato padrão de
-compartilhamento (`__inputs`/`__requires`), pronto para importar:
+`grafana-mcp-dashboard.json` é a fonte de verdade do dashboard e é provisionado
+automaticamente no Grafana do cluster via **ConfigMap + sidecar**, o mesmo mecanismo já usado
+pelo `chat-api` (ver `chat-api/k8s/monitoring/values.yaml`, bloco `grafana.sidecar.dashboards`):
+o Grafana instalado pelo `kube-prometheus-stack` roda um sidecar (`grafana-sc-dashboards`) que
+varre ConfigMaps com o label `grafana_dashboard=1` em **qualquer namespace**
+(`searchNamespace: ALL`) e carrega o JSON encontrado automaticamente, sem restart do Grafana.
 
-1. No Grafana, **Dashboards → New → Import**.
-2. Cole o conteúdo de `grafana-mcp-dashboard.json` (ou faça upload do arquivo).
-3. Quando solicitado, selecione o datasource Prometheus que faz scrape de
-   `/actuator/prometheus` do NossaLista.
-4. Confirmar a importação.
+Por isso os painéis referenciam o datasource Prometheus por **UID fixo** (`"uid": "prometheus"`)
+em vez da variável de import `${DS_PROMETHEUS}` — esse é o UID com que o `kube-prometheus-stack`
+provisiona o datasource Prometheus por padrão no cluster.
+
+O artefato versionado é `k8s/monitoring/nossalista-mcp-dashboard-configmap.yaml`: um ConfigMap
+gerado a partir deste JSON (o `data` do ConfigMap **não** deve ser editado à mão — regenerar com
+o comando documentado no cabeçalho do próprio arquivo sempre que `grafana-mcp-dashboard.json`
+mudar).
+
+Aplicar/atualizar no cluster:
+
+```bash
+kubectl apply -f k8s/monitoring/nossalista-mcp-dashboard-configmap.yaml
+```
 
 O dashboard inclui uma variável `tool` (multi-seleção, com "All") para filtrar os painéis por
 uma ou mais tools específicas.
@@ -49,10 +62,3 @@ uma ou mais tools específicas.
 | Duração p95, por tool | `histogram_quantile(0.95, sum by (tool, le) (rate(mcp_tool_duration_seconds_bucket[5m])))` |
 | Top tools por volume (última hora) | `topk(10, sum by (tool) (increase(mcp_tool_calls_total[1h])))` |
 
-## Fora do escopo deste PR
-
-O provisionamento real do dashboard no cluster (ConfigMap/sidecar do Grafana no K3s, ou
-provisioning via `grafana.ini` apontando para este JSON) **não** está incluído aqui — este PR
-entrega apenas a instrumentação da aplicação e o JSON do dashboard pronto para importação
-manual. O padrão de provisionamento automático de dashboards por app já existe no cluster
-(ver dashboards do `chat-api`); aplicar o mesmo padrão ao NossaLista fica como follow-up.
