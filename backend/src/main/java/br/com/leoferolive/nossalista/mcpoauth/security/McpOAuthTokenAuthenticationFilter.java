@@ -89,6 +89,20 @@ public class McpOAuthTokenAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Re-executa a autenticação também no dispatch ASYNC (streaming MCP). Este é o
+     * caminho de auth mais crítico para o {@code /mcp}: o próprio access token OAuth
+     * do MCP. Ver a explicação completa em
+     * {@code JwtAuthenticationFilter#shouldNotFilterAsyncDispatch()} e
+     * docs/DECISIONS.md D-023 — sem isto, o {@code AuthorizationFilter} no segundo
+     * passo do {@code AsyncContext.dispatch()} do transporte Streamable HTTP nega o
+     * token válido por falta de {@code SecurityContext}, virando 500 sobre o SSE.
+     */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     private List<GrantedAuthority> authoritiesFor(User user, TokenScope scope) {
         Role role = user.getRole() != null ? user.getRole() : Role.USER;
         return List.of(

@@ -1212,3 +1212,44 @@
   acesso para quem esqueceu a senha, sem introduzir um segundo fluxo de criacao de
   conta nem enfraquecer o anti-enumeracao ja estabelecido nos demais fluxos de e-mail
   (Q2.7, `forgot-password`).
+
+## D-026 Fix do 5xx em /mcp — re-autenticacao no dispatch ASYNC do Streamable HTTP
+
+- **Contexto:** o alerta `NossalistaHighErrorRate` (Prometheus, metrica
+  `http_server_requests_seconds_count{status=~"5.."}`) disparava com ~7-12% de 5xx.
+  Investigacao mostrou 100% dos 5xx concentrados em `POST /mcp` como
+  `AuthorizationDeniedException` com `AnonymousAuthenticationToken`, convivendo com
+  chamadas MCP autenticadas bem-sucedidas (200/202) do mesmo cliente. Nos logs do
+  `cloudflared`, as mesmas requisicoes aparecem como `unexpected EOF` (conexao cortada).
+- **Causa raiz:** o transporte MCP Streamable HTTP completa a resposta SSE via
+  `AsyncContext.dispatch()`, que redispara o `FilterChainProxy` inteiro (ja documentado
+  em D-023). Nesse SEGUNDO passo, os filtros de autenticacao
+  (`JwtAuthenticationFilter`, `PersonalAccessTokenAuthenticationFilter`,
+  `McpOAuthTokenAuthenticationFilter` — todos `OncePerRequestFilter`) eram PULADOS por
+  padrao (`shouldNotFilterAsyncDispatch() == true`). Como a app e STATELESS (a identidade
+  vem do header `Authorization` a cada requisicao, nao de sessao), o `SecurityContext`
+  ficava vazio no dispatch async; o `AuthorizationFilter` (que roda em TODOS os dispatch
+  types) via a requisicao como anonima, negava com `AuthorizationDeniedException` sobre uma
+  resposta SSE ja commitada, e o resultado escapava como 500 + conexao cortada. O bug e
+  intermitente porque so afeta as respostas que efetivamente vao para o caminho async
+  (streaming), nao o handshake sincrono (initialize/notificacao => 200/202).
+- **Por que NAO `shouldFilterAllDispatcherTypes(false)`:** essa API do
+  `AuthorizeHttpRequestsConfigurer` (a correcao classica pre-7.0) foi REMOVIDA no Spring
+  Security 7.0 (versao deste projeto). A via equivalente e re-estabelecer o contexto no
+  async re-executando os filtros de autenticacao.
+- **Fix:** `shouldNotFilterAsyncDispatch()` sobrescrito para `false` nos tres filtros de
+  autenticacao. No dispatch async o header `Authorization` ainda esta presente no mesmo
+  request, entao os filtros re-autenticam e o `AuthorizationFilter` volta a autorizar o
+  token valido. NAO enfraquece a autorizacao: o request inicial (REQUEST) ja e autenticado
+  e autorizado normalmente; o async apenas completa a resposta de um request ja autorizado.
+- **Teste:** `AsyncDispatchReauthenticationTest` reproduz o mecanismo de forma
+  DETERMINISTICA com `MockMvc` + `asyncDispatch()` num endpoint async protegido por
+  `/api/**` (mesma regra `authenticated()` de `/mcp/**`), autenticando por um PAT real no
+  header — sem depender da concorrencia real que torna o bug intermitente. Verificado
+  red->green: sem o override o segundo passo retorna 401 (no MockMvc a resposta ainda nao
+  esta commitada, entao vira 401 limpo em vez do 500 de producao — o mecanismo de negacao
+  anonima e o mesmo); com o override, 200.
+- **Follow-up nao incluido (proposital):** logar `CF-Connecting-IP`/`User-Agent` nas
+  negacoes de `/mcp` (via `ClientIpResolver`) para observabilidade — os logs de producao
+  ficam suprimidos em `prod` (`org.springframework.security: WARN`), o que dificultou a
+  investigacao. Fica como melhoria separada para nao misturar com o fix.
