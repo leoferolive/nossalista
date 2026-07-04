@@ -220,16 +220,26 @@ class UserControllerTest {
             // Given - usuário autenticado
             authenticateUser(testUser);
 
-            // Flush e clear para garantir estado sincronizado com banco
-            entityManager.flush();
+            // Empurra o updatedAt persistido para 1 hora no passado via bulk update
+            // (JPQL bulk update não dispara @PreUpdate). Isso substitui o antigo
+            // Thread.sleep(1000): a comparação "isAfter" deixa de depender do relógio
+            // real avançar o suficiente entre duas capturas de LocalDateTime.now()
+            // (frágil sob carga da máquina) e passa a ser determinística por construção.
+            LocalDateTime pastUpdatedAt = LocalDateTime.now().minusHours(1);
+            entityManager.createQuery(
+                    "UPDATE User u SET u.updatedAt = :updatedAt WHERE u.id = :id")
+                .setParameter("updatedAt", pastUpdatedAt)
+                .setParameter("id", testUser.getId())
+                .executeUpdate();
             entityManager.clear();
 
             // Recarregar usuário do banco para garantir estado fresh
+            // (não comparamos com pastUpdatedAt por igualdade exata: o H2 trunca
+            // TIMESTAMP de nanossegundos para microssegundos no round-trip)
             User freshUser = userRepository.findById(testUser.getId()).orElseThrow();
             LocalDateTime originalUpdatedAt = freshUser.getUpdatedAt();
-
-            // Sleep para garantir timestamp diferente (1 segundo para garantia)
-            Thread.sleep(1000);
+            assertTrue(originalUpdatedAt.isBefore(LocalDateTime.now().minusMinutes(30)),
+                "updatedAt deveria refletir o valor empurrado para o passado");
 
             UpdateProfileRequest request = new UpdateProfileRequest("Updated Name", null);
 
