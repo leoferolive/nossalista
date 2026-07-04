@@ -957,6 +957,11 @@
   - Dashboard Grafana pronto para importar em `docs/observability/grafana-mcp-dashboard.json`
     (calls/min por tool, taxa de erro, p95, top tools) — provisionamento automatico no
     cluster fica como follow-up (ver `docs/observability/README.md`).
+  - **Nota (follow-up fechado):** o provisionamento automatico passou a ser versionado em
+    `k8s/monitoring/nossalista-mcp-dashboard-configmap.yaml` — um ConfigMap com o label
+    `grafana_dashboard=1`, gerado a partir do JSON acima (fonte de verdade inalterada),
+    replicando o mecanismo de sidecar ja usado pelo `chat-api`. Detalhes em
+    `docs/observability/README.md`.
 - **Pagina de ajuda no frontend:** `/connections/help`
   (`frontend/src/pages/ConnectAssistant.tsx`) com passo a passo para Claude Code, Claude
   Desktop e Cursor, blocos de codigo copiaveis (`CopyableCode`, mesmo padrao de clipboard de

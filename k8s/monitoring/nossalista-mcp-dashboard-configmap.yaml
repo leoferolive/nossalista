@@ -1,0 +1,150 @@
+# Provisiona o dashboard Grafana do MCP no namespace `monitoring` do cluster
+# compartilhado. Replica o mecanismo usado pelo chat-api (ver
+# chat-api/k8s/monitoring/values.yaml, bloco `grafana.sidecar.dashboards`):
+# o Grafana do kube-prometheus-stack roda um sidecar que varre ConfigMaps
+# com o label `grafana_dashboard=1` em qualquer namespace (`searchNamespace:
+# ALL`) e carrega o JSON encontrado automaticamente, sem restart do Grafana.
+#
+# Fonte de verdade do conteúdo: docs/observability/grafana-mcp-dashboard.json
+# (NÃO editar o bloco `data` abaixo à mão — regenerar com o comando a seguir
+# sempre que o JSON canônico mudar):
+#
+#   kubectl create configmap nossalista-mcp-dashboard \
+#     -n monitoring \
+#     --from-file=grafana-mcp-dashboard.json=docs/observability/grafana-mcp-dashboard.json \
+#     --dry-run=client -o yaml \
+#     | kubectl label -f - --local -o yaml --dry-run=client grafana_dashboard=1 \
+#     > k8s/monitoring/nossalista-mcp-dashboard-configmap.yaml
+#
+# Aplicar/atualizar no cluster:
+#   kubectl apply -f k8s/monitoring/nossalista-mcp-dashboard-configmap.yaml
+apiVersion: v1
+data:
+  grafana-mcp-dashboard.json: |
+    {
+      "uid": "nossalista-mcp",
+      "title": "NossaLista — Servidor MCP",
+      "description": "Chamadas, taxa de erro e latência das 13 tools MCP (mcp_tool_calls_total, mcp_tool_duration_seconds), instrumentadas por McpToolMetrics. Ver docs/observability/README.md.",
+      "tags": ["nossalista", "mcp"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "refresh": "30s",
+      "time": { "from": "now-6h", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "tool",
+            "type": "query",
+            "datasource": { "type": "prometheus", "uid": "prometheus" },
+            "query": "label_values(mcp_tool_calls_total, tool)",
+            "refresh": 2,
+            "includeAll": true,
+            "multi": true,
+            "current": { "text": "All", "value": "$__all" },
+            "label": "Tool"
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Chamadas por minuto, por tool",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum by (tool) (rate(mcp_tool_calls_total{tool=~\"$tool\"}[1m])) * 60",
+              "legendFormat": "{{tool}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "reqpm", "custom": { "drawStyle": "line", "fillOpacity": 10 } },
+            "overrides": []
+          }
+        },
+        {
+          "id": 2,
+          "title": "Taxa de erro (business_error + denied) / total",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(mcp_tool_calls_total{tool=~\"$tool\", outcome=~\"business_error|denied\"}[5m])) / sum(rate(mcp_tool_calls_total{tool=~\"$tool\"}[5m]))",
+              "legendFormat": "error rate",
+              "refId": "A"
+            },
+            {
+              "expr": "sum by (tool) (rate(mcp_tool_calls_total{tool=~\"$tool\", outcome=~\"business_error|denied\"}[5m])) / sum by (tool) (rate(mcp_tool_calls_total{tool=~\"$tool\"}[5m]))",
+              "legendFormat": "{{tool}}",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1,
+              "custom": { "drawStyle": "line", "fillOpacity": 10 },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.05 },
+                  { "color": "red", "value": 0.2 }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "title": "Duração p95, por tool",
+          "type": "timeseries",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "description": "Requer publishPercentileHistogram() no Timer (já habilitado em McpToolMetrics) para os buckets _bucket existirem.",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (tool, le) (rate(mcp_tool_duration_seconds_bucket{tool=~\"$tool\"}[5m])))",
+              "legendFormat": "{{tool}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10 } },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "Top tools por volume (janela atual)",
+          "type": "table",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "topk(10, sum by (tool) (increase(mcp_tool_calls_total{tool=~\"$tool\"}[1h])))",
+              "format": "table",
+              "instant": true,
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "short" },
+            "overrides": []
+          }
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    grafana_dashboard: "1"
+  name: nossalista-mcp-dashboard
+  namespace: monitoring
