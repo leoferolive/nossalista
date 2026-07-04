@@ -23,6 +23,7 @@ import { Register } from './pages/Register.tsx'
 import { ForgotPassword } from './pages/ForgotPassword.tsx'
 import { ResetPassword } from './pages/ResetPassword.tsx'
 import { VerifyEmail } from './pages/VerifyEmail.tsx'
+import { MagicLogin } from './pages/MagicLogin.tsx'
 import { ProtectedRoute } from './components/ProtectedRoute.tsx'
 import './index.css'
 // leoferolive design: override de tokens --nl-* + fontes self-hosted.
@@ -71,6 +72,7 @@ function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/magic-login" element={<MagicLogin />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/home" element={<ProtectedPage Page={Home} />} />
       <Route path="/lists/:id" element={<ProtectedPage Page={ListView} />} />
