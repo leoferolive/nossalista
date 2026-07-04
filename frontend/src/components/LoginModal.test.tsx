@@ -23,6 +23,10 @@ vi.mock('../api/listsApi', () => ({
   listsApi: { joinList: vi.fn() },
 }))
 
+vi.mock('../api/authApi', () => ({
+  authApi: { requestMagicLink: vi.fn() },
+}))
+
 function renderModal(onClose = vi.fn(), initialEntry = '/') {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
@@ -209,5 +213,31 @@ describe('LoginModal', () => {
       'href',
       '/forgot-password?redirect=%2Flists%2Fabc'
     )
+  })
+
+  it('envia magic link com o e-mail digitado e mostra mensagem genérica', async () => {
+    const { authApi } = await import('../api/authApi')
+    vi.mocked(authApi.requestMagicLink).mockResolvedValueOnce(undefined)
+
+    renderModal()
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'leo@test.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /link mágico/i }))
+
+    await waitFor(() => {
+      expect(authApi.requestMagicLink).toHaveBeenCalledWith('leo@test.com')
+    })
+
+    expect(await screen.findByText(/enviamos um link de acesso/i)).toBeInTheDocument()
+  })
+
+  it('não chama a API se o e-mail estiver vazio', async () => {
+    const { authApi } = await import('../api/authApi')
+
+    renderModal()
+
+    fireEvent.click(screen.getByRole('button', { name: /link mágico/i }))
+
+    expect(authApi.requestMagicLink).not.toHaveBeenCalled()
   })
 })

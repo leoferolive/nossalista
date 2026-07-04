@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import client from '../api/client'
+import { authApi } from '../api/authApi'
 import { listsApi } from '../api/listsApi'
 import { ApiError } from '../types/ApiError'
 import { ModalShell } from './ModalShell'
@@ -40,6 +41,8 @@ export function LoginModal({
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [magicLoading, setMagicLoading] = useState(false)
+  const [magicMessage, setMagicMessage] = useState('')
 
   const registerHref = useMemo(() => {
     if (!redirectPath) {
@@ -129,6 +132,24 @@ export function LoginModal({
     window.location.href = `${window.location.origin}/api/auth/google`
   }
 
+  const handleMagicLink = async () => {
+    setError('')
+    setMagicMessage('')
+    if (!email.trim()) {
+      setError('Informe seu e-mail para receber o link de acesso.')
+      return
+    }
+    setMagicLoading(true)
+    try {
+      await authApi.requestMagicLink(email)
+    } catch {
+      // Anti-enumeração: a mensagem é sempre a mesma, mesmo em falha.
+    } finally {
+      setMagicMessage('Se existe uma conta com esse e-mail, enviamos um link de acesso.')
+      setMagicLoading(false)
+    }
+  }
+
   return (
     <ModalShell
       title="Entrar no NossaLista"
@@ -145,6 +166,12 @@ export function LoginModal({
       {showResetMessage && (
         <div className="mb-5 rounded-[1.2rem] border border-nl-primary/30 bg-nl-primary/10 px-4 py-3 text-sm text-nl-text">
           Senha redefinida com sucesso. Faca login com sua nova senha.
+        </div>
+      )}
+
+      {magicMessage && (
+        <div className="mb-5 rounded-[1.2rem] border border-nl-primary/30 bg-nl-primary/10 px-4 py-3 text-sm text-nl-text">
+          {magicMessage}
         </div>
       )}
 
@@ -197,6 +224,15 @@ export function LoginModal({
 
         <button type="submit" disabled={loading} className="nl-btn-primary w-full">
           {loading ? 'Entrando...' : 'Entrar'}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleMagicLink}
+          disabled={magicLoading}
+          className="text-sm font-semibold text-nl-accent"
+        >
+          {magicLoading ? 'Enviando…' : 'Entrar com link mágico'}
         </button>
       </form>
 
