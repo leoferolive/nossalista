@@ -363,6 +363,12 @@
                 </executions>
             </plugin>
 
+            <!--
+                O banco NVD é aquecido no main (nvd-cache-warmer.yml) e as PRs rodam
+                com -DautoUpdate=false contra o cache. O dependency-check 12.x grava o
+                banco H2 em data/<versão>/odc.mv.db (subdiretório versionado): o guard
+                de cache do ci.yml procura o *.mv.db de forma recursiva por causa disso.
+            -->
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
