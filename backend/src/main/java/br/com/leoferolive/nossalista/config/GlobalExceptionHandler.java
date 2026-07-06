@@ -5,6 +5,7 @@ import br.com.leoferolive.nossalista.apitoken.exception.PersonalAccessTokenNotFo
 import br.com.leoferolive.nossalista.auth.exception.EmailAlreadyExistsException;
 import br.com.leoferolive.nossalista.auth.exception.EmailNotVerifiedException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidCredentialsException;
+import br.com.leoferolive.nossalista.auth.exception.InvalidMagicLinkTokenException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidOAuthCodeException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidResetTokenException;
 import br.com.leoferolive.nossalista.auth.exception.InvalidVerificationTokenException;
@@ -123,6 +124,26 @@ public class GlobalExceptionHandler {
         );
         problem.setType(URI.create("https://api.nossalista.com/docs/errors/invalid-reset-token"));
         problem.setTitle("Token de reset inválido");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Trata exceção de token de magic link inválido, expirado ou já usado.
+     * Retorna 400 Bad Request com RFC 7807 Problem Details.
+     */
+    @ExceptionHandler(InvalidMagicLinkTokenException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidMagicLinkToken(
+        InvalidMagicLinkTokenException ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage()
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/invalid-magic-link-token"));
+        problem.setTitle("Token de magic link inválido");
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.badRequest().body(problem);

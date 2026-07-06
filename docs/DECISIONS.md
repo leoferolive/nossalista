@@ -1185,3 +1185,30 @@
 - **Motivo:** destrava a via mais natural de conexao (o proprio botao "Add connector" do
   claude.ai/Claude Desktop, sem exigir que o usuario final encontre e cole um `client_id` em
   "Advanced settings"), fechando o gap de UX que a pesquisa do Passo 0 de D-022 nao previu.
+
+## D-025 Login por magic link (passwordless)
+
+- **Decisao:** introduzir login sem senha via link magico para contas JA EXISTENTES
+  (qualquer `AuthProvider`, inclusive Google/OAuth) — o fluxo NAO cria conta nova, so
+  autentica quem ja tem cadastro. Token opaco (`UUID.randomUUID()`), guardado em claro
+  na nova tabela `magic_link_tokens` (migration `V15`), mesmo padrao de
+  `password_reset_tokens`/`email_verification_tokens` (uso unico, validade 10min, coluna
+  `token VARCHAR(255) UNIQUE`, sem cleanup scheduler — mesma divida pre-existente dos
+  outros dois tipos de token). Dois endpoints publicos sob `/api/auth`:
+  - `POST /api/auth/magic-link` — body `{ email }`. SEMPRE retorna 200, mesmo para
+    e-mail inexistente (anti-enumeracao, mesmo padrao de `forgot-password`); 400 em
+    corpo invalido.
+  - `POST /api/auth/magic-login` — body `{ token }`. Consome o token (uso unico, nao
+    expirado), marca `users.email_verified=true` (prova de posse do e-mail, mesmo efeito
+    de `verify-email`) e retorna `LoginResponse` (JWT + usuario, mesmo formato de
+    `/login` e `/oauth/exchange`). Token invalido/expirado/usado -> 400 `ProblemDetail`
+    (`type=https://api.nossalista.com/docs/errors/invalid-magic-link-token`).
+- **Rate limiting (mesmo padrao de `forgot-password`):** `magic-link` limita 5
+  tentativas/e-mail/1h E 15/IP/15min; `magic-login` limita 10 tentativas/IP/15min contra
+  brute-force do token (so tem bucket por IP — mesma logica de `reset-password`, D-010).
+- **UI:** acao secundaria "Entrar com link magico" no `LoginModal` (reusa o campo de
+  e-mail existente); consumo do link numa pagina publica dedicada em `/magic-login`.
+- **Motivo:** reduzir friccao de login (sem exigir senha) e oferecer um fallback de
+  acesso para quem esqueceu a senha, sem introduzir um segundo fluxo de criacao de
+  conta nem enfraquecer o anti-enumeracao ja estabelecido nos demais fluxos de e-mail
+  (Q2.7, `forgot-password`).

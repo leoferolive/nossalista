@@ -1,0 +1,111 @@
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import { authApi } from '../api/authApi'
+import { getStoredAuthToken, persistAuthToken } from '../auth/session'
+
+interface ConsumeMagicLinkDeps {
+  guardKey: string
+  login: ReturnType<typeof useAuth>['login']
+  navigate: ReturnType<typeof useNavigate>
+  setError: (message: string) => void
+}
+
+async function consumeMagicLinkToken(
+  token: string,
+  { guardKey, login, navigate, setError }: ConsumeMagicLinkDeps
+) {
+  try {
+    const data = await authApi.magicLogin(token)
+    persistAuthToken(data.token)
+    login(data.token, {
+      id: data.id,
+      username: data.username,
+      email: data.email,
+      displayName: data.name,
+      avatarUrl: data.avatarUrl ?? undefined,
+      onboardingCompletedAt: data.onboardingCompletedAt ?? null,
+    })
+    navigate('/home', { replace: true })
+  } catch (err) {
+    // Se uma consumção anterior/duplicada do MESMO token já autenticou este
+    // navegador (token presente), o 400 "token já usado" é esperado e benigno:
+    // NÃO mostrar erro — apenas seguir para a home.
+    if (getStoredAuthToken()) {
+      navigate('/home', { replace: true })
+      return
+    }
+    // Falha genuína (token inválido/expirado, sem sessão): libera o guard para
+    // que um reload possa tentar de novo e re-exibir o erro — senão a página
+    // ficaria presa no "Entrando…" para sempre, sem erro nem retry.
+    sessionStorage.removeItem(guardKey)
+    setError(err instanceof Error ? err.message : 'Não foi possível entrar com o link mágico.')
+  }
+}
+
+function MagicLoginError({ message, onBack }: { message: string; onBack: () => void }) {
+  return (
+    <div className="nl-page flex items-center justify-center p-4">
+      <div className="nl-card w-full max-w-md p-6 text-center">
+        <h1 className="mb-2 font-display text-xl font-bold text-nl-text">Falha no Login</h1>
+        <p className="mb-4 text-nl-muted">{message}</p>
+        <button type="button" onClick={onBack} className="nl-btn-primary w-full">
+          Voltar para o início
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function MagicLoginPending() {
+  return (
+    <div className="nl-page flex items-center justify-center p-4">
+      <div className="nl-card w-full max-w-md p-6 text-center">
+        <h1 className="mb-2 font-display text-xl font-bold text-nl-text">Entrando…</h1>
+        <p className="text-nl-muted">Validando seu link de acesso.</p>
+      </div>
+    </div>
+  )
+}
+
+export function MagicLogin() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { login } = useAuth()
+  const [error, setError] = useState('')
+  const hasProcessedRef = useRef(false)
+
+  useEffect(() => {
+    if (hasProcessedRef.current) {
+      return
+    }
+    hasProcessedRef.current = true
+
+    const token = searchParams.get('token')
+    if (!token) {
+      setError('Link inválido: token não encontrado.')
+      return
+    }
+
+    // Idempotência: cada magic link é single-use. Um reload/revisita da mesma URL
+    // no mesmo tab não pode reconsumir o token (o backend retornaria 400 e o
+    // usuário — já autenticado neste navegador — veria um falso "Falha no Login").
+    // O guard sobrevive a remontagem/reload; o hasProcessedRef cobre um único mount.
+    const guardKey = `magic_login:${token}`
+    if (sessionStorage.getItem(guardKey)) {
+      if (getStoredAuthToken()) {
+        navigate('/home', { replace: true })
+      }
+      return
+    }
+    sessionStorage.setItem(guardKey, '1')
+
+    void consumeMagicLinkToken(token, { guardKey, login, navigate, setError })
+  }, [searchParams, login, navigate])
+
+  if (error) {
+    return <MagicLoginError message={error} onBack={() => navigate('/', { replace: true })} />
+  }
+
+  return <MagicLoginPending />
+}
