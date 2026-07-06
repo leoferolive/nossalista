@@ -91,6 +91,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
+     * Re-executa a autenticação também no dispatch ASYNC, não só no REQUEST inicial.
+     *
+     * <p>Por padrão, {@link OncePerRequestFilter} pula dispatches async
+     * ({@code shouldNotFilterAsyncDispatch() == true}). O transporte MCP Streamable
+     * HTTP completa a resposta via {@code AsyncContext.dispatch()}, que redispara o
+     * {@code FilterChainProxy} inteiro (ver docs/DECISIONS.md D-023). Nesse segundo
+     * passo, como esta app é STATELESS (a identidade vem do header {@code Authorization}
+     * a cada requisição, não de sessão), pular a autenticação deixa o
+     * {@code SecurityContext} vazio — a requisição vira anônima e o
+     * {@code AuthorizationFilter} (que roda em todos os dispatch types) a nega com
+     * {@code AuthorizationDeniedException} sobre uma resposta SSE já commitada,
+     * virando 500 + conexão cortada. Re-autenticar no async (o header ainda está
+     * presente no mesmo request) restaura o contexto e o streaming completa.</p>
+     */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
+    /**
      * Constrói as authorities do usuário a partir do seu role.
      *
      * <p>O prefixo {@code ROLE_} é o convencionado pelo Spring Security para que
