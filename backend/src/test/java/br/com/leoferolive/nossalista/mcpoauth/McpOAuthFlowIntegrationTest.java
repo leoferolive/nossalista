@@ -181,8 +181,22 @@ class McpOAuthFlowIntegrationTest {
     private Map<String, String> fullyAuthorize(
         String sessionJwt, String clientId, String redirectUri, TokenScope scope, Pkce pkce
     ) {
+        return fullyAuthorizeRawScope(
+            sessionJwt, clientId, redirectUri, scope.name().toLowerCase(java.util.Locale.ROOT), scope, pkce);
+    }
+
+    /**
+     * Variante de {@link #fullyAuthorize} que envia o {@code scope} bruto na
+     * query string (ex.: {@code "read read_write"}, como o claude.ai realmente
+     * manda — RFC 6749 §3.3), permitindo verificar o escopo EFETIVO concedido
+     * separadamente do valor literal enviado.
+     */
+    private Map<String, String> fullyAuthorizeRawScope(
+        String sessionJwt, String clientId, String redirectUri, String rawScopeParam, TokenScope expectedScope,
+        Pkce pkce
+    ) {
         String state = "state-" + UUID.randomUUID();
-        URI uri = authorizeUri(clientId, redirectUri, scope.name().toLowerCase(java.util.Locale.ROOT), state,
+        URI uri = authorizeUri(clientId, redirectUri, rawScopeParam, state,
             pkce.challenge(), "S256", properties.getResource());
         ResponseEntity<Void> authorizeResponse = callAuthorize(uri);
         assertThat(authorizeResponse.getStatusCode().value()).isEqualTo(302);
@@ -199,7 +213,7 @@ class McpOAuthFlowIntegrationTest {
             .retrieve()
             .body(PendingAuthorizationView.class);
         assertThat(view.clientId()).isEqualTo(clientId);
-        assertThat(view.scope()).isEqualTo(scope);
+        assertThat(view.scope()).isEqualTo(expectedScope);
 
         ConsentDecisionResponse decision = restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
@@ -283,6 +297,26 @@ class McpOAuthFlowIntegrationTest {
         assertThat(tokens.accessToken()).isNotBlank();
         assertThat(tokens.refreshToken()).isNotBlank();
         assertThat(tokens.tokenType()).isEqualTo("Bearer");
+        assertThat(tokens.scope()).isEqualTo("read_write");
+
+        McpSyncClient client = connectedMcpClient(tokens.accessToken());
+        CallToolResult listResult = client.callTool(CallToolRequest.builder("list_my_lists").arguments(Map.of()).build());
+        assertThat(listResult.isError()).isNotEqualTo(Boolean.TRUE);
+    }
+
+    @Test
+    @DisplayName("fluxo completo com scope=\"read read_write\" (como o claude.ai envia, RFC 6749 §3.3): "
+        + "authorize -> consentimento -> code -> token -> chamada MCP real, escopo efetivo read_write")
+    void fullFlowAcceptsSpaceSeparatedScopeLikeClaudeAiAndGrantsReadWrite() {
+        User user = newUser();
+        Pkce pkce = newPkce();
+        Map<String, String> result = fullyAuthorizeRawScope(
+            sessionJwt(user), LOCAL_CLIENT_ID, LOCAL_REDIRECT_URI, "read read_write", TokenScope.READ_WRITE, pkce);
+
+        TokenResponse tokens = exchangeCode(
+            result.get("code"), LOCAL_REDIRECT_URI, LOCAL_CLIENT_ID, pkce.verifier(), properties.getResource());
+
+        assertThat(tokens.accessToken()).isNotBlank();
         assertThat(tokens.scope()).isEqualTo("read_write");
 
         McpSyncClient client = connectedMcpClient(tokens.accessToken());
