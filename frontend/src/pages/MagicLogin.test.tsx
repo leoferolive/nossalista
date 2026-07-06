@@ -95,4 +95,23 @@ describe('MagicLogin', () => {
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/home', { replace: true }))
     expect(screen.queryByText('Falha no Login')).not.toBeInTheDocument()
   })
+
+  it('falha genuína não trava a página: um reload tenta de novo e re-exibe o erro', async () => {
+    // Primeira visita: sem sessão, token inválido → erro exibido.
+    magicLoginMock.mockRejectedValue(new Error('Token expirado'))
+    // getStoredAuthToken já retorna null (default do beforeEach).
+
+    const { unmount } = renderAt('/magic-login?token=bad')
+    await waitFor(() => expect(screen.getByText(/token expirado/i)).toBeInTheDocument())
+    expect(magicLoginMock).toHaveBeenCalledTimes(1)
+    unmount()
+
+    // Reload: novo mount (hasProcessedRef reseta), MESMO token, ainda sem sessão.
+    // O guard NÃO pode engolir o retry — o token deve ser reconsumido e o erro
+    // re-exibido, em vez de a página ficar presa em "Entrando…".
+    renderAt('/magic-login?token=bad')
+    await waitFor(() => expect(magicLoginMock).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByText(/token expirado/i)).toBeInTheDocument())
+    expect(screen.queryByText('Entrando…')).not.toBeInTheDocument()
+  })
 })

@@ -5,6 +5,7 @@ import { authApi } from '../api/authApi'
 import { getStoredAuthToken, persistAuthToken } from '../auth/session'
 
 interface ConsumeMagicLinkDeps {
+  guardKey: string
   login: ReturnType<typeof useAuth>['login']
   navigate: ReturnType<typeof useNavigate>
   setError: (message: string) => void
@@ -12,7 +13,7 @@ interface ConsumeMagicLinkDeps {
 
 async function consumeMagicLinkToken(
   token: string,
-  { login, navigate, setError }: ConsumeMagicLinkDeps
+  { guardKey, login, navigate, setError }: ConsumeMagicLinkDeps
 ) {
   try {
     const data = await authApi.magicLogin(token)
@@ -34,6 +35,10 @@ async function consumeMagicLinkToken(
       navigate('/home', { replace: true })
       return
     }
+    // Falha genuína (token inválido/expirado, sem sessão): libera o guard para
+    // que um reload possa tentar de novo e re-exibir o erro — senão a página
+    // ficaria presa no "Entrando…" para sempre, sem erro nem retry.
+    sessionStorage.removeItem(guardKey)
     setError(err instanceof Error ? err.message : 'Não foi possível entrar com o link mágico.')
   }
 }
@@ -95,7 +100,7 @@ export function MagicLogin() {
     }
     sessionStorage.setItem(guardKey, '1')
 
-    void consumeMagicLinkToken(token, { login, navigate, setError })
+    void consumeMagicLinkToken(token, { guardKey, login, navigate, setError })
   }, [searchParams, login, navigate])
 
   if (error) {
