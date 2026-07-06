@@ -133,6 +133,19 @@ public class PersonalAccessTokenAuthenticationFilter extends OncePerRequestFilte
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Re-executa a autenticação também no dispatch ASYNC (streaming MCP). Ver a
+     * explicação completa em {@link JwtAuthenticationFilter#shouldNotFilterAsyncDispatch()}
+     * e docs/DECISIONS.md D-023: sem isto, o segundo passo pelo
+     * {@code AuthorizationFilter} durante o {@code AsyncContext.dispatch()} do
+     * transporte Streamable HTTP fica sem {@code SecurityContext} e nega um PAT
+     * válido, virando 500 sobre a resposta SSE.
+     */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     private void respondTooManyRequests(
         HttpServletRequest request,
         HttpServletResponse response
