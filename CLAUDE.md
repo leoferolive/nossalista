@@ -155,6 +155,7 @@ O pipeline usa `deploy-environment.yml` como único workflow reutilizável centr
 
 ```
 ci.yml (push/PR) ──────────────────────────────────────────── testes, lint, segurança
+osv-scanner.yml (PR/push main/cron) ───────────────────────── SCA de dependências
 
 release.yml (workflow_run após CI) ─── cria tag + release
                                     └─ gh workflow run deploy-on-tag.yml (GHCR_PAT)
@@ -174,6 +175,7 @@ rollback-prod.yml (manual) ─────────────────�
 - **`deploy-prod.yml`**: Deploy em prod, disparado manualmente via `workflow_dispatch` com uma tag semântica estável (valida formato `vX.Y.Z` e existência da tag antes do deploy). Sem gate de aprovação manual.
 - **`rollback-prod.yml`**: Rollback de prod para uma tag semântica estável **anterior**. Espelha o `deploy-prod.yml` (valida tag `vX.Y.Z`, reusa `deploy-environment.yml`) — só muda a semântica: reimplanta uma release já conhecida. Compartilha o `concurrency: group: deploy-prod` com o `deploy-prod.yml` para serializar operações em prod.
 - **`frontend-e2e-fullstack.yml`**: Suíte E2E navegador↔backend, hoje só por `workflow_dispatch` (cron noturno DESABILITADO por billing — ver abaixo). Possui notificação de falha (`if: failure()` abre issue rotulada `ci-failure` via `gh`) e cache dos browsers Playwright (`~/.cache/ms-playwright`, key por hash do `package-lock.json`).
+- **`osv-scanner.yml`**: SCA de dependências via **OSV-Scanner** (base OSV.dev), cobrindo backend (Maven, `backend/pom.xml`) e frontend (npm, `frontend/package-lock.json`) num único scan recursivo. Substitui o antigo OWASP dependency-check/NVD, removido por falhas espúrias de "cache frio" (ver `docs/DECISIONS.md` D-027 e issue #70). Em **PR** reporta só vulnerabilidades **novas** do diff; em **push na `main` + cron semanal** faz scan completo; publica **SARIF** na aba Security. Complementado por Dependabot (`.github/dependabot.yml`, Maven + npm + github-actions). Os demais checks de segurança (gitleaks, editorconfig-checker, Semgrep, `npm audit`, license-checker) seguem no job `security-and-compliance` do `ci.yml`. Fase de validação: **não** é required check em branch protection ainda (decisão do dono após comparar findings).
 - Todos os workflows de deploy publicam um `Deployment Summary` ao final da execução no GitHub Actions.
 - `tag` em workflows de deploy significa **tag da imagem implantada**; `ref` significa **ref do checkout que será reconstruído**.
 - O workflow de deploy aplica manifestos estruturais e depois força a imagem do Deployment com `kubectl set image`, além de registrar `deploy.nossalista/tag` e `deploy.nossalista/sha` via annotations.

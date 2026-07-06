@@ -195,7 +195,8 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
 
 - Frontend: ESLint, Prettier, Stylelint, TypeScript (`tsc --noEmit`), Vitest com coverage >= 80%, build, bundle budget e suite E2E Playwright `@pr` bloqueante.
 - Backend: `verify` com Checkstyle, PMD, SpotBugs, ArchUnit, JaCoCo (>= 80% linhas e >= 75% branches), build e suite de regressao.
-- Seguranca e compliance: EditorConfig check, gitleaks, semgrep, npm audit (high+), licencas e OWASP Dependency-Check.
+- Seguranca e compliance: EditorConfig check, gitleaks, semgrep, npm audit (high+) e licencas (job `security-and-compliance`).
+- SCA de dependencias: OSV-Scanner (`osv-scanner.yml`) cobre backend (Maven) e frontend (npm); em PR reporta so vulnerabilidades novas, em push na `main`/cron semanal faz scan completo e publica SARIF na aba Security. Substituiu o OWASP Dependency-Check/NVD (ver `docs/DECISIONS.md` D-027, issue #70). Em fase de validacao: ainda nao e required check.
 - Smoke backend: subida do jar com profile `ci` e validacao de `/actuator/health`.
 - Full-stack E2E: workflow `frontend-e2e-fullstack.yml` roda diariamente (06:00 UTC / 03:00 America/Sao_Paulo) e tambem via `workflow_dispatch`.
 

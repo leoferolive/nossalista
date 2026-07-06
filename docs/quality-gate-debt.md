@@ -67,8 +67,13 @@ em `frontend/eslint.config.js` (último bloco do array exportado).
 
 ## Remediação de CVEs — gate `security-and-compliance` (registrada em 2026-06-10)
 
-Override de versões no `backend/pom.xml` para passar o OWASP dependency-check
-(`failBuildOnCVSS=7`). Detalhe arquitetural em `docs/DECISIONS.md` (D-013, D-019).
+> **Nota (2026-07-06):** o SCA de dependências migrou do OWASP dependency-check/NVD
+> para o **OSV-Scanner** (ver **D-027** e issue #70). Os overrides de versão abaixo
+> continuam válidos (corrigem o CVE na dependência resolvida, independente do scanner);
+> as menções ao "dependency-check"/"Feed NVD" nesta seção são registro histórico.
+
+Override de versões no `backend/pom.xml` para passar o gate de vulnerabilidades. Detalhe
+arquitetural em `docs/DECISIONS.md` (D-013, D-019).
 
 | Dependência | De → Para | Mecanismo no pom | CVEs corrigidas | Status |
 |---|---|---|---|---|

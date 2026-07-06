@@ -45,7 +45,7 @@ Resumo:
 
 O gate **NÃO** mede:
 
-- **Segurança runtime** (SQLi, XSS, auth bypass) — coberto parcialmente por Semgrep/OWASP-DC no CI.
+- **Segurança runtime** (SQLi, XSS, auth bypass) — coberto parcialmente por Semgrep no CI.
 - **Performance** (latência, throughput, N+1 queries) — exige observabilidade.
 - **Race conditions / concorrência** — não há análise estática confiável.
 - **Memory leaks** — exige profiling.
@@ -76,7 +76,10 @@ O PMD 7 removeu essas duas regras e as unificou em `NcssCount`, que conta
 statements (não linhas brutas). Os thresholds (`methodReportLevel=40`,
 `classReportLevel=250`) foram calibrados para o equivalente do plano original.
 
-**Por que `dependency-check` está skipado no run local?**
-O OWASP Dependency-Check requer `NVD_API_KEY` (rate-limited sem chave) e o
-download da base de CVEs leva minutos no primeiro run. Ele continua rodando
-no CI; localmente, `./scripts/quality.sh` o pula via `-Ddependency-check.skip=true`.
+**Onde roda o scan de vulnerabilidades de dependências (SCA)?**
+No CI, via **OSV-Scanner** (`.github/workflows/osv-scanner.yml`), que consulta a
+base agregada do OSV.dev e cobre backend (Maven) e frontend (npm) num único passo.
+O antigo OWASP Dependency-Check/NVD foi removido — exigia `NVD_API_KEY` e baixar a
+base inteira da NVD, o que causava falhas espúrias de "cache frio" no CI. Ver
+**D-027** em `docs/DECISIONS.md` e a issue #70. O run local (`./scripts/quality.sh`)
+não faz SCA.

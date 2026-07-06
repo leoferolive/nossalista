@@ -19,8 +19,9 @@ if [[ "$MODE" == "pre-commit" ]]; then
     exit 0
 fi
 
-# full: roda tudo (skip dep-check local — requer NVD API key, lento, roda no CI)
-./mvnw -q -P strict-quality verify -DskipITs -Ddependency-check.skip=true
+# full: roda tudo. O scan de vulnerabilidades de dependencias (SCA) roda no CI
+# via OSV-Scanner (.github/workflows/osv-scanner.yml), nao no Maven local.
+./mvnw -q -P strict-quality verify -DskipITs
 
 # O caminho do XML do JaCoCo depende da config do plugin no pom.xml; tentamos os dois locais comuns.
 JACOCO_XML="$BACKEND_DIR/target/site/jacoco/jacoco.xml"

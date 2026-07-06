@@ -1253,3 +1253,57 @@
   negacoes de `/mcp` (via `ClientIpResolver`) para observabilidade — os logs de producao
   ficam suprimidos em `prod` (`org.springframework.security: WARN`), o que dificultou a
   investigacao. Fica como melhoria separada para nao misturar com o fix.
+
+## D-027 Trocar OWASP dependency-check/NVD por OSV-Scanner (SCA de dependencias)
+
+- **Contexto:** o job `security-and-compliance` do CI falhava de forma espuria e recorrente
+  com `Banco NVD ausente no cache (cache frio)` MESMO quando o workflow `nvd-cache-warmer.yml`
+  concluia com `success` (re-disparado 4+ vezes sem sucesso nos PRs #66 e #68, mergeados com
+  override admin por o check ser comprovadamente nao relacionado ao codigo). Ver issue #70.
+- **Causa-raiz:** a abordagem "baixar/cachear a NVD inteira" do `org.owasp:dependency-check-maven`
+  e estruturalmente fragil no GitHub Actions. Dois fatores combinados: (1) o cache de Actions e
+  best-effort, com escopo por branch/chave e janela de propagacao — nao ha garantia de leitura
+  imediata pos-escrita entre o job que semeia (warmer no `main`) e o que consome (PR); (2) o
+  plugin precisa manter atualizada a base INTEIRA da NVD (~363k registros), e a API do NVD sofre
+  com rate limiting/instabilidade, tornando o "warm" lento e fragil. O guard de "fail rapido se
+  cache frio" na pratica falhava rapido quase sempre — por infraestrutura de dados, nao por
+  vulnerabilidade real. Toda a complexidade acidental (workflow warmer, chave de cache por data,
+  `NVD_API_KEY`, guard de `*.mv.db`) nao agregava valor de seguranca. Isso REVERTE o mecanismo
+  da D-021, cuja causa-raiz (cache frio) so foi de fato eliminada trocando a ferramenta.
+- **Decisao:** adotar o **OSV-Scanner** (Google, base OSV.dev) como scanner primario de
+  dependencias, em `.github/workflows/osv-scanner.yml`, usando os reusable workflows oficiais:
+  - **PR** (`osv-scanner-reusable-pr.yml`): compara o scan antes/depois e reporta apenas
+    vulnerabilidades **novas** introduzidas pelo diff — nao bloqueia por divida legada.
+  - **Completo** (`osv-scanner-reusable.yml`): em push na `main` + cron semanal (segunda
+    12:30 UTC), pega CVEs divulgadas apos o merge.
+  - Scan recursivo (`-r ./`, default) cobre os DOIS ecossistemas: `backend/pom.xml` (Maven) e
+    `frontend/package-lock.json` (npm) num unico passo.
+  - **SARIF** publicado na aba Security (`upload-sarif`, default true), com `permissions:
+    security-events: write`.
+- **Por que OSV-Scanner (e nao Trivy/Grype/dependency-review/Snyk):** elimina a causa-raiz (nao
+  baixa/cacheia a NVD, consulta base agregada leve por ecossistema → acaba o cache frio e o rate
+  limit do NVD); cobre Maven + npm com baixo falso-positivo em lockfiles; gratis (Apache-2.0),
+  sem API key nem infra de cache; integracao GH Actions oficial com modo PR-diff. Trivy/Grype
+  brilham em imagem de container/OS (ficam como opcao futura para a imagem do GHCR);
+  `dependency-review-action` exigiria GHAS para gate em repo privado; Snyk e comercial e exige
+  token. Analise completa na issue #70.
+- **Removido:** o plugin `org.owasp:dependency-check-maven` e a property `dependency.check.version`
+  do `backend/pom.xml`; o `backend/dependency-check-suppressions.xml`; o workflow
+  `nvd-cache-warmer.yml`; as etapas de NVD (restore de cache, guard "Verificar banco NVD",
+  "Backend dependency check") do job `security-and-compliance`; a flag `-Ddependency-check.skip=true`
+  (agora obsoleta) em `scripts/quality/run-backend.sh`, `ci.yml` e docs. Os DEMAIS checks do job
+  `security-and-compliance` (gitleaks, editorconfig-checker, Semgrep, `npm audit`, license-checker)
+  ficam **inalterados**. Removido tambem o `backend/package-lock.json`/`backend/package.json`
+  residuais (deps de teste de frontend num modulo Java, referenciados por nada) — antes suprimidos
+  no dependency-check, seriam falso-positivo no scan recursivo do OSV.
+- **Camada nativa complementar:** `.github/dependabot.yml` (ja presente) mantem alerts +
+  security updates para `maven` (/backend), `npm` (/frontend) e `github-actions` (/), semanal.
+- **Fase de validacao (nao-bloqueante):** o gate OSV roda e reporta, mas NAO e um required check
+  em branch protection ainda. `fail-on-vuln` default (true) faz o check falhar quando acha vuln
+  nova, mas a obrigatoriedade e decisao de branch protection do dono — apos comparar os findings
+  com o historico do dependency-check, remover o antigo `security-and-compliance` das required
+  checks e adicionar o novo. Ver issue #70.
+- **Nota de path do reusable workflow:** a issue #70 referencia
+  `google/osv-scanner/.github/workflows/...`; o path oficial atual (v2.x) e
+  `google/osv-scanner-action/.github/workflows/...` (a action migrou de repo). Fixado em
+  `@v2.3.8`.
