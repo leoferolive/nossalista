@@ -233,7 +233,7 @@ export function LoginModal({
           disabled={magicLoading}
           className="text-sm font-semibold text-nl-accent"
         >
-          {magicLoading ? 'Enviando…' : 'Entrar com link mágico'}
+          {magicLoading ? 'Enviando…' : 'Enviar link mágico'}
         </button>
       </form>
 

@@ -155,4 +155,20 @@ class MagicLinkServiceTest {
             .isInstanceOf(InvalidMagicLinkTokenException.class);
         verify(userService, never()).markEmailVerified(any());
     }
+
+    @Test
+    @DisplayName("consume lança se o usuário do token não existe mais")
+    void consumeThrowsWhenUserMissing() {
+        UUID userId = UUID.randomUUID();
+        MagicLinkToken token = new MagicLinkToken();
+        token.setUserId(userId);
+        token.setToken("orphan");
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+        token.setUsed(false);
+        when(tokenRepository.findByTokenAndUsedFalse("orphan")).thenReturn(Optional.of(token));
+        when(userService.findById(userId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> magicLinkService.consume("orphan"))
+            .isInstanceOf(InvalidMagicLinkTokenException.class);
+    }
 }
