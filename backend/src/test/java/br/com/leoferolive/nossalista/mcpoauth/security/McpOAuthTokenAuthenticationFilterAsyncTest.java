@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Garante que o filtro do access token OAuth do MCP re-executa no dispatch ASYNC
- * (fix de D-025) — o caminho de auth mais critico para o {@code /mcp}. Ver
+ * (fix de D-026) — o caminho de auth mais critico para o {@code /mcp}. Ver
  * {@code AuthFilterAsyncDispatchTest} (config) e {@code AsyncDispatchReauthenticationTest}
  * para o contexto completo do bug.
  */

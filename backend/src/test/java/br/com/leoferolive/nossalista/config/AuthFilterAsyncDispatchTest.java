@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Garante que os filtros de autenticacao re-executam no dispatch ASYNC (fix de
- * D-025): {@code shouldNotFilterAsyncDispatch()} deve retornar {@code false}, sem
+ * D-026): {@code shouldNotFilterAsyncDispatch()} deve retornar {@code false}, sem
  * o que o segundo passo do {@code AsyncContext.dispatch()} do transporte MCP
  * Streamable HTTP fica sem {@code SecurityContext} e nega o token valido.
  *
