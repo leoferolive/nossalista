@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { authApi } from '../api/authApi'
-import { persistAuthToken } from '../auth/session'
+import { getStoredAuthToken, persistAuthToken } from '../auth/session'
 
 interface ConsumeMagicLinkDeps {
   login: ReturnType<typeof useAuth>['login']
@@ -27,6 +27,13 @@ async function consumeMagicLinkToken(
     })
     navigate('/home', { replace: true })
   } catch (err) {
+    // Se uma consumção anterior/duplicada do MESMO token já autenticou este
+    // navegador (token presente), o 400 "token já usado" é esperado e benigno:
+    // NÃO mostrar erro — apenas seguir para a home.
+    if (getStoredAuthToken()) {
+      navigate('/home', { replace: true })
+      return
+    }
     setError(err instanceof Error ? err.message : 'Não foi possível entrar com o link mágico.')
   }
 }
@@ -74,6 +81,19 @@ export function MagicLogin() {
       setError('Link inválido: token não encontrado.')
       return
     }
+
+    // Idempotência: cada magic link é single-use. Um reload/revisita da mesma URL
+    // no mesmo tab não pode reconsumir o token (o backend retornaria 400 e o
+    // usuário — já autenticado neste navegador — veria um falso "Falha no Login").
+    // O guard sobrevive a remontagem/reload; o hasProcessedRef cobre um único mount.
+    const guardKey = `magic_login:${token}`
+    if (sessionStorage.getItem(guardKey)) {
+      if (getStoredAuthToken()) {
+        navigate('/home', { replace: true })
+      }
+      return
+    }
+    sessionStorage.setItem(guardKey, '1')
 
     void consumeMagicLinkToken(token, { login, navigate, setError })
   }, [searchParams, login, navigate])

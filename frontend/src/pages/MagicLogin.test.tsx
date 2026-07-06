@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { MagicLogin } from './MagicLogin'
+import { persistAuthToken, getStoredAuthToken } from '../auth/session'
 
 const navigateMock = vi.fn()
 const loginMock = vi.fn()
@@ -13,6 +14,10 @@ vi.mock('react-router-dom', async () => {
 })
 vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ login: loginMock }) }))
 vi.mock('../api/authApi', () => ({ authApi: { magicLogin: (t: string) => magicLoginMock(t) } }))
+vi.mock('../auth/session', () => ({
+  persistAuthToken: vi.fn(),
+  getStoredAuthToken: vi.fn(() => null),
+}))
 
 function renderAt(path: string) {
   return render(
@@ -29,7 +34,10 @@ describe('MagicLogin', () => {
     navigateMock.mockReset()
     loginMock.mockReset()
     magicLoginMock.mockReset()
+    vi.mocked(persistAuthToken).mockReset()
+    vi.mocked(getStoredAuthToken).mockReset().mockReturnValue(null)
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   it('consome o token, loga e redireciona para /home', async () => {
@@ -63,5 +71,28 @@ describe('MagicLogin', () => {
     magicLoginMock.mockRejectedValue(new Error('Token expirado'))
     renderAt('/magic-login?token=bad')
     await waitFor(() => expect(screen.getByText(/token expirado/i)).toBeInTheDocument())
+  })
+
+  it('no reload após sucesso: não reconsome o token e vai para /home', async () => {
+    // Guard do sessionStorage já marcado (consumo anterior) + sessão já autenticada.
+    sessionStorage.setItem('magic_login:abc', '1')
+    vi.mocked(getStoredAuthToken).mockReturnValue('jwt-ja-salvo')
+
+    renderAt('/magic-login?token=abc')
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/home', { replace: true }))
+    expect(magicLoginMock).not.toHaveBeenCalled()
+    expect(screen.queryByText('Falha no Login')).not.toBeInTheDocument()
+  })
+
+  it('token já consumido mas navegador já autenticado: vai para /home sem erro', async () => {
+    // O magicLogin falha (token single-use já usado), mas já há sessão no browser.
+    magicLoginMock.mockRejectedValue(new Error('Token inválido ou já utilizado'))
+    vi.mocked(getStoredAuthToken).mockReturnValue('jwt-ja-salvo')
+
+    renderAt('/magic-login?token=dup')
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/home', { replace: true }))
+    expect(screen.queryByText('Falha no Login')).not.toBeInTheDocument()
   })
 })
