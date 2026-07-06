@@ -18,4 +18,16 @@ Suppress until the file is removed from the repository.
         <filePath regex="true">.*package-lock\.json.*</filePath>
         <vulnerabilityName regex="true">^(CVE|GHSA)-.*$</vulnerabilityName>
     </suppress>
+    <suppress>
+        <notes><![CDATA[
+Falso positivo de CPE. CVE-2026-54399 (DoS no parser HTTP/1.1) afeta o Apache
+HttpComponents Core 5.x (httpcore5, "5.4.2 and earlier"), um code-base distinto.
+O projeto usa httpcore/httpcore-nio 4.4.16 (linha 4.x, EOL), trazido transitivamente
+por nl.martijndwars:web-push:5.1.1 -> httpasyncclient:4.1.5. O dependency-check
+casou por CPE impreciso entre as duas linhas major (httpcomponents_core 4.x vs 5.x).
+Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-54399
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.httpcomponents/httpcore(-nio)?@4\.4\.16$</packageUrl>
+        <cve>CVE-2026-54399</cve>
+    </suppress>
 </suppressions>
