@@ -203,7 +203,10 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.80</version>
+            <!-- 1.84: corrige GHSA-574f-3g2m-x479 (Critical, CVSS 9.3) e
+                 GHSA-c3fc-8qff-9hwx (Medium). Pinado direto para sobrescrever o
+                 transitivo do web-push. Ver PR de bump de seguranca (OSV-Scanner). -->
+            <version>1.84</version>
         </dependency>
 
         <!-- SpringDoc OpenAPI (Swagger) -->
