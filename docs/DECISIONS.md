@@ -1298,11 +1298,12 @@
   no dependency-check, seriam falso-positivo no scan recursivo do OSV.
 - **Camada nativa complementar:** `.github/dependabot.yml` (ja presente) mantem alerts +
   security updates para `maven` (/backend), `npm` (/frontend) e `github-actions` (/), semanal.
-- **Fase de validacao (nao-bloqueante):** o gate OSV roda e reporta, mas NAO e um required check
-  em branch protection ainda. `fail-on-vuln` default (true) faz o check falhar quando acha vuln
-  nova, mas a obrigatoriedade e decisao de branch protection do dono — apos comparar os findings
-  com o historico do dependency-check, remover o antigo `security-and-compliance` das required
-  checks e adicionar o novo. Ver issue #70.
+- **Gate obrigatorio (branch protection):** o check `scan-pr / osv-scan` foi adicionado aos
+  required status checks do `main` (junto do `security-and-compliance` ja existente; `strict`
+  mantido) — nenhum PR mergeia sem o scan OSV de PR verde. `fail-on-vuln` default (true) reprova
+  o check ao achar vulnerabilidade nova. O secret `NVD_API_KEY` foi removido (nenhum workflow
+  usa mais). **Caveat:** PRs que modificam `.github/workflows/` nao disparam workflows, entao o
+  required check nao reporta e o merge exige `--admin` (foi o caso do #72). Ver issue #70.
 - **Nota de path do reusable workflow:** a issue #70 referencia
   `google/osv-scanner/.github/workflows/...`; o path oficial atual (v2.x) e
   `google/osv-scanner-action/.github/workflows/...` (a action migrou de repo). Fixado em
