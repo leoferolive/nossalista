@@ -14,8 +14,7 @@ Este documento define os gates obrigatorios de qualidade do backend.
 - **ArchUnit**: validacao de regras arquiteturais em testes.
 - **Cobertura JaCoCo**: minimo de **80% em linhas** e **75% em branches** no bundle monitorado.
 - **Suíte de regressao**: testes criticos marcados com `@RegressionTest`.
-- **SCA / OWASP Dependency-Check**: dependencias com CVEs bloqueantes falham o pipeline. Em Spring Boot 4, manter o SpringDoc na linha **3.x**; a linha `2.8.x` nao e compativel com Boot 4 e quebra a inicializacao dos testes.
-- **Supressoes de SCA**: registrar em `backend/dependency-check-suppressions.xml` somente com justificativa objetiva, prazo de remocao e referencia ao fornecedor upstream. Hoje a unica supressao ativa cobre CVEs de dependencias npm transitivas detectadas via `backend/package-lock.json` residual (o backend e Java/Maven; remover o arquivo elimina a supressao). As supressoes de `CVE-2026-29062` (Jackson 3.0.4) e dos CVEs de DOMPurify do swagger-ui foram removidas em 2026-06-03 porque os bumps abaixo as tornaram obsoletas.
+- **SCA de dependencias**: roda no CI via **OSV-Scanner** (`.github/workflows/osv-scanner.yml`, base OSV.dev), **nao** no Maven local. Substituiu o OWASP Dependency-Check/NVD, removido por falhas espurias de "cache frio" (ver `docs/DECISIONS.md` D-027 e issue #70). Em Spring Boot 4, manter o SpringDoc na linha **3.x**; a linha `2.8.x` nao e compativel com Boot 4 e quebra a inicializacao dos testes. CVEs bloqueantes se resolvem por bump de versao no `pom.xml` (ver `docs/quality-gate-debt.md`), nao mais por arquivo de supressao.
 - **Baseline de versoes (bump de seguranca 2026-06-03)**: Spring Boot `4.0.6` (BOM sobe spring-framework `7.0.7`, spring-security `7.0.5`, tomcat `11.0.21`, jackson `3.1.2`); overrides via `<properties>`: tomcat `11.0.22`, netty `4.2.15.Final`, postgresql `42.7.11`; swagger-ui `5.32.6` (DOMPurify `3.4.0`). Esse conjunto zera os CVEs CVSS>=7 do gate sem novas supressoes.
 
 ## Comandos principais
@@ -26,11 +25,8 @@ Este documento define os gates obrigatorios de qualidade do backend.
 ./mvnw -B -Pstrict-quality verify
 ```
 
-- Executar gate sem SCA (rodada local rapida):
-
-```bash
-./mvnw -B -Pstrict-quality -Ddependency-check.skip=true verify
-```
+> O gate local (`verify`) nao roda SCA de dependencias — isso e feito no CI pelo
+> OSV-Scanner (`osv-scanner.yml`).
 
 - Executar apenas regressao:
 

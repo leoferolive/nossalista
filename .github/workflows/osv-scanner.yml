@@ -1,0 +1,44 @@
+name: OSV-Scanner
+
+# Scan de vulnerabilidades de dependencias (SCA) via OSV-Scanner (OSV.dev).
+# Substitui o antigo OWASP dependency-check/NVD: nao baixa nem cacheia a NVD
+# inteira (fim do "cache frio"), consulta a base agregada leve do OSV.dev e cobre
+# os DOIS ecossistemas do monorepo num unico passo — o scan recursivo (`-r ./`,
+# default do reusable workflow) descobre `backend/pom.xml` e
+# `frontend/package-lock.json` automaticamente. Ver docs/DECISIONS.md D-027 e a
+# issue #70.
+#
+# FASE DE VALIDACAO (nao-bloqueante): os jobs rodam e reportam (SARIF na aba
+# Security), mas NAO estao em branch protection como required check. Tornar
+# obrigatorio e uma decisao do dono, apos comparar os findings com o historico.
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # segunda-feira 12:30 UTC (09:30 America/Sao_Paulo) — pega CVEs divulgadas
+    # apos o merge, sem depender de um novo push.
+    - cron: "30 12 * * 1"
+
+permissions:
+  # actions: read + security-events: write sao exigidos para publicar o SARIF na
+  # aba Security (Code Scanning). contents: read para o checkout.
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  # PR: escaneia o diff e reporta apenas vulnerabilidades NOVAS introduzidas pela
+  # PR — nao bloqueia por divida legada ja presente na base.
+  scan-pr:
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.8"
+
+  # main + cron semanal: scan completo do repositorio (todas as dependencias).
+  scan-scheduled:
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.8"
