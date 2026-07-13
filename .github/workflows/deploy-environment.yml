@@ -152,6 +152,22 @@ jobs:
           echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
 
+      # Os manifestos versionados trazem a tag placeholder `bootstrap` no campo
+      # image (ver k8s/{prod,dev}/deployment.yaml) — não há templating no fluxo
+      # de deploy. Sem este step, o `kubectl apply` sobe um ReplicaSet com essa
+      # tag inexistente no GHCR (ImagePullBackOff/404) até o `kubectl set image`
+      # rodar logo abaixo, criando uma janela de ~1min com pod quebrado a cada
+      # deploy. Reescrevemos a tag para a imagem real ANTES do apply, usando o
+      # mesmo IMAGE_REPOSITORY/IMAGE_URI que o step "Atualizar imagem e metadata
+      # do deployment" já usa. O `kubectl set image` seguinte vira no-op inofensivo.
+      - name: Injetar tag real da imagem no manifesto
+        run: |
+          set -euo pipefail
+          MANIFEST="${{ inputs.environment == 'prod' && './k8s/prod/deployment.yaml' || './k8s/dev/deployment.yaml' }}"
+          IMAGE_REPOSITORY="${{ needs.prepare.outputs.image_repository }}"
+          IMAGE_URI="${{ needs.prepare.outputs.image_uri }}"
+          sed -i "s|${IMAGE_REPOSITORY}:bootstrap|${IMAGE_URI}|" "$MANIFEST"
+
       - name: Aplicar manifestos Kubernetes
         run: kubectl apply -f ${{ inputs.environment == 'prod' && './k8s/prod' || './k8s/dev' }}
 
