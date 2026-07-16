@@ -39,19 +39,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Prova, com Spring real (transações e banco reais, sem simular a colisão),
- * que o retry manual de {@link ListItemService#addItem} (ver
- * {@code insertItemWithPositionRetry}) fecha a race de {@code position}
- * deixada pela Onda 1: N chamadas concorrentes de {@code addItem} na MESMA
- * lista devem resultar em N itens com positions únicas e contíguas
- * (0..N-1), sem propagar exceção a nenhum chamador — mesmo quando duas ou
- * mais threads leem o mesmo {@code maxPosition} antes de qualquer uma
- * commitar (a violação da constraint {@code uq_list_items_list_position},
- * migration V18, é capturada e vira uma nova tentativa transparente).
+ * que o retry manual de {@link ListItemService#addItem} fecha a race de
+ * {@code position} deixada pela Onda 1: N chamadas concorrentes de
+ * {@code addItem} na MESMA lista devem resultar em N itens com positions
+ * únicas e contíguas (0..N-1), sem propagar exceção a nenhum chamador —
+ * mesmo quando duas ou mais threads leem o mesmo {@code maxPosition} antes
+ * de qualquer uma commitar (a violação da constraint
+ * {@code uq_list_items_list_position}, migration V18, é capturada e vira
+ * uma nova tentativa transparente).
  *
  * <p>Cada task chama {@code listItemService.addItem(...)} diretamente no
- * bean real injetado pelo Spring — o proxy {@code @Transactional} do método
- * abre sua própria transação de topo por chamada, simulando N requisições
- * HTTP concorrentes de {@code add_items} na mesma lista.
+ * bean real injetado pelo Spring. {@code addItem} NÃO é {@code @Transactional}
+ * de método: ele roda cada tentativa da unidade de trabalho inteira (via o
+ * método interno {@code addItemInOwnTransaction}) numa transação de topo
+ * própria, aberta por um {@code TransactionTemplate}. Assim cada chamada
+ * simula uma requisição HTTP concorrente de {@code add_items} na mesma
+ * lista, com sua própria transação.
  *
  * <p><b>Nota sobre determinismo:</b> como o teste não instrumenta o código
  * de produção para forçar o entrelaçamento exato das leituras de
