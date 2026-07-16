@@ -37,8 +37,24 @@ const baseJoinList = {
   ownerName: 'Leo',
   ownerAvatarUrl: null,
   items: [
-    { id: 'item-1', name: 'Arroz', checked: false, quantity: 2, dueDate: null, url: null, position: 0 },
-    { id: 'item-2', name: 'Feijao', checked: true, quantity: null, dueDate: null, url: null, position: 1 },
+    {
+      id: 'item-1',
+      name: 'Arroz',
+      checked: false,
+      quantity: 2,
+      dueDate: null,
+      url: null,
+      position: 0,
+    },
+    {
+      id: 'item-2',
+      name: 'Feijao',
+      checked: true,
+      quantity: null,
+      dueDate: null,
+      url: null,
+      position: 1,
+    },
   ],
   inviteCode: 'abc123',
   expiresAt: '2099-01-01T00:00:00.000Z',
@@ -103,7 +119,9 @@ describe('JoinListPage', () => {
   })
 
   it('mostra tela de convite nao encontrado em erro 404', async () => {
-    vi.mocked(listsApi.getListByInviteCode).mockRejectedValueOnce(new ApiError('Nao encontrado', 404))
+    vi.mocked(listsApi.getListByInviteCode).mockRejectedValueOnce(
+      new ApiError('Nao encontrado', 404)
+    )
 
     renderJoinListPage()
 

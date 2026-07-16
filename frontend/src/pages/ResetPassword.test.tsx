@@ -86,9 +86,7 @@ describe('ResetPassword page', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Redefinir senha' }))
 
-    await waitFor(() =>
-      expect(authApi.resetPassword).toHaveBeenCalledWith('abc123', 'segredo1')
-    )
+    await waitFor(() => expect(authApi.resetPassword).toHaveBeenCalledWith('abc123', 'segredo1'))
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith('/?auth=login&reset=1', { replace: true })
     )

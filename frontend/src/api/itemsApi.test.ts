@@ -30,7 +30,13 @@ function buildAxiosError(status: number): AxiosError {
     data: { detail: 'Falhou' },
   } as AxiosResponse
 
-  return new AxiosError(`Request failed with status code ${status}`, String(status), response.config, undefined, response)
+  return new AxiosError(
+    `Request failed with status code ${status}`,
+    String(status),
+    response.config,
+    undefined,
+    response
+  )
 }
 
 describe('itemsApi', () => {
@@ -59,7 +65,11 @@ describe('itemsApi', () => {
     const result = await itemsApi.addItem('list-1', { name: 'Arroz' })
 
     expect(result).toEqual(created)
-    expect(client.post).toHaveBeenCalledWith('/api/lists/list-1/items', { name: 'Arroz' }, expect.any(Object))
+    expect(client.post).toHaveBeenCalledWith(
+      '/api/lists/list-1/items',
+      { name: 'Arroz' },
+      expect.any(Object)
+    )
   })
 
   it('addItem propaga ApiError quando a request falha', async () => {
@@ -83,7 +93,9 @@ describe('itemsApi', () => {
   it('toggleItemCheck propaga ApiError quando a request falha', async () => {
     vi.spyOn(client, 'patch').mockRejectedValueOnce(buildAxiosError(404))
 
-    await expect(itemsApi.toggleItemCheck('list-1', 'item-1')).rejects.toMatchObject({ status: 404 })
+    await expect(itemsApi.toggleItemCheck('list-1', 'item-1')).rejects.toMatchObject({
+      status: 404,
+    })
   })
 
   it('updateItem atualiza um item existente', async () => {

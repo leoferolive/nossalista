@@ -13,7 +13,13 @@ function buildAxiosError(status: number): AxiosError {
     data: { detail: 'Falhou' },
   } as AxiosResponse
 
-  return new AxiosError(`Request failed with status code ${status}`, String(status), response.config, undefined, response)
+  return new AxiosError(
+    `Request failed with status code ${status}`,
+    String(status),
+    response.config,
+    undefined,
+    response
+  )
 }
 
 describe('listsApi', () => {
@@ -26,7 +32,11 @@ describe('listsApi', () => {
     vi.spyOn(client, 'post').mockResolvedValueOnce({ data: created } as AxiosResponse)
 
     await expect(listsApi.createList({ name: 'Mercado', typeId: 1 })).resolves.toEqual(created)
-    expect(client.post).toHaveBeenCalledWith('/api/lists', { name: 'Mercado', typeId: 1 }, expect.any(Object))
+    expect(client.post).toHaveBeenCalledWith(
+      '/api/lists',
+      { name: 'Mercado', typeId: 1 },
+      expect.any(Object)
+    )
   })
 
   it('getAllLists retorna as listas do usuario', async () => {
@@ -51,7 +61,12 @@ describe('listsApi', () => {
   })
 
   it('getListState retorna a revision atual da lista', async () => {
-    const state = { listId: 'list-1', revision: 3, updatedAt: '2026-01-01T00:00:00Z', itemsCount: 2 }
+    const state = {
+      listId: 'list-1',
+      revision: 3,
+      updatedAt: '2026-01-01T00:00:00Z',
+      itemsCount: 2,
+    }
     vi.spyOn(client, 'get').mockResolvedValueOnce({ data: state } as AxiosResponse)
 
     await expect(listsApi.getListState('list-1')).resolves.toEqual(state)
@@ -68,7 +83,11 @@ describe('listsApi', () => {
     vi.spyOn(client, 'patch').mockResolvedValueOnce({ data: updated } as AxiosResponse)
 
     await expect(listsApi.updateListName('list-1', 'Novo nome')).resolves.toEqual(updated)
-    expect(client.patch).toHaveBeenCalledWith('/api/lists/list-1', { name: 'Novo nome' }, expect.any(Object))
+    expect(client.patch).toHaveBeenCalledWith(
+      '/api/lists/list-1',
+      { name: 'Novo nome' },
+      expect.any(Object)
+    )
   })
 
   it('updateListName propaga ApiError quando a request falha', async () => {
@@ -92,7 +111,11 @@ describe('listsApi', () => {
   })
 
   it('generateInviteLink retorna um link de convite', async () => {
-    const invite = { inviteCode: 'abc123', inviteLink: '/join/abc123', expiresAt: '2026-01-02T00:00:00Z' }
+    const invite = {
+      inviteCode: 'abc123',
+      inviteLink: '/join/abc123',
+      expiresAt: '2026-01-02T00:00:00Z',
+    }
     vi.spyOn(client, 'post').mockResolvedValueOnce({ data: invite } as AxiosResponse)
 
     await expect(listsApi.generateInviteLink('list-1')).resolves.toEqual(invite)
@@ -123,7 +146,11 @@ describe('listsApi', () => {
     vi.spyOn(client, 'post').mockResolvedValueOnce({ data: joined } as AxiosResponse)
 
     await expect(listsApi.joinList('abc123')).resolves.toEqual(joined)
-    expect(client.post).toHaveBeenCalledWith('/api/lists/join/abc123', undefined, expect.any(Object))
+    expect(client.post).toHaveBeenCalledWith(
+      '/api/lists/join/abc123',
+      undefined,
+      expect.any(Object)
+    )
   })
 
   it('joinList propaga ApiError quando o convite expirou', async () => {
@@ -137,7 +164,10 @@ describe('listsApi', () => {
     vi.spyOn(client, 'get').mockResolvedValueOnce({ data: users } as AxiosResponse)
 
     await expect(listsApi.searchUsers('leo')).resolves.toEqual(users)
-    expect(client.get).toHaveBeenCalledWith('/api/users/search', expect.objectContaining({ params: { q: 'leo' } }))
+    expect(client.get).toHaveBeenCalledWith(
+      '/api/users/search',
+      expect.objectContaining({ params: { q: 'leo' } })
+    )
   })
 
   it('searchUsers propaga ApiError quando a request falha', async () => {
@@ -151,13 +181,19 @@ describe('listsApi', () => {
     vi.spyOn(client, 'post').mockResolvedValueOnce({ data: response } as AxiosResponse)
 
     await expect(listsApi.inviteByUsername('list-1', 'leo')).resolves.toEqual(response)
-    expect(client.post).toHaveBeenCalledWith('/api/lists/list-1/invite', { username: 'leo' }, expect.any(Object))
+    expect(client.post).toHaveBeenCalledWith(
+      '/api/lists/list-1/invite',
+      { username: 'leo' },
+      expect.any(Object)
+    )
   })
 
   it('inviteByUsername propaga ApiError quando o usuario nao existe', async () => {
     vi.spyOn(client, 'post').mockRejectedValueOnce(buildAxiosError(404))
 
-    await expect(listsApi.inviteByUsername('list-1', 'inexistente')).rejects.toMatchObject({ status: 404 })
+    await expect(listsApi.inviteByUsername('list-1', 'inexistente')).rejects.toMatchObject({
+      status: 404,
+    })
   })
 
   it('getListMembers retorna os membros da lista', async () => {
@@ -178,13 +214,18 @@ describe('listsApi', () => {
 
     await listsApi.deleteListMember('list-1', 'user-2')
 
-    expect(client.delete).toHaveBeenCalledWith('/api/lists/list-1/members/user-2', expect.any(Object))
+    expect(client.delete).toHaveBeenCalledWith(
+      '/api/lists/list-1/members/user-2',
+      expect.any(Object)
+    )
   })
 
   it('deleteListMember propaga ApiError quando o usuario nao e dono', async () => {
     vi.spyOn(client, 'delete').mockRejectedValueOnce(buildAxiosError(403))
 
-    await expect(listsApi.deleteListMember('list-1', 'user-2')).rejects.toMatchObject({ status: 403 })
+    await expect(listsApi.deleteListMember('list-1', 'user-2')).rejects.toMatchObject({
+      status: 403,
+    })
   })
 
   it('leaveList sai da lista', async () => {
@@ -192,7 +233,11 @@ describe('listsApi', () => {
 
     await listsApi.leaveList('list-1')
 
-    expect(client.post).toHaveBeenCalledWith('/api/lists/list-1/leave', undefined, expect.any(Object))
+    expect(client.post).toHaveBeenCalledWith(
+      '/api/lists/list-1/leave',
+      undefined,
+      expect.any(Object)
+    )
   })
 
   it('leaveList propaga ApiError quando o dono tenta sair', async () => {
@@ -202,7 +247,15 @@ describe('listsApi', () => {
   })
 
   it('getActivities retorna atividades paginadas usando os defaults de pagina/tamanho', async () => {
-    const activities = { content: [], totalPages: 0, totalElements: 0, size: 50, number: 0, first: true, last: true }
+    const activities = {
+      content: [],
+      totalPages: 0,
+      totalElements: 0,
+      size: 50,
+      number: 0,
+      first: true,
+      last: true,
+    }
     vi.spyOn(client, 'get').mockResolvedValueOnce({ data: activities } as AxiosResponse)
 
     await expect(listsApi.getActivities('list-1')).resolves.toEqual(activities)
@@ -213,7 +266,15 @@ describe('listsApi', () => {
   })
 
   it('getActivities aceita pagina e tamanho customizados', async () => {
-    const activities = { content: [], totalPages: 1, totalElements: 5, size: 5, number: 1, first: false, last: true }
+    const activities = {
+      content: [],
+      totalPages: 1,
+      totalElements: 5,
+      size: 5,
+      number: 1,
+      first: false,
+      last: true,
+    }
     vi.spyOn(client, 'get').mockResolvedValueOnce({ data: activities } as AxiosResponse)
 
     await listsApi.getActivities('list-1', 1, 5)

@@ -13,7 +13,13 @@ function buildAxiosError(status: number): AxiosError {
     data: { detail: 'Falhou' },
   } as AxiosResponse
 
-  return new AxiosError(`Request failed with status code ${status}`, String(status), response.config, undefined, response)
+  return new AxiosError(
+    `Request failed with status code ${status}`,
+    String(status),
+    response.config,
+    undefined,
+    response
+  )
 }
 
 describe('usersApi', () => {

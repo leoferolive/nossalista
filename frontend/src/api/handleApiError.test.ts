@@ -10,7 +10,11 @@ describe('handleApiError', () => {
       statusText: '',
       headers: {},
       config: { headers: new AxiosHeaders() },
-      data: { type: 'https://example.com/not-found', title: 'Not Found', detail: 'Lista nao encontrada.' },
+      data: {
+        type: 'https://example.com/not-found',
+        title: 'Not Found',
+        detail: 'Lista nao encontrada.',
+      },
     } as AxiosResponse
 
     const axiosError = new AxiosError('Request failed', '404', response.config, undefined, response)
@@ -35,7 +39,13 @@ describe('handleApiError', () => {
       data: undefined,
     } as AxiosResponse
 
-    const axiosError = new AxiosError('Network Error', undefined, response.config, undefined, response)
+    const axiosError = new AxiosError(
+      'Network Error',
+      undefined,
+      response.config,
+      undefined,
+      response
+    )
 
     try {
       handleApiError(axiosError)
