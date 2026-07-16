@@ -242,6 +242,37 @@
             <version>1.4.1</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Testcontainers-PostgreSQL (opt-in, ver D-031 em docs/DECISIONS.md):
+             não substitui o H2 default da suíte — só a base class
+             AbstractPostgresIT (e as classes que a estendem) sobe um Postgres
+             real via Docker. Versões geridas pelo spring-boot-starter-parent
+             (testcontainers-bom transitivo). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <!-- testcontainers-bom é importado por spring-boot-dependencies, mas o
+                 import não resolve dentro deste POM (property testcontainers.version
+                 herda normalmente; só o scope=import do BOM não). Version explícita
+                 via a mesma property evita depender desse import. Testcontainers 2.x
+                 renomeou os artefatos com prefixo "testcontainers-" (antes "junit-jupiter"
+                 e "postgresql" sem prefixo, na série 1.x). -->
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

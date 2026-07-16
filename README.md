@@ -36,9 +36,14 @@ Status atual:
 | Auth        | Google OAuth2 + email/senha + JWT        |
 | BD Producao | PostgreSQL                               |
 | BD Dev      | PostgreSQL                               |
-| BD Testes   | H2 (MODE=PostgreSQL)                     |
+| BD Testes   | H2 (MODE=PostgreSQL); Testcontainers-PostgreSQL (opt-in, testes sensíveis ao banco) |
 | Migrations  | Flyway                                   |
 | Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
+
+> A maioria dos testes do backend roda em H2 (rápido). Testes de repositório,
+> validação de migration e o `McpServerIntegrationTest` estendem
+> `AbstractPostgresIT` e rodam contra um PostgreSQL real via Testcontainers
+> (exige Docker) — ver `backend/QUALITY.md`.
 
 ## Estrutura
 

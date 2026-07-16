@@ -6,6 +6,7 @@ import br.com.leoferolive.nossalista.list.domain.ListTypeEntity;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.support.AbstractPostgresIT;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,12 +21,15 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for ListRepository and validation of constraints
+ * Tests for ListRepository and validation of constraints.
+ *
+ * <p>Estende {@link AbstractPostgresIT}: roda contra PostgreSQL real
+ * (Testcontainers), não H2 — ver T1 da Onda 2 (honestidade de métrica).</p>
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class ListRepositoryTest {
+class ListRepositoryTest extends AbstractPostgresIT {
 
     @Autowired
     private ListRepository listRepository;

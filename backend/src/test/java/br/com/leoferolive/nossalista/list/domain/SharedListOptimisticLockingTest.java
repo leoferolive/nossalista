@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.list.domain;
 
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
+import br.com.leoferolive.nossalista.support.AbstractPostgresIT;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -31,13 +32,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * <p>Sem o {@code @Version} em {@link SharedList}, a segunda escrita venceria
  * silenciosamente e este teste falharia (nenhuma exceção seria lançada).</p>
  *
- * <p><b>Nota:</b> roda sobre H2 nesta onda (ver
- * {@code docs/plans/onda1-blindagem-core/T1-lock-otimista.md}). É indicativo; será
- * fortalecido contra PostgreSQL real (Testcontainers) na Onda 2.</p>
+ * <p><b>Nota:</b> introduzido sobre H2 na Onda 1 (ver
+ * {@code docs/plans/onda1-blindagem-core/T1-lock-otimista.md}); fortalecido contra
+ * PostgreSQL real (Testcontainers, {@link AbstractPostgresIT}) na Onda 2 — ver
+ * {@code docs/plans/onda2-honestidade-metrica/T1-testcontainers.md}.</p>
  */
 @SpringBootTest
 @ActiveProfiles("test")
-class SharedListOptimisticLockingTest {
+class SharedListOptimisticLockingTest extends AbstractPostgresIT {
 
     @Autowired
     private ListRepository listRepository;
