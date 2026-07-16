@@ -14,7 +14,7 @@ import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
-import br.com.leoferolive.nossalista.notification.NotificationService;
+import br.com.leoferolive.nossalista.notification.ListItemNotificationEvent;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
 import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
@@ -28,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.time.LocalDateTime;
@@ -65,7 +66,7 @@ class ListItemServiceTest {
     private ActivityLogService activityLogService;
 
     @Mock
-    private NotificationService notificationService;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     private ListItemService listItemService;
     private WebSocketEventPublisher eventPublisher;
@@ -85,7 +86,7 @@ class ListItemServiceTest {
             eventPublisher,
             listMemberRepository,
             activityLogService,
-            notificationService
+            applicationEventPublisher
         );
 
         testUser = new User();
@@ -1421,6 +1422,108 @@ class ListItemServiceTest {
             WebSocketMessage layoutMessage = (WebSocketMessage) capturedValues.get(1);
             assertEquals("LIST_LAYOUT_UPDATED", layoutMessage.getType());
             assertNotNull(layoutMessage.getPayload());
+        }
+    }
+
+    @Nested
+    @DisplayName("Notificação — T3: evento publicado em vez de disparo síncrono")
+    class NotificationEventPublishingTests {
+
+        private ListItem testItem;
+        private UUID itemId;
+        private ListItemResponseDTO testResponseDTO;
+
+        @BeforeEach
+        void setUp() {
+            itemId = UUID.randomUUID();
+            testItem = new ListItem();
+            testItem.setId(itemId);
+            testItem.setName("Item Notificação");
+            testItem.setList(testList);
+            testItem.setCreatedBy(testUser);
+            testItem.setPosition(0);
+            testItem.setChecked(false);
+
+            testResponseDTO = new ListItemResponseDTO(
+                    itemId, "Item Notificação", false,
+                    null, null, null, 0,
+                    new ListItemResponseDTO.CreatorResponse(
+                            testUser.getId(), testUser.getUsername(), "Test User", null),
+                    LocalDateTime.now(), LocalDateTime.now()
+            );
+        }
+
+        @Test
+        @DisplayName("addItem deve publicar ListItemNotificationEvent com type ITEM_ADDED (não chama notificação diretamente)")
+        void addItem_shouldPublishNotificationEvent() {
+            CreateItemRequestDTO dto = new CreateItemRequestDTO("Item", null, null, null, null);
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
+            when(listItemRepository.save(any(ListItem.class))).thenAnswer(inv -> {
+                ListItem item = inv.getArgument(0);
+                item.setId(UUID.randomUUID());
+                return item;
+            });
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(testResponseDTO);
+
+            listItemService.addItem(listId, dto, testUser);
+
+            ArgumentCaptor<ListItemNotificationEvent> captor = ArgumentCaptor.forClass(ListItemNotificationEvent.class);
+            verify(applicationEventPublisher).publishEvent(captor.capture());
+            ListItemNotificationEvent event = captor.getValue();
+            assertEquals(listId, event.listId());
+            assertEquals(testUser.getId(), event.actorId());
+            assertEquals("ITEM_ADDED", event.type());
+            assertEquals(testResponseDTO, event.payload());
+            assertEquals(testUser, event.actor());
+        }
+
+        @Test
+        @DisplayName("toggleItemCheck deve publicar ListItemNotificationEvent com type ITEM_CHECKED")
+        void toggleItemCheck_shouldPublishNotificationEvent() {
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(testItem));
+            when(listItemRepository.save(any(ListItem.class))).thenReturn(testItem);
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(testResponseDTO);
+
+            listItemService.toggleItemCheck(listId, itemId, testUser);
+
+            ArgumentCaptor<ListItemNotificationEvent> captor = ArgumentCaptor.forClass(ListItemNotificationEvent.class);
+            verify(applicationEventPublisher).publishEvent(captor.capture());
+            assertEquals("ITEM_CHECKED", captor.getValue().type());
+        }
+
+        @Test
+        @DisplayName("updateItem deve publicar ListItemNotificationEvent com type ITEM_UPDATED")
+        void updateItem_shouldPublishNotificationEvent() {
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Item Atualizado");
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(testItem));
+            when(listItemRepository.save(any(ListItem.class))).thenReturn(testItem);
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(testResponseDTO);
+
+            listItemService.updateItem(listId, itemId, request, testUser);
+
+            ArgumentCaptor<ListItemNotificationEvent> captor = ArgumentCaptor.forClass(ListItemNotificationEvent.class);
+            verify(applicationEventPublisher).publishEvent(captor.capture());
+            assertEquals("ITEM_UPDATED", captor.getValue().type());
+        }
+
+        @Test
+        @DisplayName("deleteItem deve publicar ListItemNotificationEvent com type ITEM_REMOVED")
+        void deleteItem_shouldPublishNotificationEvent() {
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(testItem));
+            when(listItemRepository.findByListIdAndPositionGreaterThanOrderByPositionAsc(listId, 0))
+                .thenReturn(Collections.emptyList());
+            when(listItemMapper.toListItemResponseDTO(testItem)).thenReturn(testResponseDTO);
+
+            listItemService.deleteItem(listId, itemId, testUser);
+
+            ArgumentCaptor<ListItemNotificationEvent> captor = ArgumentCaptor.forClass(ListItemNotificationEvent.class);
+            verify(applicationEventPublisher).publishEvent(captor.capture());
+            assertEquals("ITEM_REMOVED", captor.getValue().type());
         }
     }
 }

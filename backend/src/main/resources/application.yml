@@ -66,6 +66,12 @@ spring:
           starttls:
             enable: true
             required: true
+          # Timeouts explícitos: sem eles, o JavaMail assume timeout INFINITO
+          # e uma falha de rede no SMTP (Brevo) pode travar a thread que envia
+          # o e-mail indefinidamente. Valores em ms. Ver docs/DECISIONS.md D-028.
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
   thymeleaf:
     check-template-location: true

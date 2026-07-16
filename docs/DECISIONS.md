@@ -1355,3 +1355,69 @@
   fica para a Onda 2 com `@Retryable`). NAO altera o contrato de `revision`.
 - **Limitacao conhecida:** teste de concorrencia roda sobre H2 nesta onda (Testcontainers e
   Onda 2) — indicativo, sera fortalecido contra PostgreSQL real depois.
+
+## D-030 Notificacoes de item fora da transacao e da thread da requisicao (T3, Onda 1)
+
+- **Contexto:** achado P1 da avaliacao total do projeto (Onda 1, T3). `ListItemService`
+  chamava `notificationService.notifyListMembers(...)` (broadcast por usuario via
+  WebSocket + push) **dentro** dos metodos `@Transactional` (`addItem`, `toggleItemCheck`,
+  `updateItem`, `deleteItem`), ANTES do commit — uma mudanca que sofresse rollback logo
+  em seguida ja teria sido notificada. Alem disso, `PushNotificationService.sendToUser`
+  (web-push) e `SmtpEmailService` (SMTP) eram chamadas SINCRONAS, bloqueando a thread da
+  requisicao com I/O externo; o `spring.mail` nao tinha timeout configurado, o que faz o
+  JavaMail assumir timeout INFINITO — uma falha de rede no SMTP (Brevo) podia travar a
+  thread indefinidamente.
+- **Decisao:** mover o disparo de notificacao de item para **depois do commit** e para
+  **fora** da thread da requisicao, via evento de dominio + listener assincrono:
+  - `ListItemService` publica `notification.ListItemNotificationEvent` (via
+    `ApplicationEventPublisher` do Spring) em vez de chamar `NotificationService`
+    diretamente. O evento carrega `listId`, `actorId`, `type`, `payload` e `actor`.
+  - `notification.ListItemNotificationEventListener` consome o evento com
+    `@TransactionalEventListener(phase = AFTER_COMMIT)` — so executa se a transacao
+    publicadora COMITAR; em rollback, o listener simplesmente nunca dispara. O metodo
+    tambem e `@Async`, entao roda num executor dedicado, nao na thread original.
+  - `config/AsyncConfig` adiciona `@EnableAsync` + um `ThreadPoolTaskExecutor` **bounded**
+    (core=4, max=16, fila=200, prefixo `async-notif-`) com
+    `ThreadPoolExecutor.CallerRunsPolicy` como rejeicao (aplica backpressure — a tarefa
+    roda na thread chamadora ao saturar — em vez de descartar silenciosamente uma
+    notificacao) e um `AsyncUncaughtExceptionHandler` que loga qualquer excecao nao
+    tratada de um metodo `@Async void` (que, por retornar `void`, nao tem como propagar
+    excecao para quem chamou).
+  - `PushNotificationService.sendToUser` ganhou `@Async` diretamente — cobre TODOS os
+    chamadores existentes (`NotificationService`, usado tambem por `ListService`,
+    `ListJoinService`, `MemberService`, fora do escopo de arquivos desta tarefa) sem
+    precisar tocar nesses outros servicos.
+  - `SmtpEmailService.sendPasswordReset/sendEmailVerification/sendMagicLink` (os tres
+    metodos publicos da interface `EmailService`, pontos de entrada via o proxy do
+    Spring) ganharam `@Async`. O metodo privado `sendHtmlEmail` NAO podia ser anotado
+    diretamente — chamada interna da mesma classe (self-invocation) nao passa pelo proxy
+    AOP do Spring, entao `@Async` so tem efeito nos metodos publicos realmente invocados
+    de fora.
+  - `application.yml`: `spring.mail.properties.mail.smtp.connectiontimeout/timeout/
+    writetimeout` = 5000ms cada, eliminando o timeout infinito default do JavaMail.
+- **Push sem timeout configuravel (limitacao registrada, nao um gap ignorado):** a lib
+  `nl.martijndwars:web-push:5.1.1` (`PushService.send`) nao expoe timeout configuravel na
+  API publica (verificado via `javap` na classe — sem setter de `HttpClient`/
+  `RequestConfig` em `PushService`/`AbstractPushService`). A protecao contra bloqueio vem
+  de rodar em thread dedicada do executor bounded, nao de um timeout de rede explicito.
+  Trocar a lib fica fora do escopo desta tarefa (nao mexe em `pom.xml`).
+- **Por que evento + `@TransactionalEventListener(AFTER_COMMIT)` em vez de so `@Async` na
+  chamada direta:** `@Async` sozinho tira a chamada da thread da requisicao, mas nao evita
+  que ela dispare ANTES do commit (a tarefa assincrona pode rodar e completar enquanto a
+  transacao ainda esta aberta). So o hook de sincronizacao de transacao
+  (`AFTER_COMMIT`) garante que a notificacao NUNCA aconteca para uma mudanca que sofreu
+  rollback.
+- **O broadcast de lista (`WebSocketEventPublisher`, topico `/topic/list/{id}/items`,
+  usado pelo `revision` que ordena o cliente) NAO foi alterado** — fora do escopo de
+  arquivos desta tarefa (nao toca `websocket/**`) e ja e uma publicacao rapida/local no
+  broker STOMP em memoria, nao uma chamada de I/O externo bloqueante como SMTP/push.
+- **Testes:** `ListItemNotificationAfterCommitIntegrationTest` prova as duas pontas com
+  Spring real (transacao real via `TransactionTemplate`, sem o `@Transactional` de teste
+  que nunca comita de verdade): notificacao NAO ocorre em rollback
+  (`verify(..., after(500).never())`) e ocorre apos commit **numa thread diferente** da
+  que chamou (`verify(..., timeout(2000))` + captura do nome da thread, prefixo
+  `async-notif-`). `ListItemServiceTest` foi migrado do mock de `NotificationService` para
+  `ApplicationEventPublisher` e ganhou testes de que cada operacao publica o evento com o
+  `type` correto. `ListItemNotificationEventListenerTest` cobre o listener isolado
+  (delega corretamente; excecao do `NotificationService` e logada, nao propagada).
+  `AsyncConfigTest` cobre os limites do executor e a politica de rejeicao.
