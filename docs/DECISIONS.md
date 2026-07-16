@@ -1335,3 +1335,23 @@
   inscricoes por usuario (FIFO) passou a evictar pela mais antiga por `updated_at`
   (em vez de ordem de insercao em lista), preservando o comportamento pratico do store
   anterior de manter as inscricoes mais recentemente (re)confirmadas.
+
+## D-029 Lock otimista (`@Version`) em `ListItem` e `SharedList`
+
+- **Contexto:** o core do produto e edicao simultanea por multiplos membros da mesma lista,
+  mas nenhuma entidade tinha controle de concorrencia — dois membros editando/marcando o
+  mesmo item podiam causar lost update silencioso (o ultimo UPDATE vence sem avisar ninguem).
+  O campo `revision` existente e token de ordenacao de broadcast do WebSocket, nao guarda de
+  conflito de escrita. Achado P0-1 da avaliacao de Onda 1 (blindar o core).
+- **Decisao:** adicionar `@Version` (coluna `version BIGINT NOT NULL DEFAULT 0`, migration
+  `V17__add_optimistic_lock_version.sql`) em `ListItem` e `SharedList`. Uma escrita concorrente
+  com versao desatualizada agora lanca `ObjectOptimisticLockingFailureException` (ou
+  `jakarta.persistence.OptimisticLockException`), mapeada pelo `GlobalExceptionHandler` para
+  **HTTP 409 Conflict** em `ProblemDetail` (RFC 7807), com mensagem generica "o item foi
+  alterado por outra pessoa; recarregue e tente novamente". Transforma escrita concorrente
+  conflitante em erro detectavel pelo cliente em vez de sobrescrita silenciosa.
+- **Escopo desta task:** so as duas entidades, a migration e o handler global. NAO mexe em
+  `ListItemService` nem resolve a race de `position` no `add_items` (exigiria tocar o service,
+  fica para a Onda 2 com `@Retryable`). NAO altera o contrato de `revision`.
+- **Limitacao conhecida:** teste de concorrencia roda sobre H2 nesta onda (Testcontainers e
+  Onda 2) — indicativo, sera fortalecido contra PostgreSQL real depois.

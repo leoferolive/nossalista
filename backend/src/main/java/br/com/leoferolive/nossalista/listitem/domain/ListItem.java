@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -71,6 +72,16 @@ public class ListItem {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    /**
+     * Controle de concorrência otimista (lock otimista do JPA). Incrementado a cada
+     * UPDATE bem-sucedido; uma escrita com versão desatualizada lança
+     * {@link org.springframework.orm.ObjectOptimisticLockingFailureException} em vez
+     * de sobrescrever silenciosamente a alteração de outro membro (lost update).
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @PrePersist
     protected void onCreate() {
@@ -179,5 +190,13 @@ public class ListItem {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }
