@@ -1421,3 +1421,53 @@
   `type` correto. `ListItemNotificationEventListenerTest` cobre o listener isolado
   (delega corretamente; excecao do `NotificationService` e logada, nao propagada).
   `AsyncConfigTest` cobre os limites do executor e a politica de rejeicao.
+
+## D-031 Testcontainers-PostgreSQL para testes sensiveis ao banco (T1, Onda 2 — honestidade de metrica)
+
+Ate a Onda 2 toda a integracao rodava em H2 (`MODE=PostgreSQL`), entao as migrations
+Flyway eram validadas SO contra H2, nunca contra o Postgres de producao — classe de bug
+"passa no teste, quebra em prod" (locking, SQL nativo, tipos, collation).
+
+- **Decisao:** introduzir Testcontainers-PostgreSQL de forma ADITIVA (opt-in). Uma base
+  class `AbstractPostgresIT` (container `postgres:17-alpine` **singleton** por JVM +
+  `@ServiceConnection`) e estendida apenas pelos testes sensiveis ao banco: repositorios
+  (`*RepositoryTest`), validacao de migration (`UserTableMigrationTest`),
+  `McpServerIntegrationTest` e os testes de concorrencia da Onda 1
+  (`ListItemOptimisticLockingTest`/`SharedListOptimisticLockingTest`). O resto da suite
+  segue em H2 (rapido). O default global de teste (`src/test/resources/application.yml`)
+  NAO foi alterado.
+- **Detalhe tecnico:** `@DynamicPropertySource` sobrescreve `spring.jpa.database-platform`
+  (H2Dialect -> PostgreSQLDialect), porque o `@ServiceConnection` troca so o DataSource, nao
+  o dialeto fixado no `application.yml` global. Sem isso o Hibernate falaria H2Dialect com
+  um Postgres.
+- **Isolamento no container compartilhado:** testes de repositorio sao `@Transactional`
+  (rollback); o `McpServerIntegrationTest` (commits reais via HTTP) faz `TRUNCATE ... CASCADE`
+  em `@AfterAll`; os testes de lock limpam as linhas commitadas em `@AfterEach`.
+- **CI:** o runner `ubuntu-latest` ja tem Docker, entao o `backend-quality` roda os
+  containers sem ajuste extra.
+
+## D-032 Race de `position` em adds concorrentes: constraint UNIQUE + retry em transacao de topo (T3, Onda 2)
+
+`ListItemService.addItem` calculava `position` via `findMaxPositionByListId + save`; dois
+adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position` duplicada
+(corrupcao silenciosa da ordem — o cenario de lista compartilhada em tempo real).
+
+- **Decisao:** migration `V18` adiciona `UNIQUE(list_id, position)` (com renumeracao
+  deterministica de duplicatas pre-existentes ANTES de criar a constraint, portavel
+  Postgres/H2 via `ROW_NUMBER() OVER (PARTITION BY list_id ...)`); e `addItem` deixou de ser
+  `@Transactional` de metodo — cada tentativa (leitura de maxPosition + `saveAndFlush` +
+  auditoria + broadcast/notificacao) roda numa transacao de TOPO propria via
+  `TransactionTemplate`, com retry (ate 8 tentativas, backoff exponencial + full jitter)
+  APENAS na violacao da constraint `uq_list_items_list_position`. Outras
+  `DataIntegrityViolationException` propagam sem retry.
+- **Por que `TransactionTemplate` e nao `REQUIRES_NEW` aninhado:** o aninhamento mantinha a
+  transacao externa suspensa segurando uma conexao + a interna pegando outra = duas conexoes
+  por chamada, esgotando o pool do Hikari (default 10) sob carga bem antes do limite real de
+  colisao. Transacao de topo unica = no maximo uma conexao por vez.
+- **Interacao com o AFTER_COMMIT da Onda 1 (D-030):** a auditoria (`ActivityLogService`,
+  propagacao REQUIRED) junta-se a transacao do template, preservando atomicidade; o evento
+  de notificacao e publicado no passo APOS o `saveAndFlush`, entao so a tentativa vitoriosa
+  o publica — nao ha dupla notificacao no retry nem notificacao de mudanca revertida.
+- **Follow-up registrado:** o backoff refaz a tentativa inteira (nao so o calculo de
+  position) — aceitavel dado que colisoes sao raras; revisar so se houver altissima
+  concorrencia.

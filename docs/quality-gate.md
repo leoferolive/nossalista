@@ -26,6 +26,22 @@ Gate local unificado que mede o código por métricas objetivas, falhando o buil
 | Frontend | Tipos                     | tsc strict             |
 | Frontend | Lint                      | ESLint flat config     |
 
+### Escopo de cobertura (ampliado na Onda 2 — honestidade de métrica)
+
+A cobertura reportada agora conta código que antes era excluído da métrica:
+
+- **Backend:** a camada `websocket/**` (publisher, interceptors, controllers, scheduler,
+  `PresenceService`) entrou no JaCoCo/Pitest — só DTOs/records triviais (`websocket/dto/**`,
+  `WebSocketActor`) seguem fora. Cobertura backend passou de ~86%/77% para **93%/84%**
+  (linha/branch) com a camada real-time incluída. Ver D-031 (Testcontainers) e o PR #81.
+- **Frontend:** `src/api/**` e `src/pages/**` saíram do `exclude` do `vitest.config.ts`
+  (já tinham testes, mas eram invisíveis ao ratchet). O baseline caiu de forma **honesta**
+  (o denominador cresceu, o gate de 80% não foi afrouxado). O que continua excluído
+  (entrypoints, tipos puros, hooks/componentes ainda sem teste) está marcado como dívida
+  no próprio `vitest.config.ts`. Ver PR #82.
+- **Testes sensíveis ao banco** rodam contra **PostgreSQL real** via Testcontainers (opt-in
+  `AbstractPostgresIT`), não mais só H2 — ver D-031.
+
 ## Thresholds atuais
 
 Ver tabela completa em `docs/superpowers/plans/2026-05-11-quality-gate.md`, seção "Thresholds escolhidos".
@@ -47,7 +63,10 @@ O gate **NÃO** mede:
 
 - **Segurança runtime** (SQLi, XSS, auth bypass) — coberto parcialmente por Semgrep no CI.
 - **Performance** (latência, throughput, N+1 queries) — exige observabilidade.
-- **Race conditions / concorrência** — não há análise estática confiável.
+- **Race conditions / concorrência** — não há análise estática confiável. (A Onda 2 fechou
+  dois casos concretos com guardas estruturais: lock otimista `@Version` (D-029) e
+  `UNIQUE(list_id, position)` + retry (D-032), ambos com testes de concorrência multi-thread
+  rodando contra Postgres real.)
 - **Memory leaks** — exige profiling.
 - **Intenção da feature** — só revisão humana garante que o código faz o que o ticket pediu.
 - **Qualidade dos testes** — só mede cobertura, não se o teste afirma algo útil.
@@ -83,3 +102,9 @@ O antigo OWASP Dependency-Check/NVD foi removido — exigia `NVD_API_KEY` e baix
 base inteira da NVD, o que causava falhas espúrias de "cache frio" no CI. Ver
 **D-027** em `docs/DECISIONS.md` e a issue #70. O run local (`./scripts/quality.sh`)
 não faz SCA.
+
+Além do OSV-Scanner, o job `security-and-compliance` do CI roda `npm audit` no frontend
+("Frontend audit"). Na Onda 2 esse gate acusou uma vuln **crítica** pré-existente em
+`websocket-driver` (transitiva via `sockjs-client → faye-websocket`,
+GHSA-mp7j-qc5w-4988) — corrigida com bump não-breaking de lockfile
+(`websocket-driver` 0.7.4 → 0.7.5, `npm audit fix` sem `--force`, PR #82).
