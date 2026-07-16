@@ -208,6 +208,46 @@ class PresenceServiceTest {
         assertThat(removed).isEmpty();
     }
 
+    @Test
+    @DisplayName("removeSession limpa apenas as inscrições da mesma lista+sessão, preservando as demais")
+    void removeSessionClearsOnlyMatchingSubscriptions() {
+        PresenceService service = new PresenceService();
+        UUID listA = UUID.randomUUID();
+        UUID listB = UUID.randomUUID();
+        User user = createUser("maria");
+        User other = createUser("joao");
+        service.registerSession(listA, "session-1", user);
+        service.registerSession(listA, "session-9", other);
+        service.registerSession(listB, "session-2", user);
+        service.registerSubscription("sub-match", listA, "session-1");
+        service.registerSubscription("sub-same-list-other-session", listA, "session-9");
+        service.registerSubscription("sub-other-list", listB, "session-2");
+
+        service.removeSession(listA, "session-1");
+
+        // A inscrição casada (mesma lista + mesma sessão) foi removida.
+        assertThat(service.removeBySubscription("sub-match", "session-1")).isNull();
+        // Inscrições que divergem em sessão (mesma lista) ou em lista permanecem.
+        assertThat(service.removeBySubscription("sub-same-list-other-session", "session-9")).isNotNull();
+        assertThat(service.removeBySubscription("sub-other-list", "session-2")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("removeBySubscription com sessionId em branco usa a sessão registrada na inscrição")
+    void removeBySubscriptionWithBlankSessionIdUsesRegisteredSession() {
+        PresenceService service = new PresenceService();
+        UUID listId = UUID.randomUUID();
+        User user = createUser("maria");
+        service.registerSession(listId, "session-1", user);
+        service.registerSubscription("sub-1", listId, "session-1");
+
+        PresenceService.RemovedPresence removed = service.removeBySubscription("sub-1", "   ");
+
+        assertThat(removed).isNotNull();
+        assertThat(removed.user()).isEqualTo(user);
+        assertThat(service.getOnlineUsers(listId)).isEmpty();
+    }
+
     private User createUser(String username) {
         User user = new User();
         user.setId(UUID.randomUUID());

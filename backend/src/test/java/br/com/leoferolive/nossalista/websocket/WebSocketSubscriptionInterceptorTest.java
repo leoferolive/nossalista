@@ -271,6 +271,41 @@ class WebSocketSubscriptionInterceptorTest {
     }
 
     @Test
+    @DisplayName("CONNECT com Authorization não-Bearer recai no header nativo 'token'")
+    void shouldFallBackToTokenHeaderWhenAuthorizationIsNotBearer() {
+        User user = createUser(VALID_USER_ID);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("Authorization", "Basic dXNlcjpwYXNz");
+        accessor.addNativeHeader("token", "valid.jwt.token");
+        accessor.setSessionAttributes(new HashMap<>());
+        accessor.setLeaveMutable(true);
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        when(jwtService.validateToken("valid.jwt.token")).thenReturn(true);
+        when(jwtService.extractUserId("valid.jwt.token")).thenReturn(VALID_USER_ID);
+        when(userService.findById(VALID_USER_ID)).thenReturn(Optional.of(user));
+
+        Message<?> result = interceptor.preSend(message, null);
+
+        assertThat(result).isNotNull();
+        StompHeaderAccessor resultAccessor = StompHeaderAccessor.wrap(result);
+        assertThat(resultAccessor.getSessionAttributes()).containsEntry("user", user);
+    }
+
+    @Test
+    @DisplayName("CONNECT com header 'token' em branco deve ser rejeitado por token ausente")
+    void shouldRejectConnectWithBlankTokenHeader() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("token", "   ");
+        accessor.setLeaveMutable(true);
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
+            .isInstanceOf(MessageDeliveryException.class)
+            .hasMessageContaining("Token JWT ausente");
+    }
+
+    @Test
     @DisplayName("UUID inválido no tópico de notificações do usuário deve ser rejeitado")
     void shouldRejectSubscribeToUserTopicWithInvalidUuid() {
         User user = createUser(VALID_USER_ID);

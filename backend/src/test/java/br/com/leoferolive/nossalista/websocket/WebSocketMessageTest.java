@@ -247,4 +247,34 @@ class WebSocketMessageTest {
 
         assertNotEquals(base.hashCode(), differentEventId.hashCode());
     }
+
+    @Test
+    @DisplayName("equals distingue mensagens que diferem em qualquer campo individual do envelope")
+    void equalsDistinguishesEachIndividualField() {
+        UUID listId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-03-01T22:00:00Z");
+        Map<String, String> payload = Map.of("id", "abc");
+
+        java.util.function.Supplier<WebSocketMessage.Builder> baseBuilder = () -> WebSocketMessage.builder()
+                .schemaVersion(2)
+                .eventId("event-9")
+                .listId(listId)
+                .channel("items")
+                .revision(100L)
+                .type("ITEM_ADDED")
+                .payload(payload)
+                .actor(new WebSocketActor(userId, "maria"))
+                .timestamp(now);
+
+        WebSocketMessage base = baseBuilder.get().build();
+
+        assertEquals(base, baseBuilder.get().build());
+        assertNotEquals(base, baseBuilder.get().schemaVersion(9).build());
+        assertNotEquals(base, baseBuilder.get().listId(UUID.randomUUID()).build());
+        assertNotEquals(base, baseBuilder.get().channel("presence").build());
+        assertNotEquals(base, baseBuilder.get().revision(999L).build());
+        assertNotEquals(base, baseBuilder.get().actor(new WebSocketActor(UUID.randomUUID(), "joao")).build());
+        assertNotEquals(base, baseBuilder.get().timestamp(now.plusSeconds(1)).build());
+    }
 }
