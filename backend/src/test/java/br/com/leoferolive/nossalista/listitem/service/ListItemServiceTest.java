@@ -68,6 +68,9 @@ class ListItemServiceTest {
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Mock
+    private org.springframework.transaction.PlatformTransactionManager transactionManager;
+
     private ListItemService listItemService;
     private WebSocketEventPublisher eventPublisher;
 
@@ -86,7 +89,8 @@ class ListItemServiceTest {
             eventPublisher,
             listMemberRepository,
             activityLogService,
-            applicationEventPublisher
+            applicationEventPublisher,
+            transactionManager
         );
 
         testUser = new User();
@@ -135,7 +139,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -164,7 +168,7 @@ class ListItemServiceTest {
 
             verify(listRepository).findById(listId);
             verify(listItemRepository).findMaxPositionByListId(listId);
-            verify(listItemRepository).save(any(ListItem.class));
+            verify(listItemRepository).saveAndFlush(any(ListItem.class));
             verify(listItemMapper).toListItemResponseDTO(any(ListItem.class));
         }
 
@@ -182,7 +186,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(2); // Max position = 2, próximo será 3
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -227,7 +231,7 @@ class ListItemServiceTest {
 
             assertEquals("Lista não encontrada", exception.getMessage());
             verify(listRepository).findById(nonExistentId);
-            verify(listItemRepository, never()).save(any(ListItem.class));
+            verify(listItemRepository, never()).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -252,7 +256,7 @@ class ListItemServiceTest {
 
             assertEquals("Você não tem permissão para adicionar itens nesta lista", exception.getMessage());
             verify(listRepository).findById(listId);
-            verify(listItemRepository, never()).save(any(ListItem.class));
+            verify(listItemRepository, never()).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -269,7 +273,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 // Verificar se o nome foi trimmado
@@ -290,7 +294,7 @@ class ListItemServiceTest {
             listItemService.addItem(listId, dto, testUser);
 
             // Assert - verificação feita no mock acima
-            verify(listItemRepository).save(any(ListItem.class));
+            verify(listItemRepository).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -307,7 +311,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 // Verificar campos dinâmicos
@@ -350,7 +354,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 assertFalse(item.isChecked()); // Verificar default
@@ -388,7 +392,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 assertEquals("https://example.com/produto", item.getUrl());
@@ -409,7 +413,7 @@ class ListItemServiceTest {
             listItemService.addItem(listId, dto, testUser);
 
             // Assert - verificação feita no mock
-            verify(listItemRepository).save(any(ListItem.class));
+            verify(listItemRepository).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -426,7 +430,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -445,7 +449,7 @@ class ListItemServiceTest {
             listItemService.addItem(listId, dto, testUser);
 
             // Assert - não lança exceção e métodos foram chamados
-            verify(listItemRepository).save(any(ListItem.class));
+            verify(listItemRepository).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -456,7 +460,7 @@ class ListItemServiceTest {
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listMemberRepository.existsByListIdAndUserId(listId, otherUser.getId())).thenReturn(true);
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(inv -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(inv -> {
                 ListItem item = inv.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -1317,7 +1321,7 @@ class ListItemServiceTest {
             CreateItemRequestDTO dto = new CreateItemRequestDTO("Item", null, null, null, null);
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(inv -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(inv -> {
                 ListItem item = inv.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -1459,7 +1463,7 @@ class ListItemServiceTest {
             CreateItemRequestDTO dto = new CreateItemRequestDTO("Item", null, null, null, null);
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(inv -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(inv -> {
                 ListItem item = inv.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;

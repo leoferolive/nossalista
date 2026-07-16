@@ -22,11 +22,15 @@ import br.com.leoferolive.nossalista.websocket.dto.ListLayoutUpdatedPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.ZoneOffset;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -37,6 +41,33 @@ public class ListItemService {
 
     private static final Logger log = LoggerFactory.getLogger(ListItemService.class);
 
+    /**
+     * Teto de tentativas para o retry manual de {@code position} (ver
+     * {@link #addItem}). Cada colisão de constraint gasta uma tentativa;
+     * acima disso o erro é propagado de forma explícita em vez de tentar
+     * indefinidamente.
+     */
+    private static final int MAX_POSITION_RETRIES = 8;
+
+    /**
+     * Base (ms) do backoff exponencial com jitter entre tentativas — ver
+     * {@link #backoffBeforeRetry}.
+     */
+    private static final long POSITION_RETRY_BACKOFF_BASE_MILLIS = 8;
+
+    /**
+     * Teto (ms) do backoff entre tentativas, para não deixar a última
+     * tentativa esperar tempo demais.
+     */
+    private static final long POSITION_RETRY_BACKOFF_CAP_MILLIS = 300;
+
+    /**
+     * Nome da constraint criada pela migration V18. Usado para diferenciar
+     * uma colisão de position (retentável) de qualquer outra violação de
+     * integridade (não retentável).
+     */
+    private static final String POSITION_CONSTRAINT_NAME = "uq_list_items_list_position";
+
     private final ListItemRepository listItemRepository;
     private final ListRepository listRepository;
     private final ListItemMapper listItemMapper;
@@ -44,6 +75,7 @@ public class ListItemService {
     private final ListMemberRepository listMemberRepository;
     private final ActivityLogService activityLogService;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final PlatformTransactionManager transactionManager;
 
     public ListItemService(ListItemRepository listItemRepository,
                            ListRepository listRepository,
@@ -51,7 +83,8 @@ public class ListItemService {
                            WebSocketEventPublisher eventPublisher,
                            ListMemberRepository listMemberRepository,
                            ActivityLogService activityLogService,
-                           ApplicationEventPublisher applicationEventPublisher) {
+                           ApplicationEventPublisher applicationEventPublisher,
+                           PlatformTransactionManager transactionManager) {
         this.listItemRepository = listItemRepository;
         this.listRepository = listRepository;
         this.listItemMapper = listItemMapper;
@@ -59,12 +92,45 @@ public class ListItemService {
         this.listMemberRepository = listMemberRepository;
         this.activityLogService = activityLogService;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.transactionManager = transactionManager;
     }
 
     /**
-     * Adiciona um novo item à lista
-     * Valida permissões (usuário deve ser participante da lista)
-     * Calcula position automaticamente
+     * Adiciona um novo item à lista.
+     * Valida permissões (usuário deve ser participante da lista), calcula
+     * {@code position} automaticamente e insere o item, com retry manual
+     * quando a constraint {@code uq_list_items_list_position} (migration V18)
+     * detecta uma colisão concorrente: dois {@code addItem} simultâneos na
+     * mesma lista podem ler o mesmo {@code maxPosition} e tentar gravar a
+     * mesma position.
+     *
+     * <p>Deliberadamente <b>não</b> é {@code @Transactional}: cada tentativa
+     * roda inteira (leitura + insert + activity log + broadcast) em sua
+     * própria transação de topo, via {@link TransactionTemplate}, e não
+     * dentro de uma transação nova aninhada (ex.: {@code REQUIRES_NEW}) sobre
+     * uma transação externa já aberta. Isso importa por dois motivos:
+     *
+     * <ol>
+     *   <li>Depois que um {@code flush} falha por violação de constraint, a
+     *   especificação JPA marca a transação para rollback e a
+     *   EntityManager/Session correntes ficam em estado não confiável para
+     *   novas operações — não é seguro tentar de novo na mesma transação.
+     *   Cada tentativa aqui usa uma transação (e persistence context) nova.</li>
+     *   <li>Uma transação aninhada ({@code REQUIRES_NEW}) sobre uma transação
+     *   externa já aberta mantém DUAS conexões do pool ocupadas
+     *   simultaneamente por chamada (a externa suspensa + a nova); sob carga
+     *   concorrente isso esgota o pool de conexões (padrão 10, Hikari) bem
+     *   antes do limite real de concorrência da constraint. Como cada
+     *   tentativa aqui é uma transação de topo sequencial (nunca aninhada),
+     *   o custo por chamada continua sendo de no máximo uma conexão por vez —
+     *   igual a qualquer outra requisição.</li>
+     * </ol>
+     *
+     * <p>O efeito colateral é que, numa colisão, a tentativa inteira é
+     * refeita (inclusive a checagem de permissão e o log de auditoria), não
+     * apenas o cálculo de position — um custo aceitável porque colisões são
+     * raras (só acontecem sob escrita concorrente real na mesma lista) e o
+     * teto de tentativas é baixo.
      *
      * @param listId  ID da lista onde o item será adicionado
      * @param dto     DTO com dados do item
@@ -72,9 +138,87 @@ public class ListItemService {
      * @return DTO com dados completos do item criado
      * @throws ListNotFoundException se a lista não existir
      * @throws ForbiddenException    se o usuário não for participante da lista
+     * @throws IllegalStateException se o teto de tentativas de retry for excedido
      */
-    @Transactional
     public ListItemResponseDTO addItem(UUID listId, CreateItemRequestDTO dto, User creator) {
+        TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
+
+        DataIntegrityViolationException lastFailure = null;
+        for (int attempt = 1; attempt <= MAX_POSITION_RETRIES; attempt++) {
+            try {
+                return txTemplate.execute(status -> addItemInOwnTransaction(listId, dto, creator));
+            } catch (DataIntegrityViolationException e) {
+                // Só absorve e tenta de novo se a violação for especificamente da
+                // constraint de position (V18) — qualquer outra DataIntegrityViolationException
+                // (ex.: bug não relacionado gerando outra violação de constraint) deve
+                // propagar imediatamente, sem ser mascarada por retries e por uma
+                // mensagem de erro que sugeriria (erradamente) colisão de position.
+                if (!isPositionConstraintViolation(e)) {
+                    throw e;
+                }
+                lastFailure = e;
+                log.warn("Colisão de position ao adicionar item (tentativa {}/{}, listId={}): {}",
+                        attempt, MAX_POSITION_RETRIES, listId, e.getMessage());
+                if (attempt < MAX_POSITION_RETRIES) {
+                    backoffBeforeRetry(attempt);
+                }
+            }
+        }
+
+        throw new IllegalStateException(
+                "Não foi possível inserir o item na lista " + listId
+                        + " após " + MAX_POSITION_RETRIES
+                        + " tentativas (colisão concorrente de position)",
+                lastFailure);
+    }
+
+    /**
+     * Verifica se a {@link DataIntegrityViolationException} corresponde à
+     * constraint de position (V18), percorrendo a cadeia de causas — o driver
+     * JDBC costuma expor o nome da constraint só na exceção raiz, não na
+     * exceção Spring de mais alto nível.
+     */
+    private boolean isPositionConstraintViolation(DataIntegrityViolationException e) {
+        Throwable current = e;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase(java.util.Locale.ROOT).contains(POSITION_CONSTRAINT_NAME)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    /**
+     * Pausa curta e aleatória (jitter) antes da próxima tentativa de
+     * {@link #addItem}.
+     *
+     * <p>Sem isso, várias threads que colidem no mesmo instante tendem a
+     * recalcular {@code maxPosition} e reinserir de novo praticamente ao
+     * mesmo tempo — ficando "em lockstep" e colidindo repetidamente ENTRE SI
+     * a cada nova tentativa (efeito manada), em vez de se espalharem no
+     * tempo. Usa "full jitter" (AWS Architecture Blog): espera um valor
+     * aleatório entre 0 e um teto que cresce exponencialmente com a
+     * tentativa, o que se mostrou mais eficaz que jitter proporcional para
+     * desfazer o lockstep entre múltiplos concorrentes.
+     */
+    private void backoffBeforeRetry(int attempt) {
+        try {
+            long exponentialCap = POSITION_RETRY_BACKOFF_BASE_MILLIS * (1L << attempt);
+            long cappedMillis = Math.min(POSITION_RETRY_BACKOFF_CAP_MILLIS, exponentialCap);
+            long backoffMillis = ThreadLocalRandom.current().nextLong(0, cappedMillis + 1);
+            Thread.sleep(backoffMillis);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Corpo de uma única tentativa de {@link #addItem}, executado dentro de
+     * uma transação própria pelo {@link TransactionTemplate} do chamador.
+     */
+    private ListItemResponseDTO addItemInOwnTransaction(UUID listId, CreateItemRequestDTO dto, User creator) {
         // 1. Verificar se lista existe
         // Usa findById em vez de findByIdWithDetails para evitar problemas com JOIN FETCH
         SharedList list = listRepository.findById(listId)
@@ -112,8 +256,11 @@ public class ListItemService {
             item.setUrl(dto.url().trim());
         }
 
-        // 7. Salvar item
-        ListItem saved = listItemRepository.save(item);
+        // 7. Salvar item — saveAndFlush força o INSERT já aqui (em vez de
+        // adiar para o commit no fim de txTemplate.execute()), permitindo que
+        // uma violação da constraint uq_list_items_list_position (V18) seja
+        // capturada de forma previsível pelo laço de retry em addItem().
+        ListItem saved = listItemRepository.saveAndFlush(item);
 
         // 8. Log de auditoria
         log.info("Item added: itemId={}, itemName='{}', listId={}, createdBy={}, position={}",

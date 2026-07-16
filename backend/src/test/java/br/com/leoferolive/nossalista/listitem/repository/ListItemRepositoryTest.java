@@ -166,11 +166,15 @@ class ListItemRepositoryTest extends AbstractPostgresIT {
     @Test
     void shouldSupportNullableFields() {
         // Given: Items with different nullable fields
+        // position setada explicitamente em cada item: a constraint
+        // uq_list_items_list_position (V18) rejeita mais de um item com a
+        // mesma position na mesma lista, e o default da entidade é 0.
         ListItem shoppingItem = new ListItem();
         shoppingItem.setName("Arroz");
         shoppingItem.setList(testList);
         shoppingItem.setCreatedBy(testUser);
         shoppingItem.setQuantity(5); // Compras: quantity
+        shoppingItem.setPosition(0);
         listItemRepository.save(shoppingItem);
 
         ListItem taskItem = new ListItem();
@@ -178,6 +182,7 @@ class ListItemRepositoryTest extends AbstractPostgresIT {
         taskItem.setList(testList);
         taskItem.setCreatedBy(testUser);
         taskItem.setDueDate(LocalDateTime.now().plusDays(1)); // Tarefas: dueDate
+        taskItem.setPosition(1);
         listItemRepository.save(taskItem);
 
         ListItem wishlistItem = new ListItem();
@@ -185,6 +190,7 @@ class ListItemRepositoryTest extends AbstractPostgresIT {
         wishlistItem.setList(testList);
         wishlistItem.setCreatedBy(testUser);
         wishlistItem.setUrl("https://example.com/chair"); // Wishlist: url
+        wishlistItem.setPosition(2);
         listItemRepository.save(wishlistItem);
 
         ListItem genericItem = new ListItem();
@@ -192,6 +198,7 @@ class ListItemRepositoryTest extends AbstractPostgresIT {
         genericItem.setList(testList);
         genericItem.setCreatedBy(testUser);
         // Genérica: sem campos especiais
+        genericItem.setPosition(3);
         listItemRepository.save(genericItem);
 
         // When/Then: Verify all items saved correctly with nullable fields
@@ -277,17 +284,20 @@ class ListItemRepositoryTest extends AbstractPostgresIT {
 
     @Test
     void shouldCountItemsByListId() {
-        // Given: Multiple items in list
+        // Given: Multiple items in list (position distinta — ver
+        // uq_list_items_list_position, V18)
         ListItem item1 = new ListItem();
         item1.setName("Item 1");
         item1.setList(testList);
         item1.setCreatedBy(testUser);
+        item1.setPosition(0);
         listItemRepository.save(item1);
 
         ListItem item2 = new ListItem();
         item2.setName("Item 2");
         item2.setList(testList);
         item2.setCreatedBy(testUser);
+        item2.setPosition(1);
         listItemRepository.save(item2);
 
         // When: Count by listId
