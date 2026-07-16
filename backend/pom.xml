@@ -417,7 +417,8 @@
                 <version>${jacoco.version}</version>
                 <configuration>
                     <excludes>
-                        <exclude>br/com/leoferolive/nossalista/websocket/**</exclude>
+                        <exclude>br/com/leoferolive/nossalista/websocket/dto/**</exclude>
+                        <exclude>br/com/leoferolive/nossalista/websocket/WebSocketActor*</exclude>
                         <exclude>br/com/leoferolive/nossalista/listitem/dto/ListItemMapper*</exclude>
                     </excludes>
                 </configuration>
@@ -490,7 +491,8 @@
                         <param>br.com.leoferolive.nossalista.*</param>
                     </targetClasses>
                     <excludedClasses>
-                        <param>br.com.leoferolive.nossalista.websocket.*</param>
+                        <param>br.com.leoferolive.nossalista.websocket.dto.*</param>
+                        <param>br.com.leoferolive.nossalista.websocket.WebSocketActor*</param>
                         <param>br.com.leoferolive.nossalista.*.dto.*Mapper*</param>
                     </excludedClasses>
                     <outputFormats>
