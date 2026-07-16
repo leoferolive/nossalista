@@ -53,7 +53,7 @@ Detalhes, thresholds e limitações: `docs/quality-gate.md`. Dívida técnica pr
 | Auth        | Google OAuth2 + email/senha              |
 | BD Produção | PostgreSQL                               |
 | BD Dev      | PostgreSQL (Docker Compose)              |
-| BD Testes   | H2 (MODE=PostgreSQL)                     |
+| BD Testes   | H2 (MODE=PostgreSQL) default; Testcontainers-PostgreSQL (opt-in via `AbstractPostgresIT`) |
 | Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
 
 ## Documentação de Referência

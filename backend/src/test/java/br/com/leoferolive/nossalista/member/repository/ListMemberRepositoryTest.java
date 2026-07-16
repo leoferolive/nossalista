@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.list.domain.SharedList;
 import br.com.leoferolive.nossalista.list.repository.ListRepository;
 import br.com.leoferolive.nossalista.member.domain.ListMember;
 import br.com.leoferolive.nossalista.member.domain.MemberRole;
+import br.com.leoferolive.nossalista.support.AbstractPostgresIT;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
@@ -24,15 +24,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Testes de integração para ListMemberRepository
- * Valida persistência, constraints e queries
+ * Valida persistência, constraints e queries.
+ *
+ * <p>Estende {@link AbstractPostgresIT}: roda contra PostgreSQL real
+ * (Testcontainers), não H2 — ver T1 da Onda 2 (honestidade de métrica). O
+ * {@code @TestPropertySource} que antes forçava um H2 dedicado
+ * ({@code jdbc:h2:mem:testdb}) foi removido: o {@code @ServiceConnection} da
+ * base class já configura o DataSource para o container.</p>
  */
 @SpringBootTest
-@TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
-    "spring.jpa.hibernate.ddl-auto=validate"
-})
 @Transactional
-class ListMemberRepositoryTest {
+class ListMemberRepositoryTest extends AbstractPostgresIT {
 
     @Autowired
     private ListMemberRepository listMemberRepository;
