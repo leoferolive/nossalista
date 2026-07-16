@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.email.service;
 
+import br.com.leoferolive.nossalista.config.AsyncConfig;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -9,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.ITemplateEngine;
 import org.thymeleaf.context.Context;
@@ -46,7 +48,17 @@ public class SmtpEmailService implements EmailService {
         this.frontendUrl = frontendUrl;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Executa fora da thread da requisição/transação ({@code @Async}) — o
+     * envio SMTP é I/O bloqueante e os timeouts de conexão/leitura/escrita
+     * são configurados explicitamente em {@code application.yml}
+     * ({@code spring.mail.properties.mail.smtp.*}), evitando o timeout
+     * infinito default do JavaMail.
+     */
     @Override
+    @Async(AsyncConfig.ASYNC_EXECUTOR)
     public void sendPasswordReset(String toEmail, String userName, String resetToken) {
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
 
@@ -61,7 +73,13 @@ public class SmtpEmailService implements EmailService {
         log.info("Password reset email sent to: {}", maskEmail(toEmail));
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Assíncrono — ver nota em {@link #sendPasswordReset}.
+     */
     @Override
+    @Async(AsyncConfig.ASYNC_EXECUTOR)
     public void sendEmailVerification(String toEmail, String userName, String verificationToken) {
         String verificationLink = frontendUrl + "/verify-email?token=" + verificationToken;
 
@@ -75,7 +93,13 @@ public class SmtpEmailService implements EmailService {
         log.info("Email verification sent to: {}", maskEmail(toEmail));
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Assíncrono — ver nota em {@link #sendPasswordReset}.
+     */
     @Override
+    @Async(AsyncConfig.ASYNC_EXECUTOR)
     public void sendMagicLink(String toEmail, String userName, String loginToken) {
         String loginLink = frontendUrl + "/magic-login?token=" + loginToken;
 

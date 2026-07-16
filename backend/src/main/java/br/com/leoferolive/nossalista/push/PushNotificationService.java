@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.push;
 
+import br.com.leoferolive.nossalista.config.AsyncConfig;
 import br.com.leoferolive.nossalista.websocket.PresenceService;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
@@ -7,6 +8,7 @@ import nl.martijndwars.webpush.Subscription;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
@@ -65,7 +67,16 @@ public class PushNotificationService {
      * Envia push notification para um usuário caso ele esteja offline.
      * Se o usuário estiver online (sessão WebSocket ativa), o push é omitido
      * pois ele já receberá a notificação pelo WebSocket.
+     *
+     * <p>Executa fora da thread da requisição/transação ({@code @Async}) —
+     * o envio via {@code nl.martijndwars:web-push} é I/O de rede bloqueante.
+     * Nota: a versão atual da lib (5.1.1) não expõe timeout configurável na
+     * API pública de {@link PushService#send} (verificado via inspeção da
+     * classe — sem setter de {@code HttpClient}/{@code RequestConfig}); a
+     * proteção contra bloqueio vem de rodar em thread dedicada do executor
+     * bounded, não de um timeout de rede explícito.
      */
+    @Async(AsyncConfig.ASYNC_EXECUTOR)
     public void sendToUser(UUID userId, PushNotificationPayload payload) {
         if (pushService == null) {
             return;

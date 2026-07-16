@@ -15,12 +15,13 @@ import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
-import br.com.leoferolive.nossalista.notification.NotificationService;
+import br.com.leoferolive.nossalista.notification.ListItemNotificationEvent;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
 import br.com.leoferolive.nossalista.websocket.dto.ListLayoutUpdatedPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +43,7 @@ public class ListItemService {
     private final WebSocketEventPublisher eventPublisher;
     private final ListMemberRepository listMemberRepository;
     private final ActivityLogService activityLogService;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public ListItemService(ListItemRepository listItemRepository,
                            ListRepository listRepository,
@@ -50,14 +51,14 @@ public class ListItemService {
                            WebSocketEventPublisher eventPublisher,
                            ListMemberRepository listMemberRepository,
                            ActivityLogService activityLogService,
-                           NotificationService notificationService) {
+                           ApplicationEventPublisher applicationEventPublisher) {
         this.listItemRepository = listItemRepository;
         this.listRepository = listRepository;
         this.listItemMapper = listItemMapper;
         this.eventPublisher = eventPublisher;
         this.listMemberRepository = listMemberRepository;
         this.activityLogService = activityLogService;
-        this.notificationService = notificationService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     /**
@@ -123,7 +124,7 @@ public class ListItemService {
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
         Long revision = touchListRevision(list);
         broadcastItemEvent("ITEM_ADDED", result, creator, listId, revision);
-        notificationService.notifyListMembers(listId, creator.getId(), "ITEM_ADDED", result, creator);
+        publishNotificationEvent(listId, creator.getId(), "ITEM_ADDED", result, creator);
 
         // 10. Retornar DTO
         return result;
@@ -285,7 +286,7 @@ public class ListItemService {
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
         Long revision = touchListRevision(list);
         broadcastItemEvent("ITEM_CHECKED", result, user, listId, revision);
-        notificationService.notifyListMembers(listId, user.getId(), "ITEM_CHECKED", result, user);
+        publishNotificationEvent(listId, user.getId(), "ITEM_CHECKED", result, user);
         return result;
     }
 
@@ -391,7 +392,7 @@ public class ListItemService {
         ListItemResponseDTO result = listItemMapper.toListItemResponseDTO(saved);
         Long revision = touchListRevision(list);
         broadcastItemEvent("ITEM_UPDATED", result, user, listId, revision);
-        notificationService.notifyListMembers(listId, user.getId(), "ITEM_UPDATED", result, user);
+        publishNotificationEvent(listId, user.getId(), "ITEM_UPDATED", result, user);
         return result;
     }
 
@@ -446,7 +447,7 @@ public class ListItemService {
         // 10. Broadcast WebSocket
         broadcastItemEvent("ITEM_REMOVED", itemDTO, user, listId, revision);
         broadcastLayoutUpdatedEvent(listId, reorderedItems, user, revision);
-        notificationService.notifyListMembers(listId, user.getId(), "ITEM_REMOVED", itemDTO, user);
+        publishNotificationEvent(listId, user.getId(), "ITEM_REMOVED", itemDTO, user);
     }
 
     /**
@@ -454,6 +455,17 @@ public class ListItemService {
      */
     private void broadcastItemEvent(String type, ListItemResponseDTO dto, User actor, UUID listId, Long revision) {
         eventPublisher.publishEvent(listId, type, dto, actor, revision);
+    }
+
+    /**
+     * Publica um {@link ListItemNotificationEvent} para notificar membros da lista
+     * (push + WebSocket por usuário). O evento só é consumido APÓS o commit da
+     * transação atual — ver {@code notification.ListItemNotificationEventListener}.
+     * Assim, nenhuma notificação é disparada para uma mudança que sofre rollback,
+     * e o I/O de notificação roda fora da thread da requisição.
+     */
+    private void publishNotificationEvent(UUID listId, UUID actorId, String type, Object payload, User actor) {
+        applicationEventPublisher.publishEvent(new ListItemNotificationEvent(listId, actorId, type, payload, actor));
     }
 
     private void broadcastLayoutUpdatedEvent(UUID listId, java.util.List<ListItem> reorderedItems, User actor, Long revision) {
