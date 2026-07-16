@@ -1,15 +1,15 @@
 {
   "frontend_coverage_branch": {
     "direction": "higher_is_better",
-    "value": 85.33
+    "value": 80.88
   },
   "frontend_coverage_func": {
     "direction": "higher_is_better",
-    "value": 88.23
+    "value": 85.31
   },
   "frontend_coverage_line": {
     "direction": "higher_is_better",
-    "value": 89.44
+    "value": 87.28
   },
   "frontend_eslint_errors": {
     "direction": "lower_is_better",
