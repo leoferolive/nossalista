@@ -1308,3 +1308,30 @@
   `google/osv-scanner/.github/workflows/...`; o path oficial atual (v2.x) e
   `google/osv-scanner-action/.github/workflows/...` (a action migrou de repo). Fixado em
   `@v2.3.8`.
+
+## D-028 Persistir push subscriptions no banco (T2, Onda 1 — blindagem do core)
+
+- **Decisao:** `PushSubscriptionStore` deixou de guardar as inscricoes de Web Push num
+  `ConcurrentHashMap` in-memory e passou a delegar para `PushSubscriptionRepository`
+  (JPA), persistindo na tabela `push_subscriptions` (migration `V16`). A API publica do
+  store ficou **identica** (`add`, `remove`, `removeAll`, `findByUserId`), preservando o
+  contrato usado por `PushController` e `PushNotificationService` sem exigir alteracao
+  nesses chamadores.
+- **Motivo:** como cada deploy substitui o pod (`replicas: 1`), o store em memoria perdia
+  **todas** as inscricoes de push a cada release — push notifications paravam
+  silenciosamente ate o usuario reabrir o app e reinscrever. O store tambem nao sobrevivia
+  a mais de uma replica. Mesmo padrao ja adotado por `OAuthCodeStore` (D-011) e
+  `password_reset_tokens`/`magic_link_tokens`: mover o estado que precisa sobreviver a
+  restart/escala para o banco compartilhado.
+- **Modelagem:** nova entidade `PushSubscriptionEntity` (sufixo `Entity` para nao colidir
+  com o record `PushSubscription`, ja usado como DTO na API publica do store e nos
+  chamadores — mesma convencao de `ListTypeEntity`). Tabela `push_subscriptions`: `user_id`
+  com FK para `users(id) ON DELETE CASCADE` e indice proprio, `endpoint` com constraint
+  **UNIQUE** global, `p256dh`/`auth`, `created_at`/`updated_at`.
+- **Semantica de upsert por endpoint:** como o endpoint de Web Push e globalmente unico
+  (por navegador/dispositivo), `add()` faz upsert por `endpoint` — se ja pertencer a outro
+  usuario (ex.: mesmo navegador apos logout/login com outra conta), a inscricao e
+  **transferida** para o novo dono em vez de gerar conflito de unicidade. O limite de 5
+  inscricoes por usuario (FIFO) passou a evictar pela mais antiga por `updated_at`
+  (em vez de ordem de insercao em lista), preservando o comportamento pratico do store
+  anterior de manter as inscricoes mais recentemente (re)confirmadas.
