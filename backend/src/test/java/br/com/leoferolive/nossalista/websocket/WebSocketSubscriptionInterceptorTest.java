@@ -199,6 +199,88 @@ class WebSocketSubscriptionInterceptorTest {
         assertThat(result).isNotNull();
     }
 
+    @Test
+    @DisplayName("CONNECT com token no header nativo 'token' deve autenticar usuário")
+    void shouldAuthenticateConnectWithTokenNativeHeader() {
+        User user = createUser(VALID_USER_ID);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("token", "valid.jwt.token");
+        accessor.setSessionAttributes(new HashMap<>());
+        accessor.setLeaveMutable(true);
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        when(jwtService.validateToken("valid.jwt.token")).thenReturn(true);
+        when(jwtService.extractUserId("valid.jwt.token")).thenReturn(VALID_USER_ID);
+        when(userService.findById(VALID_USER_ID)).thenReturn(Optional.of(user));
+
+        Message<?> result = interceptor.preSend(message, null);
+
+        assertThat(result).isNotNull();
+        StompHeaderAccessor resultAccessor = StompHeaderAccessor.wrap(result);
+        assertThat(resultAccessor.getSessionAttributes()).containsEntry("user", user);
+    }
+
+    @Test
+    @DisplayName("CONNECT sem sessionAttributes não lança exceção e ainda autentica")
+    void shouldAuthenticateConnectWithoutSessionAttributes() {
+        User user = createUser(VALID_USER_ID);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("Authorization", "Bearer valid.jwt.token");
+        accessor.setLeaveMutable(true);
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        when(jwtService.validateToken("valid.jwt.token")).thenReturn(true);
+        when(jwtService.extractUserId("valid.jwt.token")).thenReturn(VALID_USER_ID);
+        when(userService.findById(VALID_USER_ID)).thenReturn(Optional.of(user));
+
+        Message<?> result = interceptor.preSend(message, null);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("CONNECT com token JWT inválido deve ser rejeitado")
+    void shouldRejectConnectWithInvalidToken() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("Authorization", "Bearer invalid.jwt.token");
+        accessor.setLeaveMutable(true);
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        when(jwtService.validateToken("invalid.jwt.token")).thenReturn(false);
+
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
+            .isInstanceOf(MessageDeliveryException.class)
+            .hasMessageContaining("Token JWT inválido");
+    }
+
+    @Test
+    @DisplayName("CONNECT com token de usuário inexistente deve ser rejeitado")
+    void shouldRejectConnectWhenUserNotFound() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("Authorization", "Bearer valid.jwt.token");
+        accessor.setLeaveMutable(true);
+        Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        when(jwtService.validateToken("valid.jwt.token")).thenReturn(true);
+        when(jwtService.extractUserId("valid.jwt.token")).thenReturn(VALID_USER_ID);
+        when(userService.findById(VALID_USER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
+            .isInstanceOf(MessageDeliveryException.class)
+            .hasMessageContaining("Usuário do token não encontrado");
+    }
+
+    @Test
+    @DisplayName("UUID inválido no tópico de notificações do usuário deve ser rejeitado")
+    void shouldRejectSubscribeToUserTopicWithInvalidUuid() {
+        User user = createUser(VALID_USER_ID);
+        Message<?> message = buildSubscribeMessage("/topic/user/not-a-valid-uuid/notifications", user);
+
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
+            .isInstanceOf(MessageDeliveryException.class)
+            .hasMessageContaining("Acesso negado");
+    }
+
     private User createUser(UUID userId) {
         User user = new User();
         user.setId(userId);

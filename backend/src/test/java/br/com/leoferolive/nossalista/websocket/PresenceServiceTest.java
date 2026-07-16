@@ -161,6 +161,53 @@ class PresenceServiceTest {
         assertThat(service.isUserConnected(user.getId())).isFalse();
     }
 
+    @Test
+    @DisplayName("registerSubscription com id em branco não registra a inscrição")
+    void registerSubscriptionWithBlankIdDoesNothing() {
+        PresenceService service = new PresenceService();
+        UUID listId = UUID.randomUUID();
+
+        service.registerSubscription("   ", listId, "session-1");
+
+        assertThat(service.removeBySubscription("   ", "session-1")).isNull();
+    }
+
+    @Test
+    @DisplayName("removeBySubscription com subscriptionId desconhecido retorna null")
+    void removeBySubscriptionWithUnknownIdReturnsNull() {
+        PresenceService service = new PresenceService();
+
+        assertThat(service.removeBySubscription("unknown-sub", "session-1")).isNull();
+    }
+
+    @Test
+    @DisplayName("removeBySubscription com sessionId nulo usa a sessão registrada na inscrição")
+    void removeBySubscriptionWithNullSessionIdUsesRegisteredSession() {
+        PresenceService service = new PresenceService();
+        UUID listId = UUID.randomUUID();
+        User user = createUser("maria");
+        service.registerSession(listId, "session-1", user);
+        service.registerSubscription("sub-1", listId, "session-1");
+
+        PresenceService.RemovedPresence removed = service.removeBySubscription("sub-1", null);
+
+        assertThat(removed).isNotNull();
+        assertThat(removed.user()).isEqualTo(user);
+        assertThat(removed.listId()).isEqualTo(listId);
+        assertThat(service.getOnlineUsers(listId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("removeSession em lista sem sessões retorna vazio")
+    void removeSessionOnListWithoutSessionsReturnsEmpty() {
+        PresenceService service = new PresenceService();
+        UUID listId = UUID.randomUUID();
+
+        Optional<User> removed = service.removeSession(listId, "session-1");
+
+        assertThat(removed).isEmpty();
+    }
+
     private User createUser(String username) {
         User user = new User();
         user.setId(UUID.randomUUID());

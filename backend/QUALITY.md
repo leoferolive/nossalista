@@ -87,7 +87,10 @@ Este documento define os gates obrigatorios de qualidade do backend.
 
 ### Escopo monitorado no MVP
 
-- Exclui o pacote `websocket` e o mapper `listitem/dto/ListItemMapper` do gate de cobertura.
+- O pacote `websocket` entra no gate de cobertura (publisher, interceptors, controllers,
+  scheduler, presence). Ficam de fora apenas os DTOs triviais (`websocket/dto/**`) e o
+  record `WebSocketActor` (sem lógica própria).
+- Exclui o mapper `listitem/dto/ListItemMapper` do gate de cobertura.
 
 ## Gates de codigo gerado por IA (diff do PR)
 

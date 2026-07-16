@@ -1,11 +1,11 @@
 {
   "backend_coverage_branch": {
     "direction": "higher_is_better",
-    "value": 77.29
+    "value": 82.72
   },
   "backend_coverage_line": {
     "direction": "higher_is_better",
-    "value": 86.06
+    "value": 93.13
   },
   "backend_pmd_violations": {
     "direction": "lower_is_better",

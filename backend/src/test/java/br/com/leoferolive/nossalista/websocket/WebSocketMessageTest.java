@@ -175,4 +175,76 @@ class WebSocketMessageTest {
 
         assertFalse(json.contains("\"actor\""), "actor nulo não deve aparecer no payload");
     }
+
+    @Test
+    @DisplayName("Builder preserva schemaVersion explícito e usa Instant.now() quando timestamp for omitido")
+    void builderPreservesExplicitSchemaVersionAndDefaultsTimestampWhenOmitted() {
+        Instant before = Instant.now();
+
+        WebSocketMessage message = WebSocketMessage.builder()
+                .eventId("event-7")
+                .listId(UUID.randomUUID())
+                .channel("items")
+                .type("ITEM_ADDED")
+                .payload(Map.of())
+                .schemaVersion(5)
+                .build();
+
+        Instant after = Instant.now();
+
+        assertEquals(5, message.getSchemaVersion());
+        assertNotNull(message.getTimestamp());
+        assertFalse(message.getTimestamp().isBefore(before));
+        assertFalse(message.getTimestamp().isAfter(after));
+    }
+
+    @Test
+    @DisplayName("equals retorna false quando comparado a null, outro tipo ou campos diferentes")
+    void equalsReturnsFalseForNullDifferentTypeOrDifferentFields() {
+        Instant now = Instant.now();
+        WebSocketMessage base = WebSocketMessage.builder()
+                .eventId("event-8")
+                .listId(UUID.randomUUID())
+                .channel("items")
+                .type("ITEM_ADDED")
+                .payload(Map.of("a", "b"))
+                .timestamp(now)
+                .build();
+
+        assertEquals(base, base);
+        assertNotEquals(null, base);
+        assertNotEquals("not-a-message", base);
+
+        WebSocketMessage differentType = WebSocketMessage.builder()
+                .eventId(base.getEventId())
+                .listId(base.getListId())
+                .channel(base.getChannel())
+                .type("ITEM_REMOVED")
+                .payload(base.getPayload())
+                .timestamp(base.getTimestamp())
+                .build();
+        assertNotEquals(base, differentType);
+
+        WebSocketMessage differentPayload = WebSocketMessage.builder()
+                .eventId(base.getEventId())
+                .listId(base.getListId())
+                .channel(base.getChannel())
+                .type(base.getType())
+                .payload(Map.of("x", "y"))
+                .timestamp(base.getTimestamp())
+                .build();
+        assertNotEquals(base, differentPayload);
+
+        WebSocketMessage differentEventId = WebSocketMessage.builder()
+                .eventId("different-event")
+                .listId(base.getListId())
+                .channel(base.getChannel())
+                .type(base.getType())
+                .payload(base.getPayload())
+                .timestamp(base.getTimestamp())
+                .build();
+        assertNotEquals(base, differentEventId);
+
+        assertNotEquals(base.hashCode(), differentEventId.hashCode());
+    }
 }
