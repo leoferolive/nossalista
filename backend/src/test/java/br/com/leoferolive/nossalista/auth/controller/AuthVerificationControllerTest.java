@@ -14,9 +14,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -82,7 +84,7 @@ class AuthVerificationControllerTest {
     // ----- Q2.3: OAuth one-time code exchange -----
 
     @Test
-    void exchangeWithValidCodeReturnsJwt() throws Exception {
+    void exchangeWithValidCodeCreatesSessionCookie() throws Exception {
         User user = persistUser(AuthProvider.GOOGLE, true);
         String jwt = jwtService.generateToken(user);
         String code = oauthCodeStore.issue(jwt);
@@ -90,12 +92,16 @@ class AuthVerificationControllerTest {
         Map<String, String> request = new HashMap<>();
         request.put("code", code);
 
-        mockMvc.perform(post("/api/auth/oauth/exchange")
+        MvcResult exchange = mockMvc.perform(post("/api/auth/oauth/exchange")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.token").value(jwt))
-            .andExpect(jsonPath("$.email").value(user.getEmail()));
+            .andExpect(jsonPath("$.token").doesNotExist())
+            .andExpect(jsonPath("$.email").value(user.getEmail()))
+            .andReturn();
+
+        String setCookie = exchange.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+        assertThat(setCookie).contains("nl_session=" + jwt).contains("HttpOnly");
     }
 
     @Test

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useReducer, useRef, useCallback } from 'react'
 import { Client, StompSubscription } from '@stomp/stompjs'
 import { createStompClient, getListTopic, WebSocketChannel } from '../api/websocket'
-import { getStoredAuthToken } from '../auth/session'
 
 export type WebSocketStatus = 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'RECONNECTING'
 
@@ -86,7 +85,7 @@ function isAuthenticationStompError(frame: {
     message.includes('nao autenticado') ||
     message.includes('não autenticado') ||
     message.includes('acesso negado') ||
-    message.includes('token jwt')
+    message.includes('sessão ausente')
   )
 }
 
@@ -142,13 +141,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    const token = getStoredAuthToken()
-    if (!token) {
-      dispatch({ type: 'DISCONNECTED' })
-      return
-    }
-
-    const client = createStompClient(token)
+    const client = createStompClient()
 
     client.onConnect = () => {
       const isReconnect = reconnectAttemptRef.current > 0
@@ -257,12 +250,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (clientRef.current?.connected) {
-        return
-      }
-
-      const token = getStoredAuthToken()
-      if (!token) {
-        console.warn('[WebSocket] Tentativa de connect sem token de autenticação')
         return
       }
 

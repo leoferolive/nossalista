@@ -116,8 +116,19 @@ class McpOAuthDynamicClientRegistrationIntegrationTest {
             AuthProvider.EMAIL);
     }
 
+    private static final String CSRF_HEADER = "X-XSRF-TOKEN";
+    private static final String CSRF_TOKEN = "test-csrf-token";
+
     private String sessionJwt(User user) {
         return jwtService.generateToken(user);
+    }
+
+    private String sessionCookies(String token) {
+        return "nl_session=" + token + "; XSRF-TOKEN=" + CSRF_TOKEN;
+    }
+
+    private String sessionCookies(String token, String additionalCookie) {
+        return sessionCookies(token) + "; " + additionalCookie;
     }
 
     private record Pkce(String verifier, String challenge) {
@@ -407,16 +418,16 @@ class McpOAuthDynamicClientRegistrationIntegrationTest {
         String sessionJwt = sessionJwt(user);
         PendingAuthorizationView view = restClient.get()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId)
-            .header("Authorization", "Bearer " + sessionJwt)
-            .header("Cookie", consentCookie)
+            .header("Cookie", sessionCookies(sessionJwt, consentCookie))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(PendingAuthorizationView.class);
         assertThat(view.clientId()).isEqualTo(clientId);
 
         ConsentDecisionResponse decision = restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
-            .header("Authorization", "Bearer " + sessionJwt)
-            .header("Cookie", consentCookie)
+            .header("Cookie", sessionCookies(sessionJwt, consentCookie))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(ConsentDecisionResponse.class);
         String code = extractParam(decision.redirectUrl(), "code");
@@ -477,14 +488,16 @@ class McpOAuthDynamicClientRegistrationIntegrationTest {
 
         PendingAuthorizationView view = restClient.get()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId)
-            .header("Authorization", "Bearer " + victimJwt)
+            .header("Cookie", sessionCookies(victimJwt))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(PendingAuthorizationView.class);
         assertThat(view.clientId()).isEqualTo(clientId);
 
         assertThatThrownBy(() -> restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
-            .header("Authorization", "Bearer " + victimJwt)
+            .header("Cookie", sessionCookies(victimJwt))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .toBodilessEntity())
             .isInstanceOf(HttpClientErrorException.class)
@@ -510,8 +523,8 @@ class McpOAuthDynamicClientRegistrationIntegrationTest {
         String sessionJwt = sessionJwt(user);
         ConsentDecisionResponse decision = restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
-            .header("Authorization", "Bearer " + sessionJwt)
-            .header("Cookie", consentCookie)
+            .header("Cookie", sessionCookies(sessionJwt, consentCookie))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(ConsentDecisionResponse.class);
         String code = extractParam(decision.redirectUrl(), "code");

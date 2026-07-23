@@ -1,13 +1,13 @@
 package br.com.leoferolive.nossalista.auth.controller;
 
 import br.com.leoferolive.nossalista.auth.OAuth2SuccessHandler;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import jakarta.servlet.http.Cookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static br.com.leoferolive.nossalista.support.SessionCookieRequestPostProcessor.session;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -36,11 +37,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * REGRESSÃO do login Google (Q2.3): cobre o fluxo de ponta a ponta que quebrava
  * em produção — emitir o one-time code no {@link OAuth2SuccessHandler} (agora
  * PERSISTIDO no banco), trocar via {@code POST /api/auth/oauth/exchange} e usar o
- * JWT retornado num endpoint autenticado ({@code GET /api/lists}).
+ * cookie de sessão retornado num endpoint autenticado ({@code GET /api/lists}).
  *
  * <p>Antes, o code vivia em memória por instância; o exchange respondia 400
  * quando emitido numa instância e trocado em outra (ou após restart), deixando o
- * usuário sem JWT (401 em tudo). Este teste trava o contrato persistido.</p>
+ * usuário sem sessão (401 em tudo). Este teste trava o contrato persistido.</p>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
@@ -54,8 +55,6 @@ class OAuthExchangeFlowIntegrationTest {
     private OAuth2SuccessHandler oauth2SuccessHandler;
 
     private MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
@@ -66,8 +65,8 @@ class OAuthExchangeFlowIntegrationTest {
     }
 
     @Test
-    @DisplayName("Login Google: code emitido no success handler é trocado por JWT e o JWT acessa /api/lists")
-    void googleLoginCodeExchangesForUsableJwt() throws Exception {
+    @DisplayName("Login Google: code emite cookie de sessão que acessa /api/lists")
+    void googleLoginCodeExchangesForUsableSessionCookie() throws Exception {
         // 1) Sucesso do OAuth2 (Google) emite o one-time code e redireciona para o frontend
         MockHttpServletResponse redirectResponse = new MockHttpServletResponse();
         oauth2SuccessHandler.onAuthenticationSuccess(
@@ -81,27 +80,29 @@ class OAuthExchangeFlowIntegrationTest {
         assertThat(redirectedUrl).doesNotContain("token=");
         String code = redirectedUrl.substring(redirectedUrl.indexOf("code=") + "code=".length());
 
-        // 2) Frontend troca o code pelo JWT
+        // 2) Frontend troca o code pela sessão HttpOnly
         MvcResult exchange = mockMvc.perform(post("/api/auth/oauth/exchange")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"code\":\"" + code + "\"}"))
+                        .content("{\"code\":\"" + code + "\"}")
+                        .with(session("csrf-only")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
+                .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(jsonPath("$.email").value("novo.google@example.com"))
                 .andReturn();
 
-        JsonNode body = objectMapper.readTree(exchange.getResponse().getContentAsString());
-        String jwt = body.get("token").asText();
-        assertThat(jwt).isNotBlank();
+        String setCookie = exchange.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+        assertThat(setCookie).contains("nl_session=").contains("HttpOnly").contains("SameSite=Lax");
+        String jwt = setCookie.substring(setCookie.indexOf('=') + 1, setCookie.indexOf(';'));
 
-        // 3) O JWT trocado autentica de verdade um endpoint protegido
-        mockMvc.perform(get("/api/lists").header("Authorization", "Bearer " + jwt))
+        // 3) O cookie trocado autentica de verdade um endpoint protegido
+        mockMvc.perform(get("/api/lists").cookie(new Cookie("nl_session", jwt)))
                 .andExpect(status().isOk());
 
         // 4) Single-use: o mesmo code não pode ser trocado de novo
         mockMvc.perform(post("/api/auth/oauth/exchange")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"code\":\"" + code + "\"}"))
+                        .content("{\"code\":\"" + code + "\"}")
+                        .with(session("csrf-only")))
                 .andExpect(status().isBadRequest());
     }
 

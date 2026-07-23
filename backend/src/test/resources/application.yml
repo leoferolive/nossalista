@@ -61,6 +61,11 @@ frontend:
   url: http://localhost:5173
 
 app:
+  auth:
+    session-cookie:
+      name: nl_session
+      secure: false
+      same-site: Lax
   # Precisa ser repetido aqui pelo MESMO motivo documentado em docs/DECISIONS.md
   # (D-020): este arquivo SUBSTITUI (não mescla com) src/main/resources/application.yml
   # no classpath de teste. Sem isso, McpOAuthJwtService falha no @PostConstruct

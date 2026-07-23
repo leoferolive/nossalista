@@ -27,6 +27,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Collections;
 
+import static br.com.leoferolive.nossalista.support.SessionCookieRequestPostProcessor.session;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -114,12 +115,12 @@ class MemberControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 201 com header Authorization Bearer JWT válido")
+    @DisplayName("Deve retornar 201 com cookie de sessão válido")
     void shouldReturn201WithValidJwtHeader() throws Exception {
         String jwt = jwtService.generateToken(owner);
 
         mockMvc.perform(post("/api/lists/{id}/invite", list.getId())
-                .header("Authorization", "Bearer " + jwt)
+                .with(session(jwt))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"pedro\"}"))
             .andExpect(status().isCreated())

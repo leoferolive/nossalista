@@ -75,11 +75,11 @@ describe('usersApi', () => {
     await expect(usersApi.updateProfile({ name: '' })).rejects.toMatchObject({ status: 400 })
   })
 
-  it('logout resolve sem chamar a API', async () => {
-    const getSpy = vi.spyOn(client, 'get')
+  it('logout expira a sessão no servidor', async () => {
+    vi.spyOn(client, 'post').mockResolvedValueOnce({ data: undefined } as AxiosResponse)
 
     await expect(usersApi.logout()).resolves.toBeUndefined()
-    expect(getSpy).not.toHaveBeenCalled()
+    expect(client.post).toHaveBeenCalledWith('/api/auth/logout')
   })
 
   it('completeOnboarding marca o onboarding como concluido', async () => {

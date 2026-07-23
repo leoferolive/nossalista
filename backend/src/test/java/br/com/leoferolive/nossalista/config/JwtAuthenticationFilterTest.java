@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.config;
 
 import br.com.leoferolive.nossalista.auth.service.JwtService;
+import br.com.leoferolive.nossalista.auth.service.SessionCookieService;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
@@ -28,6 +29,7 @@ class JwtAuthenticationFilterTest {
     private JwtService jwtService;
     private UserService userService;
     private JwtAuthenticationFilter filter;
+    private SessionCookieService sessionCookieService;
 
     private final UUID userId = UUID.randomUUID();
     private static final String TOKEN = "valid.jwt.token";
@@ -38,7 +40,8 @@ class JwtAuthenticationFilterTest {
         userService = mock(UserService.class);
         AuthenticatedUserCache cache =
             new AuthenticatedUserCache(userService, Duration.ofSeconds(60));
-        filter = new JwtAuthenticationFilter(jwtService, cache);
+        sessionCookieService = mock(SessionCookieService.class);
+        filter = new JwtAuthenticationFilter(jwtService, cache, sessionCookieService);
 
         when(jwtService.validateToken(TOKEN)).thenReturn(true);
         when(jwtService.extractUserId(TOKEN)).thenReturn(userId);
@@ -55,7 +58,7 @@ class JwtAuthenticationFilterTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain chain = mock(FilterChain.class);
-        when(request.getHeader("Authorization")).thenReturn("Bearer " + TOKEN);
+        when(sessionCookieService.extractToken(request)).thenReturn(Optional.of(TOKEN));
 
         filter.doFilter(request, response, chain);
         return SecurityContextHolder.getContext().getAuthentication();

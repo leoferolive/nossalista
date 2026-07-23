@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.config;
 
 import br.com.leoferolive.nossalista.auth.OAuth2SuccessHandler;
+import br.com.leoferolive.nossalista.auth.service.SessionCookieService;
 import br.com.leoferolive.nossalista.mcpoauth.security.McpOAuthTokenAuthenticationFilter;
 import br.com.leoferolive.nossalista.mcpoauth.security.McpWwwAuthenticateEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,12 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.DelegatingAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcherEntry;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -26,7 +32,7 @@ import java.util.Arrays;
 
 /**
  * Configuração de segurança da aplicação NossaLista.
- * Define políticas de CORS, autenticação JWT, OAuth2 e endpoints públicos.
+ * Define políticas de CORS, sessão web por cookie HttpOnly, OAuth2 e endpoints públicos.
  */
 @Configuration
 @EnableWebSecurity
@@ -44,6 +50,7 @@ public class SecurityConfig {
     private final Http403AccessDeniedHandler accessDeniedHandler;
     private final McpWwwAuthenticateEntryPoint mcpWwwAuthenticateEntryPoint;
     private final CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
+    private final SessionCookieService sessionCookieService;
 
     public SecurityConfig(
         JwtAuthenticationFilter jwtAuthenticationFilter,
@@ -53,7 +60,8 @@ public class SecurityConfig {
         Http401UnauthorizedEntryPoint unauthorizedEntryPoint,
         Http403AccessDeniedHandler accessDeniedHandler,
         McpWwwAuthenticateEntryPoint mcpWwwAuthenticateEntryPoint,
-        CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository
+        CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository,
+        SessionCookieService sessionCookieService
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.personalAccessTokenAuthenticationFilter = personalAccessTokenAuthenticationFilter;
@@ -63,20 +71,26 @@ public class SecurityConfig {
         this.accessDeniedHandler = accessDeniedHandler;
         this.mcpWwwAuthenticateEntryPoint = mcpWwwAuthenticateEntryPoint;
         this.authorizationRequestRepository = authorizationRequestRepository;
+        this.sessionCookieService = sessionCookieService;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Desabilitar CSRF - API stateless não usa cookies de sessão
-                .csrf(csrf -> csrf.disable())
+                // Sessões web usam cookie HttpOnly; mutações autenticadas exigem
+                // o token XSRF legível pela SPA. PAT/MCP continuam sem CSRF.
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfTokenRepository())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .requireCsrfProtectionMatcher(csrfProtectionMatcher())
+                )
 
                 // Configurar CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // Configurar autorização de endpoints
                 .authorizeHttpRequests(auth -> auth
-                        // Gestão de PATs (/api/users/me/tokens/**) exige sessão JWT normal —
+                        // Gestão de PATs (/api/users/me/tokens/**) exige sessão web por cookie —
                         // um PAT não pode criar/listar/revogar tokens (nem o seu próprio).
                         .requestMatchers("/api/users/me/tokens/**").access(sessionOnlyManager())
                         // Endpoints públicos - não requerem autenticação. Um PAT nunca pode
@@ -95,7 +109,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource")
                         .permitAll()
-                        // Consentimento/gestão de conexões OAuth do MCP: exige sessão JWT normal —
+                        // Consentimento/gestão de conexões OAuth do MCP: exige sessão web por cookie —
                         // um PAT ou um access token OAuth do MCP nunca pode aprovar um novo
                         // consentimento nem gerenciar conexões em nome do usuário.
                         .requestMatchers("/api/oauth/consent/**", "/api/oauth/connections/**").access(sessionOnlyManager())
@@ -103,7 +117,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/lists/join/**").permitAll()
                         // WebSocket endpoint - auth feita pelo WebSocketAuthInterceptor
                         .requestMatchers("/ws/**").permitAll()
-                        // Servidor MCP (Streamable HTTP, POST /mcp): exige PAT ou JWT válido.
+                        // Servidor MCP (Streamable HTTP, POST /mcp): exige PAT, access token OAuth MCP ou cookie de sessão válido.
                         // Diferente de /api/**, aqui NÃO aplicamos apiAccessManager — todo o
                         // protocolo MCP trafega por POST, então a restrição de escopo READ
                         // (métodos seguros) seria bloqueio total. O enforcement de escopo é
@@ -171,10 +185,32 @@ public class SecurityConfig {
         return http.build();
     }
 
+    private CookieCsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookieCustomizer(cookie -> cookie
+            .path("/")
+            .secure(sessionCookieService.isSecure()));
+        return repository;
+    }
+
+    private RequestMatcher csrfProtectionMatcher() {
+        RequestMatcher externalTransport = new OrRequestMatcher(
+            PathPatternRequestMatcher.withDefaults().matcher("/ws/**"),
+            PathPatternRequestMatcher.withDefaults().matcher("/mcp/**"),
+            PathPatternRequestMatcher.withDefaults().matcher("/oauth/token"),
+            PathPatternRequestMatcher.withDefaults().matcher("/oauth/revoke"),
+            PathPatternRequestMatcher.withDefaults().matcher("/oauth/register")
+        );
+
+        return request -> CsrfFilter.DEFAULT_CSRF_MATCHER.matches(request)
+            && sessionCookieService.hasSessionCookie(request)
+            && !externalTransport.matches(request);
+    }
+
     /**
      * Permite a requisição a menos que tenha sido autenticada via PAT.
      * Usado nos endpoints públicos ({@code /api/auth/**}, health checks):
-     * anônimos e sessões JWT passam normalmente; PATs são bloqueados (403).
+     * anônimos e sessões cookie passam normalmente; PATs são bloqueados (403).
      */
     private AuthorizationManager<RequestAuthorizationContext> publicUnlessPatManager() {
         return (authentication, context) ->
@@ -197,7 +233,7 @@ public class SecurityConfig {
     /**
      * Regra geral de {@code /api/**}: exige autenticação e, quando a
      * autenticação é um PAT de escopo READ, restringe a métodos HTTP seguros
-     * (GET/HEAD/OPTIONS). PATs de escopo READ_WRITE e sessões JWT não sofrem
+     * (GET/HEAD/OPTIONS). PATs de escopo READ_WRITE e sessões cookie não sofrem
      * essa restrição adicional.
      *
      * <p>Um access token OAuth do servidor MCP (Fase C, D-022) é sempre negado

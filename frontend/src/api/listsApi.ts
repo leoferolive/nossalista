@@ -129,8 +129,8 @@ export const listsApi = {
 
   /**
    * Busca uma lista pelo código de convite (endpoint público, modo read-only)
-   * Não requer autenticação - usa o client compartilhado que omite o header
-   * Authorization quando não há token armazenado
+   * Não requer autenticação; o client compartilhado envia cookies apenas quando
+   * o navegador os possuir para a mesma origem
    * @param inviteCode - Código de convite
    * @returns Promise com dados da lista em modo read-only
    * @throws ApiError com status code para detecção de erro tipada
@@ -146,7 +146,7 @@ export const listsApi = {
 
   /**
    * Entra em uma lista via código de convite (endpoint autenticado)
-   * Requer autenticação JWT - criar membro na lista
+   * Requer sessão autenticada por cookie para criar o membro na lista
    * @param inviteCode - Código de convite
    * @returns Promise com dados da lista e mensagem de boas-vindas
    * @throws ApiError com status code para detecção de erro tipada

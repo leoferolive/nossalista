@@ -30,14 +30,14 @@ describe('websocket api', () => {
     expect(getUserNotificationsTopic('user-1')).toBe('/topic/user/user-1/notifications')
   })
 
-  it('createStompClient configura o cliente STOMP com o token de autenticacao', async () => {
+  it('createStompClient configura o cliente STOMP com a sessao do handshake', async () => {
     const { createStompClient } = await import('./websocket')
 
-    createStompClient('jwt-token')
+    createStompClient()
 
     expect(clientCtor).toHaveBeenCalledTimes(1)
     const config = clientCtor.mock.calls[0][0] as StompConfig
-    expect(config.connectHeaders).toEqual({ Authorization: 'Bearer jwt-token' })
+    expect(config.connectHeaders).toBeUndefined()
     expect(config.heartbeatIncoming).toBe(10000)
     expect(config.heartbeatOutgoing).toBe(10000)
     expect(config.reconnectDelay).toBe(0)
@@ -48,7 +48,7 @@ describe('websocket api', () => {
   it('debug do STOMP nao lanca ao ser chamado', async () => {
     const { createStompClient } = await import('./websocket')
 
-    createStompClient('jwt-token')
+    createStompClient()
 
     const config = clientCtor.mock.calls[clientCtor.mock.calls.length - 1][0] as StompConfig
     expect(() => config.debug?.('mensagem de debug')).not.toThrow()

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { MagicLogin } from './MagicLogin'
-import { persistAuthToken, getStoredAuthToken } from '../auth/session'
 
 const navigateMock = vi.fn()
 const loginMock = vi.fn()
 const magicLoginMock = vi.fn()
+const { clientGetMock } = vi.hoisted(() => ({ clientGetMock: vi.fn() }))
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
@@ -14,9 +14,9 @@ vi.mock('react-router-dom', async () => {
 })
 vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ login: loginMock }) }))
 vi.mock('../api/authApi', () => ({ authApi: { magicLogin: (t: string) => magicLoginMock(t) } }))
-vi.mock('../auth/session', () => ({
-  persistAuthToken: vi.fn(),
-  getStoredAuthToken: vi.fn(() => null),
+vi.mock('../api/client', () => ({
+  default: { get: clientGetMock },
+  preserveSessionOnUnauthorizedConfig: { preserveSessionOnUnauthorized: true },
 }))
 
 function renderAt(path: string) {
@@ -34,8 +34,8 @@ describe('MagicLogin', () => {
     navigateMock.mockReset()
     loginMock.mockReset()
     magicLoginMock.mockReset()
-    vi.mocked(persistAuthToken).mockReset()
-    vi.mocked(getStoredAuthToken).mockReset().mockReturnValue(null)
+    clientGetMock.mockReset()
+    clientGetMock.mockRejectedValue(new Error('Sem sessão'))
     localStorage.clear()
     sessionStorage.clear()
   })
@@ -50,8 +50,6 @@ describe('MagicLogin', () => {
       onboardingCompletedAt: null,
       authProvider: 'EMAIL',
       createdAt: '2026-01-01',
-      token: 'jwt-123',
-      expiresAt: '2026-01-08',
     })
 
     renderAt('/magic-login?token=abc')
@@ -73,10 +71,25 @@ describe('MagicLogin', () => {
     await waitFor(() => expect(screen.getByText(/token expirado/i)).toBeInTheDocument())
   })
 
+  it('volta para o início ao sair da tela de erro', async () => {
+    magicLoginMock.mockRejectedValue(new Error('Token expirado'))
+    renderAt('/magic-login?token=bad')
+
+    await waitFor(() => expect(screen.getByText('Falha no Login')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /voltar para o início/i }))
+
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
+  })
+
   it('no reload após sucesso: não reconsome o token e vai para /home', async () => {
     // Guard do sessionStorage já marcado (consumo anterior) + sessão já autenticada.
     sessionStorage.setItem('magic_login:abc', '1')
-    vi.mocked(getStoredAuthToken).mockReturnValue('jwt-ja-salvo')
+    clientGetMock.mockResolvedValue({
+      data: {
+        id: '1', username: 'ana', email: 'ana.com', name: 'Ana',
+        avatarUrl: null, onboardingCompletedAt: null,
+      },
+    })
 
     renderAt('/magic-login?token=abc')
 
@@ -88,7 +101,12 @@ describe('MagicLogin', () => {
   it('token já consumido mas navegador já autenticado: vai para /home sem erro', async () => {
     // O magicLogin falha (token single-use já usado), mas já há sessão no browser.
     magicLoginMock.mockRejectedValue(new Error('Token inválido ou já utilizado'))
-    vi.mocked(getStoredAuthToken).mockReturnValue('jwt-ja-salvo')
+    clientGetMock.mockResolvedValue({
+      data: {
+        id: '1', username: 'ana', email: 'ana.com', name: 'Ana',
+        avatarUrl: null, onboardingCompletedAt: null,
+      },
+    })
 
     renderAt('/magic-login?token=dup')
 
@@ -99,7 +117,7 @@ describe('MagicLogin', () => {
   it('falha genuína não trava a página: um reload tenta de novo e re-exibe o erro', async () => {
     // Primeira visita: sem sessão, token inválido → erro exibido.
     magicLoginMock.mockRejectedValue(new Error('Token expirado'))
-    // getStoredAuthToken já retorna null (default do beforeEach).
+    // clientGetMock rejeita por padrão no beforeEach (sem sessão).
 
     const { unmount } = renderAt('/magic-login?token=bad')
     await waitFor(() => expect(screen.getByText(/token expirado/i)).toBeInTheDocument())

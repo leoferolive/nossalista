@@ -12,18 +12,12 @@ export function getUserNotificationsTopic(userId: string): string {
 }
 
 /**
- * Cria e configura um cliente STOMP com SockJS para conexão WebSocket.
- * Usa a API v7 do @stomp/stompjs com new Client({...}).
- *
- * @param token JWT token para autenticação WebSocket
- * @returns cliente STOMP configurado (ainda não conectado)
+ * Cria um cliente STOMP autenticado pela sessão HttpOnly enviada no handshake
+ * SockJS. Nenhum JWT é exposto ao JavaScript ou aos headers STOMP.
  */
-export function createStompClient(token: string): Client {
+export function createStompClient(): Client {
   const config: StompConfig = {
     webSocketFactory: () => new SockJS('/ws'),
-    connectHeaders: {
-      Authorization: `Bearer ${token}`,
-    },
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     reconnectDelay: 0,

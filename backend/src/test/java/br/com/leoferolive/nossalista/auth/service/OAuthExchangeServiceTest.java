@@ -1,8 +1,6 @@
 package br.com.leoferolive.nossalista.auth.service;
 
 import br.com.leoferolive.nossalista.auth.domain.OAuthAuthorizationCode;
-import br.com.leoferolive.nossalista.auth.dto.LoginResponse;
-import br.com.leoferolive.nossalista.auth.dto.UserMapper;
 import br.com.leoferolive.nossalista.auth.exception.InvalidOAuthCodeException;
 import br.com.leoferolive.nossalista.auth.repository.OAuthAuthorizationCodeRepository;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
@@ -16,7 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -42,7 +39,6 @@ class OAuthExchangeServiceTest {
     private final Map<String, OAuthAuthorizationCode> issuedCodes = new HashMap<>();
 
     private OAuthCodeStore oauthCodeStore;
-    private UserMapper userMapper;
     private OAuthExchangeService exchangeService;
 
     private final UUID userId = UUID.randomUUID();
@@ -65,8 +61,7 @@ class OAuthExchangeServiceTest {
         }).when(codeRepository).delete(any(OAuthAuthorizationCode.class));
 
         oauthCodeStore = new OAuthCodeStore(codeRepository);
-        userMapper = new UserMapper();
-        exchangeService = new OAuthExchangeService(oauthCodeStore, jwtService, userService, userMapper);
+        exchangeService = new OAuthExchangeService(oauthCodeStore, jwtService, userService);
     }
 
     private User buildUser() {
@@ -82,20 +77,18 @@ class OAuthExchangeServiceTest {
     }
 
     @Test
-    @DisplayName("code válido → retorna LoginResponse com o JWT")
+    @DisplayName("code válido → retorna sessão interna com o JWT")
     void validCodeReturnsLoginResponse() {
         String jwt = "valid.jwt.token";
         String code = oauthCodeStore.issue(jwt);
 
         when(jwtService.extractUserId(jwt)).thenReturn(userId);
         when(userService.findById(userId)).thenReturn(Optional.of(buildUser()));
-        when(jwtService.getExpirationTime()).thenReturn(LocalDateTime.now().plusDays(7));
+        AuthenticatedSession session = exchangeService.exchange(code);
 
-        LoginResponse response = exchangeService.exchange(code);
-
-        assertThat(response.token()).isEqualTo(jwt);
-        assertThat(response.email()).isEqualTo("leo@gmail.com");
-        assertThat(response.username()).isEqualTo("leo");
+        assertThat(session.token()).isEqualTo(jwt);
+        assertThat(session.user().getEmail()).isEqualTo("leo@gmail.com");
+        assertThat(session.user().getUsername()).isEqualTo("leo");
     }
 
     @Test
@@ -113,8 +106,6 @@ class OAuthExchangeServiceTest {
 
         when(jwtService.extractUserId(jwt)).thenReturn(userId);
         when(userService.findById(userId)).thenReturn(Optional.of(buildUser()));
-        when(jwtService.getExpirationTime()).thenReturn(LocalDateTime.now().plusDays(7));
-
         // Primeira troca: sucesso
         exchangeService.exchange(code);
 
