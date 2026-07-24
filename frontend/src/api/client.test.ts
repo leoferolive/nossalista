@@ -46,7 +46,9 @@ describe('client request interceptor', () => {
     const { requestHandlers } = await loadClientHandlers()
 
     const config = { method: 'get', headers: {} as Record<string, unknown> }
-    const result = (await requestHandlers?.fulfilled?.(config)) as { headers: Record<string, unknown> }
+    const result = (await requestHandlers?.fulfilled?.(config)) as {
+      headers: Record<string, unknown>
+    }
 
     expect(result.headers.Authorization).toBeUndefined()
   })

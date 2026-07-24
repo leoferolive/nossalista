@@ -86,8 +86,12 @@ describe('MagicLogin', () => {
     sessionStorage.setItem('magic_login:abc', '1')
     clientGetMock.mockResolvedValue({
       data: {
-        id: '1', username: 'ana', email: 'ana.com', name: 'Ana',
-        avatarUrl: null, onboardingCompletedAt: null,
+        id: '1',
+        username: 'ana',
+        email: 'ana.com',
+        name: 'Ana',
+        avatarUrl: null,
+        onboardingCompletedAt: null,
       },
     })
 
@@ -103,8 +107,12 @@ describe('MagicLogin', () => {
     magicLoginMock.mockRejectedValue(new Error('Token inválido ou já utilizado'))
     clientGetMock.mockResolvedValue({
       data: {
-        id: '1', username: 'ana', email: 'ana.com', name: 'Ana',
-        avatarUrl: null, onboardingCompletedAt: null,
+        id: '1',
+        username: 'ana',
+        email: 'ana.com',
+        name: 'Ana',
+        avatarUrl: null,
+        onboardingCompletedAt: null,
       },
     })
 

@@ -115,6 +115,8 @@ describe('AuthCallback page (Q2.3 one-time code)', () => {
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/home', { replace: true }))
     expect(authApi.exchangeOAuthCode).toHaveBeenCalledTimes(1)
-    expect(client.get).toHaveBeenCalledWith('/api/users/me', { preserveSessionOnUnauthorized: true })
+    expect(client.get).toHaveBeenCalledWith('/api/users/me', {
+      preserveSessionOnUnauthorized: true,
+    })
   })
 })

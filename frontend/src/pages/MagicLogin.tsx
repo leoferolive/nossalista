@@ -31,9 +31,10 @@ function toAuthUser(data: CurrentUserResponse) {
   }
 }
 
-async function restoreExistingSession(
-  { login, navigate }: Pick<ConsumeMagicLinkDeps, 'login' | 'navigate'>
-): Promise<boolean> {
+async function restoreExistingSession({
+  login,
+  navigate,
+}: Pick<ConsumeMagicLinkDeps, 'login' | 'navigate'>): Promise<boolean> {
   try {
     const { data } = await client.get<CurrentUserResponse>(
       '/api/users/me',
