@@ -19,12 +19,16 @@ const defaultUser: MockAuthUser = {
 }
 
 export async function seedMockAuthSession(page: Page, user: MockAuthUser = defaultUser) {
-  await page.addInitScript(
-    ({ seededUser }) => {
-      localStorage.setItem('authToken', `mock-token-${seededUser.id}`)
-      localStorage.setItem('user', JSON.stringify(seededUser))
-      sessionStorage.removeItem('pendingInviteCode')
+  await page.context().addCookies([
+    {
+      name: 'nl_mock_session',
+      value: user.id,
+      url: 'http://127.0.0.1:4173',
+      httpOnly: true,
+      sameSite: 'Lax',
     },
-    { seededUser: user }
-  )
+  ])
+  await page.addInitScript(() => {
+    sessionStorage.removeItem('pendingInviteCode')
+  })
 }
