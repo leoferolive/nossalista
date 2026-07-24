@@ -6,6 +6,7 @@ vi.mock('../api/client', () => ({
   default: {
     get: vi.fn(),
   },
+  preserveSessionOnUnauthorizedConfig: { preserveSessionOnUnauthorized: true },
 }))
 
 vi.mock('../api/usersApi', () => ({
@@ -14,7 +15,7 @@ vi.mock('../api/usersApi', () => ({
   },
 }))
 
-import client from '../api/client'
+import client, { preserveSessionOnUnauthorizedConfig } from '../api/client'
 import { usersApi } from '../api/usersApi'
 
 const sessionUser = {
@@ -67,7 +68,7 @@ describe('AuthContext', () => {
 
     await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('true'))
     expect(screen.getByTestId('username')).toHaveTextContent('leo')
-    expect(client.get).toHaveBeenCalledWith('/api/users/me')
+    expect(client.get).toHaveBeenCalledWith('/api/users/me', preserveSessionOnUnauthorizedConfig)
     expect(localStorage.getItem('authToken')).toBeNull()
     expect(localStorage.getItem('user')).toBeNull()
   })

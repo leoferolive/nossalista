@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import client from '../api/client'
+import client, { preserveSessionOnUnauthorizedConfig } from '../api/client'
 import { clearLegacyAuthStorage } from '../auth/session'
 import { usersApi } from '../api/usersApi'
 
@@ -52,7 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearLegacyAuthStorage()
 
       try {
-        const { data } = await client.get<CurrentUserResponse>('/api/users/me')
+        const { data } = await client.get<CurrentUserResponse>(
+          '/api/users/me',
+          preserveSessionOnUnauthorizedConfig
+        )
         setUser(toAuthUser(data))
       } catch {
         setUser(null)
