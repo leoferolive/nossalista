@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import Login from './Login'
 import { ThemeProvider } from '../contexts/ThemeContext'
 
@@ -54,5 +54,46 @@ describe('Login page', () => {
 
     expect(screen.getByText(/Conta criada com sucesso/i)).toBeInTheDocument()
     expect(screen.getByDisplayValue('leo@test.com')).toBeInTheDocument()
+  })
+
+  it('envia credenciais, atualiza o contexto e segue para a home', async () => {
+    const { default: client } = await import('../api/client')
+    vi.mocked(client.post).mockResolvedValueOnce({
+      data: {
+        id: 'u1',
+        username: 'leo',
+        email: 'leo@test.com',
+        name: 'Leo',
+        avatarUrl: null,
+        onboardingCompletedAt: null,
+      },
+    })
+    renderLogin('/login')
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'leo@test.com' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: '123456' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    await waitFor(() => {
+      expect(client.post).toHaveBeenCalledWith('/api/auth/login', {
+        email: 'leo@test.com',
+        password: '123456',
+      })
+    })
+    expect(mockLogin).toHaveBeenCalledWith(expect.objectContaining({ id: 'u1', username: 'leo' }))
+  })
+
+  it('inicia o OAuth do Google na rota segura do backend', () => {
+    const originalLocation = window.location
+    Object.defineProperty(window, 'location', {
+      value: { origin: 'http://localhost', href: '' },
+      writable: true,
+    })
+    renderLogin('/login')
+
+    fireEvent.click(screen.getByRole('button', { name: /continuar com google/i }))
+
+    expect(window.location.href).toBe('http://localhost/api/auth/google')
+    Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
   })
 })

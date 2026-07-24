@@ -1,12 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import client from '../api/client'
-import {
-  clearStoredSession,
-  getStoredAuthToken,
-  getStoredUser,
-  persistAuthSession,
-  StoredUser,
-} from '../auth/session'
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import client, { preserveSessionOnUnauthorizedConfig } from '../api/client'
+import { clearLegacyAuthStorage } from '../auth/session'
 import { usersApi } from '../api/usersApi'
 
 interface CurrentUserResponse {
@@ -18,55 +12,52 @@ interface CurrentUserResponse {
   onboardingCompletedAt?: string | null
 }
 
-type User = StoredUser
+export interface AuthUser {
+  id: string
+  username: string
+  email: string
+  displayName: string | null
+  avatarUrl?: string | null
+  onboardingCompletedAt: string | null
+}
 
 interface AuthContextType {
-  user: User | null
+  user: AuthUser | null
   isAuthenticated: boolean
   isBootstrapping: boolean
-  login: (token: string, user: User) => void
+  login: (user: AuthUser) => void
   markOnboardingCompleted: (completedAt?: string) => void
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+function toAuthUser(data: CurrentUserResponse): AuthUser {
+  return {
+    id: data.id,
+    username: data.username,
+    email: data.email,
+    displayName: data.name,
+    avatarUrl: data.avatarUrl ?? null,
+    onboardingCompletedAt: data.onboardingCompletedAt ?? null,
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => getStoredUser())
-  const [token, setToken] = useState<string | null>(() => getStoredAuthToken())
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [isBootstrapping, setIsBootstrapping] = useState(true)
 
   useEffect(() => {
     const bootstrapSession = async () => {
-      const storedToken = getStoredAuthToken()
-      const savedUser = getStoredUser()
-
-      if (!storedToken) {
-        if (savedUser) {
-          clearStoredSession()
-          setUser(null)
-        }
-        setToken(null)
-        setIsBootstrapping(false)
-        return
-      }
+      clearLegacyAuthStorage()
 
       try {
-        const { data } = await client.get<CurrentUserResponse>('/api/users/me')
-        const normalizedUser: User = {
-          id: data.id,
-          username: data.username,
-          email: data.email,
-          displayName: data.name,
-          avatarUrl: data.avatarUrl ?? null,
-          onboardingCompletedAt: data.onboardingCompletedAt ?? null,
-        }
-        persistAuthSession(storedToken, normalizedUser)
-        setToken(storedToken)
-        setUser(normalizedUser)
+        const { data } = await client.get<CurrentUserResponse>(
+          '/api/users/me',
+          preserveSessionOnUnauthorizedConfig
+        )
+        setUser(toAuthUser(data))
       } catch {
-        clearStoredSession()
-        setToken(null)
         setUser(null)
       } finally {
         setIsBootstrapping(false)
@@ -76,47 +67,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void bootstrapSession()
   }, [])
 
-  const isAuthenticated = !!user && !!token
-
-  const login = useCallback((newToken: string, userData: User) => {
-    persistAuthSession(newToken, userData)
-    setToken(newToken)
+  const login = useCallback((userData: AuthUser) => {
     setUser(userData)
     setIsBootstrapping(false)
   }, [])
 
   const markOnboardingCompleted = useCallback((completedAt?: string) => {
-    setUser((prev) => {
-      if (!prev) {
-        return prev
+    setUser((previous) => {
+      if (!previous) {
+        return previous
       }
 
-      const nextUser: User = {
-        ...prev,
+      return {
+        ...previous,
         onboardingCompletedAt: completedAt ?? new Date().toISOString(),
       }
-
-      const token = getStoredAuthToken()
-      if (token) {
-        persistAuthSession(token, nextUser)
-      }
-
-      return nextUser
     })
   }, [])
 
   const logout = useCallback(() => {
-    // Fire-and-forget: call backend logout but don't block on errors
     usersApi.logout().catch(() => {})
-    clearStoredSession()
-    setToken(null)
+    clearLegacyAuthStorage()
     setUser(null)
     setIsBootstrapping(false)
   }, [])
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated, isBootstrapping, login, markOnboardingCompleted, logout }}
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isBootstrapping,
+        login,
+        markOnboardingCompleted,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

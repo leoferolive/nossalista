@@ -45,6 +45,11 @@ frontend:
   url: ${FRONTEND_URL:https://nossalista.leoferolive.com.br}
 
 app:
+  auth:
+    session-cookie:
+      name: __Host-nl_session
+      secure: true
+      same-site: Lax
   mcp-oauth:
     issuer: ${MCP_OAUTH_ISSUER:https://nossalista.leoferolive.com.br}
     resource: ${MCP_OAUTH_RESOURCE:https://nossalista.leoferolive.com.br/mcp}

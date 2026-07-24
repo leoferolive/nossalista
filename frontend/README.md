@@ -47,6 +47,13 @@ npm run dev:mock
 - Endpoints e contrato de autenticacao: `docs/auth-endpoints-matrix.md`
 - Sincronizacao realtime: STOMP/SockJS em `/ws/**`
 
+### Sessao, CSRF e realtime
+
+- A sessao web e restaurada por `GET /api/users/me`; o JWT fica em cookie HttpOnly e nao e lido pelo React nem enviado como Bearer. Na primeira carga, `authToken` e `user` legados sao removidos do `localStorage`.
+- Axios usa `withCredentials` e busca `GET /api/auth/csrf` antes de `POST`, `PUT`, `PATCH` e `DELETE`, encaminhando `X-XSRF-TOKEN`.
+- Login por senha e troca do code Google retornam somente o perfil e escrevem o cookie no backend. Logout chama `POST /api/auth/logout`.
+- SockJS autentica pelo cookie do handshake; nao envie JWT nos query params ou no frame STOMP `CONNECT`.
+
 ## Notificacoes (online + push)
 
 - Notificacoes online no sino ficam sempre ativas para usuario autenticado (conexao WebSocket global enquanto estiver logado).

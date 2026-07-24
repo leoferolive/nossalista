@@ -5,7 +5,7 @@ import br.com.leoferolive.nossalista.user.dto.UserProfileResponse;
 import br.com.leoferolive.nossalista.user.dto.UserSearchResponse;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+
 
 /**
  * Mapper para converter entidade User em DTOs
@@ -33,15 +33,13 @@ public class UserMapper {
     }
 
     /**
-     * Converte entidade User em DTO LoginResponse com token JWT
-     * Campo password NÃO é incluído na resposta por segurança
+     * Converte entidade User em DTO de login sem expor o JWT. O token de
+     * sessão é emitido exclusivamente no cookie HttpOnly da resposta.
      *
-     * @param user      a entidade user
-     * @param token     JWT token gerado para o usuário
-     * @param expiresAt data/hora de expiração do token
-     * @return DTO LoginResponse com token e dados do usuário
+     * @param user a entidade user
+     * @return DTO LoginResponse com dados do usuário
      */
-    public LoginResponse toLoginResponse(User user, String token, LocalDateTime expiresAt) {
+    public LoginResponse toLoginResponse(User user) {
         return new LoginResponse(
             user.getId(),
             user.getUsername(),
@@ -50,9 +48,7 @@ public class UserMapper {
             user.getAvatarUrl(),
             user.getOnboardingCompletedAt(),
             user.getAuthProvider(),
-            user.getCreatedAt(),
-            token,
-            expiresAt
+            user.getCreatedAt()
         );
     }
 

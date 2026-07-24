@@ -14,7 +14,6 @@ interface LoginResponse {
   name: string
   avatarUrl?: string
   onboardingCompletedAt?: string | null
-  token: string
 }
 
 export default function Login() {
@@ -61,7 +60,7 @@ export default function Login() {
         password,
       })
 
-      login(data.token, {
+      login({
         id: data.id,
         username: data.username,
         email: data.email,

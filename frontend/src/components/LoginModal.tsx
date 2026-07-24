@@ -15,7 +15,6 @@ interface LoginResponse {
   name: string
   avatarUrl?: string
   onboardingCompletedAt?: string | null
-  token: string
 }
 
 interface Props {
@@ -78,7 +77,7 @@ export function LoginModal({
 
     try {
       const { data } = await client.post<LoginResponse>('/api/auth/login', { email, password })
-      login(data.token, {
+      login({
         id: data.id,
         username: data.username,
         email: data.email,

@@ -55,6 +55,20 @@ describe('LoginModal', () => {
     expect(screen.getByRole('button', { name: /Continuar com Google/i })).toBeInTheDocument()
   })
 
+  it('inicia o OAuth do Google na rota segura do backend', () => {
+    const originalLocation = window.location
+    Object.defineProperty(window, 'location', {
+      value: { origin: 'http://localhost', href: '' },
+      writable: true,
+    })
+    renderModal()
+
+    fireEvent.click(screen.getByRole('button', { name: /continuar com google/i }))
+
+    expect(window.location.href).toBe('http://localhost/api/auth/google')
+    Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
+  })
+
   it('renderiza link de criar conta', () => {
     renderModal()
 

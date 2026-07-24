@@ -33,7 +33,7 @@ Status atual:
 | Frontend    | React 19 + TypeScript + Vite             |
 | Backend     | Java 25 + Spring Boot 4                  |
 | Real-time   | Spring WebSocket (STOMP + SockJS)        |
-| Auth        | Google OAuth2 + email/senha + JWT        |
+| Auth        | Google OAuth2 + email/senha + sessao JWT em cookie HttpOnly |
 | BD Producao | PostgreSQL                               |
 | BD Dev      | PostgreSQL                               |
 | BD Testes   | H2 (MODE=PostgreSQL); Testcontainers-PostgreSQL (opt-in, testes sensíveis ao banco) |
@@ -44,6 +44,13 @@ Status atual:
 > validação de migration e o `McpServerIntegrationTest` estendem
 > `AbstractPostgresIT` e rodam contra um PostgreSQL real via Testcontainers
 > (exige Docker) — ver `backend/QUALITY.md`.
+
+## Sessao web e HTTPS
+
+- O JWT de sessao web e transportado somente por cookie HttpOnly: em producao, `__Host-nl_session` com `Path=/`, `Secure`, `SameSite=Lax` e validade de 7 dias. O frontend nunca le nem envia esse JWT em `Authorization`.
+- Cada mutacao autenticada pela sessao exige o cookie `XSRF-TOKEN` e o header `X-XSRF-TOKEN`; Axios o obtem em `GET /api/auth/csrf`.
+- `Authorization: Bearer` e reservado aos PATs `nlmcp_...` e access tokens OAuth do MCP. Bearer JWT de sessao legado recebe 401.
+- Em producao, a borda Cloudflare deve redirecionar HTTP para HTTPS com 308 antes de qualquer request atingir o tunnel. HSTS ainda nao e habilitado, pois depende de auditoria dos demais subdominios.
 
 ## Estrutura
 
@@ -65,7 +72,7 @@ nossalista/
 O backend expoe um servidor [MCP](https://modelcontextprotocol.io) embutido em `POST /mcp`
 (Streamable HTTP), autenticado por OAuth 2.1 (Authorization Code + PKCE — claude.ai e
 Claude Code conectam via "Add connector" sem copiar credencial manualmente), Personal
-Access Token (`nlmcp_...`) ou JWT, para conectar assistentes de IA (Claude Code, Claude
+Access Token (`nlmcp_...`) para conectar assistentes de IA (Claude Code, Claude
 Desktop, Cursor) as listas do usuario. Guia de conexao, tools disponiveis e modelo de
 seguranca em `docs/mcp.md`; passo a passo para o usuario final na propria tela **Conexoes
 (API/Assistentes) → "Como conectar?"** do app. As 13 tools sao instrumentadas com rate limit

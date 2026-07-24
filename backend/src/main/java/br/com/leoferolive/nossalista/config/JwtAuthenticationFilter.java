@@ -3,6 +3,7 @@ package br.com.leoferolive.nossalista.config;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
+import br.com.leoferolive.nossalista.auth.service.SessionCookieService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,18 +21,22 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Filtro JWT que intercepta requests HTTP e valida tokens JWT
- * Executa uma vez por request, antes de outros filtros de autenticação
+ * Filtro da sessão web que valida o JWT armazenado exclusivamente no cookie
+ * HttpOnly. JWTs de sessão enviados em {@code Authorization} são ignorados;
+ * esse header permanece reservado para PATs e OAuth do MCP.
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final AuthenticatedUserCache userCache;
+    private final SessionCookieService sessionCookieService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, AuthenticatedUserCache userCache) {
+    public JwtAuthenticationFilter(JwtService jwtService, AuthenticatedUserCache userCache,
+                                   SessionCookieService sessionCookieService) {
         this.jwtService = jwtService;
         this.userCache = userCache;
+        this.sessionCookieService = sessionCookieService;
     }
 
     @Override
@@ -41,17 +46,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // Extrair header Authorization
-        String authHeader = request.getHeader("Authorization");
-
-        // Se não tem header ou não começa com "Bearer ", continuar sem autenticar
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        // PAT/OAuth MCP já autenticados têm precedência sobre a sessão cookie.
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Extrair token (remover "Bearer " do início)
-        String token = authHeader.substring(7);
+        String token = sessionCookieService.extractToken(request).orElse(null);
+        if (token == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // Validar token JWT
         if (!jwtService.validateToken(token)) {

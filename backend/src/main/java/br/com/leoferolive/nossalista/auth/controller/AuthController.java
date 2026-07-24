@@ -12,12 +12,14 @@ import br.com.leoferolive.nossalista.auth.dto.RegisterResponse;
 import br.com.leoferolive.nossalista.auth.dto.ResendVerificationRequest;
 import br.com.leoferolive.nossalista.auth.dto.ResetPasswordRequest;
 import br.com.leoferolive.nossalista.auth.dto.UserMapper;
+import br.com.leoferolive.nossalista.auth.service.AuthenticatedSession;
 import br.com.leoferolive.nossalista.auth.service.AuthService;
 import br.com.leoferolive.nossalista.auth.service.EmailVerificationService;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.auth.service.MagicLinkService;
 import br.com.leoferolive.nossalista.auth.service.OAuthExchangeService;
 import br.com.leoferolive.nossalista.auth.service.PasswordResetService;
+import br.com.leoferolive.nossalista.auth.service.SessionCookieService;
 import br.com.leoferolive.nossalista.common.exception.RateLimitExceededException;
 import br.com.leoferolive.nossalista.config.ClientIpResolver;
 import br.com.leoferolive.nossalista.config.RateLimiterService;
@@ -28,8 +30,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,9 +42,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
 import java.time.Duration;
-import java.time.LocalDateTime;
 
 /**
  * Controller REST para operações de autenticação
@@ -75,6 +78,7 @@ public class AuthController {
     private final OAuthExchangeService oauthExchangeService;
     private final EmailVerificationService emailVerificationService;
     private final MagicLinkService magicLinkService;
+    private final SessionCookieService sessionCookieService;
 
     public AuthController(AuthService authService, JwtService jwtService,
                           UserMapper userMapper, PasswordResetService passwordResetService,
@@ -82,7 +86,8 @@ public class AuthController {
                           ClientIpResolver clientIpResolver,
                           OAuthExchangeService oauthExchangeService,
                           EmailVerificationService emailVerificationService,
-                          MagicLinkService magicLinkService) {
+                          MagicLinkService magicLinkService,
+                          SessionCookieService sessionCookieService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
@@ -92,6 +97,7 @@ public class AuthController {
         this.oauthExchangeService = oauthExchangeService;
         this.emailVerificationService = emailVerificationService;
         this.magicLinkService = magicLinkService;
+        this.sessionCookieService = sessionCookieService;
     }
 
     /**
@@ -117,81 +123,91 @@ public class AuthController {
     }
 
     /**
-     * Faz login de um usuário com email e senha
+     * Faz login de um usuário com email e senha.
      *
      * @param request credenciais de login (email e senha)
-     * @return dados do usuário autenticado com JWT token
+     * @return dados do usuário autenticado; o JWT fica apenas no cookie HttpOnly
      */
     @PostMapping("/login")
     @Operation(
         summary = "Fazer login",
-        description = "Autentica usuário com email e senha, retornando JWT token com validade de 7 dias."
+        description = "Autentica usuário e emite uma sessão de 7 dias em cookie HttpOnly."
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Login bem-sucedido com JWT token"),
+        @ApiResponse(responseCode = "200", description = "Login bem-sucedido com cookie de sessão"),
         @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos (campos obrigatórios vazios)"),
         @ApiResponse(responseCode = "401", description = "Credenciais inválidas (email não existe OU senha incorreta)")
     })
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        // Validar credenciais
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+                                               HttpServletResponse httpResponse) {
         User user = authService.login(request);
-
-        // Gerar JWT token
         String token = jwtService.generateToken(user);
-        LocalDateTime expiresAt = jwtService.getExpirationTime();
+        sessionCookieService.writeSession(httpResponse, token);
 
-        // Criar response com dados do usuário + token
-        LoginResponse response = userMapper.toLoginResponse(user, token, expiresAt);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(userMapper.toLoginResponse(user));
     }
 
     /**
-     * Inicia fluxo de autenticação OAuth2 com Google
-     * <p>
-     * Redireciona para o endpoint do Spring Security que inicia o fluxo OAuth2.
-     * Spring Security automaticamente redireciona para o Google consent screen.
+     * Inicia fluxo de autenticação OAuth2 com Google.
      *
      * @param response resposta HTTP para fazer redirect
-     * @throws IOException se houver erro no redirect
      */
     @GetMapping("/google")
     @Operation(
         summary = "Iniciar login com Google OAuth2",
-        description = "Inicia o fluxo de autenticação OAuth2 com Google. Redireciona para consent screen do Google."
+        description = "Inicia o fluxo de autenticação OAuth2 e redireciona ao consent screen do Google."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "302", description = "Redirect para Google consent screen"),
         @ApiResponse(responseCode = "500", description = "Erro ao iniciar fluxo OAuth2")
     })
-    public void initiateGoogleLogin(HttpServletResponse response) throws IOException {
-        // Spring Security intercepta /oauth2/authorization/google e inicia fluxo OAuth2
-        response.sendRedirect("/oauth2/authorization/google");
+    public void initiateGoogleLogin(HttpServletResponse response) {
+        // Location relativo preserva o HTTPS original do browser mesmo quando o
+        // tráfego interno Cloudflare -> tunnel -> pod usa HTTP.
+        response.setStatus(HttpStatus.FOUND.value());
+        response.setHeader(HttpHeaders.LOCATION, "/oauth2/authorization/google");
     }
 
     /**
-     * Troca o one-time code do OAuth2 (Q2.3) pelo JWT.
-     * <p>
-     * O fluxo OAuth2 não coloca mais o JWT na URL — emite um code opaco de uso
-     * único. Este endpoint consome o code (single-use, não-expirado) e retorna o
-     * JWT no corpo, no mesmo formato do login normal.
+     * Troca o one-time code do OAuth2 (Q2.3) por uma sessão HttpOnly.
      *
      * @param request corpo com o one-time code
-     * @return dados do usuário autenticado com JWT token
+     * @return dados do usuário autenticado, sem JWT no corpo
      */
     @PostMapping("/oauth/exchange")
     @Operation(
-        summary = "Trocar one-time code OAuth2 por JWT",
-        description = "Consome o code opaco de uso único gerado no sucesso do OAuth2 e retorna o JWT. "
+        summary = "Trocar one-time code OAuth2 por sessão",
+        description = "Consome o code opaco de uso único gerado no sucesso do OAuth2 e emite cookie HttpOnly. "
             + "O code expira em 60s e só pode ser trocado uma vez."
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Code válido — retorna JWT e dados do usuário"),
+        @ApiResponse(responseCode = "200", description = "Code válido — emite sessão e retorna dados do usuário"),
         @ApiResponse(responseCode = "400", description = "Code inválido, expirado ou já utilizado")
     })
-    public ResponseEntity<LoginResponse> exchangeOAuthCode(@Valid @RequestBody OAuthExchangeRequest request) {
-        LoginResponse response = oauthExchangeService.exchange(request.code());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<LoginResponse> exchangeOAuthCode(@Valid @RequestBody OAuthExchangeRequest request,
+                                                            HttpServletResponse httpResponse) {
+        AuthenticatedSession session = oauthExchangeService.exchange(request.code());
+        sessionCookieService.writeSession(httpResponse, session.token());
+        return ResponseEntity.ok(userMapper.toLoginResponse(session.user()));
+    }
+
+    /**
+     * Materializa o token CSRF em um cookie não-HttpOnly. Ele não autentica o
+     * usuário: apenas prova que a mutação partiu da mesma origem que recebeu a
+     * sessão HttpOnly.
+     */
+    @GetMapping("/csrf")
+    @Operation(summary = "Obter token CSRF para mutações autenticadas")
+    public ResponseEntity<Void> csrf(CsrfToken csrfToken) {
+        csrfToken.getToken();
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Encerrar a sessão atual")
+    public ResponseEntity<Void> logout(HttpServletResponse httpResponse) {
+        sessionCookieService.clearSession(httpResponse);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -345,20 +361,22 @@ public class AuthController {
     }
 
     /**
-     * Consome um magic link e autentica o usuário, retornando o JWT.
+     * Consome um magic link e autentica o usuário, emitindo uma sessão HttpOnly.
      */
     @PostMapping("/magic-login")
     @Operation(
         summary = "Login por magic link",
-        description = "Consome o token do magic link (uso único, não expirado), marca o e-mail como verificado e retorna o JWT no formato do login."
+        description = "Consome o token do magic link (uso único, não expirado), marca o e-mail como "
+            + "verificado, emite cookie HttpOnly e retorna somente o perfil."
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Token válido — retorna JWT e dados do usuário"),
+        @ApiResponse(responseCode = "200", description = "Token válido — emite sessão e retorna dados do usuário"),
         @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado"),
         @ApiResponse(responseCode = "429", description = "Muitas requisições — tente novamente mais tarde")
     })
     public ResponseEntity<LoginResponse> magicLogin(@Valid @RequestBody MagicLoginRequest request,
-                                                    HttpServletRequest httpRequest) {
+                                                    HttpServletRequest httpRequest,
+                                                    HttpServletResponse httpResponse) {
         String clientIp = clientIpResolver.resolve(httpRequest);
 
         if (!rateLimiterService.isAllowed("magic-login:ip:" + clientIp,
@@ -368,7 +386,7 @@ public class AuthController {
 
         User user = magicLinkService.consume(request.token());
         String token = jwtService.generateToken(user);
-        LoginResponse response = userMapper.toLoginResponse(user, token, jwtService.getExpirationTime());
-        return ResponseEntity.ok(response);
+        sessionCookieService.writeSession(httpResponse, token);
+        return ResponseEntity.ok(userMapper.toLoginResponse(user));
     }
 }

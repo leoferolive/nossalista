@@ -108,8 +108,19 @@ class McpOAuthFlowIntegrationTest {
             AuthProvider.EMAIL);
     }
 
+    private static final String CSRF_HEADER = "X-XSRF-TOKEN";
+    private static final String CSRF_TOKEN = "test-csrf-token";
+
     private String sessionJwt(User user) {
         return jwtService.generateToken(user);
+    }
+
+    private String sessionCookies(String token) {
+        return "nl_session=" + token + "; XSRF-TOKEN=" + CSRF_TOKEN;
+    }
+
+    private String sessionCookies(String token, String additionalCookie) {
+        return sessionCookies(token) + "; " + additionalCookie;
     }
 
     private record Pkce(String verifier, String challenge) {
@@ -208,8 +219,8 @@ class McpOAuthFlowIntegrationTest {
 
         PendingAuthorizationView view = restClient.get()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId)
-            .header("Authorization", "Bearer " + sessionJwt)
-            .header("Cookie", consentCookie)
+            .header("Cookie", sessionCookies(sessionJwt, consentCookie))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(PendingAuthorizationView.class);
         assertThat(view.clientId()).isEqualTo(clientId);
@@ -217,8 +228,8 @@ class McpOAuthFlowIntegrationTest {
 
         ConsentDecisionResponse decision = restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
-            .header("Authorization", "Bearer " + sessionJwt)
-            .header("Cookie", consentCookie)
+            .header("Cookie", sessionCookies(sessionJwt, consentCookie))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(ConsentDecisionResponse.class);
 
@@ -640,8 +651,8 @@ class McpOAuthFlowIntegrationTest {
 
         ConsentDecisionResponse decision = restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/deny")
-            .header("Authorization", "Bearer " + sessionJwt(user))
-            .header("Cookie", consentCookie)
+            .header("Cookie", sessionCookies(sessionJwt(user), consentCookie))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(ConsentDecisionResponse.class);
 
@@ -672,7 +683,8 @@ class McpOAuthFlowIntegrationTest {
         // só reivindica o pedido para a conta dela.
         PendingAuthorizationView view = restClient.get()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId)
-            .header("Authorization", "Bearer " + victimJwt)
+            .header("Cookie", sessionCookies(victimJwt))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(PendingAuthorizationView.class);
         assertThat(view.clientId()).isEqualTo(LOCAL_CLIENT_ID);
@@ -682,7 +694,8 @@ class McpOAuthFlowIntegrationTest {
         // quem gerou o pedido, permitindo resgatar tokens READ_WRITE da vítima.
         assertThatThrownBy(() -> restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
-            .header("Authorization", "Bearer " + victimJwt)
+            .header("Cookie", sessionCookies(victimJwt))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .toBodilessEntity())
             .isInstanceOf(HttpClientErrorException.class)
@@ -691,7 +704,8 @@ class McpOAuthFlowIntegrationTest {
         // Negar também exige o cookie.
         assertThatThrownBy(() -> restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/deny")
-            .header("Authorization", "Bearer " + victimJwt)
+            .header("Cookie", sessionCookies(victimJwt))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .toBodilessEntity())
             .isInstanceOf(HttpClientErrorException.class)
@@ -716,14 +730,16 @@ class McpOAuthFlowIntegrationTest {
         // firstUser reivindica o pedido no primeiro GET autenticado.
         restClient.get()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId)
-            .header("Authorization", "Bearer " + sessionJwt(firstUser))
+            .header("Cookie", sessionCookies(sessionJwt(firstUser)))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(PendingAuthorizationView.class);
 
         // secondUser nem consegue mais VER o pedido — já reivindicado por outra conta.
         assertThatThrownBy(() -> restClient.get()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId)
-            .header("Authorization", "Bearer " + sessionJwt(secondUser))
+            .header("Cookie", sessionCookies(sessionJwt(secondUser)))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .toBodilessEntity())
             .isInstanceOf(HttpClientErrorException.class)
@@ -732,8 +748,8 @@ class McpOAuthFlowIntegrationTest {
         // ...e mesmo tendo o cookie correto, secondUser não consegue aprovar.
         assertThatThrownBy(() -> restClient.post()
             .uri(baseUrl() + "/api/oauth/consent/" + requestId + "/approve")
-            .header("Authorization", "Bearer " + sessionJwt(secondUser))
-            .header("Cookie", consentCookie)
+            .header("Cookie", sessionCookies(sessionJwt(secondUser), consentCookie))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .toBodilessEntity())
             .isInstanceOf(HttpClientErrorException.class)
@@ -783,14 +799,16 @@ class McpOAuthFlowIntegrationTest {
         String sessionJwt = sessionJwt(user);
         List<OAuthConnectionSummary> connections = restClient.get()
             .uri(baseUrl() + "/api/oauth/connections")
-            .header("Authorization", "Bearer " + sessionJwt)
+            .header("Cookie", sessionCookies(sessionJwt))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .body(List.class);
         assertThat(connections).isNotEmpty();
 
         restClient.post()
             .uri(baseUrl() + "/api/oauth/connections/" + LOCAL_CLIENT_ID + "/revoke")
-            .header("Authorization", "Bearer " + sessionJwt)
+            .header("Cookie", sessionCookies(sessionJwt))
+            .header(CSRF_HEADER, CSRF_TOKEN)
             .retrieve()
             .toBodilessEntity();
 

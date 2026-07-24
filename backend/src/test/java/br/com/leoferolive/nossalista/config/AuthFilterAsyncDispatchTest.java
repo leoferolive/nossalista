@@ -21,7 +21,7 @@ class AuthFilterAsyncDispatchTest {
     @Test
     @DisplayName("JwtAuthenticationFilter re-autentica no dispatch async")
     void jwtFilterReauthenticatesOnAsyncDispatch() {
-        assertThat(new JwtAuthenticationFilter(null, null).shouldNotFilterAsyncDispatch()).isFalse();
+        assertThat(new JwtAuthenticationFilter(null, null, null).shouldNotFilterAsyncDispatch()).isFalse();
     }
 
     @Test

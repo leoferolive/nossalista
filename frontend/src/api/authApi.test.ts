@@ -67,7 +67,7 @@ describe('authApi', () => {
   })
 
   describe('exchangeOAuthCode (Q2.3)', () => {
-    it('troca o code pelo JWT e retorna a resposta', async () => {
+    it('troca o code por uma sessão HttpOnly e retorna o perfil', async () => {
       const payload = {
         id: 'u1',
         username: 'leo',
@@ -77,15 +77,13 @@ describe('authApi', () => {
         onboardingCompletedAt: null,
         authProvider: 'GOOGLE',
         createdAt: '2026-01-01T00:00:00Z',
-        token: 'jwt-token',
-        expiresAt: '2026-01-08T00:00:00Z',
       }
       const postSpy = vi.spyOn(client, 'post').mockResolvedValueOnce({ data: payload })
 
       const result = await authApi.exchangeOAuthCode('the-code')
 
       expect(postSpy).toHaveBeenCalledWith('/api/auth/oauth/exchange', { code: 'the-code' })
-      expect(result.token).toBe('jwt-token')
+      expect(result).not.toHaveProperty('token')
       expect(result.email).toBe('leo@gmail.com')
     })
 
@@ -164,6 +162,36 @@ describe('authApi', () => {
         status: 400,
         message: 'Token invalido ou expirado.',
       })
+    })
+  })
+
+  describe('magic link', () => {
+    it('solicita o magic link com o e-mail informado', async () => {
+      const postSpy = vi.spyOn(client, 'post').mockResolvedValueOnce({ data: null })
+
+      await expect(authApi.requestMagicLink('leo@gmail.com')).resolves.toBeUndefined()
+
+      expect(postSpy).toHaveBeenCalledWith('/api/auth/magic-link', { email: 'leo@gmail.com' })
+    })
+
+    it('consome o magic link e retorna somente o perfil da sessão cookie', async () => {
+      const payload = {
+        id: 'u1',
+        username: 'leo',
+        email: 'leo@gmail.com',
+        name: 'Leo',
+        avatarUrl: null,
+        onboardingCompletedAt: null,
+        authProvider: 'EMAIL',
+        createdAt: '2026-01-01T00:00:00Z',
+      }
+      const postSpy = vi.spyOn(client, 'post').mockResolvedValueOnce({ data: payload })
+
+      const result = await authApi.magicLogin('magic-token')
+
+      expect(postSpy).toHaveBeenCalledWith('/api/auth/magic-login', { token: 'magic-token' })
+      expect(result).toEqual(payload)
+      expect(result).not.toHaveProperty('token')
     })
   })
 })

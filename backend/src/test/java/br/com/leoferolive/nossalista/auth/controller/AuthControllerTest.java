@@ -12,6 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import jakarta.servlet.http.Cookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.jdbc.Sql;
@@ -27,6 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -56,10 +59,14 @@ class AuthControllerTest {
 
     private ObjectMapper objectMapper;
     private MockMvc mockMvc;
+    private MockMvc secureMockMvc;
 
     @BeforeEach
     void setup() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        secureMockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+            .apply(springSecurity())
+            .build();
         objectMapper = new ObjectMapper();
         rateLimiterService.reset();
     }
@@ -276,19 +283,21 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.name").value("Login User"))
             .andExpect(jsonPath("$.authProvider").value("EMAIL"))
             .andExpect(jsonPath("$.onboardingCompletedAt").isEmpty())
-            .andExpect(jsonPath("$.token").exists())
-            .andExpect(jsonPath("$.expiresAt").exists())
+            .andExpect(jsonPath("$.token").doesNotExist())
+            .andExpect(jsonPath("$.expiresAt").doesNotExist())
             .andExpect(jsonPath("$.password").doesNotExist())
             .andReturn();
 
-        // Verify token is valid
-        String responseBody = result.getResponse().getContentAsString();
-        String token = objectMapper.readTree(responseBody).get("token").asText();
-        assertThat(jwtService.validateToken(token)).isTrue();
+        String setCookie = result.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+        assertThat(setCookie)
+            .contains("nl_session=")
+            .contains("HttpOnly")
+            .contains("SameSite=Lax")
+            .contains("Max-Age=604800");
 
-        // Verify token contains correct userId
-        UUID userId = jwtService.extractUserId(token);
-        assertThat(userId).isEqualTo(user.getId());
+        String token = setCookie.substring(setCookie.indexOf('=') + 1, setCookie.indexOf(';'));
+        assertThat(jwtService.validateToken(token)).isTrue();
+        assertThat(jwtService.extractUserId(token)).isEqualTo(user.getId());
     }
 
     @Test
@@ -401,7 +410,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void shouldAcceptRequestWithValidJwtToken() throws Exception {
+    void shouldAcceptRequestWithValidSessionCookie() throws Exception {
         // Given - create user and generate token
         User user = new User();
         user.setEmail("jwtvalid@example.com");
@@ -413,24 +422,19 @@ class AuthControllerTest {
 
         String token = jwtService.generateToken(user);
 
-        // When & Then - use token to access protected endpoint
-        mockMvc.perform(get("/api/health")
-                .header("Authorization", "Bearer " + token))
+        // When & Then - use cookie to access a protected endpoint
+        secureMockMvc.perform(get("/api/users/me")
+                .cookie(new Cookie("nl_session", token)))
             .andExpect(status().isOk());
     }
 
     @Test
-    void shouldRejectRequestWithInvalidJwtToken() throws Exception {
-        // Given - invalid token
-        String invalidToken = "invalid.jwt.token";
+    void shouldRejectLegacyJwtBearerHeader() throws Exception {
+        String legacyToken = "legacy.jwt.token";
 
-        // When & Then - trying to access protected endpoint with invalid token should fail
-        // Note: /api/health is public, so we can't test rejection there
-        // This test validates that JwtAuthenticationFilter handles invalid tokens gracefully
-        // The filter will not authenticate, so requests to authenticated endpoints would fail
-        mockMvc.perform(get("/api/health")
-                .header("Authorization", "Bearer " + invalidToken))
-            .andExpect(status().isOk()); // /api/health is public, so still works
+        secureMockMvc.perform(get("/api/users/me")
+                .header("Authorization", "Bearer " + legacyToken))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -623,4 +627,39 @@ class AuthControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.email").value("uppercase@example.com"));
     }
+
+    @Test
+    void shouldExposeCsrfTokenWithoutCaching() throws Exception {
+        MvcResult result = secureMockMvc.perform(get("/api/auth/csrf"))
+            .andExpect(status().isNoContent())
+            .andReturn();
+
+        assertThat(result.getResponse().getHeader(HttpHeaders.CACHE_CONTROL)).isEqualTo("no-store");
+        assertThat(result.getResponse().getHeader(HttpHeaders.SET_COOKIE))
+            .contains("XSRF-TOKEN=")
+            .doesNotContain("HttpOnly");
+    }
+
+    @Test
+    void shouldExpireSessionCookieOnLogout() throws Exception {
+        MvcResult result = secureMockMvc.perform(post("/api/auth/logout")
+                .cookie(new Cookie("XSRF-TOKEN", "logout-csrf"))
+                .header("X-XSRF-TOKEN", "logout-csrf"))
+            .andExpect(status().isNoContent())
+            .andReturn();
+
+        assertThat(result.getResponse().getHeader(HttpHeaders.SET_COOKIE))
+            .contains("nl_session=")
+            .contains("Max-Age=0")
+            .contains("HttpOnly")
+            .contains("SameSite=Lax");
+    }
+
+    @Test
+    void shouldRedirectGoogleLoginUsingRelativeLocation() throws Exception {
+        mockMvc.perform(get("/api/auth/google"))
+            .andExpect(status().isFound())
+            .andExpect(header().string(HttpHeaders.LOCATION, "/oauth2/authorization/google"));
+    }
+
 }

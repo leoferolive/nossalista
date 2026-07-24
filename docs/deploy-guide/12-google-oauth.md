@@ -72,33 +72,32 @@ Com o frontend embutido, o fluxo é:
 
 ```
 1. Usuário clica "Login com Google" em localhost (dev) ou no domínio de produção
-2. Frontend redireciona para: GET /api/auth/google
+2. Frontend redireciona para: GET /api/auth/google (302 com `Location: /oauth2/authorization/google`, relativo)
 3. Spring Security redireciona para accounts.google.com
 4. Google autentica e redireciona para:
    http://localhost:8080/api/auth/google/callback?code=... (dev)
    ou
    https://nossalista.leoferolive.com.br/api/auth/google/callback?code=... (prod)
-5. Spring Boot troca o code do Google por um JWT (OAuth2SuccessHandler)
-6. Q2.3: o backend NÃO coloca o JWT na URL. Ele emite um one-time code opaco
-   (single-use, TTL 60s) e redireciona para FRONTEND_URL/auth/callback?code=<code>
-7. O frontend (AuthCallback) troca o one-time code pelo JWT em
-   POST /api/auth/oauth/exchange e persiste o token no localStorage
-8. Usuários Google entram com email_verified=true (e-mail já verificado pelo provedor)
+5. Spring Boot troca o code do Google por uma sessao com JWT no cookie HttpOnly (OAuth2SuccessHandler)
+6. O backend NAO coloca JWT na URL: emite one-time code opaco (single-use, TTL 60s) e redireciona para FRONTEND_URL/auth/callback?code=<code>
+7. AuthCallback troca o one-time code em POST /api/auth/oauth/exchange; a resposta retorna so o perfil e grava `__Host-nl_session` (prod) como `Secure; HttpOnly; SameSite=Lax`
+8. Usuarios Google entram com email_verified=true (e-mail ja verificado pelo provedor)
 ```
 
-> **Por que one-time code (Q2.3):** colocar o JWT direto na URL
-> (`?token=<JWT>`) vazaria o token em histórico do browser, logs de servidor e
-> header `Referer`. O one-time code é trocado por POST e descartado após o
-> primeiro uso, sem mudar a arquitetura `localStorage` do frontend (decisão Q2.9).
+> **Por que one-time code:** colocar JWT na URL (`?token=<JWT>`) vazaria a credencial em historico, logs e `Referer`. O code e descartado apos um POST; a sessao resultante fica apenas no cookie HttpOnly.
 
 ---
 
 ## 5. Teste do Fluxo OAuth
 
 ```bash
-# 1. Verificar que o endpoint de início do OAuth responde
-curl -I http://localhost:8080/api/auth/google
-# Esperado: 302 Found → Location: accounts.google.com/...
+# 1. Verificar que o endpoint de inicio responde com Location relativo
+curl -sSI http://localhost:8080/api/auth/google
+# Esperado: 302 Found e Location: /oauth2/authorization/google
+
+# Em producao, a borda deve responder 308 antes de iniciar OAuth
+curl -sSI http://nossalista.leoferolive.com.br/api/auth/google
+# Esperado: 308 para https://nossalista.leoferolive.com.br/api/auth/google, sem Set-Cookie
 
 # 2. Verificar que o callback está registrado corretamente
 # (Acessar no browser — precisa de sessão Google)
