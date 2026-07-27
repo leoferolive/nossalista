@@ -198,7 +198,10 @@
         <dependency>
             <groupId>nl.martijndwars</groupId>
             <artifactId>web-push</artifactId>
-            <version>5.1.2</version>
+            <!-- Fica em 5.1.1: a 5.1.2 reescopou httpasyncclient/httpclient de
+                 compile para runtime no proprio POM, mas PushService.send()
+                 retorna org.apache.http.HttpResponse na API publica -->
+            <version>5.1.1</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
