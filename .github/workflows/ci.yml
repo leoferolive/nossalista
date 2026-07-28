@@ -487,7 +487,19 @@ jobs:
       - name: Frontend audit
         if: needs.changes.outputs.frontend == 'true'
         working-directory: frontend
-        run: npm audit --audit-level=high --omit=dev
+        # GHSA-qwww-vcr4-c8h2 (source 1124282) é aceito como dívida técnica:
+        # só afeta APIs instáveis de RSC do react-router, não usadas neste app,
+        # e não há fix não-breaking publicado ainda. Ver docs/quality-gate-debt.md.
+        # Qualquer outro high/critical continua bloqueando o gate normalmente.
+        run: |
+          npm audit --omit=dev --json > audit-report.json || true
+          UNACCEPTED=$(jq '[.vulnerabilities[] | select(.severity=="high" or .severity=="critical") | select( ([.via[]? | select(type=="object") | .source] - [1124282]) != [] )] | length' audit-report.json)
+          if [ "$UNACCEPTED" != "0" ]; then
+            echo "npm audit encontrou vulnerabilidades high/critical não cobertas pela exceção documentada em docs/quality-gate-debt.md:"
+            cat audit-report.json
+            exit 1
+          fi
+          echo "npm audit: apenas a exceção documentada (GHSA-qwww-vcr4-c8h2) está presente — gate OK."
 
       - name: Frontend license policy
         if: needs.changes.outputs.frontend == 'true'
