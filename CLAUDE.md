@@ -43,6 +43,77 @@ Para uma verificação completa (cobertura + ratchet), antes de abrir PR:
 
 Detalhes, thresholds e limitações: `docs/quality-gate.md`. Dívida técnica pré-existente: `docs/quality-gate-debt.md`.
 
+## Estilo de Código
+
+### Funções e módulos
+
+- Funções: 4-20 linhas. Se passar disso, extrair.
+- Uma responsabilidade por função, uma responsabilidade por classe/módulo (SRP) — vale tanto para services Java quanto para hooks/components React.
+- Nomes específicos e únicos. Evitar `data`, `handler`, `Manager` genéricos. Prefira nomes que retornem poucas ocorrências (idealmente <5) num grep no repo.
+
+### Arquivos
+
+- Arquivos abaixo de 500 linhas, divididos por responsabilidade quando ultrapassarem isso.
+- Débito conhecido hoje (sinalização, não bloqueio retroativo — mas todo código novo ou tocado deve seguir o limite): `frontend/src/pages/ListView.tsx` (1244 linhas), `frontend/src/pages/LandingPage.tsx` (660 linhas) e `backend/.../ListItemService.java` (708 linhas). Ver `docs/quality-gate-debt.md`.
+
+### Tipagem
+
+- TypeScript: tipagem explícita, sem `any`/`as any`. O frontend tem ~58 ocorrências herdadas — não recriar novas, reduzir as existentes ao tocar no código.
+- Java: aproveitar a tipagem forte da linguagem — evitar `Object`, raw types e `Map<String, Object>` como substituto de DTO tipado.
+
+### Duplicação e controle de fluxo
+
+- Sem duplicação de lógica: extrair para uma função ou módulo compartilhado.
+- Early return em vez de ifs aninhados. Máximo de 2 níveis de indentação.
+- Mensagens de exceção devem incluir o valor recebido e o formato esperado. Exemplo em Java:
+
+  ```java
+  throw new IllegalArgumentException("quantity deve ser > 0, recebido: " + quantity);
+  ```
+
+  Exemplo em TypeScript:
+
+  ```ts
+  throw new Error(`Invalid list type: "${type}", expected one of ${LIST_TYPES.join(", ")}`);
+  ```
+
+### Comentários
+
+- Preservar comentários existentes ao refatorar — carregam intenção e proveniência, não removê-los "de graça".
+- Comentar o PORQUÊ, não o QUÊ (evitar `// incrementa contador` acima de `i++`).
+- Docstring/Javadoc em métodos e funções públicos: intenção + um exemplo de uso.
+- Referenciar número de issue ou SHA de commit quando uma linha existe por causa de um bug específico ou restrição externa.
+
+### Testes
+
+- Comandos e thresholds já estão documentados em "Quality Gate" acima — não duplicar aqui.
+- Toda função nova ganha teste. Todo bugfix ganha teste de regressão.
+- Mock de I/O externo (API, banco, filesystem) com fake classes nomeadas, não stubs inline.
+- Testes devem ser F.I.R.S.T.: fast, independent, repeatable, self-validating, timely.
+
+### Dependências
+
+- Backend: injeção via construtor (padrão nativo do Spring) — não usar `@Autowired` em campo.
+- Frontend: "injeção" equivale a props/hooks explícitos — evitar importar estado global diretamente quando dá para passar via prop ou hook.
+- Libs de terceiros ficam atrás de um wrapper fino de propriedade do projeto, não usadas diretamente espalhadas pelo código.
+
+### Estrutura
+
+- Backend: seguir a convenção de pacotes por domínio já usada no projeto (controller/service/repository dentro de cada módulo).
+- Frontend: seguir a estrutura já documentada em "Estrutura de Pastas Planejada" (`api/`, `hooks/`, `pages/`, `components/`, `contexts/`, `types/`).
+- Preferir módulos pequenos e focados a arquivos "deus".
+
+### Formatação
+
+- Backend: Checkstyle + PMD, já cobertos pelo Quality Gate.
+- Frontend: Prettier + ESLint + Stylelint, já cobertos pelo Quality Gate.
+- Não reabrir discussão de estilo além do que essas ferramentas já impõem.
+
+### Logging
+
+- Logs de observabilidade no backend Spring: JSON estruturado.
+- Texto plano apenas em saída de CLI/script voltada a humano.
+
 ## Stack Técnico Planejada
 
 | Camada      | Tecnologia                               |
