@@ -53,7 +53,8 @@ Detalhes, thresholds e limitações: `docs/quality-gate.md`. Dívida técnica pr
 
 ### Arquivos
 
-- Arquivos abaixo de 500 linhas, divididos por responsabilidade quando ultrapassarem isso.
+- Backend (Java): abaixo de 500 linhas, dividido por responsabilidade quando ultrapassar isso.
+- Frontend (TypeScript): o limite real é 400 linhas — já é o gate travado em CI via `eslint.config.js` (`max-lines: 400`, ver `docs/quality-gate.md`). Não documentar 500 aqui para o frontend: um componente de 450 linhas seguiria esta diretriz e ainda assim quebraria `./scripts/quality.sh --pre-commit`.
 - Débito conhecido hoje (sinalização, não bloqueio retroativo — mas todo código novo ou tocado deve seguir o limite): `frontend/src/pages/ListView.tsx` (1244 linhas), `frontend/src/pages/LandingPage.tsx` (660 linhas) e `backend/.../ListItemService.java` (708 linhas). Ver `docs/quality-gate-debt.md`.
 
 ### Tipagem
@@ -76,6 +77,8 @@ Detalhes, thresholds e limitações: `docs/quality-gate.md`. Dívida técnica pr
   ```ts
   throw new Error(`Invalid list type: "${type}", expected one of ${LIST_TYPES.join(", ")}`);
   ```
+
+  **Exceção:** nunca embutir segredo, senha, token OAuth2/JWT ou credencial no valor da mensagem — nesses casos, descrever o formato esperado sem ecoar o valor recebido (ex. "token OAuth2 ausente ou malformado", não o token em si).
 
 ### Comentários
 
