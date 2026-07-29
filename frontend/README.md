@@ -170,3 +170,4 @@ npm run test:e2e:fullstack
 - Build e runtime smoke com `vite build` + `vite preview`.
 - Suite E2E `@pr` obrigatoria com Playwright.
 - Suite `@fullstack` roda separadamente no workflow `frontend-e2e-fullstack.yml` (cron diario + disparo manual).
+- `npm audit --omit=dev` (high/critical bloqueia o gate) com uma unica excecao documentada em `docs/quality-gate-debt.md` (GHSA-qwww-vcr4-c8h2 — nao explorável nesta aplicacao, sem fix nao-breaking disponivel ainda).
