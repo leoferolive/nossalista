@@ -1463,3 +1463,30 @@ adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position
 - **CSRF:** a SPA obtem `XSRF-TOKEN` de `GET /api/auth/csrf` e envia `X-XSRF-TOKEN` em mutacoes autenticadas. O token nao e credencial. `/ws/**`, `/mcp/**`, `/oauth/token`, `/oauth/revoke` e `/oauth/register` sao excluidos por serem transportes nao-web.
 - **Realtime:** SockJS/STOMP autentica pela sessao presente no handshake e nao aceita JWT em query string ou `CONNECT`.
 - **HTTPS:** Cloudflare deve executar redirect HTTP -> HTTPS com 308 antes do tunnel. Nao usamos `server.forward-headers-strategy`; D-010 continua protegendo a resolucao de IP contra spoof. HSTS ficou fora deste corte por exigir auditoria de outros subdominios.
+
+## D-034 Supressao documentada de 3 achados do OSV-Scanner (`osv-scanner.toml`)
+
+- **Contexto:** o scan completo do OSV-Scanner (push em `main` + cron semanal, ver D-027)
+  reportava 4 CVEs high em `frontend/package-lock.json`. Uma delas (`postcss`) foi corrigida
+  por bump patch-level direto. As outras 3 nao tem correcao segura/disponivel agora e ficariam
+  vermelhas indefinidamente sem contexto, treinando o time a ignorar o check.
+- **Decisao:** criar `osv-scanner.toml` na raiz do repo com `[[IgnoredVulns]]` para as 3
+  vulnerabilidades restantes, cada uma com justificativa inline e `ignoreUntil` (forca
+  reavaliacao automatica quando a data passar — nao e supressao permanente):
+  - **`GHSA-qwww-vcr4-c8h2` (react-router, 7.18.1, produção)** — a advisory oficial afirma
+    que so afeta quem usa as APIs RSC instaveis. O frontend usa `react-router-dom` em modo
+    SPA classico (`BrowserRouter`), sem RSC — o caminho vulneravel nao e exercitado. Nao fazer
+    o bump de major (7→8) evita risco de breaking change de roteamento por zero ganho real de
+    seguranca. `ignoreUntil` = 2027-01-29.
+  - **`GHSA-mh99-v99m-4gvg` (brace-expansion, dev, 2 instancias)** — o fix real exige
+    `>=5.0.8`, que mudou a forma de export (function default → named export `expand`),
+    incompativel com `minimatch@3.x`/`5.x`. Uma instancia vem de `eslint→minimatch@3.x`
+    (so resolve com bump maior do ESLint 9→10, que exige validar flat config + plugins —
+    tarefa dedicada separada); a outra vem de
+    `workbox-build→@trickfilm400/rollup-plugin-off-main-thread→ejs→jake→filelist→minimatch@5.x`
+    (workbox-build ja esta na ultima versao publicada, 7.4.1 — sem fix upstream disponivel).
+    Risco real baixo: exige padrao glob malicioso alimentado ao tooling de lint/build local,
+    nao ao runtime de producao. `ignoreUntil` = 2026-10-29.
+- **Efeito:** `scan-scheduled / osv-scan` volta a passar em `main`; o scan de PR
+  (`osv-scanner-reusable-pr.yml`) continua reportando qualquer vulnerabilidade **nova**
+  normalmente (o arquivo de ignore nao mascara achados diferentes destes 3 IDs).
