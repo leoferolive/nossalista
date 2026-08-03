@@ -1490,3 +1490,25 @@ adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position
 - **Efeito:** `scan-scheduled / osv-scan` volta a passar em `main`; o scan de PR
   (`osv-scanner-reusable-pr.yml`) continua reportando qualquer vulnerabilidade **nova**
   normalmente (o arquivo de ignore nao mascara achados diferentes destes 3 IDs).
+  **Correcao (ver D-035):** essa expectativa nao se confirmou — o `osv-scanner.toml` da raiz
+  nunca chegou a ser aplicado, porque o OSV-Scanner so o carrega automaticamente a partir do
+  diretorio do proprio lockfile escaneado.
+
+## D-035 `--config=osv-scanner.toml` explicito em `scan-args` (correcao de D-034)
+
+- **Contexto:** apos D-034, o job `scan-scheduled` continuou falhando com as mesmas 3
+  vulnerabilidades supostamente suprimidas (run `f42d0b1`, 2026-08-03). Investigacao mostrou
+  que o OSV-Scanner so le `osv-scanner.toml` automaticamente a partir do diretorio do proprio
+  lockfile escaneado — **nao propaga para subdiretorios nem sobe para a raiz do repo**. Como
+  o arquivo estava na raiz e os lockfiles escaneados sao `frontend/package-lock.json` e
+  `backend/pom.xml`, as regras de `IgnoredVulns` de D-034 nunca foram carregadas; nenhuma
+  supressao chegou a ter efeito real desde o merge de D-034.
+- **Decisao:** passar `--config=osv-scanner.toml` explicitamente via `scan-args` nos dois jobs
+  do `.github/workflows/osv-scanner.yml` (`scan-pr` e `scan-scheduled`), em vez de duplicar o
+  `osv-scanner.toml` em `frontend/` e `backend/`. `--config` explicito aplica aquele arquivo a
+  **todos** os lockfiles escaneados, independente de diretorio — mantem uma fonte unica de
+  supressao para o monorepo, evitando o risco de dois arquivos divergirem se uma mesma CVE
+  aparecer em ambos os ecossistemas no futuro.
+- **Efeito:** as 3 supressoes de D-034 passam a valer de fato em `scan-scheduled` (push/cron) e
+  em `scan-pr` (diff de PR). Achados novos, nao listados em `IgnoredVulns`, continuam
+  bloqueando normalmente.
