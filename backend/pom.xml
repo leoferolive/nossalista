@@ -202,7 +202,14 @@
         <dependency>
             <groupId>nl.martijndwars</groupId>
             <artifactId>web-push</artifactId>
-            <version>5.1.2</version>
+            <!-- NÃO subir para 5.1.2: essa versão muda o scope transitivo de
+                 httpasyncclient/httpclient/httpcore de compile para runtime,
+                 quebrando a compilação de PushNotificationService.java (import
+                 direto de org.apache.http.HttpResponse). Confirmado via
+                 mvn dependency:tree comparando as duas versões. Reavaliar se
+                 web-push publicar um patch que corrija o scope, ou declarar
+                 httpasyncclient explicitamente em compile scope neste pom. -->
+            <version>5.1.1</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
