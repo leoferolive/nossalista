@@ -28,7 +28,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: ./.github/actions/setup-node
@@ -105,7 +105,7 @@ jobs:
 
       - name: Save base frontend coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: /tmp/base-frontend-coverage
           key: base-frontend-coverage-${{ github.sha }}
@@ -113,7 +113,7 @@ jobs:
       - name: Restore base frontend coverage
         if: github.event_name == 'pull_request'
         id: base-frontend-coverage
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: /tmp/base-frontend-coverage
           key: base-frontend-coverage-${{ github.event.pull_request.base.sha }}
@@ -143,7 +143,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: ./.github/actions/setup-node
@@ -187,7 +187,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0   # histórico completo p/ diff-cover e PIT (git diff vs base)
 
@@ -272,7 +272,7 @@ jobs:
 
       - name: Save base backend coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: /tmp/base-backend-coverage
           key: base-backend-coverage-${{ github.sha }}
@@ -280,7 +280,7 @@ jobs:
       - name: Restore base backend coverage
         if: github.event_name == 'pull_request'
         id: base-backend-coverage
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: /tmp/base-backend-coverage
           key: base-backend-coverage-${{ github.event.pull_request.base.sha }}
@@ -404,7 +404,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -423,7 +423,7 @@ jobs:
       # a CI quando o api.github.com está indisponível (visto em 2026-06-10).
       - name: Cache editorconfig-checker
         id: cache-ec
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/bin/ec
           key: ec-${{ runner.os }}-${{ runner.arch }}-${{ env.EC_VERSION }}
@@ -442,7 +442,7 @@ jobs:
 
       - name: Cache Gitleaks
         id: cache-gitleaks
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/bin/gitleaks
           key: gitleaks-${{ runner.os }}-${{ runner.arch }}-${{ env.GITLEAKS_VERSION }}
@@ -466,7 +466,7 @@ jobs:
         run: ~/bin/gitleaks detect --source . --redact
 
       - name: Cache pip packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: pip-semgrep-${{ runner.os }}-${{ runner.arch }}
