@@ -21,7 +21,7 @@ jobs:
       rc_sha: ${{ steps.version.outputs.rc_sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ inputs.ref }}
