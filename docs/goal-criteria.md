@@ -15,12 +15,18 @@ consegue verificar mecanicamente. Detalhes e justificativas dos gates:
    `--compare-branch=origin/main --fail-under=80`.
 3. **Cobertura sem regressão vs main** (backend e frontend): o CI compara
    contra a cobertura REAL da main (cache `base-*-coverage-<sha>`) — mais
-   estrito que o `.quality-baseline` local. Frontend: `src/pages/**` e
-   `src/main.tsx` são excluídos; lógica testável vive em `src/components/**`.
-4. **Gate NVD / dependency-check verde**. Se falhar por cache frio (o guard
-   avisa explicitamente): disparar `gh workflow run nvd-cache-warmer.yml`,
-   aguardar ~15 min e re-executar o CI — **uma vez**. Nunca fazer override de
-   merge sem autorização registrada no PR (e só se `pom.xml` não tiver diff).
+   estrito que o `.quality-baseline` local. Frontend: exclusões atuais em
+   `frontend/vitest.config.ts` (`coverage.exclude`) — entrypoints
+   (`src/main.tsx`, `src/App.tsx`, `src/sw.ts`), tipos puros (`src/types/**`)
+   e um conjunto pontual de componentes/hooks sem teste próprio ainda;
+   `src/pages/**` e `src/api/**` já contam na métrica desde a Onda 2 (PR #82).
+4. **Gate OSV-Scanner verde** (`.github/workflows/osv-scanner.yml`): SCA de
+   dependências Maven + npm via OSV.dev, substituiu o antigo OWASP
+   dependency-check/NVD (D-027, issue #70 — ver `docs/quality-gate.md`). Não
+   há fluxo de "cache frio" a contornar; falha indica vulnerabilidade real —
+   corrigir com bump de dependência (precedente: PR #82) ou registrar
+   exceção documentada no PR. Nunca fazer override de merge sem autorização
+   registrada no PR.
 5. **Contagem de testes reportada corretamente**: contar `<testcase>` nos XML —
    `grep -c '<testcase' backend/target/surefire-reports/*.xml`. Nunca usar a
    linha "Tests run" do console (classes `@Nested` reportam 0).
