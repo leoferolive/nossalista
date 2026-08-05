@@ -7,8 +7,8 @@
 
 ## D-002 Autenticacao
 
-- **Decisao:** JWT stateless + Google OAuth2 (principal) + email/senha (fallback).
-- **Motivo:** compatibilidade com SPA e WebSocket autenticado.
+- **Decisao:** JWT stateless assinado permanece o formato da sessao, mas a sessao web e transportada exclusivamente por cookie HttpOnly; Google OAuth2 e principal e email/senha e fallback.
+- **Motivo:** evita exfiltracao do JWT pelo JavaScript, preserva compatibilidade com SPA e permite autenticar WebSocket pelo handshake do cookie.
 
 ## D-003 Sincronizacao real-time
 
@@ -61,25 +61,11 @@
   ela deriva o IP do proprio `X-Forwarded-For`/`Forwarded`, reintroduzindo o vetor de spoof nesta
   topologia.
 
-## D-011 OAuth2 one-time code (Q2.3)
+## D-011 OAuth2 one-time code e troca por cookie de sessao (Q2.3)
 
-- **Decisao:** o sucesso do OAuth2 nao coloca mais o JWT na URL de redirect. Emite
-  um one-time code opaco (SecureRandom + Base64 URL-safe, 256 bits) guardado
-  **no banco** (tabela `oauth_authorization_codes` via `OAuthCodeStore`, TTL 60s,
-  single-use, varrido pelo scheduler de cleanup existente) e redireciona para
-  `/auth/callback?code=<code>`. O frontend troca o code pelo JWT em
-  `POST /api/auth/oauth/exchange` e persiste no `localStorage`.
-- **Motivo:** evitar vazamento do JWT em historico do browser, logs de servidor e
-  header `Referer`, mantendo a arquitetura `localStorage` existente (sem migrar
-  para cookie HttpOnly — decisao Q2.9 do dono).
-- **Store persistido (correcao):** originalmente o code vivia in-memory por
-  instancia (`ConcurrentHashMap`). Como o code e EMITIDO na requisicao de callback
-  do Google e TROCADO numa segunda requisicao (XHR do SPA), com store por
-  instancia essas duas requisicoes caindo em pods diferentes (≥1 replica/HPA) — ou
-  um restart do pod entre elas — faziam o `oauth/exchange` responder **400** e o
-  login Google nunca completar (usuario sem JWT => 401 em tudo). Persistir no banco
-  compartilhado (migration `V11`) deixa qualquer instancia validar o code e o fluxo
-  sobreviver a restart/escala. Mesmo padrao de `password_reset_tokens`.
+- **Decisao:** o sucesso do OAuth2 nao coloca JWT na URL. Emite one-time code opaco, persistido no banco em `oauth_authorization_codes` via `OAuthCodeStore` (TTL 60s e single-use), e redireciona para `/auth/callback?code=<code>`. `POST /api/auth/oauth/exchange` consome o code, grava o JWT somente no cookie HttpOnly de sessao e retorna apenas o perfil.
+- **Motivo:** evita vazamento em URL, historico, logs e `Referer`, e elimina a exposicao restante que existia ao persistir o JWT em `localStorage`.
+- **Store persistido:** permite que requests em pods diferentes, ou apos restart, validem o mesmo code.
 
 ## D-012 Verificacao de e-mail no registro (Q2.7)
 
@@ -236,7 +222,7 @@
 
 - **Contexto:** o futuro servidor MCP do NossaLista (e outros clientes de API externos, ex.:
   assistentes de IA) precisa autenticar em nome de um usuario sem usar o fluxo de login
-  interativo (JWT de sessao com expiracao curta, pensado para o SPA). E necessario um mecanismo
+  interativo (sessao por cookie HttpOnly, com expiracao curta, pensada para o SPA). E necessario um mecanismo
   de credencial de longa duracao, gerenciavel pelo proprio usuario, com granularidade de acesso.
 - **Decisao:** introduzir Personal Access Tokens (`personal_access_tokens`), com as seguintes
   regras:
@@ -250,7 +236,7 @@
     (GET/HEAD/OPTIONS) em `/api/**` — reforcado via `AuthorizationManager` dedicado em
     `SecurityConfig`, nao apenas por convencao do cliente.
   - **Superficie restrita:** um PAT nunca pode gerenciar tokens (`/api/users/me/tokens/**`) nem
-    acessar `/api/auth/**` — essas rotas exigem JWT de sessao normal. Evita que um token vazado
+    acessar `/api/auth/**` — essas rotas exigem sessao web por cookie. Evita que um token vazado
     seja usado para emitir novos tokens ou orquestrar o fluxo de auth.
   - **Limite por conta:** maximo de 10 tokens ativos (nao revogados) por usuario, com erro de
     negocio claro (`409 Conflict`) ao exceder — evita acumulo descontrolado de credenciais.
@@ -293,7 +279,7 @@
 ## D-020 Servidor MCP embutido no backend (Streamable HTTP)
 
 - **Contexto:** Fase B do plano MCP — expor as listas do NossaLista como tools MCP para
-  Claude Code/Desktop/Cursor, autenticadas pelos PATs da Fase A (D-018) ou por JWT.
+  Claude Code/Desktop/Cursor, autenticadas pelos PATs da Fase A (D-018), access tokens OAuth do MCP ou cookie de sessao web.
 - **Decisao de dependencia (Passo 0):** usar o starter oficial
   `org.springframework.ai:spring-ai-starter-mcp-server-webmvc:2.0.0` (via
   `spring-ai-bom:2.0.0`), protocolo `STREAMABLE`, montado em `/mcp`. Spring AI 2.0.0 GA
@@ -590,13 +576,13 @@
     login, supera o beneficio. Uma implementacao propria enxuta, reaproveitando o
     padrao ja revisado/testado de `OAuthCodeStore` (D-011) e `PersonalAccessToken`
     (D-018) — code opaco de uso unico + TTL curto + hash-only para segredos —
-    mante controle total sobre a arquitetura stateless (JWT em `localStorage`,
-    sem `HttpSession`) sem reconciliar dois modelos de autenticacao concorrentes.
+    mante controle total sobre a arquitetura stateless (JWT em cookie HttpOnly, sem `HttpSession`) sem reconciliar dois modelos de autenticacao concorrentes.
 
 - **Design da implementacao (pacote `br.com.leoferolive.nossalista.mcpoauth`):**
-  - **Fluxo de authorize sem exigir sessao no browser:** `GET /oauth/authorize` e
-    PUBLICO (o JWT de sessao vive em `localStorage`, que NAO acompanha uma
-    navegacao top-level de pagina inteira vinda do cliente OAuth). O endpoint
+  - **Fluxo de authorize sem exigir sessao previa:** `GET /oauth/authorize` e
+    PUBLICO para que um cliente OAuth possa iniciar o protocolo antes de o usuario
+    estar autenticado. Quando houver sessao web, o cookie `SameSite=Lax` acompanha
+    a navegacao top-level e a tela de consentimento a utiliza depois. O endpoint
     valida `client_id`/`redirect_uri` (erros aqui sao 400 DIRETO, nunca redirect —
     evita open redirect com um redirect_uri nao confiavel), depois valida
     `response_type=code`/`code_challenge_method=S256`/`resource` (erros aqui
@@ -606,9 +592,8 @@
   - **Tela de consentimento na SPA** (`frontend/src/pages/OAuthConsent.tsx`,
     protegida por `ProtectedRoute` — reusa o fluxo de login existente com retorno
     automatico via `redirect`/`postLoginRedirect`): busca o pedido pendente via
-    `GET /api/oauth/consent/{requestId}` (autenticado por JWT normal) e decide via
-    `POST /api/oauth/consent/{requestId}/approve|deny`, ambos restritos a sessao
-    JWT normal (`sessionOnlyManager()`, mesma regra ja usada para
+    `GET /api/oauth/consent/{requestId}` (autenticado por cookie de sessao) e decide via
+    `POST /api/oauth/consent/{requestId}/approve|deny`, ambos restritos a sessao web por cookie (`sessionOnlyManager()`, mesma regra ja usada para
     `/api/users/me/tokens/**` — um PAT ou um access token OAuth do MCP nunca pode
     aprovar um consentimento em nome do usuario). Na aprovacao, emite um
     authorization code opaco (`mcp_oauth_codes`, SecureRandom 256 bits, TTL 60s) e
@@ -1253,3 +1238,277 @@
   negacoes de `/mcp` (via `ClientIpResolver`) para observabilidade — os logs de producao
   ficam suprimidos em `prod` (`org.springframework.security: WARN`), o que dificultou a
   investigacao. Fica como melhoria separada para nao misturar com o fix.
+
+## D-027 Trocar OWASP dependency-check/NVD por OSV-Scanner (SCA de dependencias)
+
+- **Contexto:** o job `security-and-compliance` do CI falhava de forma espuria e recorrente
+  com `Banco NVD ausente no cache (cache frio)` MESMO quando o workflow `nvd-cache-warmer.yml`
+  concluia com `success` (re-disparado 4+ vezes sem sucesso nos PRs #66 e #68, mergeados com
+  override admin por o check ser comprovadamente nao relacionado ao codigo). Ver issue #70.
+- **Causa-raiz:** a abordagem "baixar/cachear a NVD inteira" do `org.owasp:dependency-check-maven`
+  e estruturalmente fragil no GitHub Actions. Dois fatores combinados: (1) o cache de Actions e
+  best-effort, com escopo por branch/chave e janela de propagacao — nao ha garantia de leitura
+  imediata pos-escrita entre o job que semeia (warmer no `main`) e o que consome (PR); (2) o
+  plugin precisa manter atualizada a base INTEIRA da NVD (~363k registros), e a API do NVD sofre
+  com rate limiting/instabilidade, tornando o "warm" lento e fragil. O guard de "fail rapido se
+  cache frio" na pratica falhava rapido quase sempre — por infraestrutura de dados, nao por
+  vulnerabilidade real. Toda a complexidade acidental (workflow warmer, chave de cache por data,
+  `NVD_API_KEY`, guard de `*.mv.db`) nao agregava valor de seguranca. Isso REVERTE o mecanismo
+  da D-021, cuja causa-raiz (cache frio) so foi de fato eliminada trocando a ferramenta.
+- **Decisao:** adotar o **OSV-Scanner** (Google, base OSV.dev) como scanner primario de
+  dependencias, em `.github/workflows/osv-scanner.yml`, usando os reusable workflows oficiais:
+  - **PR** (`osv-scanner-reusable-pr.yml`): compara o scan antes/depois e reporta apenas
+    vulnerabilidades **novas** introduzidas pelo diff — nao bloqueia por divida legada.
+  - **Completo** (`osv-scanner-reusable.yml`): em push na `main` + cron semanal (segunda
+    12:30 UTC), pega CVEs divulgadas apos o merge.
+  - Scan recursivo (`-r ./`, default) cobre os DOIS ecossistemas: `backend/pom.xml` (Maven) e
+    `frontend/package-lock.json` (npm) num unico passo.
+  - **SARIF** publicado na aba Security (`upload-sarif`, default true), com `permissions:
+    security-events: write`.
+- **Por que OSV-Scanner (e nao Trivy/Grype/dependency-review/Snyk):** elimina a causa-raiz (nao
+  baixa/cacheia a NVD, consulta base agregada leve por ecossistema → acaba o cache frio e o rate
+  limit do NVD); cobre Maven + npm com baixo falso-positivo em lockfiles; gratis (Apache-2.0),
+  sem API key nem infra de cache; integracao GH Actions oficial com modo PR-diff. Trivy/Grype
+  brilham em imagem de container/OS (ficam como opcao futura para a imagem do GHCR);
+  `dependency-review-action` exigiria GHAS para gate em repo privado; Snyk e comercial e exige
+  token. Analise completa na issue #70.
+- **Removido:** o plugin `org.owasp:dependency-check-maven` e a property `dependency.check.version`
+  do `backend/pom.xml`; o `backend/dependency-check-suppressions.xml`; o workflow
+  `nvd-cache-warmer.yml`; as etapas de NVD (restore de cache, guard "Verificar banco NVD",
+  "Backend dependency check") do job `security-and-compliance`; a flag `-Ddependency-check.skip=true`
+  (agora obsoleta) em `scripts/quality/run-backend.sh`, `ci.yml` e docs. Os DEMAIS checks do job
+  `security-and-compliance` (gitleaks, editorconfig-checker, Semgrep, `npm audit`, license-checker)
+  ficam **inalterados**. Removido tambem o `backend/package-lock.json`/`backend/package.json`
+  residuais (deps de teste de frontend num modulo Java, referenciados por nada) — antes suprimidos
+  no dependency-check, seriam falso-positivo no scan recursivo do OSV.
+- **Camada nativa complementar:** `.github/dependabot.yml` (ja presente) mantem alerts +
+  security updates para `maven` (/backend), `npm` (/frontend) e `github-actions` (/), semanal.
+- **Gate obrigatorio (branch protection):** o check `scan-pr / osv-scan` foi adicionado aos
+  required status checks do `main` (junto do `security-and-compliance` ja existente; `strict`
+  mantido) — nenhum PR mergeia sem o scan OSV de PR verde. `fail-on-vuln` default (true) reprova
+  o check ao achar vulnerabilidade nova. O secret `NVD_API_KEY` foi removido (nenhum workflow
+  usa mais). **Caveat:** PRs que modificam `.github/workflows/` nao disparam workflows, entao o
+  required check nao reporta e o merge exige `--admin` (foi o caso do #72). Ver issue #70.
+- **Nota de path do reusable workflow:** a issue #70 referencia
+  `google/osv-scanner/.github/workflows/...`; o path oficial atual (v2.x) e
+  `google/osv-scanner-action/.github/workflows/...` (a action migrou de repo). Fixado em
+  `@v2.3.8`.
+
+## D-028 Persistir push subscriptions no banco (T2, Onda 1 — blindagem do core)
+
+- **Decisao:** `PushSubscriptionStore` deixou de guardar as inscricoes de Web Push num
+  `ConcurrentHashMap` in-memory e passou a delegar para `PushSubscriptionRepository`
+  (JPA), persistindo na tabela `push_subscriptions` (migration `V16`). A API publica do
+  store ficou **identica** (`add`, `remove`, `removeAll`, `findByUserId`), preservando o
+  contrato usado por `PushController` e `PushNotificationService` sem exigir alteracao
+  nesses chamadores.
+- **Motivo:** como cada deploy substitui o pod (`replicas: 1`), o store em memoria perdia
+  **todas** as inscricoes de push a cada release — push notifications paravam
+  silenciosamente ate o usuario reabrir o app e reinscrever. O store tambem nao sobrevivia
+  a mais de uma replica. Mesmo padrao ja adotado por `OAuthCodeStore` (D-011) e
+  `password_reset_tokens`/`magic_link_tokens`: mover o estado que precisa sobreviver a
+  restart/escala para o banco compartilhado.
+- **Modelagem:** nova entidade `PushSubscriptionEntity` (sufixo `Entity` para nao colidir
+  com o record `PushSubscription`, ja usado como DTO na API publica do store e nos
+  chamadores — mesma convencao de `ListTypeEntity`). Tabela `push_subscriptions`: `user_id`
+  com FK para `users(id) ON DELETE CASCADE` e indice proprio, `endpoint` com constraint
+  **UNIQUE** global, `p256dh`/`auth`, `created_at`/`updated_at`.
+- **Semantica de upsert por endpoint:** como o endpoint de Web Push e globalmente unico
+  (por navegador/dispositivo), `add()` faz upsert por `endpoint` — se ja pertencer a outro
+  usuario (ex.: mesmo navegador apos logout/login com outra conta), a inscricao e
+  **transferida** para o novo dono em vez de gerar conflito de unicidade. O limite de 5
+  inscricoes por usuario (FIFO) passou a evictar pela mais antiga por `updated_at`
+  (em vez de ordem de insercao em lista), preservando o comportamento pratico do store
+  anterior de manter as inscricoes mais recentemente (re)confirmadas.
+
+## D-029 Lock otimista (`@Version`) em `ListItem` e `SharedList`
+
+- **Contexto:** o core do produto e edicao simultanea por multiplos membros da mesma lista,
+  mas nenhuma entidade tinha controle de concorrencia — dois membros editando/marcando o
+  mesmo item podiam causar lost update silencioso (o ultimo UPDATE vence sem avisar ninguem).
+  O campo `revision` existente e token de ordenacao de broadcast do WebSocket, nao guarda de
+  conflito de escrita. Achado P0-1 da avaliacao de Onda 1 (blindar o core).
+- **Decisao:** adicionar `@Version` (coluna `version BIGINT NOT NULL DEFAULT 0`, migration
+  `V17__add_optimistic_lock_version.sql`) em `ListItem` e `SharedList`. Uma escrita concorrente
+  com versao desatualizada agora lanca `ObjectOptimisticLockingFailureException` (ou
+  `jakarta.persistence.OptimisticLockException`), mapeada pelo `GlobalExceptionHandler` para
+  **HTTP 409 Conflict** em `ProblemDetail` (RFC 7807), com mensagem generica "o item foi
+  alterado por outra pessoa; recarregue e tente novamente". Transforma escrita concorrente
+  conflitante em erro detectavel pelo cliente em vez de sobrescrita silenciosa.
+- **Escopo desta task:** so as duas entidades, a migration e o handler global. NAO mexe em
+  `ListItemService` nem resolve a race de `position` no `add_items` (exigiria tocar o service,
+  fica para a Onda 2 com `@Retryable`). NAO altera o contrato de `revision`.
+- **Limitacao conhecida:** teste de concorrencia roda sobre H2 nesta onda (Testcontainers e
+  Onda 2) — indicativo, sera fortalecido contra PostgreSQL real depois.
+
+## D-030 Notificacoes de item fora da transacao e da thread da requisicao (T3, Onda 1)
+
+- **Contexto:** achado P1 da avaliacao total do projeto (Onda 1, T3). `ListItemService`
+  chamava `notificationService.notifyListMembers(...)` (broadcast por usuario via
+  WebSocket + push) **dentro** dos metodos `@Transactional` (`addItem`, `toggleItemCheck`,
+  `updateItem`, `deleteItem`), ANTES do commit — uma mudanca que sofresse rollback logo
+  em seguida ja teria sido notificada. Alem disso, `PushNotificationService.sendToUser`
+  (web-push) e `SmtpEmailService` (SMTP) eram chamadas SINCRONAS, bloqueando a thread da
+  requisicao com I/O externo; o `spring.mail` nao tinha timeout configurado, o que faz o
+  JavaMail assumir timeout INFINITO — uma falha de rede no SMTP (Brevo) podia travar a
+  thread indefinidamente.
+- **Decisao:** mover o disparo de notificacao de item para **depois do commit** e para
+  **fora** da thread da requisicao, via evento de dominio + listener assincrono:
+  - `ListItemService` publica `notification.ListItemNotificationEvent` (via
+    `ApplicationEventPublisher` do Spring) em vez de chamar `NotificationService`
+    diretamente. O evento carrega `listId`, `actorId`, `type`, `payload` e `actor`.
+  - `notification.ListItemNotificationEventListener` consome o evento com
+    `@TransactionalEventListener(phase = AFTER_COMMIT)` — so executa se a transacao
+    publicadora COMITAR; em rollback, o listener simplesmente nunca dispara. O metodo
+    tambem e `@Async`, entao roda num executor dedicado, nao na thread original.
+  - `config/AsyncConfig` adiciona `@EnableAsync` + um `ThreadPoolTaskExecutor` **bounded**
+    (core=4, max=16, fila=200, prefixo `async-notif-`) com
+    `ThreadPoolExecutor.CallerRunsPolicy` como rejeicao (aplica backpressure — a tarefa
+    roda na thread chamadora ao saturar — em vez de descartar silenciosamente uma
+    notificacao) e um `AsyncUncaughtExceptionHandler` que loga qualquer excecao nao
+    tratada de um metodo `@Async void` (que, por retornar `void`, nao tem como propagar
+    excecao para quem chamou).
+  - `PushNotificationService.sendToUser` ganhou `@Async` diretamente — cobre TODOS os
+    chamadores existentes (`NotificationService`, usado tambem por `ListService`,
+    `ListJoinService`, `MemberService`, fora do escopo de arquivos desta tarefa) sem
+    precisar tocar nesses outros servicos.
+  - `SmtpEmailService.sendPasswordReset/sendEmailVerification/sendMagicLink` (os tres
+    metodos publicos da interface `EmailService`, pontos de entrada via o proxy do
+    Spring) ganharam `@Async`. O metodo privado `sendHtmlEmail` NAO podia ser anotado
+    diretamente — chamada interna da mesma classe (self-invocation) nao passa pelo proxy
+    AOP do Spring, entao `@Async` so tem efeito nos metodos publicos realmente invocados
+    de fora.
+  - `application.yml`: `spring.mail.properties.mail.smtp.connectiontimeout/timeout/
+    writetimeout` = 5000ms cada, eliminando o timeout infinito default do JavaMail.
+- **Push sem timeout configuravel (limitacao registrada, nao um gap ignorado):** a lib
+  `nl.martijndwars:web-push:5.1.1` (`PushService.send`) nao expoe timeout configuravel na
+  API publica (verificado via `javap` na classe — sem setter de `HttpClient`/
+  `RequestConfig` em `PushService`/`AbstractPushService`). A protecao contra bloqueio vem
+  de rodar em thread dedicada do executor bounded, nao de um timeout de rede explicito.
+  Trocar a lib fica fora do escopo desta tarefa (nao mexe em `pom.xml`).
+- **Por que evento + `@TransactionalEventListener(AFTER_COMMIT)` em vez de so `@Async` na
+  chamada direta:** `@Async` sozinho tira a chamada da thread da requisicao, mas nao evita
+  que ela dispare ANTES do commit (a tarefa assincrona pode rodar e completar enquanto a
+  transacao ainda esta aberta). So o hook de sincronizacao de transacao
+  (`AFTER_COMMIT`) garante que a notificacao NUNCA aconteca para uma mudanca que sofreu
+  rollback.
+- **O broadcast de lista (`WebSocketEventPublisher`, topico `/topic/list/{id}/items`,
+  usado pelo `revision` que ordena o cliente) NAO foi alterado** — fora do escopo de
+  arquivos desta tarefa (nao toca `websocket/**`) e ja e uma publicacao rapida/local no
+  broker STOMP em memoria, nao uma chamada de I/O externo bloqueante como SMTP/push.
+- **Testes:** `ListItemNotificationAfterCommitIntegrationTest` prova as duas pontas com
+  Spring real (transacao real via `TransactionTemplate`, sem o `@Transactional` de teste
+  que nunca comita de verdade): notificacao NAO ocorre em rollback
+  (`verify(..., after(500).never())`) e ocorre apos commit **numa thread diferente** da
+  que chamou (`verify(..., timeout(2000))` + captura do nome da thread, prefixo
+  `async-notif-`). `ListItemServiceTest` foi migrado do mock de `NotificationService` para
+  `ApplicationEventPublisher` e ganhou testes de que cada operacao publica o evento com o
+  `type` correto. `ListItemNotificationEventListenerTest` cobre o listener isolado
+  (delega corretamente; excecao do `NotificationService` e logada, nao propagada).
+  `AsyncConfigTest` cobre os limites do executor e a politica de rejeicao.
+
+## D-031 Testcontainers-PostgreSQL para testes sensiveis ao banco (T1, Onda 2 — honestidade de metrica)
+
+Ate a Onda 2 toda a integracao rodava em H2 (`MODE=PostgreSQL`), entao as migrations
+Flyway eram validadas SO contra H2, nunca contra o Postgres de producao — classe de bug
+"passa no teste, quebra em prod" (locking, SQL nativo, tipos, collation).
+
+- **Decisao:** introduzir Testcontainers-PostgreSQL de forma ADITIVA (opt-in). Uma base
+  class `AbstractPostgresIT` (container `postgres:17-alpine` **singleton** por JVM +
+  `@ServiceConnection`) e estendida apenas pelos testes sensiveis ao banco: repositorios
+  (`*RepositoryTest`), validacao de migration (`UserTableMigrationTest`),
+  `McpServerIntegrationTest` e os testes de concorrencia da Onda 1
+  (`ListItemOptimisticLockingTest`/`SharedListOptimisticLockingTest`). O resto da suite
+  segue em H2 (rapido). O default global de teste (`src/test/resources/application.yml`)
+  NAO foi alterado.
+- **Detalhe tecnico:** `@DynamicPropertySource` sobrescreve `spring.jpa.database-platform`
+  (H2Dialect -> PostgreSQLDialect), porque o `@ServiceConnection` troca so o DataSource, nao
+  o dialeto fixado no `application.yml` global. Sem isso o Hibernate falaria H2Dialect com
+  um Postgres.
+- **Isolamento no container compartilhado:** testes de repositorio sao `@Transactional`
+  (rollback); o `McpServerIntegrationTest` (commits reais via HTTP) faz `TRUNCATE ... CASCADE`
+  em `@AfterAll`; os testes de lock limpam as linhas commitadas em `@AfterEach`.
+- **CI:** o runner `ubuntu-latest` ja tem Docker, entao o `backend-quality` roda os
+  containers sem ajuste extra.
+
+## D-032 Race de `position` em adds concorrentes: constraint UNIQUE + retry em transacao de topo (T3, Onda 2)
+
+`ListItemService.addItem` calculava `position` via `findMaxPositionByListId + save`; dois
+adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position` duplicada
+(corrupcao silenciosa da ordem — o cenario de lista compartilhada em tempo real).
+
+- **Decisao:** migration `V18` adiciona `UNIQUE(list_id, position)` (com renumeracao
+  deterministica de duplicatas pre-existentes ANTES de criar a constraint, portavel
+  Postgres/H2 via `ROW_NUMBER() OVER (PARTITION BY list_id ...)`); e `addItem` deixou de ser
+  `@Transactional` de metodo — cada tentativa (leitura de maxPosition + `saveAndFlush` +
+  auditoria + broadcast/notificacao) roda numa transacao de TOPO propria via
+  `TransactionTemplate`, com retry (ate 8 tentativas, backoff exponencial + full jitter)
+  APENAS na violacao da constraint `uq_list_items_list_position`. Outras
+  `DataIntegrityViolationException` propagam sem retry.
+- **Por que `TransactionTemplate` e nao `REQUIRES_NEW` aninhado:** o aninhamento mantinha a
+  transacao externa suspensa segurando uma conexao + a interna pegando outra = duas conexoes
+  por chamada, esgotando o pool do Hikari (default 10) sob carga bem antes do limite real de
+  colisao. Transacao de topo unica = no maximo uma conexao por vez.
+- **Interacao com o AFTER_COMMIT da Onda 1 (D-030):** a auditoria (`ActivityLogService`,
+  propagacao REQUIRED) junta-se a transacao do template, preservando atomicidade; o evento
+  de notificacao e publicado no passo APOS o `saveAndFlush`, entao so a tentativa vitoriosa
+  o publica — nao ha dupla notificacao no retry nem notificacao de mudanca revertida.
+- **Follow-up registrado:** o backoff refaz a tentativa inteira (nao so o calculo de
+  position) — aceitavel dado que colisoes sao raras; revisar so se houver altissima
+  concorrencia.
+## D-033 Sessao web em cookie HttpOnly, CSRF e HTTPS na borda
+
+- **Decisao:** a sessao web usa `__Host-nl_session` em producao (`Path=/`, sem `Domain`, `Secure`, `HttpOnly`, `SameSite=Lax`, 7 dias). Dev/teste usam nome sem prefixo e `Secure=false` somente para HTTP local. O profile `prod` falha ao iniciar fora dessa configuracao.
+- **Corte:** JWTs de sessao em `Authorization: Bearer` nao sao aceitos; todas as sessoes existentes sao encerradas no deploy. PATs `nlmcp_...` e access tokens OAuth do MCP continuam usando `Authorization`. O filtro de sessao nunca sobrescreve uma autenticacao MCP/PAT ja resolvida.
+- **CSRF:** a SPA obtem `XSRF-TOKEN` de `GET /api/auth/csrf` e envia `X-XSRF-TOKEN` em mutacoes autenticadas. O token nao e credencial. `/ws/**`, `/mcp/**`, `/oauth/token`, `/oauth/revoke` e `/oauth/register` sao excluidos por serem transportes nao-web.
+- **Realtime:** SockJS/STOMP autentica pela sessao presente no handshake e nao aceita JWT em query string ou `CONNECT`.
+- **HTTPS:** Cloudflare deve executar redirect HTTP -> HTTPS com 308 antes do tunnel. Nao usamos `server.forward-headers-strategy`; D-010 continua protegendo a resolucao de IP contra spoof. HSTS ficou fora deste corte por exigir auditoria de outros subdominios.
+
+## D-034 Supressao documentada de 3 achados do OSV-Scanner (`osv-scanner.toml`)
+
+- **Contexto:** o scan completo do OSV-Scanner (push em `main` + cron semanal, ver D-027)
+  reportava 4 CVEs high em `frontend/package-lock.json`. Uma delas (`postcss`) foi corrigida
+  por bump patch-level direto. As outras 3 nao tem correcao segura/disponivel agora e ficariam
+  vermelhas indefinidamente sem contexto, treinando o time a ignorar o check.
+- **Decisao:** criar `osv-scanner.toml` na raiz do repo com `[[IgnoredVulns]]` para as 3
+  vulnerabilidades restantes, cada uma com justificativa inline e `ignoreUntil` (forca
+  reavaliacao automatica quando a data passar — nao e supressao permanente):
+  - **`GHSA-qwww-vcr4-c8h2` (react-router, 7.18.1, produção)** — a advisory oficial afirma
+    que so afeta quem usa as APIs RSC instaveis. O frontend usa `react-router-dom` em modo
+    SPA classico (`BrowserRouter`), sem RSC — o caminho vulneravel nao e exercitado. Nao fazer
+    o bump de major (7→8) evita risco de breaking change de roteamento por zero ganho real de
+    seguranca. `ignoreUntil` = 2027-01-29.
+  - **`GHSA-mh99-v99m-4gvg` (brace-expansion, dev, 2 instancias)** — o fix real exige
+    `>=5.0.8`, que mudou a forma de export (function default → named export `expand`),
+    incompativel com `minimatch@3.x`/`5.x`. Uma instancia vem de `eslint→minimatch@3.x`
+    (so resolve com bump maior do ESLint 9→10, que exige validar flat config + plugins —
+    tarefa dedicada separada); a outra vem de
+    `workbox-build→@trickfilm400/rollup-plugin-off-main-thread→ejs→jake→filelist→minimatch@5.x`
+    (workbox-build ja esta na ultima versao publicada, 7.4.1 — sem fix upstream disponivel).
+    Risco real baixo: exige padrao glob malicioso alimentado ao tooling de lint/build local,
+    nao ao runtime de producao. `ignoreUntil` = 2026-10-29.
+- **Efeito:** `scan-scheduled / osv-scan` volta a passar em `main`; o scan de PR
+  (`osv-scanner-reusable-pr.yml`) continua reportando qualquer vulnerabilidade **nova**
+  normalmente (o arquivo de ignore nao mascara achados diferentes destes 3 IDs).
+  **Correcao (ver D-035):** essa expectativa nao se confirmou — o `osv-scanner.toml` da raiz
+  nunca chegou a ser aplicado, porque o OSV-Scanner so o carrega automaticamente a partir do
+  diretorio do proprio lockfile escaneado.
+
+## D-035 `--config=osv-scanner.toml` explicito em `scan-args` (correcao de D-034)
+
+- **Contexto:** apos D-034, o job `scan-scheduled` continuou falhando com as mesmas 3
+  vulnerabilidades supostamente suprimidas (run `f42d0b1`, 2026-08-03). Investigacao mostrou
+  que o OSV-Scanner so le `osv-scanner.toml` automaticamente a partir do diretorio do proprio
+  lockfile escaneado — **nao propaga para subdiretorios nem sobe para a raiz do repo**. Como
+  o arquivo estava na raiz e os lockfiles escaneados sao `frontend/package-lock.json` e
+  `backend/pom.xml`, as regras de `IgnoredVulns` de D-034 nunca foram carregadas; nenhuma
+  supressao chegou a ter efeito real desde o merge de D-034.
+- **Decisao:** passar `--config=osv-scanner.toml` explicitamente via `scan-args` nos dois jobs
+  do `.github/workflows/osv-scanner.yml` (`scan-pr` e `scan-scheduled`), em vez de duplicar o
+  `osv-scanner.toml` em `frontend/` e `backend/`. `--config` explicito aplica aquele arquivo a
+  **todos** os lockfiles escaneados, independente de diretorio — mantem uma fonte unica de
+  supressao para o monorepo, evitando o risco de dois arquivos divergirem se uma mesma CVE
+  aparecer em ambos os ecossistemas no futuro.
+- **Efeito:** as 3 supressoes de D-034 passam a valer de fato em `scan-scheduled` (push/cron) e
+  em `scan-pr` (diff de PR). Achados novos, nao listados em `IgnoredVulns`, continuam
+  bloqueando normalmente.

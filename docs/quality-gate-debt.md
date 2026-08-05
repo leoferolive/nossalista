@@ -67,8 +67,13 @@ em `frontend/eslint.config.js` (último bloco do array exportado).
 
 ## Remediação de CVEs — gate `security-and-compliance` (registrada em 2026-06-10)
 
-Override de versões no `backend/pom.xml` para passar o OWASP dependency-check
-(`failBuildOnCVSS=7`). Detalhe arquitetural em `docs/DECISIONS.md` (D-013, D-019).
+> **Nota (2026-07-06):** o SCA de dependências migrou do OWASP dependency-check/NVD
+> para o **OSV-Scanner** (ver **D-027** e issue #70). Os overrides de versão abaixo
+> continuam válidos (corrigem o CVE na dependência resolvida, independente do scanner);
+> as menções ao "dependency-check"/"Feed NVD" nesta seção são registro histórico.
+
+Override de versões no `backend/pom.xml` para passar o gate de vulnerabilidades. Detalhe
+arquitetural em `docs/DECISIONS.md` (D-013, D-019).
 
 | Dependência | De → Para | Mecanismo no pom | CVEs corrigidas | Status |
 |---|---|---|---|---|
@@ -93,6 +98,41 @@ Resolvido subindo `spring-boot-starter-parent` de **4.0.6** para **4.0.7**, que 
 individuais. Validação: `dependency:tree` confirma `jackson-databind:2.21.4`,
 `tools.jackson.core:jackson-databind:3.1.4`, `spring-security-*:7.0.6`. Suite de testes completa
 sem regressão (ver resultado real no PR #50).
+
+---
+
+## Frontend npm audit — GHSA-qwww-vcr4-c8h2 (registrada em 2026-07-28)
+
+`npm audit --omit=dev` no frontend reporta **2 high** — ambos o mesmo advisory,
+propagado de `react-router` para `react-router-dom`:
+
+| Advisory | Pacote | Range afetado | Severidade | Status |
+|---|---|---|---|---|
+| [GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2) — RSC Mode CSRF Bypass | `react-router` / `react-router-dom` | `>=7.12.0 <8.3.0` | High (CVSS 7.1, CWE-352) | Aceito temporariamente — sem fix não-breaking disponível |
+
+**Por que aceito e não corrigido:**
+
+- O advisory só afeta quem usa as **APIs instáveis de RSC** (React Server
+  Components) do react-router — feature opt-in. O frontend do NossaLista usa
+  `<BrowserRouter>` clássico (`src/main.tsx`) e não referencia nenhuma API
+  `unstable_RSC*` em nenhum lugar do código (SPA via Vite, sem framework RSC).
+  **Não é explorável nesta aplicação.**
+- `package-lock.json` já está travado na versão mais recente publicada
+  (`7.18.1`); a versão corrigida (`8.3.0`) ainda não foi lançada no registry
+  no momento do registro desta dívida. O único "fix" que
+  `npm audit fix --force` oferece hoje é downgrade para `7.11.0`, uma
+  regressão real sem ganho de segurança.
+
+**Mecanismo de exceção:** o job `security-and-compliance` (`.github/workflows/ci.yml`,
+step "Frontend audit") não usa mais `npm audit --audit-level=high` puro — passou a
+filtrar via `jq`, ignorando apenas o advisory source `1124282` (GHSA-qwww-vcr4-c8h2).
+Qualquer outro high/critical continua bloqueando o CI normalmente.
+
+**Como reduzir esta dívida:** quando `react-router-dom@8.3.0` (ou uma versão
+`7.x` patched) for publicada, rodar `npm update react-router react-router-dom`,
+confirmar `npm audit --omit=dev` limpo, remover o filtro `jq` do step "Frontend
+audit" (voltar para `npm audit --audit-level=high --omit=dev` puro) e apagar
+esta seção.
 
 ---
 

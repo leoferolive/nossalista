@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.mcpoauth.repository;
 
 import br.com.leoferolive.nossalista.mcpoauth.domain.McpOAuthRegisteredClient;
+import br.com.leoferolive.nossalista.support.AbstractPostgresIT;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,13 +19,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Testes de repositório de {@link McpOAuthRegisteredClientRepository} — mesmo
  * padrão de {@code McpOAuthAtomicUpdatesRepositoryTest} ({@code @SpringBootTest}
- * + {@code @Transactional}, rollback automático no {@code testdb} compartilhado,
- * sem precisar de H2 dedicado por não exercitar o servidor MCP real).
+ * + {@code @Transactional}, rollback automático no schema compartilhado do
+ * container Postgres).
+ *
+ * <p>Estende {@link AbstractPostgresIT}: roda contra PostgreSQL real
+ * (Testcontainers), não H2 — ver T1 da Onda 2 (honestidade de métrica).</p>
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class McpOAuthRegisteredClientRepositoryTest {
+class McpOAuthRegisteredClientRepositoryTest extends AbstractPostgresIT {
 
     @Autowired
     private McpOAuthRegisteredClientRepository repository;

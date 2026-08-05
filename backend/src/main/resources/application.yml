@@ -66,6 +66,12 @@ spring:
           starttls:
             enable: true
             required: true
+          # Timeouts explícitos: sem eles, o JavaMail assume timeout INFINITO
+          # e uma falha de rede no SMTP (Brevo) pode travar a thread que envia
+          # o e-mail indefinidamente. Valores em ms. Ver docs/DECISIONS.md D-028.
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
   thymeleaf:
     check-template-location: true
@@ -96,6 +102,12 @@ vapid:
 
 app:
   auth:
+    session-cookie:
+      # O valor default é seguro para qualquer ambiente que não declare o
+      # profile dev/test explicitamente. O prefixo __Host- impede Domain.
+      name: __Host-nl_session
+      secure: true
+      same-site: Lax
     # Q2.7: enforcement estrito de verificação de e-mail no login email/senha.
     # Default false: o status email_verified é registrado mas o login NÃO é
     # bloqueado — evita deslogar contas pré-existentes e não afeta OAuth (Google).

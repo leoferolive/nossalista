@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.apitoken.domain.TokenScope;
 import br.com.leoferolive.nossalista.apitoken.dto.CreatePersonalAccessTokenRequest;
 import br.com.leoferolive.nossalista.apitoken.service.PersonalAccessTokenService;
 import br.com.leoferolive.nossalista.mcp.support.McpLimits;
+import br.com.leoferolive.nossalista.support.AbstractPostgresIT;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
@@ -15,6 +16,7 @@ import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,11 +29,14 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.web.client.RestClient;
 
 import java.net.http.HttpRequest;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -50,25 +55,23 @@ import static org.mockito.Mockito.verify;
  * do SDK Java (Streamable HTTP) contra a aplicação real (porta aleatória).
  *
  * <p>Cada teste cria seus próprios usuários/listas com nomes únicos, porque o
- * contexto Spring (e o H2 em memória) é compartilhado entre os métodos desta
- * classe — chamadas via HTTP real rodam em outra thread, então o rollback de
+ * contexto Spring (e o banco) é compartilhado entre os métodos desta classe
+ * — chamadas via HTTP real rodam em outra thread, então o rollback de
  * {@code @Transactional} do JUnit não se aplica (limitação conhecida de
  * testes {@code RANDOM_PORT}).</p>
  *
- * <p>A classe usa uma URL de H2 dedicada ({@code mcp-it}, distinta da
- * {@code testdb} compartilhada por padrão pelo {@code application.yml} de
- * teste), forçando o Spring a criar um {@code ApplicationContext} próprio
- * com um banco isolado. Sem isso, as dezenas de listas criadas aqui
- * poluíam o {@code testdb} global e quebravam asserts de contagem absoluta
- * (ex.: {@code listRepository.count()}) em outras classes de teste, com o
- * efeito visível apenas quando o Surefire mudava a ordem de execução.</p>
+ * <p>Estende {@link AbstractPostgresIT}: roda contra PostgreSQL real
+ * (Testcontainers), não H2 — ver T1 da Onda 2 (honestidade de métrica). Como
+ * o container/schema é compartilhado com os demais testes que estendem a
+ * mesma base, e este teste faz commits reais (sem rollback automático), o
+ * {@link #cleanUpDatabase()} trunca {@code users} em cascata após cada
+ * método — o mesmo papel que antes era cumprido isolando esta classe num H2
+ * dedicado ({@code mcp-it}), evitando poluir asserts de contagem absoluta
+ * (ex.: {@code listRepository.count()}) em outras classes de teste.</p>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:h2:mem:mcp-it;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH"
-})
-class McpServerIntegrationTest {
+class McpServerIntegrationTest extends AbstractPostgresIT {
 
     private static final List<String> EXPECTED_TOOL_NAMES = List.of(
         "add_items", "create_list", "delete_list", "get_list", "get_list_activity",
@@ -94,6 +97,39 @@ class McpServerIntegrationTest {
     void closeClients() {
         openClients.forEach(McpSyncClient::close);
         openClients.clear();
+    }
+
+    /**
+     * Os testes desta classe fazem commits reais (HTTP em outra thread, sem o
+     * rollback de {@code @Transactional}) no Postgres compartilhado pela base
+     * {@link AbstractPostgresIT}. Cada método cria seus próprios usuários/listas
+     * com nomes únicos e só faz asserts relativos (contains/noneMatch), então o
+     * acúmulo ENTRE métodos desta classe é inofensivo — não é preciso limpar por
+     * método. Uma única limpeza no {@code @AfterAll} evita que os dados
+     * commitados aqui vazem para OUTRAS classes que fazem asserts de contagem
+     * absoluta no mesmo banco (ex.: {@code ListItemRepositoryTest.count()==4}).
+     *
+     * <p>Deliberadamente NÃO se trunca por {@code @AfterEach}: fazê-lo removeria
+     * o PAT do usuário enquanto o encerramento assíncrono do cliente MCP (e o
+     * {@code DELETE /mcp} de término de sessão) ainda está em voo, causando
+     * {@code AuthorizationDeniedException} intermitente na inicialização do
+     * método seguinte. No {@code @AfterAll} todos os clientes já foram fechados
+     * (pelos {@code @AfterEach}) e nenhum teste está inicializando — sem corrida.</p>
+     *
+     * <p>{@code TRUNCATE ... CASCADE} em {@code users} arrasta consigo, por FK,
+     * {@code lists}, {@code list_items}, {@code list_members},
+     * {@code activity_logs}, {@code personal_access_tokens} e demais tabelas
+     * dependentes de usuário — sem tocar tabelas de seed independentes (ex.:
+     * {@code list_types}), que não referenciam {@code users}. Usa a conexão
+     * direta do container (estático, herdado da base) por ser {@code static}.</p>
+     */
+    @AfterAll
+    static void cleanUpDatabase() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement statement = connection.createStatement()) {
+            statement.execute("TRUNCATE TABLE users CASCADE");
+        }
     }
 
     private User newUser() {

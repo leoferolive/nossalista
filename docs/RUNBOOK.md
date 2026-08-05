@@ -40,7 +40,7 @@ Backend:
 
 ```bash
 cd backend
-./mvnw -B -Pstrict-quality -Ddependency-check.skip=true verify
+./mvnw -B -Pstrict-quality verify
 ./mvnw -B -Pregression-tests test
 ./mvnw -B -DskipTests package
 java -jar target/nossalista-0.0.1-SNAPSHOT.jar --spring.profiles.active=ci
@@ -75,19 +75,16 @@ npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
 
 - O gitleaks usa `.gitleaks.toml` para ignorar apenas artefatos internos gerados em `_bmad/` e `_bmad-output/`.
 
-## Banco de vulnerabilidades NVD (dependency-check na CI)
+## Scan de vulnerabilidades de dependências (OSV-Scanner na CI)
 
-O gate `security-and-compliance` roda o OWASP dependency-check contra o banco NVD. Para as PRs de backend serem rápidas (<1 min), o banco é mantido "quente" num cache do `main` pelo workflow `nvd-cache-warmer.yml`; as PRs só leem esse cache e rodam com `-DautoUpdate=false` (não baixam a NVD). Ver **D-021** em `docs/DECISIONS.md`.
+O scan de dependências (SCA) roda no workflow `osv-scanner.yml` via **OSV-Scanner** (base agregada do OSV.dev). Cobre backend (Maven, `backend/pom.xml`) e frontend (npm, `frontend/package-lock.json`) num único passo, com o scan recursivo (`-r ./`). **Não** baixa nem cacheia a NVD — o antigo OWASP dependency-check e o `nvd-cache-warmer.yml` foram removidos porque a abordagem "cachear a NVD inteira" falhava espuriamente com "cache frio". Ver **D-027** em `docs/DECISIONS.md` e a issue #70.
 
-**Semear / atualizar o cache manualmente** (necessário 1x após o merge inicial, ou se o cache for *evicted*):
+- **Em PR:** reporta apenas vulnerabilidades **novas** introduzidas pelo diff (não bloqueia por dívida legada).
+- **Em push na `main` + cron semanal (segunda 12:30 UTC):** scan completo do repositório.
+- **SARIF** é publicado na aba **Security → Code scanning**.
+- Camada nativa complementar: **Dependabot** (`.github/dependabot.yml`) abre PRs de atualização (alerts + security updates) para Maven, npm e GitHub Actions.
 
-```bash
-gh workflow run nvd-cache-warmer.yml
-gh run watch   # acompanha (~15 min no 1o pull; incremental nos seguintes)
-```
-
-- O warmer também roda sozinho todo dia (cron 06:00 UTC) e em push que altere `backend/pom.xml`.
-- Se uma PR de backend falhar com `Banco NVD ausente no cache (cache frio)`, o próprio job já disparou o warmer — basta reexecutar a PR após ~15 min.
+> Fase de validação: o gate OSV **não** é required check em branch protection ainda. Tornar obrigatório é decisão de branch protection após comparar os findings com o histórico.
 
 ## Operacao em Kubernetes
 

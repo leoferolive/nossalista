@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import static br.com.leoferolive.nossalista.support.SessionCookieRequestPostProcessor.session;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
 import java.time.LocalDateTime;
@@ -243,7 +244,7 @@ class ListJoinControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .header("Authorization", bearerToken(newUser)))
+                .with(session(bearerToken(newUser))))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(testList.getId().toString()))
             .andExpect(jsonPath("$.name").value("Mercado Semanal"))
@@ -267,12 +268,12 @@ class ListJoinControllerIntegrationTest {
 
         // First join - creates member
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .header("Authorization", bearerToken(newUser)))
+                .with(session(bearerToken(newUser))))
             .andExpect(status().isCreated());
 
         // Second join - should return 200 OK
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .header("Authorization", bearerToken(newUser)))
+                .with(session(bearerToken(newUser))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.role").value("MEMBER"))
             .andExpect(jsonPath("$.message").value("Você já é membro desta lista"));
@@ -282,7 +283,7 @@ class ListJoinControllerIntegrationTest {
     @DisplayName("POST join: Deve retornar 200 quando usuário é o dono")
     void shouldReturn200WhenUserIsOwner() throws Exception {
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .header("Authorization", bearerToken(testOwner)))
+                .with(session(bearerToken(testOwner))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.role").value("OWNER"))
             .andExpect(jsonPath("$.message").value("Você é o dono desta lista"));
@@ -291,7 +292,7 @@ class ListJoinControllerIntegrationTest {
     @Test
     @DisplayName("POST join: Deve retornar 401 sem autenticação")
     void shouldReturn401WithoutAuthentication() throws Exception {
-        mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE))
+        mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE).with(session("csrf-only")))
             .andExpect(status().isUnauthorized());
     }
 
@@ -307,7 +308,7 @@ class ListJoinControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/lists/join/INVALIDCODE")
-                .header("Authorization", bearerToken(newUser)))
+                .with(session(bearerToken(newUser))))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.title").exists());
     }
@@ -328,7 +329,7 @@ class ListJoinControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/lists/join/" + VALID_INVITE_CODE)
-                .header("Authorization", bearerToken(newUser)))
+                .with(session(bearerToken(newUser))))
             .andExpect(status().isGone())
             .andExpect(jsonPath("$.title").value(containsString("expirado")));
     }

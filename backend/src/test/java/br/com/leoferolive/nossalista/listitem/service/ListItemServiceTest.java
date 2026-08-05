@@ -14,7 +14,7 @@ import br.com.leoferolive.nossalista.listitem.dto.UpdateItemRequest;
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.listitem.repository.ListItemRepository;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
-import br.com.leoferolive.nossalista.notification.NotificationService;
+import br.com.leoferolive.nossalista.notification.ListItemNotificationEvent;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.websocket.WebSocketEventPublisher;
 import br.com.leoferolive.nossalista.websocket.WebSocketMessage;
@@ -28,6 +28,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.time.LocalDateTime;
@@ -65,7 +67,10 @@ class ListItemServiceTest {
     private ActivityLogService activityLogService;
 
     @Mock
-    private NotificationService notificationService;
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    @Mock
+    private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     private ListItemService listItemService;
     private WebSocketEventPublisher eventPublisher;
@@ -85,7 +90,8 @@ class ListItemServiceTest {
             eventPublisher,
             listMemberRepository,
             activityLogService,
-            notificationService
+            applicationEventPublisher,
+            transactionManager
         );
 
         testUser = new User();
@@ -134,7 +140,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -163,7 +169,7 @@ class ListItemServiceTest {
 
             verify(listRepository).findById(listId);
             verify(listItemRepository).findMaxPositionByListId(listId);
-            verify(listItemRepository).save(any(ListItem.class));
+            verify(listItemRepository).saveAndFlush(any(ListItem.class));
             verify(listItemMapper).toListItemResponseDTO(any(ListItem.class));
         }
 
@@ -181,7 +187,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(2); // Max position = 2, próximo será 3
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -226,7 +232,7 @@ class ListItemServiceTest {
 
             assertEquals("Lista não encontrada", exception.getMessage());
             verify(listRepository).findById(nonExistentId);
-            verify(listItemRepository, never()).save(any(ListItem.class));
+            verify(listItemRepository, never()).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -251,7 +257,7 @@ class ListItemServiceTest {
 
             assertEquals("Você não tem permissão para adicionar itens nesta lista", exception.getMessage());
             verify(listRepository).findById(listId);
-            verify(listItemRepository, never()).save(any(ListItem.class));
+            verify(listItemRepository, never()).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -268,7 +274,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 // Verificar se o nome foi trimmado
@@ -289,7 +295,7 @@ class ListItemServiceTest {
             listItemService.addItem(listId, dto, testUser);
 
             // Assert - verificação feita no mock acima
-            verify(listItemRepository).save(any(ListItem.class));
+            verify(listItemRepository).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -306,7 +312,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 // Verificar campos dinâmicos
@@ -349,7 +355,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 assertFalse(item.isChecked()); // Verificar default
@@ -387,7 +393,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 assertEquals("https://example.com/produto", item.getUrl());
@@ -408,7 +414,7 @@ class ListItemServiceTest {
             listItemService.addItem(listId, dto, testUser);
 
             // Assert - verificação feita no mock
-            verify(listItemRepository).save(any(ListItem.class));
+            verify(listItemRepository).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -425,7 +431,7 @@ class ListItemServiceTest {
 
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(invocation -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(invocation -> {
                 ListItem item = invocation.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -444,7 +450,7 @@ class ListItemServiceTest {
             listItemService.addItem(listId, dto, testUser);
 
             // Assert - não lança exceção e métodos foram chamados
-            verify(listItemRepository).save(any(ListItem.class));
+            verify(listItemRepository).saveAndFlush(any(ListItem.class));
         }
 
         @Test
@@ -455,7 +461,7 @@ class ListItemServiceTest {
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listMemberRepository.existsByListIdAndUserId(listId, otherUser.getId())).thenReturn(true);
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(inv -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(inv -> {
                 ListItem item = inv.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -469,6 +475,57 @@ class ListItemServiceTest {
 
             // Act & Assert — membro não-dono deve conseguir adicionar item
             assertDoesNotThrow(() -> listItemService.addItem(listId, dto, otherUser));
+        }
+
+        @Test
+        @DisplayName("Deve propagar imediatamente DataIntegrityViolationException que NÃO é da constraint de position (sem retry)")
+        void shouldPropagateNonPositionConstraintViolationWithoutRetry() {
+            // Arrange — insert falha por uma violação de integridade não
+            // relacionada à position (ex.: outra constraint). Não deve ser
+            // absorvida pelo retry nem virar IllegalStateException.
+            CreateItemRequestDTO dto = new CreateItemRequestDTO("Item", null, null, null, null);
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
+
+            DataIntegrityViolationException unrelated =
+                    new DataIntegrityViolationException("violacao de outra_constraint_qualquer");
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenThrow(unrelated);
+
+            // Act & Assert — a exceção original propaga como está (não vira
+            // IllegalStateException) e o insert é tentado uma única vez (sem retry).
+            DataIntegrityViolationException thrown = assertThrows(
+                    DataIntegrityViolationException.class,
+                    () -> listItemService.addItem(listId, dto, testUser));
+            assertSame(unrelated, thrown);
+            verify(listItemRepository, times(1)).saveAndFlush(any(ListItem.class));
+        }
+
+        @Test
+        @DisplayName("Deve lançar IllegalStateException após esgotar o teto de retries em colisão persistente de position")
+        void shouldThrowIllegalStateWhenPositionRetriesAreExhausted() {
+            // Arrange — TODO insert viola a constraint de position: simula uma
+            // colisão que nunca cede (patológica). O retry deve tentar até o
+            // teto e então desistir com erro claro, sem propagar a
+            // DataIntegrityViolationException crua ao chamador.
+            CreateItemRequestDTO dto = new CreateItemRequestDTO("Item", null, null, null, null);
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
+
+            DataIntegrityViolationException positionCollision = new DataIntegrityViolationException(
+                    "could not execute statement; constraint [uq_list_items_list_position]");
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenThrow(positionCollision);
+
+            // Act & Assert
+            IllegalStateException thrown = assertThrows(
+                    IllegalStateException.class,
+                    () -> listItemService.addItem(listId, dto, testUser));
+
+            // A última colisão vira a causa do IllegalStateException.
+            assertSame(positionCollision, thrown.getCause());
+            // O insert foi tentado o número de vezes do teto (MAX_POSITION_RETRIES = 8),
+            // recalculando maxPosition a cada tentativa.
+            verify(listItemRepository, times(8)).saveAndFlush(any(ListItem.class));
+            verify(listItemRepository, times(8)).findMaxPositionByListId(listId);
         }
     }
 
@@ -1316,7 +1373,7 @@ class ListItemServiceTest {
             CreateItemRequestDTO dto = new CreateItemRequestDTO("Item", null, null, null, null);
             when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
             when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
-            when(listItemRepository.save(any(ListItem.class))).thenAnswer(inv -> {
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(inv -> {
                 ListItem item = inv.getArgument(0);
                 item.setId(UUID.randomUUID());
                 return item;
@@ -1421,6 +1478,108 @@ class ListItemServiceTest {
             WebSocketMessage layoutMessage = (WebSocketMessage) capturedValues.get(1);
             assertEquals("LIST_LAYOUT_UPDATED", layoutMessage.getType());
             assertNotNull(layoutMessage.getPayload());
+        }
+    }
+
+    @Nested
+    @DisplayName("Notificação — T3: evento publicado em vez de disparo síncrono")
+    class NotificationEventPublishingTests {
+
+        private ListItem testItem;
+        private UUID itemId;
+        private ListItemResponseDTO testResponseDTO;
+
+        @BeforeEach
+        void setUp() {
+            itemId = UUID.randomUUID();
+            testItem = new ListItem();
+            testItem.setId(itemId);
+            testItem.setName("Item Notificação");
+            testItem.setList(testList);
+            testItem.setCreatedBy(testUser);
+            testItem.setPosition(0);
+            testItem.setChecked(false);
+
+            testResponseDTO = new ListItemResponseDTO(
+                    itemId, "Item Notificação", false,
+                    null, null, null, 0,
+                    new ListItemResponseDTO.CreatorResponse(
+                            testUser.getId(), testUser.getUsername(), "Test User", null),
+                    LocalDateTime.now(), LocalDateTime.now()
+            );
+        }
+
+        @Test
+        @DisplayName("addItem deve publicar ListItemNotificationEvent com type ITEM_ADDED (não chama notificação diretamente)")
+        void addItem_shouldPublishNotificationEvent() {
+            CreateItemRequestDTO dto = new CreateItemRequestDTO("Item", null, null, null, null);
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findMaxPositionByListId(listId)).thenReturn(-1);
+            when(listItemRepository.saveAndFlush(any(ListItem.class))).thenAnswer(inv -> {
+                ListItem item = inv.getArgument(0);
+                item.setId(UUID.randomUUID());
+                return item;
+            });
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(testResponseDTO);
+
+            listItemService.addItem(listId, dto, testUser);
+
+            ArgumentCaptor<ListItemNotificationEvent> captor = ArgumentCaptor.forClass(ListItemNotificationEvent.class);
+            verify(applicationEventPublisher).publishEvent(captor.capture());
+            ListItemNotificationEvent event = captor.getValue();
+            assertEquals(listId, event.listId());
+            assertEquals(testUser.getId(), event.actorId());
+            assertEquals("ITEM_ADDED", event.type());
+            assertEquals(testResponseDTO, event.payload());
+            assertEquals(testUser, event.actor());
+        }
+
+        @Test
+        @DisplayName("toggleItemCheck deve publicar ListItemNotificationEvent com type ITEM_CHECKED")
+        void toggleItemCheck_shouldPublishNotificationEvent() {
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(testItem));
+            when(listItemRepository.save(any(ListItem.class))).thenReturn(testItem);
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(testResponseDTO);
+
+            listItemService.toggleItemCheck(listId, itemId, testUser);
+
+            ArgumentCaptor<ListItemNotificationEvent> captor = ArgumentCaptor.forClass(ListItemNotificationEvent.class);
+            verify(applicationEventPublisher).publishEvent(captor.capture());
+            assertEquals("ITEM_CHECKED", captor.getValue().type());
+        }
+
+        @Test
+        @DisplayName("updateItem deve publicar ListItemNotificationEvent com type ITEM_UPDATED")
+        void updateItem_shouldPublishNotificationEvent() {
+            UpdateItemRequest request = new UpdateItemRequest();
+            request.setName("Item Atualizado");
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(testItem));
+            when(listItemRepository.save(any(ListItem.class))).thenReturn(testItem);
+            when(listItemMapper.toListItemResponseDTO(any(ListItem.class))).thenReturn(testResponseDTO);
+
+            listItemService.updateItem(listId, itemId, request, testUser);
+
+            ArgumentCaptor<ListItemNotificationEvent> captor = ArgumentCaptor.forClass(ListItemNotificationEvent.class);
+            verify(applicationEventPublisher).publishEvent(captor.capture());
+            assertEquals("ITEM_UPDATED", captor.getValue().type());
+        }
+
+        @Test
+        @DisplayName("deleteItem deve publicar ListItemNotificationEvent com type ITEM_REMOVED")
+        void deleteItem_shouldPublishNotificationEvent() {
+            when(listRepository.findById(listId)).thenReturn(Optional.of(testList));
+            when(listItemRepository.findById(itemId)).thenReturn(Optional.of(testItem));
+            when(listItemRepository.findByListIdAndPositionGreaterThanOrderByPositionAsc(listId, 0))
+                .thenReturn(Collections.emptyList());
+            when(listItemMapper.toListItemResponseDTO(testItem)).thenReturn(testResponseDTO);
+
+            listItemService.deleteItem(listId, itemId, testUser);
+
+            ArgumentCaptor<ListItemNotificationEvent> captor = ArgumentCaptor.forClass(ListItemNotificationEvent.class);
+            verify(applicationEventPublisher).publishEvent(captor.capture());
+            assertEquals("ITEM_REMOVED", captor.getValue().type());
         }
     }
 }

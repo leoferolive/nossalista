@@ -33,12 +33,24 @@ Status atual:
 | Frontend    | React 19 + TypeScript + Vite             |
 | Backend     | Java 25 + Spring Boot 4                  |
 | Real-time   | Spring WebSocket (STOMP + SockJS)        |
-| Auth        | Google OAuth2 + email/senha + JWT        |
+| Auth        | Google OAuth2 + email/senha + sessao JWT em cookie HttpOnly |
 | BD Producao | PostgreSQL                               |
 | BD Dev      | PostgreSQL                               |
-| BD Testes   | H2 (MODE=PostgreSQL)                     |
+| BD Testes   | H2 (MODE=PostgreSQL); Testcontainers-PostgreSQL (opt-in, testes sensíveis ao banco) |
 | Migrations  | Flyway                                   |
 | Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
+
+> A maioria dos testes do backend roda em H2 (rápido). Testes de repositório,
+> validação de migration e o `McpServerIntegrationTest` estendem
+> `AbstractPostgresIT` e rodam contra um PostgreSQL real via Testcontainers
+> (exige Docker) — ver `backend/QUALITY.md`.
+
+## Sessao web e HTTPS
+
+- O JWT de sessao web e transportado somente por cookie HttpOnly: em producao, `__Host-nl_session` com `Path=/`, `Secure`, `SameSite=Lax` e validade de 7 dias. O frontend nunca le nem envia esse JWT em `Authorization`.
+- Cada mutacao autenticada pela sessao exige o cookie `XSRF-TOKEN` e o header `X-XSRF-TOKEN`; Axios o obtem em `GET /api/auth/csrf`.
+- `Authorization: Bearer` e reservado aos PATs `nlmcp_...` e access tokens OAuth do MCP. Bearer JWT de sessao legado recebe 401.
+- Em producao, a borda Cloudflare deve redirecionar HTTP para HTTPS com 308 antes de qualquer request atingir o tunnel. HSTS ainda nao e habilitado, pois depende de auditoria dos demais subdominios.
 
 ## Estrutura
 
@@ -60,7 +72,7 @@ nossalista/
 O backend expoe um servidor [MCP](https://modelcontextprotocol.io) embutido em `POST /mcp`
 (Streamable HTTP), autenticado por OAuth 2.1 (Authorization Code + PKCE — claude.ai e
 Claude Code conectam via "Add connector" sem copiar credencial manualmente), Personal
-Access Token (`nlmcp_...`) ou JWT, para conectar assistentes de IA (Claude Code, Claude
+Access Token (`nlmcp_...`) para conectar assistentes de IA (Claude Code, Claude
 Desktop, Cursor) as listas do usuario. Guia de conexao, tools disponiveis e modelo de
 seguranca em `docs/mcp.md`; passo a passo para o usuario final na propria tela **Conexoes
 (API/Assistentes) → "Como conectar?"** do app. As 13 tools sao instrumentadas com rate limit
@@ -195,7 +207,8 @@ Detalhes de quality gate do backend em `backend/QUALITY.md`.
 
 - Frontend: ESLint, Prettier, Stylelint, TypeScript (`tsc --noEmit`), Vitest com coverage >= 80%, build, bundle budget e suite E2E Playwright `@pr` bloqueante.
 - Backend: `verify` com Checkstyle, PMD, SpotBugs, ArchUnit, JaCoCo (>= 80% linhas e >= 75% branches), build e suite de regressao.
-- Seguranca e compliance: EditorConfig check, gitleaks, semgrep, npm audit (high+), licencas e OWASP Dependency-Check.
+- Seguranca e compliance: EditorConfig check, gitleaks, semgrep, npm audit (high+) e licencas (job `security-and-compliance`).
+- SCA de dependencias: OSV-Scanner (`osv-scanner.yml`) cobre backend (Maven) e frontend (npm); em PR reporta so vulnerabilidades novas, em push na `main`/cron semanal faz scan completo e publica SARIF na aba Security. Substituiu o OWASP Dependency-Check/NVD (ver `docs/DECISIONS.md` D-027, issue #70). Em fase de validacao: ainda nao e required check.
 - Smoke backend: subida do jar com profile `ci` e validacao de `/actuator/health`.
 - Full-stack E2E: workflow `frontend-e2e-fullstack.yml` roda diariamente (06:00 UTC / 03:00 America/Sao_Paulo) e tambem via `workflow_dispatch`.
 

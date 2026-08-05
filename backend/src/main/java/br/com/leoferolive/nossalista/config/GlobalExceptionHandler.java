@@ -24,12 +24,14 @@ import br.com.leoferolive.nossalista.member.exception.UserNotFoundForInviteExcep
 import br.com.leoferolive.nossalista.listitem.exception.ItemNotFoundException;
 import br.com.leoferolive.nossalista.user.exception.NotAuthenticatedException;
 import br.com.leoferolive.nossalista.user.exception.UserNotFoundException;
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -589,6 +591,29 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
+
+    /**
+     * Trata conflito de lock otimista (edição concorrente do mesmo registro).
+     * O Spring traduz {@link OptimisticLockException} da JPA para
+     * {@link ObjectOptimisticLockingFailureException} nas operações via repositório;
+     * tratamos os dois tipos aqui pois nem toda escrita passa pela tradução automática.
+     * Retorna 409 Conflict com RFC 7807 Problem Details.
+     */
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
+    public ResponseEntity<ProblemDetail> handleOptimisticLockingFailure(
+        Exception ex,
+        HttpServletRequest request
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+            HttpStatus.CONFLICT,
+            "O item foi alterado por outra pessoa; recarregue e tente novamente"
+        );
+        problem.setType(URI.create("https://api.nossalista.com/docs/errors/optimistic-locking-conflict"));
+        problem.setTitle("Conflito de edição concorrente");
+        problem.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
     }
 
     /**

@@ -7,11 +7,13 @@ import br.com.leoferolive.nossalista.list.service.ListService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,14 +21,15 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import static br.com.leoferolive.nossalista.support.SessionCookieRequestPostProcessor.session;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * REPRODUCAO: exercita o caminho REAL de autenticacao via token Bearer pela
- * cadeia de filtros (JwtAuthenticationFilter), que os testes existentes nao
- * cobrem (eles setam o SecurityContext na mao). Reproduz o 401 de producao.
+ * Exercita o caminho real de autenticação de sessão pela cadeia de filtros.
+ * JWTs enviados em Authorization não são aceitos como sessão web.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
@@ -47,7 +50,7 @@ class ListControllerBearerAuthIntegrationTest {
 
     private MockMvc mockMvc;
     private User testUser;
-    private String bearer;
+    private String sessionToken;
 
     @BeforeEach
     void setUp() {
@@ -58,28 +61,53 @@ class ListControllerBearerAuthIntegrationTest {
         SecurityContextHolder.clearContext();
 
         testUser = userService.createUser(
-                "beareruser",
-                "beareruser@example.com",
+                "sessionuser",
+                "sessionuser@example.com",
                 "hashedPassword",
-                "Bearer User",
+                "Session User",
                 AuthProvider.EMAIL
         );
-        bearer = "Bearer " + jwtService.generateToken(testUser);
+        sessionToken = jwtService.generateToken(testUser);
     }
 
     @Test
-    @DisplayName("GET /api/lists com token Bearer real deve retornar 200")
-    void getAllListsWithRealBearerTokenReturns200() throws Exception {
-        mockMvc.perform(get("/api/lists").header("Authorization", bearer))
+    @DisplayName("GET /api/lists com cookie de sessão real retorna 200")
+    void getAllListsWithSessionCookieReturns200() throws Exception {
+        mockMvc.perform(get("/api/lists").with(session(sessionToken)))
                 .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("GET /api/lists/{id} com token Bearer real deve retornar 200 (repro do 401)")
-    void getListByIdWithRealBearerTokenReturns200() throws Exception {
-        SharedList list = listService.createList(new CreateListRequest("Lista Bearer", 1), testUser);
+    @DisplayName("GET /api/lists/{id} com cookie de sessão real retorna 200")
+    void getListByIdWithSessionCookieReturns200() throws Exception {
+        SharedList list = listService.createList(new CreateListRequest("Lista Session", 1), testUser);
 
-        mockMvc.perform(get("/api/lists/{id}", list.getId()).header("Authorization", bearer))
+        mockMvc.perform(get("/api/lists/{id}", list.getId()).with(session(sessionToken)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("GET /api/lists rejeita JWT de sessão no Authorization")
+    void getAllListsRejectsSessionJwtInAuthorizationHeader() throws Exception {
+        mockMvc.perform(get("/api/lists").header("Authorization", "Bearer " + sessionToken))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST /api/lists exige CSRF para sessão cookie")
+    void createListRequiresCsrfForSessionCookie() throws Exception {
+        String body = "{\"name\":\"Lista CSRF\",\"typeId\":1}";
+
+        mockMvc.perform(post("/api/lists")
+                .cookie(new Cookie("nl_session", sessionToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+            .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/lists")
+                .with(session(sessionToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+            .andExpect(status().isCreated());
     }
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { authApi } from '../api/authApi'
-import { getStoredAuthToken, persistAuthToken } from '../auth/session'
+import client, { preserveSessionOnUnauthorizedConfig } from '../api/client'
 
 interface ConsumeMagicLinkDeps {
   guardKey: string
@@ -11,33 +11,56 @@ interface ConsumeMagicLinkDeps {
   setError: (message: string) => void
 }
 
+interface CurrentUserResponse {
+  id: string
+  username: string
+  email: string
+  name: string | null
+  avatarUrl?: string | null
+  onboardingCompletedAt?: string | null
+}
+
+function toAuthUser(data: CurrentUserResponse) {
+  return {
+    id: data.id,
+    username: data.username,
+    email: data.email,
+    displayName: data.name,
+    avatarUrl: data.avatarUrl ?? undefined,
+    onboardingCompletedAt: data.onboardingCompletedAt ?? null,
+  }
+}
+
+async function restoreExistingSession({
+  login,
+  navigate,
+}: Pick<ConsumeMagicLinkDeps, 'login' | 'navigate'>): Promise<boolean> {
+  try {
+    const { data } = await client.get<CurrentUserResponse>(
+      '/api/users/me',
+      preserveSessionOnUnauthorizedConfig
+    )
+    login(toAuthUser(data))
+    navigate('/home', { replace: true })
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function consumeMagicLinkToken(
   token: string,
   { guardKey, login, navigate, setError }: ConsumeMagicLinkDeps
 ) {
   try {
     const data = await authApi.magicLogin(token)
-    persistAuthToken(data.token)
-    login(data.token, {
-      id: data.id,
-      username: data.username,
-      email: data.email,
-      displayName: data.name,
-      avatarUrl: data.avatarUrl ?? undefined,
-      onboardingCompletedAt: data.onboardingCompletedAt ?? null,
-    })
+    login(toAuthUser(data))
     navigate('/home', { replace: true })
   } catch (err) {
-    // Se uma consumção anterior/duplicada do MESMO token já autenticou este
-    // navegador (token presente), o 400 "token já usado" é esperado e benigno:
-    // NÃO mostrar erro — apenas seguir para a home.
-    if (getStoredAuthToken()) {
-      navigate('/home', { replace: true })
+    if (await restoreExistingSession({ login, navigate })) {
       return
     }
-    // Falha genuína (token inválido/expirado, sem sessão): libera o guard para
-    // que um reload possa tentar de novo e re-exibir o erro — senão a página
-    // ficaria presa no "Entrando…" para sempre, sem erro nem retry.
+
     sessionStorage.removeItem(guardKey)
     setError(err instanceof Error ? err.message : 'Não foi possível entrar com o link mágico.')
   }
@@ -93,9 +116,12 @@ export function MagicLogin() {
     // O guard sobrevive a remontagem/reload; o hasProcessedRef cobre um único mount.
     const guardKey = `magic_login:${token}`
     if (sessionStorage.getItem(guardKey)) {
-      if (getStoredAuthToken()) {
-        navigate('/home', { replace: true })
-      }
+      void restoreExistingSession({ login, navigate }).then((restored) => {
+        if (!restored) {
+          sessionStorage.removeItem(guardKey)
+          setError('Não foi possível restaurar sua sessão. Tente o link novamente.')
+        }
+      })
       return
     }
     sessionStorage.setItem(guardKey, '1')

@@ -1,9 +1,7 @@
 package br.com.leoferolive.nossalista.websocket;
 
-import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
-import br.com.leoferolive.nossalista.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +17,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 
 import java.util.HashMap;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,12 +28,6 @@ import static org.mockito.Mockito.when;
 class WebSocketSubscriptionInterceptorTest {
 
     @Mock
-    private JwtService jwtService;
-
-    @Mock
-    private UserService userService;
-
-    @Mock
     private ListMemberRepository listMemberRepository;
 
     private WebSocketSubscriptionInterceptor interceptor;
@@ -46,7 +37,7 @@ class WebSocketSubscriptionInterceptorTest {
 
     @BeforeEach
     void setUp() {
-        interceptor = new WebSocketSubscriptionInterceptor(jwtService, userService, listMemberRepository);
+        interceptor = new WebSocketSubscriptionInterceptor(listMemberRepository);
     }
 
     @Test
@@ -135,25 +126,19 @@ class WebSocketSubscriptionInterceptorTest {
     }
 
     @Test
-    @DisplayName("CONNECT com Authorization válido deve autenticar usuário")
-    void shouldAuthenticateConnectWithAuthorizationHeader() {
+    @DisplayName("CONNECT com usuário do handshake deve preservar a sessão STOMP")
+    void shouldAuthenticateConnectWithHandshakeUser() {
         User user = createUser(VALID_USER_ID);
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
-        accessor.addNativeHeader("Authorization", "Bearer valid.jwt.token");
-        accessor.setSessionAttributes(new HashMap<>());
+        accessor.setSessionAttributes(new HashMap<>(Collections.singletonMap("user", user)));
         accessor.setLeaveMutable(true);
         Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-
-        when(jwtService.validateToken("valid.jwt.token")).thenReturn(true);
-        when(jwtService.extractUserId("valid.jwt.token")).thenReturn(VALID_USER_ID);
-        when(userService.findById(VALID_USER_ID)).thenReturn(Optional.of(user));
 
         Message<?> result = interceptor.preSend(message, null);
 
         assertThat(result).isNotNull();
         StompHeaderAccessor resultAccessor = StompHeaderAccessor.wrap(result);
-        assertThat(resultAccessor.getSessionAttributes())
-            .containsEntry("user", user);
+        assertThat(resultAccessor.getSessionAttributes()).containsEntry("user", user);
         assertThat(interceptor.extractUser(resultAccessor)).isEqualTo(user);
     }
 
@@ -176,15 +161,15 @@ class WebSocketSubscriptionInterceptorTest {
     }
 
     @Test
-    @DisplayName("CONNECT sem token deve ser rejeitado")
-    void shouldRejectConnectWithoutToken() {
+    @DisplayName("CONNECT sem sessão deve ser rejeitado")
+    void shouldRejectConnectWithoutSession() {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
         accessor.setLeaveMutable(true);
         Message<?> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 
         assertThatThrownBy(() -> interceptor.preSend(message, null))
             .isInstanceOf(MessageDeliveryException.class)
-            .hasMessageContaining("Token JWT ausente");
+            .hasMessageContaining("Sessão ausente");
     }
 
     @Test
@@ -197,6 +182,17 @@ class WebSocketSubscriptionInterceptorTest {
         Message<?> result = interceptor.preSend(message, null);
 
         assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("UUID inválido no tópico de notificações do usuário deve ser rejeitado")
+    void shouldRejectSubscribeToUserTopicWithInvalidUuid() {
+        User user = createUser(VALID_USER_ID);
+        Message<?> message = buildSubscribeMessage("/topic/user/not-a-valid-uuid/notifications", user);
+
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
+            .isInstanceOf(MessageDeliveryException.class)
+            .hasMessageContaining("Acesso negado");
     }
 
     private User createUser(UUID userId) {

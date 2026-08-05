@@ -28,7 +28,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: ./.github/actions/setup-node
@@ -105,7 +105,7 @@ jobs:
 
       - name: Save base frontend coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: /tmp/base-frontend-coverage
           key: base-frontend-coverage-${{ github.sha }}
@@ -113,7 +113,7 @@ jobs:
       - name: Restore base frontend coverage
         if: github.event_name == 'pull_request'
         id: base-frontend-coverage
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: /tmp/base-frontend-coverage
           key: base-frontend-coverage-${{ github.event.pull_request.base.sha }}
@@ -143,7 +143,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: ./.github/actions/setup-node
@@ -187,7 +187,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0   # histórico completo p/ diff-cover e PIT (git diff vs base)
 
@@ -207,7 +207,7 @@ jobs:
 
       - name: Backend quality gate
         working-directory: backend
-        run: ./mvnw -B -Pstrict-quality verify -Ddependency-check.skip=true
+        run: ./mvnw -B -Pstrict-quality verify
 
       # regression-tests step removed — verify without testGroups already runs all tests (no filter)
 
@@ -272,7 +272,7 @@ jobs:
 
       - name: Save base backend coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: /tmp/base-backend-coverage
           key: base-backend-coverage-${{ github.sha }}
@@ -280,7 +280,7 @@ jobs:
       - name: Restore base backend coverage
         if: github.event_name == 'pull_request'
         id: base-backend-coverage
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: /tmp/base-backend-coverage
           key: base-backend-coverage-${{ github.event.pull_request.base.sha }}
@@ -305,8 +305,6 @@ jobs:
           name: backend-jacoco-report
           path: |
             backend/target/site/jacoco
-            backend/target/dependency-check-report.html
-            backend/target/dependency-check-report.json
             backend/target/pmd.xml
             backend/target/cpd.xml
             backend/target/spotbugs-security.xml
@@ -403,14 +401,10 @@ jobs:
   security-and-compliance:
     needs: changes
     runs-on: ubuntu-latest
-    # 50min como BACKSTOP apenas — o controle real é o timeout-minutes: 30 no step
-    # "Backend dependency check" (step estourado ainda permite salvar o cache NVD
-    # parcial via if: always(); job cancelado não). Histórico: NVD throttled estourou
-    # 20min 3x e 40min 2x em 02-03/07/2026.
-    timeout-minutes: 50
+    timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -429,7 +423,7 @@ jobs:
       # a CI quando o api.github.com está indisponível (visto em 2026-06-10).
       - name: Cache editorconfig-checker
         id: cache-ec
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/bin/ec
           key: ec-${{ runner.os }}-${{ runner.arch }}-${{ env.EC_VERSION }}
@@ -448,7 +442,7 @@ jobs:
 
       - name: Cache Gitleaks
         id: cache-gitleaks
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/bin/gitleaks
           key: gitleaks-${{ runner.os }}-${{ runner.arch }}-${{ env.GITLEAKS_VERSION }}
@@ -472,7 +466,7 @@ jobs:
         run: ~/bin/gitleaks detect --source . --redact
 
       - name: Cache pip packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: pip-semgrep-${{ runner.os }}-${{ runner.arch }}
@@ -493,62 +487,26 @@ jobs:
       - name: Frontend audit
         if: needs.changes.outputs.frontend == 'true'
         working-directory: frontend
-        run: npm audit --audit-level=high --omit=dev
+        # GHSA-qwww-vcr4-c8h2 (source 1124282) é aceito como dívida técnica:
+        # só afeta APIs instáveis de RSC do react-router, não usadas neste app,
+        # e não há fix não-breaking publicado ainda. Ver docs/quality-gate-debt.md.
+        # Qualquer outro high/critical continua bloqueando o gate normalmente.
+        run: |
+          npm audit --omit=dev --json > audit-report.json || true
+          UNACCEPTED=$(jq '[.vulnerabilities[] | select(.severity=="high" or .severity=="critical") | select( ([.via[]? | select(type=="object") | .source] - [1124282]) != [] )] | length' audit-report.json)
+          if [ "$UNACCEPTED" != "0" ]; then
+            echo "npm audit encontrou vulnerabilidades high/critical não cobertas pela exceção documentada em docs/quality-gate-debt.md:"
+            cat audit-report.json
+            exit 1
+          fi
+          echo "npm audit: apenas a exceção documentada (GHSA-qwww-vcr4-c8h2) está presente — gate OK."
 
       - name: Frontend license policy
         if: needs.changes.outputs.frontend == 'true'
         working-directory: frontend
         run: npx --yes license-checker --production --failOn 'GPL;AGPL;LGPL'
 
-      - name: Definir chave de cache NVD (por data)
-        if: needs.changes.outputs.backend == 'true'
-        run: echo "NVD_DATE=$(date +'%Y-%m-%d')" >> "$GITHUB_ENV"
-
-      # Somente LEITURA nas PRs. O banco NVD é aquecido no main pelo workflow
-      # nvd-cache-warmer.yml, e cache do main é herdável por todas as PRs. O
-      # restore-keys por prefixo pega o banco mais recente disponível. A PR não
-      # salva cache (acabaram as chaves por-run): quem mantém o banco é o warmer.
-      - name: Restaurar cache NVD (aquecido no main)
-        if: needs.changes.outputs.backend == 'true'
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-db-${{ runner.os }}-${{ env.NVD_DATE }}
-          restore-keys: nvd-db-${{ runner.os }}-
-
-      # Guard: com -DautoUpdate=false, um banco NVD ausente faz o dependency-check
-      # falhar de forma confusa no meio da análise. Verificamos ANTES: se o cache
-      # estiver frio, disparamos o warmer (que leva ~15 min) e falhamos com mensagem
-      # acionável — a PR não consegue esperar, então o dev re-executa depois.
-      # NÃO dá para usar o output cache-hit: um restore por prefixo (chave de data
-      # diferente) traz o banco mas reporta cache-hit=false; a checagem é no filesystem.
-      # GH_TOKEN=GHCR_PAT: o GITHUB_TOKEN padrão não pode disparar workflow_dispatch
-      # em outro workflow (403) — mesmo motivo de o release.yml usar GHCR_PAT.
-      - name: Verificar banco NVD (falha rápida se cache frio)
-        if: needs.changes.outputs.backend == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GHCR_PAT }}
-        run: |
-          NVD_DATA_DIR="$HOME/.m2/repository/org/owasp/dependency-check-data"
-          # Cache frio = diretório ausente OU sem o banco H2 (*.mv.db). Busca
-          # RECURSIVA (sem -maxdepth 1): o dependency-check 12.x grava o banco num
-          # subdiretório versionado (data/<versão>/odc.mv.db), então um -maxdepth 1
-          # nunca o encontrava — reportava "cache frio" mesmo com o cache íntegro
-          # restaurado, derrubando todo run que executa o guard. O wildcard evita
-          # quebrar se o dependency-check renomear o arquivo numa versão futura.
-          if [ ! -d "$NVD_DATA_DIR" ] || [ -z "$(find "$NVD_DATA_DIR" -name '*.mv.db' -type f 2>/dev/null)" ]; then
-            echo "::error::Banco NVD ausente no cache (cache frio) — não é erro do seu codigo. Disparei o workflow 'NVD cache warmer' (~15 min) para semear o cache; re-execute esta PR quando ele concluir (aba Actions)."
-            gh workflow run nvd-cache-warmer.yml
-            exit 1
-          fi
-
-      # -DautoUpdate=false: a PR NUNCA baixa o feed NVD; só analisa contra o banco
-      # quente restaurado do cache do main. É isto que derruba ~14 min → <1 min.
-      - name: Backend dependency check
-        if: needs.changes.outputs.backend == 'true'
-        working-directory: backend
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          chmod +x mvnw
-          ./mvnw -B org.owasp:dependency-check-maven:check -DautoUpdate=false
+      # SCA de dependencias (backend Maven + frontend npm) mudou do OWASP
+      # dependency-check/NVD para o OSV-Scanner, em .github/workflows/osv-scanner.yml.
+      # Motivo: a abordagem "baixar/cachear a NVD inteira" falhava espuriamente com
+      # "cache frio". Ver docs/DECISIONS.md D-027 e a issue #70.

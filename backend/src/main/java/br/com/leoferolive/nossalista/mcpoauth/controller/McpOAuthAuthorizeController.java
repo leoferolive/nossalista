@@ -25,8 +25,7 @@ import java.util.Locale;
  * {@code GET /oauth/authorize} — início do fluxo Authorization Code + PKCE
  * (OAuth 2.1) do servidor MCP. Público (sem exigir sessão): o browser chega
  * aqui numa navegação top-level vindo do cliente OAuth (claude.ai, Claude
- * Code), e o JWT de sessão do usuário vive em {@code localStorage} — não é
- * enviado automaticamente numa navegação de página inteira.
+ * Code), o endpoint permanece público para iniciar o protocolo antes de existir uma sessão; se ela existir, o cookie SameSite=Lax acompanha a navegação.
  *
  * <p>Por isso o endpoint SEMPRE redireciona para a tela de consentimento da
  * SPA ({@code {FRONTEND_URL}/oauth/consent?request_id=...}), que decide se o

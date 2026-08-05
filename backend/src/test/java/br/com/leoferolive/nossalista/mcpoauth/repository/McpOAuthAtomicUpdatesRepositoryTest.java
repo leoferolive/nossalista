@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.apitoken.domain.TokenScope;
 import br.com.leoferolive.nossalista.mcpoauth.domain.McpOAuthCode;
 import br.com.leoferolive.nossalista.mcpoauth.domain.McpOAuthRefreshToken;
 import br.com.leoferolive.nossalista.mcpoauth.domain.PendingAuthorization;
+import br.com.leoferolive.nossalista.support.AbstractPostgresIT;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -35,11 +36,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  * MESMA semântica: o SGBD serializa as duas execuções do UPDATE e só uma
  * delas vê {@code consumed_at}/{@code revoked_at}/{@code claimed_by_user_id}
  * ainda {@code NULL}).</p>
+ *
+ * <p>Estende {@link AbstractPostgresIT}: roda contra PostgreSQL real
+ * (Testcontainers), não H2 — ver T1 da Onda 2 (honestidade de métrica). É
+ * particularmente relevante aqui: a prova de atomicidade depende da
+ * semântica real de {@code READ COMMITTED} do Postgres em produção.</p>
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class McpOAuthAtomicUpdatesRepositoryTest {
+class McpOAuthAtomicUpdatesRepositoryTest extends AbstractPostgresIT {
 
     @Autowired
     private McpOAuthCodeRepository codeRepository;

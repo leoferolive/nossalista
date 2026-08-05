@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.migration;
 
+import br.com.leoferolive.nossalista.support.AbstractPostgresIT;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,10 +11,16 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Teste de integração para migration V1__create_users_table.sql
+ * Teste de integração para migration V1__create_users_table.sql.
+ *
+ * <p>Estende {@link AbstractPostgresIT}: valida o schema criado pelo Flyway
+ * contra PostgreSQL real (Testcontainers), não contra o dialeto de
+ * compatibilidade do H2 — ver T1 da Onda 2 (honestidade de métrica). O
+ * Postgres também expõe {@code INFORMATION_SCHEMA.COLUMNS} (padrão SQL),
+ * então as mesmas queries funcionam sem alteração.</p>
  */
 @SpringBootTest
-class UserTableMigrationTest {
+class UserTableMigrationTest extends AbstractPostgresIT {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

@@ -45,7 +45,6 @@ function TestConsumer() {
 describe('WebSocketContext', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    localStorage.setItem('authToken', 'token-teste')
     createdClients.length = 0
     latestContext = null
     vi.mocked(createStompClient).mockImplementation(() => createMockClient() as never)
@@ -453,10 +452,7 @@ describe('WebSocketContext', () => {
     expect(mockUnsub).toHaveBeenCalled()
   })
 
-  it('connect sem token nao cria cliente e nao muda status', () => {
-    localStorage.removeItem('authToken')
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-
+  it('connect inicia o handshake sem enviar JWT pelo cliente', () => {
     render(
       <WebSocketProvider>
         <TestConsumer />
@@ -467,10 +463,9 @@ describe('WebSocketContext', () => {
       latestContext?.connect({})
     })
 
-    expect(createdClients).toHaveLength(0)
-    expect(screen.getByText('DISCONNECTED')).toBeInTheDocument()
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Tentativa de connect sem token'))
-    warnSpy.mockRestore()
+    expect(createdClients).toHaveLength(1)
+    expect(createdClients[0].activate).toHaveBeenCalledOnce()
+    expect(screen.getByText('CONNECTING')).toBeInTheDocument()
   })
 
   it('connect sem notifications (undefined) usa objeto vazio', () => {
@@ -516,7 +511,7 @@ describe('WebSocketContext', () => {
     expect(createdClients).toHaveLength(1)
   })
 
-  it('doReconnect interrompe quando token e removido entre tentativas', () => {
+  it('doReconnect cria nova tentativa sem depender de JWT no localStorage', () => {
     render(
       <WebSocketProvider>
         <TestConsumer />
@@ -533,15 +528,11 @@ describe('WebSocketContext', () => {
     })
     expect(screen.getByText('RECONNECTING')).toBeInTheDocument()
 
-    // Remove o token antes do timer disparar -> doReconnect cai no ramo if(!token)
-    localStorage.removeItem('authToken')
     act(() => {
       vi.advanceTimersByTime(0)
     })
 
-    expect(screen.getByText('DISCONNECTED')).toBeInTheDocument()
-    // Nenhum cliente novo foi criado na segunda tentativa
-    expect(createdClients).toHaveLength(1)
+    expect(createdClients).toHaveLength(2)
   })
 
   it('doReconnect desiste apos atingir MAX_RECONNECT_ATTEMPTS', () => {
@@ -835,7 +826,7 @@ describe('WebSocketContext', () => {
     // dispara erro de autenticacao no cliente 0 (que tem reconnectTimer != null)
     act(() => {
       createdClients[0].onStompError?.({
-        headers: { message: 'Token JWT inválido' },
+        headers: { message: 'Sessão ausente no CONNECT STOMP' },
       })
     })
 
@@ -977,7 +968,6 @@ describe('WebSocketContext em modo mock', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.stubEnv('VITE_USE_MOCK_SERVER', 'true')
-    localStorage.setItem('authToken', 'token-teste')
     createdClients.length = 0
     latestContext = null
     vi.mocked(createStompClient).mockImplementation(() => createMockClient() as never)

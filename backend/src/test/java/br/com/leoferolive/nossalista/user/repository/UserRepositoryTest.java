@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.user.repository;
 
+import br.com.leoferolive.nossalista.support.AbstractPostgresIT;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
@@ -18,10 +19,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Testes de integração para UserRepository
  * Flyway auto-executa migrations - não precisa @Sql manual
+ *
+ * <p>Estende {@link AbstractPostgresIT}: roda contra PostgreSQL real
+ * (Testcontainers), não H2 — ver T1 da Onda 2 (honestidade de métrica).</p>
  */
 @SpringBootTest
 @Transactional
-class UserRepositoryTest {
+class UserRepositoryTest extends AbstractPostgresIT {
 
     @Autowired
     private UserRepository userRepository;

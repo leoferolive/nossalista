@@ -43,6 +43,80 @@ Para uma verificação completa (cobertura + ratchet), antes de abrir PR:
 
 Detalhes, thresholds e limitações: `docs/quality-gate.md`. Dívida técnica pré-existente: `docs/quality-gate-debt.md`.
 
+## Estilo de Código
+
+### Funções e módulos
+
+- Funções: 4-20 linhas. Se passar disso, extrair.
+- Uma responsabilidade por função, uma responsabilidade por classe/módulo (SRP) — vale tanto para services Java quanto para hooks/components React.
+- Nomes específicos e únicos. Evitar `data`, `handler`, `Manager` genéricos. Prefira nomes que retornem poucas ocorrências (idealmente <5) num grep no repo.
+
+### Arquivos
+
+- Backend (Java): abaixo de 500 linhas, dividido por responsabilidade quando ultrapassar isso.
+- Frontend (TypeScript): o limite real é 400 linhas — já é o gate travado em CI via `eslint.config.js` (`max-lines: 400`, ver `docs/quality-gate.md`). Não documentar 500 aqui para o frontend: um componente de 450 linhas seguiria esta diretriz e ainda assim quebraria `./scripts/quality.sh --pre-commit`.
+- Débito conhecido hoje (sinalização, não bloqueio retroativo — mas todo código novo ou tocado deve seguir o limite): `frontend/src/pages/ListView.tsx` (1244 linhas), `frontend/src/pages/LandingPage.tsx` (660 linhas) e `backend/.../ListItemService.java` (708 linhas). Ver `docs/quality-gate-debt.md`.
+
+### Tipagem
+
+- TypeScript: tipagem explícita, sem `any`/`as any`. O frontend tem ~58 ocorrências herdadas — não recriar novas, reduzir as existentes ao tocar no código.
+- Java: aproveitar a tipagem forte da linguagem — evitar `Object`, raw types e `Map<String, Object>` como substituto de DTO tipado.
+
+### Duplicação e controle de fluxo
+
+- Sem duplicação de lógica: extrair para uma função ou módulo compartilhado.
+- Early return em vez de ifs aninhados. Máximo de 2 níveis de indentação.
+- Mensagens de exceção devem incluir o valor recebido e o formato esperado. Exemplo em Java:
+
+  ```java
+  throw new IllegalArgumentException("quantity deve ser > 0, recebido: " + quantity);
+  ```
+
+  Exemplo em TypeScript:
+
+  ```ts
+  throw new Error(`Invalid list type: "${type}", expected one of ${LIST_TYPES.join(", ")}`);
+  ```
+
+  **Exceção:** nunca embutir segredo, senha, token OAuth2/JWT ou credencial no valor da mensagem — nesses casos, descrever o formato esperado sem ecoar o valor recebido (ex. "token OAuth2 ausente ou malformado", não o token em si).
+
+### Comentários
+
+- Preservar comentários existentes ao refatorar — carregam intenção e proveniência, não removê-los "de graça".
+- Comentar o PORQUÊ, não o QUÊ (evitar `// incrementa contador` acima de `i++`).
+- Docstring/Javadoc em métodos e funções públicos: intenção + um exemplo de uso.
+- Referenciar número de issue ou SHA de commit quando uma linha existe por causa de um bug específico ou restrição externa.
+
+### Testes
+
+- Comandos e thresholds já estão documentados em "Quality Gate" acima — não duplicar aqui.
+- Toda função nova ganha teste. Todo bugfix ganha teste de regressão.
+- Mock de I/O externo (API, banco, filesystem) com fake classes nomeadas, não stubs inline.
+- Testes devem ser F.I.R.S.T.: fast, independent, repeatable, self-validating, timely.
+
+### Dependências
+
+- Backend: injeção via construtor (padrão nativo do Spring) — não usar `@Autowired` em campo.
+- Frontend: "injeção" equivale a props/hooks explícitos — evitar importar estado global diretamente quando dá para passar via prop ou hook.
+- Libs de terceiros ficam atrás de um wrapper fino de propriedade do projeto, não usadas diretamente espalhadas pelo código.
+
+### Estrutura
+
+- Backend: seguir a convenção de pacotes por domínio já usada no projeto (controller/service/repository dentro de cada módulo).
+- Frontend: seguir a estrutura já documentada em "Estrutura de Pastas Planejada" (`api/`, `hooks/`, `pages/`, `components/`, `contexts/`, `types/`).
+- Preferir módulos pequenos e focados a arquivos "deus".
+
+### Formatação
+
+- Backend: Checkstyle + PMD, já cobertos pelo Quality Gate.
+- Frontend: Prettier + ESLint + Stylelint, já cobertos pelo Quality Gate.
+- Não reabrir discussão de estilo além do que essas ferramentas já impõem.
+
+### Logging
+
+- Logs de observabilidade no backend Spring: JSON estruturado.
+- Texto plano apenas em saída de CLI/script voltada a humano.
+
 ## Stack Técnico Planejada
 
 | Camada      | Tecnologia                               |
@@ -53,7 +127,7 @@ Detalhes, thresholds e limitações: `docs/quality-gate.md`. Dívida técnica pr
 | Auth        | Google OAuth2 + email/senha              |
 | BD Produção | PostgreSQL                               |
 | BD Dev      | PostgreSQL (Docker Compose)              |
-| BD Testes   | H2 (MODE=PostgreSQL)                     |
+| BD Testes   | H2 (MODE=PostgreSQL) default; Testcontainers-PostgreSQL (opt-in via `AbstractPostgresIT`) |
 | Infra       | Raspberry Pi 4 + K3s + Cloudflare Tunnel |
 
 ## Documentação de Referência
@@ -155,6 +229,7 @@ O pipeline usa `deploy-environment.yml` como único workflow reutilizável centr
 
 ```
 ci.yml (push/PR) ──────────────────────────────────────────── testes, lint, segurança
+osv-scanner.yml (PR/push main/cron) ───────────────────────── SCA de dependências
 
 release.yml (workflow_run após CI) ─── cria tag + release
                                     └─ gh workflow run deploy-on-tag.yml (GHCR_PAT)
@@ -174,6 +249,7 @@ rollback-prod.yml (manual) ─────────────────�
 - **`deploy-prod.yml`**: Deploy em prod, disparado manualmente via `workflow_dispatch` com uma tag semântica estável (valida formato `vX.Y.Z` e existência da tag antes do deploy). Sem gate de aprovação manual.
 - **`rollback-prod.yml`**: Rollback de prod para uma tag semântica estável **anterior**. Espelha o `deploy-prod.yml` (valida tag `vX.Y.Z`, reusa `deploy-environment.yml`) — só muda a semântica: reimplanta uma release já conhecida. Compartilha o `concurrency: group: deploy-prod` com o `deploy-prod.yml` para serializar operações em prod.
 - **`frontend-e2e-fullstack.yml`**: Suíte E2E navegador↔backend, hoje só por `workflow_dispatch` (cron noturno DESABILITADO por billing — ver abaixo). Possui notificação de falha (`if: failure()` abre issue rotulada `ci-failure` via `gh`) e cache dos browsers Playwright (`~/.cache/ms-playwright`, key por hash do `package-lock.json`).
+- **`osv-scanner.yml`**: SCA de dependências via **OSV-Scanner** (base OSV.dev), cobrindo backend (Maven, `backend/pom.xml`) e frontend (npm, `frontend/package-lock.json`) num único scan recursivo. Substitui o antigo OWASP dependency-check/NVD, removido por falhas espúrias de "cache frio" (ver `docs/DECISIONS.md` D-027 e issue #70). Em **PR** reporta só vulnerabilidades **novas** do diff; em **push na `main` + cron semanal** faz scan completo; publica **SARIF** na aba Security. Complementado por Dependabot (`.github/dependabot.yml`, Maven + npm + github-actions). Os demais checks de segurança (gitleaks, editorconfig-checker, Semgrep, `npm audit`, license-checker) seguem no job `security-and-compliance` do `ci.yml`. Fase de validação: **não** é required check em branch protection ainda (decisão do dono após comparar findings).
 - Todos os workflows de deploy publicam um `Deployment Summary` ao final da execução no GitHub Actions.
 - `tag` em workflows de deploy significa **tag da imagem implantada**; `ref` significa **ref do checkout que será reconstruído**.
 - O workflow de deploy aplica manifestos estruturais e depois força a imagem do Deployment com `kubectl set image`, além de registrar `deploy.nossalista/tag` e `deploy.nossalista/sha` via annotations.

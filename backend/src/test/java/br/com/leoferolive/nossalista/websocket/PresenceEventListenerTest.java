@@ -146,6 +146,156 @@ class PresenceEventListenerTest {
         verify(eventPublisher).publishPresenceEvent(eq(listId), eq("MEMBER_OFFLINE"), any(MemberOfflinePayload.class), eq(user));
     }
 
+    @Test
+    @DisplayName("SUBSCRIBE em /topic/list/{id}/items (canal de itens) não aciona PresenceService")
+    void subscribeItemsTopicShouldDoNothing() {
+        UUID listId = UUID.randomUUID();
+        User user = createUser("maria");
+        SessionSubscribeEvent event = mock(SessionSubscribeEvent.class);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/list/" + listId + "/items");
+        accessor.setSessionId("session-1");
+        accessor.setSubscriptionId("sub-1");
+        accessor.setUser(new UsernamePasswordAuthenticationToken(user, null, List.of()));
+        accessor.setLeaveMutable(true);
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+        when(event.getMessage()).thenReturn(message);
+
+        listener.handleSubscribe(event);
+
+        verify(presenceService, never()).registerSession(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("SUBSCRIBE em /topic/list/{id} (tópico raiz, sem sufixo) registra presença")
+    void subscribeBareListTopicShouldRegister() {
+        UUID listId = UUID.randomUUID();
+        User user = createUser("maria");
+        SessionSubscribeEvent event = mock(SessionSubscribeEvent.class);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/list/" + listId);
+        accessor.setSessionId("session-1");
+        accessor.setSubscriptionId("sub-1");
+        accessor.setUser(new UsernamePasswordAuthenticationToken(user, null, List.of()));
+        accessor.setLeaveMutable(true);
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+        when(event.getMessage()).thenReturn(message);
+        when(presenceService.getOnlineUsers(listId)).thenReturn(List.of(user));
+
+        listener.handleSubscribe(event);
+
+        verify(presenceService).registerSession(listId, "session-1", user);
+    }
+
+    @Test
+    @DisplayName("SUBSCRIBE com UUID inválido no destino não aciona PresenceService")
+    void subscribeInvalidListIdShouldDoNothing() {
+        SessionSubscribeEvent event = mock(SessionSubscribeEvent.class);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/list/not-a-valid-uuid/presence");
+        accessor.setSessionId("session-1");
+        accessor.setSubscriptionId("sub-1");
+        accessor.setLeaveMutable(true);
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+        when(event.getMessage()).thenReturn(message);
+
+        listener.handleSubscribe(event);
+
+        verify(presenceService, never()).registerSession(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("SUBSCRIBE sem sessionId não aciona PresenceService")
+    void subscribeWithoutSessionIdShouldDoNothing() {
+        UUID listId = UUID.randomUUID();
+        User user = createUser("maria");
+        SessionSubscribeEvent event = mock(SessionSubscribeEvent.class);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/list/" + listId + "/presence");
+        accessor.setSubscriptionId("sub-1");
+        accessor.setUser(new UsernamePasswordAuthenticationToken(user, null, List.of()));
+        accessor.setLeaveMutable(true);
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+        when(event.getMessage()).thenReturn(message);
+
+        listener.handleSubscribe(event);
+
+        verify(presenceService, never()).registerSession(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("SUBSCRIBE sem usuário autenticado não aciona PresenceService")
+    void subscribeWithoutAuthenticatedUserShouldDoNothing() {
+        UUID listId = UUID.randomUUID();
+        SessionSubscribeEvent event = mock(SessionSubscribeEvent.class);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/list/" + listId + "/presence");
+        accessor.setSessionId("session-1");
+        accessor.setSubscriptionId("sub-1");
+        accessor.setLeaveMutable(true);
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+        when(event.getMessage()).thenReturn(message);
+
+        listener.handleSubscribe(event);
+
+        verify(presenceService, never()).registerSession(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("UNSUBSCRIBE sem subscriptionId não aciona PresenceService")
+    void unsubscribeWithoutSubscriptionIdShouldDoNothing() {
+        SessionUnsubscribeEvent event = mock(SessionUnsubscribeEvent.class);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.UNSUBSCRIBE);
+        accessor.setSessionId("session-1");
+        accessor.setLeaveMutable(true);
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+        when(event.getMessage()).thenReturn(message);
+
+        listener.handleUnsubscribe(event);
+
+        verify(presenceService, never()).removeBySubscription(any(), any());
+    }
+
+    @Test
+    @DisplayName("UNSUBSCRIBE de inscrição desconhecida não publica MEMBER_OFFLINE")
+    void unsubscribeWithUnknownSubscriptionShouldNotBroadcast() {
+        SessionUnsubscribeEvent event = mock(SessionUnsubscribeEvent.class);
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.UNSUBSCRIBE);
+        accessor.setSubscriptionId("sub-unknown");
+        accessor.setSessionId("session-1");
+        accessor.setLeaveMutable(true);
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+        when(event.getMessage()).thenReturn(message);
+        when(presenceService.removeBySubscription("sub-unknown", "session-1")).thenReturn(null);
+
+        listener.handleUnsubscribe(event);
+
+        verify(eventPublisher, never()).publishPresenceEvent(any(), eq("MEMBER_OFFLINE"), any(), any());
+    }
+
+    @Test
+    @DisplayName("DISCONNECT sem sessionId não aciona PresenceService")
+    void disconnectWithoutSessionIdShouldDoNothing() {
+        SessionDisconnectEvent event = mock(SessionDisconnectEvent.class);
+        when(event.getSessionId()).thenReturn(null);
+
+        listener.handleDisconnect(event);
+
+        verify(presenceService, never()).removeSessionAllLists(any());
+    }
+
+    @Test
+    @DisplayName("DISCONNECT sem sessões removidas não publica nenhum evento")
+    void disconnectWithNoRemovedSessionsShouldNotBroadcast() {
+        SessionDisconnectEvent event = mock(SessionDisconnectEvent.class);
+        when(event.getSessionId()).thenReturn("session-1");
+        when(presenceService.removeSessionAllLists("session-1")).thenReturn(List.of());
+
+        listener.handleDisconnect(event);
+
+        verify(eventPublisher, never()).publishPresenceEvent(any(), any(String.class), any(), any());
+    }
+
     private User createUser(String username) {
         User user = new User();
         user.setId(UUID.randomUUID());
