@@ -84,7 +84,7 @@ arquitetural em `docs/DECISIONS.md` (D-013, D-019).
   `async-http-client`) — não precisa de entrada extra. Atualizado para 2.16.1
   em 2026-08-10 (rotina semanal de dependências, patch/minor).
 - Validação (2026-06-10): `dependency:tree` confirma `spring-core:7.0.8`, `spring-web:7.0.8`,
-  `async-http-client:2.15.0` e `async-http-client-netty-utils:2.15.0`, sem
+  `async-http-client:2.16.1` e `async-http-client-netty-utils:2.16.1`, sem
   resíduo asynchttpclient em 2.10.4. Suite de testes: 484 testes, 0 falhas.
 
 ### Bump para Spring Boot 4.0.7 (registrado em 2026-07-02, ver D-019)
