@@ -12,20 +12,21 @@ spec:
       interval: 30s
       rules:
         - alert: NossaListaPodNotReady
-          # Join com kube_pod_status_phase="Running" evita pagar por pods de
-          # Job/CronJob que naturalmente ficam Ready=False após terminar,
-          # caso algum seja adicionado no futuro (hoje só há o Deployment).
-          expr: |
-            kube_pod_status_ready{namespace="nossalista",condition="true"} == 0
-              and on(namespace, pod)
-            kube_pod_status_phase{namespace="nossalista",phase="Running"} == 1
+          # Réplicas indisponíveis do Deployment, não pod+condição de fase:
+          # um join exigindo phase="Running" (padrão copiado do chat-api, que
+          # tem CronJobs cujos pods terminam com Ready=false de propósito)
+          # faz sentido lá, mas aqui só existe o Deployment — o join deixava
+          # de alertar exatamente no caso mais comum de indisponibilidade real
+          # (pod preso em Pending por falta de recursos, falha de scheduling
+          # ou perda do nó, nunca chega a phase="Running").
+          expr: kube_deployment_status_replicas_unavailable{namespace="nossalista",deployment="nossalista"} > 0
           for: 5m
           labels:
             severity: critical
             namespace: nossalista
           annotations:
-            summary: "nossalista: pod não-ready há 5min"
-            description: "Pod {{ $labels.pod }} sem readiness — verificar logs e /actuator/health."
+            summary: "nossalista: deployment com réplica indisponível há 5min"
+            description: "{{ $value | humanize }} réplica(s) indisponível(is) — verificar `kubectl get pods -n nossalista` (Pending, CrashLoop, ImagePull, etc.)."
 
         - alert: NossaListaPodCrashLooping
           expr: |
