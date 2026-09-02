@@ -99,6 +99,17 @@ kubectl rollout restart deployment/nossalista-dev -n nossalista-dev
 kubectl rollout restart deployment/nossalista -n nossalista
 ```
 
+`kubectl apply -f k8s/prod/` já inclui `servicemonitor.yaml` e `prometheusrule.yaml` — não é
+preciso aplicar observabilidade separadamente. Verificação pós-deploy (ver
+`docs/observability/README.md`):
+
+```bash
+kubectl get servicemonitor -n nossalista
+kubectl get prometheusrule -n nossalista
+# up{namespace="nossalista"} deve retornar 1 (via port-forward do Prometheus, ver
+# docs/observability/README.md, ou o dashboard "NossaLista — Aplicação" no Grafana)
+```
+
 ## Release e Deploy (GitHub Actions)
 
 - Dev:
