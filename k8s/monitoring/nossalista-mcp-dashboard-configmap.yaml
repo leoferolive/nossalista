@@ -42,7 +42,7 @@ data:
             "refresh": 2,
             "includeAll": true,
             "multi": true,
-            "current": { "text": "All", "value": "$__all" },
+            "current": { "text": "All", "value": ["$__all"] },
             "label": "Tool"
           }
         ]
