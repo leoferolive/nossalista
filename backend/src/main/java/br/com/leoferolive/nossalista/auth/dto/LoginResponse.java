@@ -15,8 +15,6 @@ import java.util.UUID;
  * @param onboardingCompletedAt Data/hora de conclusão do onboarding (pode ser null)
  * @param authProvider Provedor de autenticação (EMAIL, GOOGLE)
  * @param createdAt    Data de criação da conta
- * @param token        JWT token para autenticação
- * @param expiresAt    Data/hora de expiração do token
  */
 public record LoginResponse(
     UUID id,
@@ -26,8 +24,6 @@ public record LoginResponse(
     String avatarUrl,
     LocalDateTime onboardingCompletedAt,
     AuthProvider authProvider,
-    LocalDateTime createdAt,
-    String token,
-    LocalDateTime expiresAt
+    LocalDateTime createdAt
 ) {
 }

@@ -35,6 +35,12 @@ management:
 
 app:
   auth:
+    # HTTP local não suporta Secure nem o prefixo __Host-. Este override nunca
+    # é herdado por prod, que valida a configuração endurecida na inicialização.
+    session-cookie:
+      name: nl_session
+      secure: false
+      same-site: Lax
     # Dev: enforcement desligado para não atrapalhar o fluxo local de testes.
     require-email-verification: ${REQUIRE_EMAIL_VERIFICATION:false}
   mcp-oauth:

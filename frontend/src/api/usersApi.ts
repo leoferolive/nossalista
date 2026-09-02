@@ -54,14 +54,10 @@ export const usersApi = {
   },
 
   /**
-   * Faz logout do usuário
-   * Apenas remove o token do localStorage, o redirecionamento é tratado pelo componente
-   * @returns Promise void
+   * Encerra a sessão no servidor, expirando o cookie HttpOnly.
    */
   async logout(): Promise<void> {
-    // Em uma implementação completa, isso pode chamar um endpoint de logout no backend
-    // Por enquanto, a função principal é limpar o token e redirecionar
-    return Promise.resolve()
+    await client.post('/api/auth/logout')
   },
 
   async completeOnboarding(): Promise<void> {

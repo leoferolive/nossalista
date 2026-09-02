@@ -7,8 +7,8 @@
 
 ## D-002 Autenticacao
 
-- **Decisao:** JWT stateless + Google OAuth2 (principal) + email/senha (fallback).
-- **Motivo:** compatibilidade com SPA e WebSocket autenticado.
+- **Decisao:** JWT stateless assinado permanece o formato da sessao, mas a sessao web e transportada exclusivamente por cookie HttpOnly; Google OAuth2 e principal e email/senha e fallback.
+- **Motivo:** evita exfiltracao do JWT pelo JavaScript, preserva compatibilidade com SPA e permite autenticar WebSocket pelo handshake do cookie.
 
 ## D-003 Sincronizacao real-time
 
@@ -61,25 +61,11 @@
   ela deriva o IP do proprio `X-Forwarded-For`/`Forwarded`, reintroduzindo o vetor de spoof nesta
   topologia.
 
-## D-011 OAuth2 one-time code (Q2.3)
+## D-011 OAuth2 one-time code e troca por cookie de sessao (Q2.3)
 
-- **Decisao:** o sucesso do OAuth2 nao coloca mais o JWT na URL de redirect. Emite
-  um one-time code opaco (SecureRandom + Base64 URL-safe, 256 bits) guardado
-  **no banco** (tabela `oauth_authorization_codes` via `OAuthCodeStore`, TTL 60s,
-  single-use, varrido pelo scheduler de cleanup existente) e redireciona para
-  `/auth/callback?code=<code>`. O frontend troca o code pelo JWT em
-  `POST /api/auth/oauth/exchange` e persiste no `localStorage`.
-- **Motivo:** evitar vazamento do JWT em historico do browser, logs de servidor e
-  header `Referer`, mantendo a arquitetura `localStorage` existente (sem migrar
-  para cookie HttpOnly — decisao Q2.9 do dono).
-- **Store persistido (correcao):** originalmente o code vivia in-memory por
-  instancia (`ConcurrentHashMap`). Como o code e EMITIDO na requisicao de callback
-  do Google e TROCADO numa segunda requisicao (XHR do SPA), com store por
-  instancia essas duas requisicoes caindo em pods diferentes (≥1 replica/HPA) — ou
-  um restart do pod entre elas — faziam o `oauth/exchange` responder **400** e o
-  login Google nunca completar (usuario sem JWT => 401 em tudo). Persistir no banco
-  compartilhado (migration `V11`) deixa qualquer instancia validar o code e o fluxo
-  sobreviver a restart/escala. Mesmo padrao de `password_reset_tokens`.
+- **Decisao:** o sucesso do OAuth2 nao coloca JWT na URL. Emite one-time code opaco, persistido no banco em `oauth_authorization_codes` via `OAuthCodeStore` (TTL 60s e single-use), e redireciona para `/auth/callback?code=<code>`. `POST /api/auth/oauth/exchange` consome o code, grava o JWT somente no cookie HttpOnly de sessao e retorna apenas o perfil.
+- **Motivo:** evita vazamento em URL, historico, logs e `Referer`, e elimina a exposicao restante que existia ao persistir o JWT em `localStorage`.
+- **Store persistido:** permite que requests em pods diferentes, ou apos restart, validem o mesmo code.
 
 ## D-012 Verificacao de e-mail no registro (Q2.7)
 
@@ -236,7 +222,7 @@
 
 - **Contexto:** o futuro servidor MCP do NossaLista (e outros clientes de API externos, ex.:
   assistentes de IA) precisa autenticar em nome de um usuario sem usar o fluxo de login
-  interativo (JWT de sessao com expiracao curta, pensado para o SPA). E necessario um mecanismo
+  interativo (sessao por cookie HttpOnly, com expiracao curta, pensada para o SPA). E necessario um mecanismo
   de credencial de longa duracao, gerenciavel pelo proprio usuario, com granularidade de acesso.
 - **Decisao:** introduzir Personal Access Tokens (`personal_access_tokens`), com as seguintes
   regras:
@@ -250,7 +236,7 @@
     (GET/HEAD/OPTIONS) em `/api/**` — reforcado via `AuthorizationManager` dedicado em
     `SecurityConfig`, nao apenas por convencao do cliente.
   - **Superficie restrita:** um PAT nunca pode gerenciar tokens (`/api/users/me/tokens/**`) nem
-    acessar `/api/auth/**` — essas rotas exigem JWT de sessao normal. Evita que um token vazado
+    acessar `/api/auth/**` — essas rotas exigem sessao web por cookie. Evita que um token vazado
     seja usado para emitir novos tokens ou orquestrar o fluxo de auth.
   - **Limite por conta:** maximo de 10 tokens ativos (nao revogados) por usuario, com erro de
     negocio claro (`409 Conflict`) ao exceder — evita acumulo descontrolado de credenciais.
@@ -293,7 +279,7 @@
 ## D-020 Servidor MCP embutido no backend (Streamable HTTP)
 
 - **Contexto:** Fase B do plano MCP — expor as listas do NossaLista como tools MCP para
-  Claude Code/Desktop/Cursor, autenticadas pelos PATs da Fase A (D-018) ou por JWT.
+  Claude Code/Desktop/Cursor, autenticadas pelos PATs da Fase A (D-018), access tokens OAuth do MCP ou cookie de sessao web.
 - **Decisao de dependencia (Passo 0):** usar o starter oficial
   `org.springframework.ai:spring-ai-starter-mcp-server-webmvc:2.0.0` (via
   `spring-ai-bom:2.0.0`), protocolo `STREAMABLE`, montado em `/mcp`. Spring AI 2.0.0 GA
@@ -590,13 +576,13 @@
     login, supera o beneficio. Uma implementacao propria enxuta, reaproveitando o
     padrao ja revisado/testado de `OAuthCodeStore` (D-011) e `PersonalAccessToken`
     (D-018) — code opaco de uso unico + TTL curto + hash-only para segredos —
-    mante controle total sobre a arquitetura stateless (JWT em `localStorage`,
-    sem `HttpSession`) sem reconciliar dois modelos de autenticacao concorrentes.
+    mante controle total sobre a arquitetura stateless (JWT em cookie HttpOnly, sem `HttpSession`) sem reconciliar dois modelos de autenticacao concorrentes.
 
 - **Design da implementacao (pacote `br.com.leoferolive.nossalista.mcpoauth`):**
-  - **Fluxo de authorize sem exigir sessao no browser:** `GET /oauth/authorize` e
-    PUBLICO (o JWT de sessao vive em `localStorage`, que NAO acompanha uma
-    navegacao top-level de pagina inteira vinda do cliente OAuth). O endpoint
+  - **Fluxo de authorize sem exigir sessao previa:** `GET /oauth/authorize` e
+    PUBLICO para que um cliente OAuth possa iniciar o protocolo antes de o usuario
+    estar autenticado. Quando houver sessao web, o cookie `SameSite=Lax` acompanha
+    a navegacao top-level e a tela de consentimento a utiliza depois. O endpoint
     valida `client_id`/`redirect_uri` (erros aqui sao 400 DIRETO, nunca redirect —
     evita open redirect com um redirect_uri nao confiavel), depois valida
     `response_type=code`/`code_challenge_method=S256`/`resource` (erros aqui
@@ -606,9 +592,8 @@
   - **Tela de consentimento na SPA** (`frontend/src/pages/OAuthConsent.tsx`,
     protegida por `ProtectedRoute` — reusa o fluxo de login existente com retorno
     automatico via `redirect`/`postLoginRedirect`): busca o pedido pendente via
-    `GET /api/oauth/consent/{requestId}` (autenticado por JWT normal) e decide via
-    `POST /api/oauth/consent/{requestId}/approve|deny`, ambos restritos a sessao
-    JWT normal (`sessionOnlyManager()`, mesma regra ja usada para
+    `GET /api/oauth/consent/{requestId}` (autenticado por cookie de sessao) e decide via
+    `POST /api/oauth/consent/{requestId}/approve|deny`, ambos restritos a sessao web por cookie (`sessionOnlyManager()`, mesma regra ja usada para
     `/api/users/me/tokens/**` — um PAT ou um access token OAuth do MCP nunca pode
     aprovar um consentimento em nome do usuario). Na aprovacao, emite um
     authorization code opaco (`mcp_oauth_codes`, SecureRandom 256 bits, TTL 60s) e
@@ -1471,8 +1456,64 @@ adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position
 - **Follow-up registrado:** o backoff refaz a tentativa inteira (nao so o calculo de
   position) — aceitavel dado que colisoes sao raras; revisar so se houver altissima
   concorrencia.
+## D-033 Sessao web em cookie HttpOnly, CSRF e HTTPS na borda
 
-## D-033 ServiceMonitor ausente: dashboards Grafana sem dado desde a criacao; alertas e segundo dashboard versionados
+- **Decisao:** a sessao web usa `__Host-nl_session` em producao (`Path=/`, sem `Domain`, `Secure`, `HttpOnly`, `SameSite=Lax`, 7 dias). Dev/teste usam nome sem prefixo e `Secure=false` somente para HTTP local. O profile `prod` falha ao iniciar fora dessa configuracao.
+- **Corte:** JWTs de sessao em `Authorization: Bearer` nao sao aceitos; todas as sessoes existentes sao encerradas no deploy. PATs `nlmcp_...` e access tokens OAuth do MCP continuam usando `Authorization`. O filtro de sessao nunca sobrescreve uma autenticacao MCP/PAT ja resolvida.
+- **CSRF:** a SPA obtem `XSRF-TOKEN` de `GET /api/auth/csrf` e envia `X-XSRF-TOKEN` em mutacoes autenticadas. O token nao e credencial. `/ws/**`, `/mcp/**`, `/oauth/token`, `/oauth/revoke` e `/oauth/register` sao excluidos por serem transportes nao-web.
+- **Realtime:** SockJS/STOMP autentica pela sessao presente no handshake e nao aceita JWT em query string ou `CONNECT`.
+- **HTTPS:** Cloudflare deve executar redirect HTTP -> HTTPS com 308 antes do tunnel. Nao usamos `server.forward-headers-strategy`; D-010 continua protegendo a resolucao de IP contra spoof. HSTS ficou fora deste corte por exigir auditoria de outros subdominios.
+
+## D-034 Supressao documentada de 3 achados do OSV-Scanner (`osv-scanner.toml`)
+
+- **Contexto:** o scan completo do OSV-Scanner (push em `main` + cron semanal, ver D-027)
+  reportava 4 CVEs high em `frontend/package-lock.json`. Uma delas (`postcss`) foi corrigida
+  por bump patch-level direto. As outras 3 nao tem correcao segura/disponivel agora e ficariam
+  vermelhas indefinidamente sem contexto, treinando o time a ignorar o check.
+- **Decisao:** criar `osv-scanner.toml` na raiz do repo com `[[IgnoredVulns]]` para as 3
+  vulnerabilidades restantes, cada uma com justificativa inline e `ignoreUntil` (forca
+  reavaliacao automatica quando a data passar — nao e supressao permanente):
+  - **`GHSA-qwww-vcr4-c8h2` (react-router, 7.18.1, produção)** — a advisory oficial afirma
+    que so afeta quem usa as APIs RSC instaveis. O frontend usa `react-router-dom` em modo
+    SPA classico (`BrowserRouter`), sem RSC — o caminho vulneravel nao e exercitado. Nao fazer
+    o bump de major (7→8) evita risco de breaking change de roteamento por zero ganho real de
+    seguranca. `ignoreUntil` = 2027-01-29.
+  - **`GHSA-mh99-v99m-4gvg` (brace-expansion, dev, 2 instancias)** — o fix real exige
+    `>=5.0.8`, que mudou a forma de export (function default → named export `expand`),
+    incompativel com `minimatch@3.x`/`5.x`. Uma instancia vem de `eslint→minimatch@3.x`
+    (so resolve com bump maior do ESLint 9→10, que exige validar flat config + plugins —
+    tarefa dedicada separada); a outra vem de
+    `workbox-build→@trickfilm400/rollup-plugin-off-main-thread→ejs→jake→filelist→minimatch@5.x`
+    (workbox-build ja esta na ultima versao publicada, 7.4.1 — sem fix upstream disponivel).
+    Risco real baixo: exige padrao glob malicioso alimentado ao tooling de lint/build local,
+    nao ao runtime de producao. `ignoreUntil` = 2026-10-29.
+- **Efeito:** `scan-scheduled / osv-scan` volta a passar em `main`; o scan de PR
+  (`osv-scanner-reusable-pr.yml`) continua reportando qualquer vulnerabilidade **nova**
+  normalmente (o arquivo de ignore nao mascara achados diferentes destes 3 IDs).
+  **Correcao (ver D-035):** essa expectativa nao se confirmou — o `osv-scanner.toml` da raiz
+  nunca chegou a ser aplicado, porque o OSV-Scanner so o carrega automaticamente a partir do
+  diretorio do proprio lockfile escaneado.
+
+## D-035 `--config=osv-scanner.toml` explicito em `scan-args` (correcao de D-034)
+
+- **Contexto:** apos D-034, o job `scan-scheduled` continuou falhando com as mesmas 3
+  vulnerabilidades supostamente suprimidas (run `f42d0b1`, 2026-08-03). Investigacao mostrou
+  que o OSV-Scanner so le `osv-scanner.toml` automaticamente a partir do diretorio do proprio
+  lockfile escaneado — **nao propaga para subdiretorios nem sobe para a raiz do repo**. Como
+  o arquivo estava na raiz e os lockfiles escaneados sao `frontend/package-lock.json` e
+  `backend/pom.xml`, as regras de `IgnoredVulns` de D-034 nunca foram carregadas; nenhuma
+  supressao chegou a ter efeito real desde o merge de D-034.
+- **Decisao:** passar `--config=osv-scanner.toml` explicitamente via `scan-args` nos dois jobs
+  do `.github/workflows/osv-scanner.yml` (`scan-pr` e `scan-scheduled`), em vez de duplicar o
+  `osv-scanner.toml` em `frontend/` e `backend/`. `--config` explicito aplica aquele arquivo a
+  **todos** os lockfiles escaneados, independente de diretorio — mantem uma fonte unica de
+  supressao para o monorepo, evitando o risco de dois arquivos divergirem se uma mesma CVE
+  aparecer em ambos os ecossistemas no futuro.
+- **Efeito:** as 3 supressoes de D-034 passam a valer de fato em `scan-scheduled` (push/cron) e
+  em `scan-pr` (diff de PR). Achados novos, nao listados em `IgnoredVulns`, continuam
+  bloqueando normalmente.
+
+## D-036 ServiceMonitor ausente: dashboards Grafana sem dado desde a criacao; alertas e segundo dashboard versionados
 
 Auditoria de observabilidade encontrou dois problemas na stack de metricas do cluster
 compartilhado (`monitoring`, `kube-prometheus-stack`):

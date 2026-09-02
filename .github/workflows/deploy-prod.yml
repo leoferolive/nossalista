@@ -25,7 +25,7 @@ jobs:
           fi
 
       - name: Checkout para validação da tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

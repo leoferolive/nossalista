@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.7</version>
+        <version>4.1.0</version>
         <relativePath/>
     </parent>
 
@@ -20,19 +20,23 @@
 
     <properties>
         <java.version>25</java.version>
-        <jjwt.version>0.12.3</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <jacoco.version>0.8.14</jacoco.version>
         <maven.checkstyle.version>3.6.0</maven.checkstyle.version>
         <maven.pmd.version>3.28.0</maven.pmd.version>
         <spotbugs.maven.plugin.version>4.9.8.1</spotbugs.maven.plugin.version>
-        <springdoc.version>3.0.2</springdoc.version>
-        <!-- swagger-ui 5.32.6 bundles DOMPurify 3.4.0 (>= 3.2.7), corrige CVE-2026-41238/41239/41240 -->
-        <swagger.ui.version>5.32.6</swagger.ui.version>
+        <springdoc.version>3.1.0</springdoc.version>
+        <!-- swagger-ui 5.32.11 bundles DOMPurify 3.4.0 (>= 3.2.7), corrige CVE-2026-41238/41239/41240 -->
+        <swagger.ui.version>5.32.11</swagger.ui.version>
         <!-- Override de versões para CVEs além do que o BOM do Spring Boot gerencia -->
-        <postgresql.version>42.7.11</postgresql.version>
+        <postgresql.version>42.7.13</postgresql.version>
         <!-- 11.0.23 corrige CVE-2026-55276/53434 (9.1) e CVE-2026-53404 (7.3), presentes em 11.0.22 -->
         <tomcat.version>11.0.23</tomcat.version>
         <netty.version>4.2.15.Final</netty.version>
+        <!-- spring-boot-starter-parent 4.1.0 sobe o BOM do Flyway para 12.4.0 (major).
+             Pinado em 11.14.1 (versão já em uso) para manter este bump patch/minor-only;
+             a migração para Flyway 12/13 é uma decisão separada, deliberada e testada. -->
+        <flyway.version>11.14.1</flyway.version>
         <checkstyle.config.file>checkstyle/checkstyle.xml</checkstyle.config.file>
         <checkstyle.failsOnError>true</checkstyle.failsOnError>
         <testGroups/>
@@ -198,15 +202,22 @@
         <dependency>
             <groupId>nl.martijndwars</groupId>
             <artifactId>web-push</artifactId>
+            <!-- NÃO subir para 5.1.2: essa versão muda o scope transitivo de
+                 httpasyncclient/httpclient/httpcore de compile para runtime,
+                 quebrando a compilação de PushNotificationService.java (import
+                 direto de org.apache.http.HttpResponse). Confirmado via
+                 mvn dependency:tree comparando as duas versões. Reavaliar se
+                 web-push publicar um patch que corrija o scope, ou declarar
+                 httpasyncclient explicitamente em compile scope neste pom. -->
             <version>5.1.1</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <!-- 1.84: corrige GHSA-574f-3g2m-x479 (Critical, CVSS 9.3) e
+            <!-- 1.85: corrige GHSA-574f-3g2m-x479 (Critical, CVSS 9.3) e
                  GHSA-c3fc-8qff-9hwx (Medium). Pinado direto para sobrescrever o
                  transitivo do web-push. Ver PR de bump de seguranca (OSV-Scanner). -->
-            <version>1.84</version>
+            <version>1.85</version>
         </dependency>
 
         <!-- SpringDoc OpenAPI (Swagger) -->
@@ -226,7 +237,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-test-autoconfigure</artifactId>
-            <version>4.0.3</version>
             <scope>test</scope>
         </dependency>
 
@@ -239,7 +249,7 @@
         <dependency>
             <groupId>com.tngtech.archunit</groupId>
             <artifactId>archunit-junit5</artifactId>
-            <version>1.4.1</version>
+            <version>1.4.2</version>
             <scope>test</scope>
         </dependency>
 
@@ -478,7 +488,7 @@
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
-                <version>1.19.1</version>
+                <version>1.25.5</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.pitest</groupId>

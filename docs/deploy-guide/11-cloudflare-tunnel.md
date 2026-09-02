@@ -113,17 +113,36 @@ O Cloudflare Tunnel termina TLS automaticamente:
 
 O Ingress do prod usa apenas HTTP interno (`traefik.ingress.kubernetes.io/router.entrypoints: web`).
 
+### Regra obrigatoria: HTTP -> HTTPS
+
+Antes de publicar backend/frontend, configurar no Cloudflare Dashboard (zona do dominio):
+
+1. **Rules -> Redirect Rules -> Create rule** (ou **Always Use HTTPS**, se essa opcao ja cobrir a zona).
+2. Condicao: hostname `nossalista.leoferolive.com.br` e scheme `http`.
+3. Acao: redirecionar para o mesmo host/path/query em `https`, status **308 Permanent Redirect**.
+
+A regra roda na borda, antes do Cloudflare Tunnel: HTTP nao pode atingir OAuth nem emitir `Set-Cookie`. Nao habilitar `server.forward-headers-strategy` no Spring para tentar reconstruir o scheme; isso conflita com a protecao contra spoof de IP documentada em D-010. HSTS fica fora desta mudanca ate auditoria dos demais subdominios.
+
 ---
 
 ## 6. Verificação
 
 ```bash
+# A borda deve forcar HTTPS antes de o tunnel receber a requisicao
+curl -sSI http://nossalista.leoferolive.com.br/api/auth/google
+# Esperado: HTTP/1.1 308, Location: https://nossalista.leoferolive.com.br/api/auth/google
+# Nao pode haver Set-Cookie
+
 # Após configurar o tunnel, testar de fora da rede local
 curl -I https://nossalista.leoferolive.com.br/
 # Esperado: HTTP/2 200 (ou 302 para login)
 
 curl https://nossalista.leoferolive.com.br/actuator/health
 # Esperado: {"status":"UP"}
+
+# Verificar que o inicio Google preserva HTTPS com Location relativo
+curl -sSI https://nossalista.leoferolive.com.br/api/auth/google
+# Esperado: 302 e Location: /oauth2/authorization/google
 
 # Verificar headers do Cloudflare
 curl -v https://nossalista.leoferolive.com.br/ 2>&1 | grep -i "cf-ray\|server"

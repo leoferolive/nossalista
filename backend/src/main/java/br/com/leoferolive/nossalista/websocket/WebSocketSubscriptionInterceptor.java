@@ -1,9 +1,7 @@
 package br.com.leoferolive.nossalista.websocket;
 
-import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.member.repository.ListMemberRepository;
 import br.com.leoferolive.nossalista.user.domain.User;
-import br.com.leoferolive.nossalista.user.service.UserService;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageDeliveryException;
@@ -14,7 +12,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,17 +23,9 @@ import java.util.UUID;
 @Component
 public class WebSocketSubscriptionInterceptor implements ChannelInterceptor {
 
-    private final JwtService jwtService;
-    private final UserService userService;
     private final ListMemberRepository listMemberRepository;
 
-    public WebSocketSubscriptionInterceptor(
-        JwtService jwtService,
-        UserService userService,
-        ListMemberRepository listMemberRepository
-    ) {
-        this.jwtService = jwtService;
-        this.userService = userService;
+    public WebSocketSubscriptionInterceptor(ListMemberRepository listMemberRepository) {
         this.listMemberRepository = listMemberRepository;
     }
 
@@ -111,49 +100,19 @@ public class WebSocketSubscriptionInterceptor implements ChannelInterceptor {
     }
 
     private void authenticate(StompHeaderAccessor accessor, Message<?> message) {
-        String token = extractToken(accessor);
-        if (token == null || token.isBlank()) {
-            throw new MessageDeliveryException(message, "Token JWT ausente no CONNECT STOMP");
+        User user = extractUser(accessor);
+        if (user == null) {
+            throw new MessageDeliveryException(message, "Sessão ausente no CONNECT STOMP");
         }
-
-        if (!jwtService.validateToken(token)) {
-            throw new MessageDeliveryException(message, "Token JWT inválido no CONNECT STOMP");
-        }
-
-        UUID userId = jwtService.extractUserId(token);
-        User user = userService.findById(userId).orElseThrow(() ->
-            new MessageDeliveryException(message, "Usuário do token não encontrado"));
 
         UsernamePasswordAuthenticationToken authentication =
-            new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
-
+            new UsernamePasswordAuthenticationToken(user, null, List.of());
         accessor.setUser(authentication);
+
         Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
         if (sessionAttributes != null) {
             sessionAttributes.put("user", user);
         }
-    }
-
-    private String extractToken(StompHeaderAccessor accessor) {
-        List<String> authorizationHeaders = accessor.getNativeHeader("Authorization");
-        if (authorizationHeaders != null) {
-            for (String header : authorizationHeaders) {
-                if (header != null && header.startsWith("Bearer ")) {
-                    return header.substring(7);
-                }
-            }
-        }
-
-        List<String> tokenHeaders = accessor.getNativeHeader("token");
-        if (tokenHeaders != null) {
-            for (String token : tokenHeaders) {
-                if (token != null && !token.isBlank()) {
-                    return token;
-                }
-            }
-        }
-
-        return null;
     }
 
     User extractUser(StompHeaderAccessor accessor) {

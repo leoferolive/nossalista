@@ -47,6 +47,13 @@ npm run dev:mock
 - Endpoints e contrato de autenticacao: `docs/auth-endpoints-matrix.md`
 - Sincronizacao realtime: STOMP/SockJS em `/ws/**`
 
+### Sessao, CSRF e realtime
+
+- A sessao web e restaurada por `GET /api/users/me`; o JWT fica em cookie HttpOnly e nao e lido pelo React nem enviado como Bearer. Na primeira carga, `authToken` e `user` legados sao removidos do `localStorage`.
+- Axios usa `withCredentials` e busca `GET /api/auth/csrf` antes de `POST`, `PUT`, `PATCH` e `DELETE`, encaminhando `X-XSRF-TOKEN`.
+- Login por senha e troca do code Google retornam somente o perfil e escrevem o cookie no backend. Logout chama `POST /api/auth/logout`.
+- SockJS autentica pelo cookie do handshake; nao envie JWT nos query params ou no frame STOMP `CONNECT`.
+
 ## Notificacoes (online + push)
 
 - Notificacoes online no sino ficam sempre ativas para usuario autenticado (conexao WebSocket global enquanto estiver logado).
@@ -163,3 +170,4 @@ npm run test:e2e:fullstack
 - Build e runtime smoke com `vite build` + `vite preview`.
 - Suite E2E `@pr` obrigatoria com Playwright.
 - Suite `@fullstack` roda separadamente no workflow `frontend-e2e-fullstack.yml` (cron diario + disparo manual).
+- `npm audit --omit=dev` (high/critical bloqueia o gate) com uma unica excecao documentada em `docs/quality-gate-debt.md` (GHSA-qwww-vcr4-c8h2 — nao explorável nesta aplicacao, sem fix nao-breaking disponivel ainda).

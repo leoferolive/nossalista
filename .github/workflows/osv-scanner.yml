@@ -3,10 +3,16 @@ name: OSV-Scanner
 # Scan de vulnerabilidades de dependencias (SCA) via OSV-Scanner (OSV.dev).
 # Substitui o antigo OWASP dependency-check/NVD: nao baixa nem cacheia a NVD
 # inteira (fim do "cache frio"), consulta a base agregada leve do OSV.dev e cobre
-# os DOIS ecossistemas do monorepo num unico passo — o scan recursivo (`-r ./`,
-# default do reusable workflow) descobre `backend/pom.xml` e
-# `frontend/package-lock.json` automaticamente. Ver docs/DECISIONS.md D-027 e a
-# issue #70.
+# os DOIS ecossistemas do monorepo num unico passo — o scan recursivo (`-r ./`)
+# descobre `backend/pom.xml` e `frontend/package-lock.json` automaticamente.
+# Ver docs/DECISIONS.md D-027 e a issue #70.
+#
+# `--config=osv-scanner.toml` e explicito em `scan-args` nos dois jobs porque
+# o OSV-Scanner so carrega osv-scanner.toml automaticamente a partir do
+# diretorio do proprio lockfile (nao propaga para subdiretorios) — sem o
+# --config explicito, as supressoes de docs/DECISIONS.md D-034 nao valem para
+# `frontend/package-lock.json` nem `backend/pom.xml`. Ver docs/DECISIONS.md
+# D-035.
 #
 # FASE DE VALIDACAO (nao-bloqueante): os jobs rodam e reportam (SARIF na aba
 # Security), mas NAO estao em branch protection como required check. Tornar
@@ -37,8 +43,23 @@ jobs:
   scan-pr:
     if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.8"
+    with:
+      # --config explicito: osv-scanner so le osv-scanner.toml automaticamente
+      # a partir do diretorio do proprio lockfile escaneado (nao propaga para
+      # subdiretorios). Forcar o config da raiz garante que os IgnoredVulns
+      # valham para qualquer lockfile do monorepo, sem duplicar o arquivo por
+      # diretorio.
+      scan-args: |-
+        --config=osv-scanner.toml
+        -r
+        ./
 
   # main + cron semanal: scan completo do repositorio (todas as dependencias).
   scan-scheduled:
     if: github.event_name == 'push' || github.event_name == 'schedule'
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.8"
+    with:
+      scan-args: |-
+        --config=osv-scanner.toml
+        -r
+        ./

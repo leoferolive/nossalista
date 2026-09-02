@@ -27,8 +27,6 @@ export interface OAuthExchangeResponse {
   onboardingCompletedAt: string | null
   authProvider: string
   createdAt: string
-  token: string
-  expiresAt: string
 }
 
 export const authApi = {
@@ -48,9 +46,9 @@ export const authApi = {
   },
 
   /**
-   * Q2.3: troca o one-time code do OAuth2 pelo JWT (o token não vem mais na URL).
+   * Q2.3: troca o one-time code OAuth2 por uma sessão HttpOnly.
    * @param code - One-time code recebido no callback do OAuth2
-   * @returns Promise com os dados do usuário e o JWT
+   * @returns Promise com os dados do usuário; o JWT fica apenas no cookie
    * @throws ApiError com status code (ex.: 400 code inválido ou expirado)
    */
   async exchangeOAuthCode(code: string): Promise<OAuthExchangeResponse> {
@@ -132,9 +130,9 @@ export const authApi = {
   },
 
   /**
-   * Consome um magic link e autentica, retornando o JWT + dados do usuário.
+   * Consome um magic link e autentica por cookie HttpOnly.
    * @param token - Token recebido por e-mail
-   * @returns Promise com os dados do usuário e o JWT (mesmo formato do OAuth exchange)
+   * @returns Promise com os dados do usuário; o JWT fica apenas no cookie
    * @throws ApiError com status code (ex.: 400 token inválido ou expirado)
    */
   async magicLogin(token: string): Promise<OAuthExchangeResponse> {

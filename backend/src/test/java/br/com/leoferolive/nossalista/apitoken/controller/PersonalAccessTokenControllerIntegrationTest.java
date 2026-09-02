@@ -22,6 +22,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.UUID;
 
+import static br.com.leoferolive.nossalista.support.SessionCookieRequestPostProcessor.session;
+
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,8 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de integração do CRUD de Personal Access Tokens via JWT de sessão
- * normal (fluxo esperado pela UI de gestão de tokens).
+ * Testes de integração do CRUD de Personal Access Tokens via cookie de sessão
+ * HttpOnly (fluxo esperado pela UI de gestão de tokens).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
@@ -83,7 +85,7 @@ class PersonalAccessTokenControllerIntegrationTest {
     @DisplayName("POST cria token e retorna o valor em claro uma única vez")
     void createTokenReturnsPlainTokenOnce() throws Exception {
         mockMvc.perform(post("/api/users/me/tokens")
-                .header("Authorization", bearerA)
+                .with(session(bearerA))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createTokenPayload("Claude Desktop", TokenScope.READ, null)))
             .andExpect(status().isCreated())
@@ -97,7 +99,7 @@ class PersonalAccessTokenControllerIntegrationTest {
     @DisplayName("POST com dados inválidos retorna 400")
     void createTokenWithInvalidDataReturns400() throws Exception {
         mockMvc.perform(post("/api/users/me/tokens")
-                .header("Authorization", bearerA)
+                .with(session(bearerA))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"\",\"scope\":\"READ\"}"))
             .andExpect(status().isBadRequest());
@@ -108,14 +110,14 @@ class PersonalAccessTokenControllerIntegrationTest {
     void createTokenBeyondLimitReturns409() throws Exception {
         for (int i = 0; i < 10; i++) {
             mockMvc.perform(post("/api/users/me/tokens")
-                    .header("Authorization", bearerA)
+                    .with(session(bearerA))
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createTokenPayload("Token " + i, TokenScope.READ, null)))
                 .andExpect(status().isCreated());
         }
 
         mockMvc.perform(post("/api/users/me/tokens")
-                .header("Authorization", bearerA)
+                .with(session(bearerA))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createTokenPayload("Token 11", TokenScope.READ, null)))
             .andExpect(status().isConflict());
@@ -125,12 +127,12 @@ class PersonalAccessTokenControllerIntegrationTest {
     @DisplayName("GET lista tokens sem expor token ou hash")
     void listTokensNeverExposesTokenOrHash() throws Exception {
         mockMvc.perform(post("/api/users/me/tokens")
-                .header("Authorization", bearerA)
+                .with(session(bearerA))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createTokenPayload("Token Listado", TokenScope.READ_WRITE, 90)))
             .andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/users/me/tokens").header("Authorization", bearerA))
+        mockMvc.perform(get("/api/users/me/tokens").with(session(bearerA)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].name").value("Token Listado"))
             .andExpect(jsonPath("$[0].scope").value("READ_WRITE"))
@@ -142,17 +144,17 @@ class PersonalAccessTokenControllerIntegrationTest {
     @DisplayName("GET não retorna tokens revogados")
     void listDoesNotIncludeRevokedTokens() throws Exception {
         String body = mockMvc.perform(post("/api/users/me/tokens")
-                .header("Authorization", bearerA)
+                .with(session(bearerA))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createTokenPayload("A ser revogado", TokenScope.READ, null)))
             .andExpect(status().isCreated())
             .andReturn().getResponse().getContentAsString();
         UUID id = UUID.fromString(objectMapper.readTree(body).get("id").asText());
 
-        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).header("Authorization", bearerA))
+        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).with(session(bearerA)))
             .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/users/me/tokens").header("Authorization", bearerA))
+        mockMvc.perform(get("/api/users/me/tokens").with(session(bearerA)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
@@ -162,7 +164,7 @@ class PersonalAccessTokenControllerIntegrationTest {
     @DisplayName("GET não retorna tokens de outros usuários")
     void listDoesNotReturnOtherUsersTokens() throws Exception {
         mockMvc.perform(post("/api/users/me/tokens")
-                .header("Authorization", bearerA)
+                .with(session(bearerA))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createTokenPayload("Da Usuária A", TokenScope.READ, null)))
             .andExpect(status().isCreated());
@@ -171,7 +173,7 @@ class PersonalAccessTokenControllerIntegrationTest {
             "tokenlistintruder", "listintruder@example.com", "hashed", "List Intruder", AuthProvider.EMAIL);
         String bearerB = "Bearer " + jwtService.generateToken(userB);
 
-        mockMvc.perform(get("/api/users/me/tokens").header("Authorization", bearerB))
+        mockMvc.perform(get("/api/users/me/tokens").with(session(bearerB)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
@@ -181,7 +183,7 @@ class PersonalAccessTokenControllerIntegrationTest {
     @DisplayName("DELETE revoga o token do próprio usuário")
     void revokeOwnTokenSucceeds() throws Exception {
         String body = mockMvc.perform(post("/api/users/me/tokens")
-                .header("Authorization", bearerA)
+                .with(session(bearerA))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createTokenPayload("A revogar", TokenScope.READ, null)))
             .andExpect(status().isCreated())
@@ -189,7 +191,7 @@ class PersonalAccessTokenControllerIntegrationTest {
 
         UUID id = UUID.fromString(objectMapper.readTree(body).get("id").asText());
 
-        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).header("Authorization", bearerA))
+        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).with(session(bearerA)))
             .andExpect(status().isNoContent());
 
         assertRevoked(id);
@@ -199,7 +201,7 @@ class PersonalAccessTokenControllerIntegrationTest {
     @DisplayName("DELETE é idempotente: revogar duas vezes não é erro")
     void revokeIsIdempotentOverHttp() throws Exception {
         String body = mockMvc.perform(post("/api/users/me/tokens")
-                .header("Authorization", bearerA)
+                .with(session(bearerA))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createTokenPayload("Duas vezes", TokenScope.READ, null)))
             .andExpect(status().isCreated())
@@ -207,9 +209,9 @@ class PersonalAccessTokenControllerIntegrationTest {
 
         UUID id = UUID.fromString(objectMapper.readTree(body).get("id").asText());
 
-        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).header("Authorization", bearerA))
+        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).with(session(bearerA)))
             .andExpect(status().isNoContent());
-        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).header("Authorization", bearerA))
+        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).with(session(bearerA)))
             .andExpect(status().isNoContent());
     }
 
@@ -217,7 +219,7 @@ class PersonalAccessTokenControllerIntegrationTest {
     @DisplayName("DELETE de token de outro usuário retorna 404")
     void revokeOtherUsersTokenReturns404() throws Exception {
         String body = mockMvc.perform(post("/api/users/me/tokens")
-                .header("Authorization", bearerA)
+                .with(session(bearerA))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createTokenPayload("Da Usuária A", TokenScope.READ, null)))
             .andExpect(status().isCreated())
@@ -229,7 +231,7 @@ class PersonalAccessTokenControllerIntegrationTest {
             "tokenintruder", "intruder@example.com", "hashed", "Intruder", AuthProvider.EMAIL);
         String bearerB = "Bearer " + jwtService.generateToken(userB);
 
-        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).header("Authorization", bearerB))
+        mockMvc.perform(delete("/api/users/me/tokens/{id}", id).with(session(bearerB)))
             .andExpect(status().isNotFound());
 
         assertThatTokenIsStillActive(id);
@@ -238,7 +240,7 @@ class PersonalAccessTokenControllerIntegrationTest {
     @Test
     @DisplayName("DELETE de id inexistente retorna 404")
     void revokeUnknownIdReturns404() throws Exception {
-        mockMvc.perform(delete("/api/users/me/tokens/{id}", UUID.randomUUID()).header("Authorization", bearerA))
+        mockMvc.perform(delete("/api/users/me/tokens/{id}", UUID.randomUUID()).with(session(bearerA)))
             .andExpect(status().isNotFound());
     }
 

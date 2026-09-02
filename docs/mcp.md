@@ -20,9 +20,9 @@ O servidor MCP aceita tres formas de autenticacao:
 - **Personal Access Token (PAT)** — alternativa manual para outros clientes MCP (Cursor,
   Claude Desktop). Gerado em "Conexoes (API/Assistentes)" no menu da conta do app, com
   prefixo `nlmcp_...` e escopo `READ` ou `READ_WRITE`. Ver `docs/DECISIONS.md` (D-018).
-- **JWT de sessao** — o mesmo token usado pelo SPA.
+- **Sessao web por cookie** — aceita somente no mesmo site, pelo cookie HttpOnly do browser; clientes MCP externos nao recebem nem enviam esse JWT.
 
-Em todos os casos, o header e `Authorization: Bearer <token>`. Requisicoes sem token valido
+PATs e access tokens OAuth do MCP usam `Authorization: Bearer <token>`. JWT de sessao em Bearer e rejeitado. Requisicoes sem credencial valida
 recebem `401` (RFC 7807) com um header `WWW-Authenticate: Bearer resource_metadata="..."`
 apontando para o resource metadata OAuth (RFC 9728), usado por clientes que suportam
 descoberta automatica. Um PAT ou access token OAuth de escopo `READ` pode chamar apenas as

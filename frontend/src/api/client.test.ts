@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../auth/session', () => ({
-  clearStoredSession: vi.fn(),
-  getStoredAuthToken: vi.fn(() => 'token-de-teste'),
+  clearLegacyAuthStorage: vi.fn(),
 }))
 
 type RequestHandlers = {
-  fulfilled?: (config: { headers?: Record<string, unknown> }) => unknown
+  fulfilled?: (config: {
+    method?: string
+    url?: string
+    headers?: Record<string, unknown>
+  }) => unknown
   rejected?: (error: unknown) => Promise<unknown>
 }
 
@@ -39,13 +42,15 @@ describe('client request interceptor', () => {
     vi.clearAllMocks()
   })
 
-  it('adiciona o header Authorization quando ha token armazenado', async () => {
+  it('nao envia Authorization para a sessao baseada em cookie', async () => {
     const { requestHandlers } = await loadClientHandlers()
 
-    const config = { headers: {} as Record<string, unknown> }
-    const result = requestHandlers?.fulfilled?.(config) as { headers: Record<string, unknown> }
+    const config = { method: 'get', headers: {} as Record<string, unknown> }
+    const result = (await requestHandlers?.fulfilled?.(config)) as {
+      headers: Record<string, unknown>
+    }
 
-    expect(result.headers.Authorization).toBe('Bearer token-de-teste')
+    expect(result.headers.Authorization).toBeUndefined()
   })
 
   it('propaga o erro do interceptor de request', async () => {
@@ -54,24 +59,27 @@ describe('client request interceptor', () => {
     const error = new Error('falha de configuracao')
     await expect(requestHandlers?.rejected?.(error)).rejects.toBe(error)
   })
-})
 
-describe('client request interceptor sem token armazenado', () => {
-  beforeEach(() => {
-    vi.resetModules()
-    vi.doMock('../auth/session', () => ({
-      clearStoredSession: vi.fn(),
-      getStoredAuthToken: vi.fn(() => null),
-    }))
+  it('obtém o CSRF antes da primeira mutação quando o cookie ainda não existe', async () => {
+    const { client, requestHandlers } = await loadClientHandlers()
+    const csrfRequest = vi.spyOn(client, 'get').mockResolvedValueOnce({ data: null })
+
+    await requestHandlers?.fulfilled?.({ method: 'post', url: '/api/lists', headers: {} })
+
+    expect(csrfRequest).toHaveBeenCalledWith('/api/auth/csrf', {
+      preserveSessionOnUnauthorized: true,
+    })
   })
 
-  it('nao adiciona o header Authorization quando nao ha token', async () => {
-    const { requestHandlers } = await loadClientHandlers()
+  it('reutiliza o cookie CSRF já emitido sem buscar outro token', async () => {
+    document.cookie = 'XSRF-TOKEN=existing-token'
+    const { client, requestHandlers } = await loadClientHandlers()
+    const csrfRequest = vi.spyOn(client, 'get')
 
-    const config = { headers: {} as Record<string, unknown> }
-    const result = requestHandlers?.fulfilled?.(config) as { headers: Record<string, unknown> }
+    await requestHandlers?.fulfilled?.({ method: 'patch', url: '/api/lists/1', headers: {} })
 
-    expect(result.headers.Authorization).toBeUndefined()
+    expect(csrfRequest).not.toHaveBeenCalled()
+    document.cookie = 'XSRF-TOKEN=; Max-Age=0'
   })
 })
 
@@ -95,7 +103,7 @@ describe('client response interceptor', () => {
   })
 
   it('preserves the session for requests that handle 401 locally', async () => {
-    const { clearStoredSession } = await import('../auth/session')
+    const { clearLegacyAuthStorage } = await import('../auth/session')
     const { responseHandlers } = await loadClientHandlers()
 
     const error = {
@@ -104,11 +112,11 @@ describe('client response interceptor', () => {
     }
 
     await expect(responseHandlers?.rejected?.(error)).rejects.toBe(error)
-    expect(clearStoredSession).not.toHaveBeenCalled()
+    expect(clearLegacyAuthStorage).not.toHaveBeenCalled()
   })
 
   it('limpa a sessao e redireciona para / em 401 nao tratado localmente', async () => {
-    const { clearStoredSession } = await import('../auth/session')
+    const { clearLegacyAuthStorage } = await import('../auth/session')
     const { responseHandlers } = await loadClientHandlers()
 
     Object.defineProperty(window, 'location', {
@@ -119,12 +127,12 @@ describe('client response interceptor', () => {
     const error = { response: { status: 401 }, config: {} }
 
     await expect(responseHandlers?.rejected?.(error)).rejects.toBe(error)
-    expect(clearStoredSession).toHaveBeenCalled()
+    expect(clearLegacyAuthStorage).toHaveBeenCalled()
     expect(window.location.href).toBe('/')
   })
 
   it('nao redireciona novamente quando ja esta na landing', async () => {
-    const { clearStoredSession } = await import('../auth/session')
+    const { clearLegacyAuthStorage } = await import('../auth/session')
     const { responseHandlers } = await loadClientHandlers()
 
     Object.defineProperty(window, 'location', {
@@ -135,17 +143,17 @@ describe('client response interceptor', () => {
     const error = { response: { status: 401 }, config: {} }
 
     await expect(responseHandlers?.rejected?.(error)).rejects.toBe(error)
-    expect(clearStoredSession).toHaveBeenCalled()
+    expect(clearLegacyAuthStorage).toHaveBeenCalled()
     expect(window.location.href).toBe('unchanged')
   })
 
   it('propaga erros que nao sao 401 sem limpar a sessao', async () => {
-    const { clearStoredSession } = await import('../auth/session')
+    const { clearLegacyAuthStorage } = await import('../auth/session')
     const { responseHandlers } = await loadClientHandlers()
 
     const error = { response: { status: 500 }, config: {} }
 
     await expect(responseHandlers?.rejected?.(error)).rejects.toBe(error)
-    expect(clearStoredSession).not.toHaveBeenCalled()
+    expect(clearLegacyAuthStorage).not.toHaveBeenCalled()
   })
 })

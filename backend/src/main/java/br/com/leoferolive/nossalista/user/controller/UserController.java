@@ -72,16 +72,17 @@ public class UserController {
     @GetMapping("/me")
     @Operation(
         summary = "Obter perfil do usuário autenticado",
-        description = "Retorna informações completas do próprio perfil (sem password). Requer token JWT válido no header Authorization."
+        description = "Retorna informações completas do próprio perfil (sem password). "
+            + "Requer sessão autenticada por cookie HttpOnly ou uma credencial de integração permitida."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Perfil retornado com sucesso",
             content = @Content(schema = @Schema(implementation = UserProfileResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Não autenticado - Token JWT ausente, inválido ou expirado",
+        @ApiResponse(responseCode = "401", description = "Não autenticado - sessão ausente, inválida ou expirada",
             content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
     public ResponseEntity<UserProfileResponse> getMyProfile() {
-        // Extrair usuário do SecurityContext (já autenticado via JwtAuthenticationFilter)
+        // Extrair usuário do SecurityContext (já autenticado pela cadeia de segurança)
         User user = getCurrentAuthenticatedUser();
 
         UserProfileResponse response = userMapper.toUserProfileResponse(user);
@@ -104,7 +105,7 @@ public class UserController {
             content = @Content(schema = @Schema(implementation = UserProfileResponse.class))),
         @ApiResponse(responseCode = "400", description = "Tentativa de alterar campos somente leitura (username ou email)",
             content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-        @ApiResponse(responseCode = "401", description = "Não autenticado - Token JWT ausente, inválido ou expirado",
+        @ApiResponse(responseCode = "401", description = "Não autenticado - sessão ausente, inválida ou expirada",
             content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
     public ResponseEntity<UserProfileResponse> updateProfile(
@@ -136,7 +137,7 @@ public class UserController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "Onboarding marcado como concluído"),
-        @ApiResponse(responseCode = "401", description = "Não autenticado - Token JWT ausente, inválido ou expirado",
+        @ApiResponse(responseCode = "401", description = "Não autenticado - sessão ausente, inválida ou expirada",
             content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
     public ResponseEntity<Void> completeOnboarding() {
@@ -158,7 +159,7 @@ public class UserController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "Conta excluída com sucesso"),
-        @ApiResponse(responseCode = "401", description = "Não autenticado - Token JWT ausente, inválido ou expirado",
+        @ApiResponse(responseCode = "401", description = "Não autenticado - sessão ausente, inválida ou expirada",
             content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
     public ResponseEntity<Void> deleteAccount() {
@@ -185,7 +186,7 @@ public class UserController {
             content = @Content(schema = @Schema(implementation = UserSearchResponse.class))),
         @ApiResponse(responseCode = "400", description = "Query parameter 'q' ausente, vazio ou menor que 2 caracteres",
             content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class))),
-        @ApiResponse(responseCode = "401", description = "Não autenticado - Token JWT ausente, inválido ou expirado",
+        @ApiResponse(responseCode = "401", description = "Não autenticado - sessão ausente, inválida ou expirada",
             content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
     })
     public ResponseEntity<List<UserSearchResponse>> searchUsers(

@@ -195,11 +195,43 @@ function getType(typeId: number) {
   return listTypes.find((type) => type.id === typeId) ?? listTypes[3]
 }
 
-function getUserFromRequest(req: Connect.IncomingMessage) {
-  const authHeader = req.headers.authorization
-  const token = authHeader?.replace(/^Bearer\s+/i, '')
-  const userId = token?.startsWith('mock-token-') ? token.replace('mock-token-', '') : demoUser.id
-  return state.users.get(userId) ?? demoUser
+const SESSION_COOKIE = 'nl_mock_session'
+const CSRF_COOKIE = 'XSRF-TOKEN'
+
+function parseCookies(header: string | undefined): Record<string, string> {
+  if (!header) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    header
+      .split(';')
+      .map((pair) => pair.trim())
+      .filter(Boolean)
+      .map((pair) => {
+        const separatorIndex = pair.indexOf('=')
+        if (separatorIndex === -1) {
+          return [pair, '']
+        }
+        return [pair.slice(0, separatorIndex), decodeURIComponent(pair.slice(separatorIndex + 1))]
+      })
+  )
+}
+
+function getUserFromRequest(req: Connect.IncomingMessage): MockUser | null {
+  const sessionUserId = parseCookies(req.headers.cookie)[SESSION_COOKIE]
+  if (!sessionUserId) {
+    return null
+  }
+  return state.users.get(sessionUserId) ?? null
+}
+
+function setSessionCookie(res: Connect.ServerResponse, userId: string) {
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${userId}; Path=/; HttpOnly; SameSite=Lax`)
+}
+
+function clearSessionCookie(res: Connect.ServerResponse) {
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`)
 }
 
 function buildListResponse(list: MockList, currentUser: MockUser) {
@@ -312,7 +344,20 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
     const method = req.method ?? 'GET'
     const currentUser = getUserFromRequest(req)
 
+    if (pathname === '/api/auth/csrf' && method === 'GET') {
+      res.setHeader('Set-Cookie', `${CSRF_COOKIE}=mock-csrf-token; Path=/; SameSite=Lax`)
+      json(res, 200, null)
+      return
+    }
+
+    if (pathname === '/api/auth/logout' && method === 'POST') {
+      clearSessionCookie(res)
+      noContent(res)
+      return
+    }
+
     if (pathname === '/api/auth/login' && method === 'POST') {
+      setSessionCookie(res, demoUser.id)
       json(res, 200, {
         id: demoUser.id,
         username: demoUser.username,
@@ -364,6 +409,7 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
         })
         return
       }
+      setSessionCookie(res, demoUser.id)
       json(res, 200, {
         id: demoUser.id,
         username: demoUser.username,
@@ -388,6 +434,25 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
     // Q2.7: reenvio de verificação (mock; sempre 200 anti-enumeração).
     if (pathname === '/api/auth/resend-verification' && method === 'POST') {
       json(res, 200, null)
+      return
+    }
+
+    const publicJoinPreviewMatch =
+      method === 'GET' ? pathname.match(/^\/api\/lists\/join\/([^/]+)$/) : null
+    if (publicJoinPreviewMatch) {
+      const list = [...state.lists.values()].find(
+        (candidate) => candidate.inviteCode === publicJoinPreviewMatch[1]
+      )
+      if (!list) {
+        notFound(res)
+        return
+      }
+      json(res, 200, toJoinListResponse(list))
+      return
+    }
+
+    if (!currentUser) {
+      json(res, 401, { detail: 'Não autenticado.' })
       return
     }
 
@@ -791,7 +856,7 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
       return
     }
 
-    const joinMatch = pathname.match(/^\/api\/lists\/join\/([^/]+)$/)
+    const joinMatch = method === 'POST' ? pathname.match(/^\/api\/lists\/join\/([^/]+)$/) : null
     if (joinMatch) {
       const list = [...state.lists.values()].find(
         (candidate) => candidate.inviteCode === joinMatch[1]
@@ -801,28 +866,21 @@ export function createMockApiMiddleware(): Connect.NextHandleFunction {
         return
       }
 
-      if (method === 'GET') {
-        json(res, 200, toJoinListResponse(list))
-        return
+      if (!list.memberIds.includes(currentUser.id)) {
+        list.memberIds.push(currentUser.id)
       }
-
-      if (method === 'POST') {
-        if (!list.memberIds.includes(currentUser.id)) {
-          list.memberIds.push(currentUser.id)
-        }
-        state.lists.set(list.id, list)
-        json(res, 201, {
-          id: list.id,
-          name: list.name,
-          typeSlug: getType(list.typeId).slug,
-          typeName: getType(list.typeId).name,
-          role: 'MEMBER',
-          message: 'Voce entrou na lista.',
-          created: true,
-          list: buildListResponse(list, currentUser),
-        })
-        return
-      }
+      state.lists.set(list.id, list)
+      json(res, 201, {
+        id: list.id,
+        name: list.name,
+        typeSlug: getType(list.typeId).slug,
+        typeName: getType(list.typeId).name,
+        role: 'MEMBER',
+        message: 'Voce entrou na lista.',
+        created: true,
+        list: buildListResponse(list, currentUser),
+      })
+      return
     }
 
     notFound(res)

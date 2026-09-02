@@ -178,7 +178,12 @@ test('@pr first login tutorial completa o fluxo e persiste conclusão', async ({
   await page.getByRole('button', { name: 'Próximo' }).click()
   await expect(page.getByText('Acompanhe tudo em tempo real')).toBeVisible()
 
+  const completeOnboardingResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes('/api/users/me/onboarding/complete') && response.status() === 204
+  )
   await page.getByRole('button', { name: 'Concluir' }).click()
+  await completeOnboardingResponse
 
   await expect(page.getByText('Comece pela primeira lista')).not.toBeVisible()
   expect(mocked.getCompleteOnboardingCalls()).toBe(1)
@@ -190,7 +195,12 @@ test('@pr skip no tutorial persiste conclusão sem repetir na sessão', async ({
   await page.goto('/home')
   await expect(page.getByText('Comece pela primeira lista')).toBeVisible()
 
+  const completeOnboardingResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes('/api/users/me/onboarding/complete') && response.status() === 204
+  )
   await page.getByRole('button', { name: 'Pular' }).click()
+  await completeOnboardingResponse
 
   await expect(page.getByText('Comece pela primeira lista')).not.toBeVisible()
   expect(mocked.getCompleteOnboardingCalls()).toBe(1)

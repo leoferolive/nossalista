@@ -1,0 +1,34 @@
+# Supressoes documentadas do OSV-Scanner (scan completo em push/main + cron).
+# Cada entrada precisa de justificativa e reavaliacao periodica via
+# `ignoreUntil` — quando a data passar, o achado volta a aparecer no scan
+# ate ser reavaliado (nao e supressao permanente).
+
+[[IgnoredVulns]]
+id = "GHSA-qwww-vcr4-c8h2"
+ignoreUntil = 2027-01-29
+reason = """
+react-router: CSRF bypass em modo RSC (React Server Components). A advisory
+oficial afirma explicitamente que 'this only affects your application if you
+are using the unstable RSC APIs'. O frontend usa react-router-dom em modo SPA
+classico (BrowserRouter), sem RSC — o caminho de codigo vulneravel nao e
+exercitado nesta aplicacao. Nao ha bump planejado; reavaliar se o app
+eventualmente migrar para RSC.
+"""
+
+[[IgnoredVulns]]
+id = "GHSA-mh99-v99m-4gvg"
+ignoreUntil = 2026-10-29
+reason = """
+brace-expansion: DoS via expansao ilimitada de padrao glob. Duas instancias
+dev-only na arvore de devDependencies do frontend:
+(1) via eslint -> minimatch@3.x — o fix exige brace-expansion >=5.0.8, que
+    mudou a forma de export (function default -> named export 'expand'),
+    incompativel com minimatch@3.x/5.x. So resolve com bump maior do ESLint
+    (9->10), que exige validar compat de flat config + plugins — tratado
+    como tarefa dedicada separada, nao um patch pontual.
+(2) via workbox-build -> @trickfilm400/rollup-plugin-off-main-thread -> ejs
+    -> jake -> filelist -> minimatch@5.x — workbox-build ja esta na ultima
+    versao publicada (7.4.1); nao ha fix upstream disponivel ainda.
+Risco real baixo: exploracao exigiria padrao glob malicioso alimentado ao
+tooling de lint/build local, nao ao runtime de producao.
+"""

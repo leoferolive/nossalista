@@ -13,9 +13,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -89,7 +91,7 @@ class MagicLinkControllerTest {
     }
 
     @Test
-    void magicLoginWithValidTokenReturnsJwtAndVerifiesEmail() throws Exception {
+    void magicLoginWithValidTokenCreatesSessionCookieAndVerifiesEmail() throws Exception {
         User user = persistUser("login-" + UUID.randomUUID() + "@example.com");
         MagicLinkToken token = new MagicLinkToken();
         token.setUserId(user.getId());
@@ -100,12 +102,17 @@ class MagicLinkControllerTest {
         Map<String, String> request = new HashMap<>();
         request.put("token", "valid-magic-token");
 
-        mockMvc.perform(post("/api/auth/magic-login")
+        MvcResult result = mockMvc.perform(post("/api/auth/magic-login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.token").exists())
-            .andExpect(jsonPath("$.email").value(user.getEmail()));
+            .andExpect(jsonPath("$.token").doesNotExist())
+            .andExpect(jsonPath("$.email").value(user.getEmail()))
+            .andReturn();
+
+        assertThat(result.getResponse().getHeader(HttpHeaders.SET_COOKIE))
+            .contains("nl_session=")
+            .contains("HttpOnly");
 
         User refreshed = userRepository.findById(user.getId()).orElseThrow();
         assertThat(refreshed.isEmailVerified()).isTrue();

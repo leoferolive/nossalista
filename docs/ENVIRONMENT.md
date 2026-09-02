@@ -65,6 +65,17 @@ Importantes (com default em alguns cenarios):
 Referencia de exemplo:
 - `backend/.env.example`
 
+## Cookie de sessao e CSRF
+
+`app.auth.session-cookie.*` fica em `application*.yml`, nao em secret de ambiente:
+
+- `prod`: `name=__Host-nl_session`, `secure=true`, `same-site=Lax`, `Path=/`, sem `Domain`. A aplicacao falha no boot se esse profile nao estiver nessa configuracao segura.
+- `dev` e `test`: `name=nl_session`, `secure=false`, para permitir HTTP local. Nunca promover esse override para producao.
+- A duracao do cookie e `jwt.expiration` (atualmente 7 dias).
+- `XSRF-TOKEN` nao e credencial: e legivel pela SPA e deve acompanhar mutacoes autenticadas pela sessao como `X-XSRF-TOKEN`. Os transportes MCP/OAuth e `/ws/**` sao excluidos do CSRF de sessao.
+
+Em producao, configure no Cloudflare uma regra de Redirect (ou Always Use HTTPS) para `http://nossalista.leoferolive.com.br/*` -> HTTPS, status **308**, antes do deploy da aplicacao. Nao habilite `server.forward-headers-strategy`: ver D-010, pois isso reabriria spoof de IP por headers forwarded.
+
 ## Frontend
 
 No estado atual, o frontend usa a configuracao padrao de consumo da API definida no codigo.
