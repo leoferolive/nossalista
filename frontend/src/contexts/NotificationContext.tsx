@@ -26,9 +26,7 @@ interface NotificationState {
 }
 
 type NotificationAction =
-  | { type: 'ADD'; notification: AppNotification }
-  | { type: 'MARK_ALL_READ' }
-  | { type: 'CLEAR_ALL' }
+  { type: 'ADD'; notification: AppNotification } | { type: 'MARK_ALL_READ' } | { type: 'CLEAR_ALL' }
 
 function notificationReducer(
   state: NotificationState,
