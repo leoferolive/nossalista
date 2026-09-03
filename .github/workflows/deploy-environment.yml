@@ -140,7 +140,7 @@ jobs:
       # para o IP Tailscale do no. Em runner GitHub-hosted precisamos entrar na
       # tailnet antes do kubectl (no self-hosted o no ja estava na tailnet).
       - name: Conectar na Tailscale
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
