@@ -217,7 +217,7 @@
             <!-- 1.85: corrige GHSA-574f-3g2m-x479 (Critical, CVSS 9.3) e
                  GHSA-c3fc-8qff-9hwx (Medium). Pinado direto para sobrescrever o
                  transitivo do web-push. Ver PR de bump de seguranca (OSV-Scanner). -->
-            <version>1.85</version>
+            <version>1.85.2</version>
         </dependency>
 
         <!-- SpringDoc OpenAPI (Swagger) -->
@@ -249,7 +249,7 @@
         <dependency>
             <groupId>com.tngtech.archunit</groupId>
             <artifactId>archunit-junit5</artifactId>
-            <version>1.4.2</version>
+            <version>1.5.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -488,7 +488,7 @@
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
-                <version>1.25.5</version>
+                <version>1.30.0</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.pitest</groupId>
