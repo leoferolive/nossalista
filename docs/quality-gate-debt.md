@@ -78,13 +78,15 @@ arquitetural em `docs/DECISIONS.md` (D-013, D-019).
 | Dependência | De → Para | Mecanismo no pom | CVEs corrigidas | Status |
 |---|---|---|---|---|
 | `org.springframework:spring-framework` | gerido pelo Boot 4.0.6 → **7.0.8** | propriedade `<spring-framework.version>` | CVE-2026-41842, CVE-2026-41850, CVE-2026-41851 (CVSS 7.5, DoS recursos estáticos MVC/WebFlux) | **Resolvido em 2026-07-02** — override removido; Spring Boot 4.0.7 passou a gerir 7.0.8 nativamente pelo parent (D-019) |
-| `org.asynchttpclient:async-http-client` | 2.10.4 (transitivo de `web-push:5.1.1`) → **2.15.0** | `<dependencyManagement>` | CVE-2026-45300 (vazamento de Cookie em redirect cross-origin) | Pendente — remover quando `web-push` atualizar o transitivo |
+| `org.asynchttpclient:async-http-client` | 2.10.4 (transitivo de `web-push:5.1.1`) → **2.16.1** | `<dependencyManagement>` | CVE-2026-45300 (vazamento de Cookie em redirect cross-origin) | Pendente — remover quando `web-push` atualizar o transitivo |
 
-- `async-http-client-netty-utils` sobe para 2.15.0 automaticamente (dependência
+- `async-http-client-netty-utils` sobe junto automaticamente (dependência
   interna do próprio `async-http-client`) — não precisa de entrada extra.
 - Validação (2026-06-10): `dependency:tree` confirma `spring-core:7.0.8`, `spring-web:7.0.8`,
   `async-http-client:2.15.0` e `async-http-client-netty-utils:2.15.0`, sem
   resíduo asynchttpclient em 2.10.4. Suite de testes: 484 testes, 0 falhas.
+- **2026-08-17:** `async-http-client` atualizado para **2.16.1** (patch/minor, mesmo major
+  2.x) na rotina semanal de dependências — ver `docs/DECISIONS.md` D-013.
 
 ### Bump para Spring Boot 4.0.7 (registrado em 2026-07-02, ver D-019)
 

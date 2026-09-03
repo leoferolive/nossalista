@@ -103,7 +103,8 @@
   major do async-http-client.
 - **Nota de manutencao:** o override de `spring-framework.version` foi **removido em 2026-07-02**
   com o bump do parent para **Spring Boot 4.0.7** — ver D-019. O override de `async-http-client`
-  permanece ate `web-push` atualizar seu transitivo.
+  permanece ate `web-push` atualizar seu transitivo; atualizado para **2.16.1** (patch/minor,
+  mesmo major 2.x) na rotina de dependencias de 2026-08-17.
 
 ## D-014 Dimensionamento de startupProbe e rollout timeout para o boot lento no Pi ARM
 
