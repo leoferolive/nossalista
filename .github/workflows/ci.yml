@@ -341,7 +341,7 @@ jobs:
       - name: Diff coverage comment
         if: always() && github.event_name == 'pull_request' && hashFiles('backend/target/diff-cover.md') != ''
         continue-on-error: true
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: backend-diff-coverage
           path: backend/target/diff-cover.md
