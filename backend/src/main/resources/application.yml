@@ -188,6 +188,17 @@ management:
   metrics:
     tags:
       application: nossalista
+    distribution:
+      # Sem isso, http.server.requests so publica _count/_sum: os buckets
+      # _bucket (exigidos por histogram_quantile no painel de latencia p95 do
+      # dashboard "NossaLista — Aplicacao") nunca existem, mesmo com o
+      # ServiceMonitor raspando normalmente. O timer MCP ja habilita isso
+      # explicitamente no codigo (McpToolMetrics); aqui e o equivalente pro
+      # timer HTTP padrao do Spring Boot Actuator.
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
 
 logging:
   level:

@@ -1,0 +1,97 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nossalista
+  namespace: nossalista
+  labels:
+    app: nossalista
+    release: kps
+spec:
+  groups:
+    - name: nossalista.health
+      interval: 30s
+      rules:
+        - alert: NossaListaPodNotReady
+          # Réplicas indisponíveis do Deployment, não pod+condição de fase:
+          # um join exigindo phase="Running" (padrão copiado do chat-api, que
+          # tem CronJobs cujos pods terminam com Ready=false de propósito)
+          # faz sentido lá, mas aqui só existe o Deployment — o join deixava
+          # de alertar exatamente no caso mais comum de indisponibilidade real
+          # (pod preso em Pending por falta de recursos, falha de scheduling
+          # ou perda do nó, nunca chega a phase="Running").
+          expr: kube_deployment_status_replicas_unavailable{namespace="nossalista",deployment="nossalista"} > 0
+          for: 5m
+          labels:
+            severity: critical
+            namespace: nossalista
+          annotations:
+            summary: "nossalista: deployment com réplica indisponível há 5min"
+            description: "{{ $value | humanize }} réplica(s) indisponível(is) — verificar `kubectl get pods -n nossalista` (Pending, CrashLoop, ImagePull, etc.)."
+
+        - alert: NossaListaPodCrashLooping
+          expr: |
+            kube_pod_container_status_waiting_reason{namespace="nossalista",container="nossalista",reason="CrashLoopBackOff"} == 1
+          for: 5m
+          labels:
+            severity: critical
+            namespace: nossalista
+          annotations:
+            summary: "nossalista: pod em CrashLoopBackOff"
+            description: "Pod {{ $labels.pod }} em CrashLoopBackOff há 5min — verificar logs do container."
+
+        - alert: NossaListaPodRestarting
+          # Limiar baixo (>2 em 15min) de propósito: é app de uso pessoal/familiar
+          # com 1 réplica, então qualquer restart repetido já é sinal de algo errado
+          # (inclui quedas do host elitedesk — ver docs/DECISIONS.md).
+          expr: increase(kube_pod_container_status_restarts_total{namespace="nossalista",container="nossalista"}[15m]) > 2
+          for: 0m
+          labels:
+            severity: warning
+            namespace: nossalista
+          annotations:
+            summary: "nossalista: pod reiniciando com frequência"
+            description: "{{ $value | humanize }} restarts em 15min no pod {{ $labels.pod }}."
+
+        - alert: NossaListaPodImagePullFailing
+          expr: |
+            kube_pod_container_status_waiting_reason{namespace="nossalista",container="nossalista",reason=~"ImagePullBackOff|ErrImagePull"} == 1
+          for: 5m
+          labels:
+            severity: warning
+            namespace: nossalista
+          annotations:
+            summary: "nossalista: falha ao puxar imagem"
+            description: "Pod {{ $labels.pod }} com {{ $labels.reason }} há 5min — verificar tag/registry/credenciais."
+
+    - name: nossalista.errors
+      interval: 30s
+      rules:
+        - alert: NossaListaHttp5xxRateHigh
+          # Mesmo threshold do painel "Taxa de erro 5xx" do dashboard
+          # (grafana-dashboard.json): vermelho a partir de 5%.
+          expr: |
+            sum(rate(http_server_requests_seconds_count{namespace="nossalista",status=~"5.."}[5m]))
+              /
+            clamp_min(sum(rate(http_server_requests_seconds_count{namespace="nossalista"}[5m])), 0.001) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+            namespace: nossalista
+          annotations:
+            summary: "nossalista: > 5% de respostas HTTP 5xx"
+            description: "Taxa de erro 5xx: {{ $value | humanizePercentage }} nos últimos 5min."
+
+        - alert: NossaListaMcpErrorRateHigh
+          # Mesmo threshold do painel "Taxa de erro (business_error + denied)"
+          # do dashboard MCP (grafana-mcp-dashboard.json): vermelho a partir de 20%.
+          expr: |
+            sum(rate(mcp_tool_calls_total{outcome=~"business_error|denied"}[5m]))
+              /
+            clamp_min(sum(rate(mcp_tool_calls_total[5m])), 0.001) > 0.2
+          for: 5m
+          labels:
+            severity: warning
+            namespace: nossalista
+          annotations:
+            summary: "nossalista: > 20% de erro nas tools MCP"
+            description: "Taxa de erro (business_error + denied): {{ $value | humanizePercentage }} nos últimos 5min."

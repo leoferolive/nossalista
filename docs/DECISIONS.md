@@ -1512,3 +1512,49 @@ adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position
 - **Efeito:** as 3 supressoes de D-034 passam a valer de fato em `scan-scheduled` (push/cron) e
   em `scan-pr` (diff de PR). Achados novos, nao listados em `IgnoredVulns`, continuam
   bloqueando normalmente.
+
+## D-036 ServiceMonitor ausente: dashboards Grafana sem dado desde a criacao; alertas e segundo dashboard versionados
+
+Auditoria de observabilidade encontrou dois problemas na stack de metricas do cluster
+compartilhado (`monitoring`, `kube-prometheus-stack`):
+
+1. **Causa raiz:** nunca existiu um `ServiceMonitor` apontando pro `Service` do nossalista.
+   `kubectl get servicemonitor -A` so listava `chat-api` e `nossoradar`; `up{namespace="nossalista"}`
+   no Prometheus retornava vazio. O dashboard MCP (`grafana-mcp-dashboard.json`, existente) e
+   6 dos 14 paineis do dashboard geral da aplicacao dependem de `/actuator/prometheus` via
+   Prometheus — todos mostravam "No data" desde que foram criados, apesar do endpoint
+   funcionar normalmente (testado com `curl` dentro do pod, HTTP 200).
+2. **Segundo dashboard sem fonte versionada:** alem do dashboard MCP (ja versionado em
+   `docs/observability/grafana-mcp-dashboard.json` + `k8s/monitoring/*-configmap.yaml`),
+   existe um segundo dashboard Grafana ("NossaLista — Aplicacao", uid `nossalista`) so com
+   ConfigMap aplicado manualmente no cluster (`kubectl apply` direto, sem `git`) — 14 paineis:
+   6 de infra via Prometheus e 8 de metricas de produto (usuarios, DAU/WAU, onboarding, listas
+   por tipo, itens, taxa de conclusao) via datasource Postgres somente-leitura dedicado
+   (`nossalista-pg`, provisionado em `homelab/helm/kps-values.yaml`, ligado ao banco de
+   producao `nossalista`). Risco real de perda se o cluster for reconstruido.
+
+- **Decisao:** `k8s/prod/servicemonitor.yaml` (novo) resolve a causa raiz — raspagem de
+  `/actuator/prometheus` a cada 30s, label `release: kps` exigido pelo
+  `serviceMonitorSelector` do Prometheus Operator. `k8s/prod/prometheusrule.yaml` (novo)
+  adiciona 5 alertas proporcionais ao porte do app (uso pessoal/familiar, 1 replica):
+  `NossaListaPodNotReady`, `NossaListaPodCrashLooping` (critical), `NossaListaPodRestarting`,
+  `NossaListaPodImagePullFailing`, `NossaListaHttp5xxRateHigh`/`NossaListaMcpErrorRateHigh`
+  (warning) — reaproveitando os mesmos thresholds ja usados visualmente nos dois dashboards
+  (5% erro HTTP, 20% erro MCP). Roteamento pro Telegram e generico por `severity` em
+  `homelab/helm/kps-values.yaml` — nenhuma mudanca la foi necessaria.
+- **Escopo:** so ambiente `prod` por decisao explicita (reduzir escopo do PR); `dev` fica sem
+  `ServiceMonitor`/alertas por enquanto — note que `k8s/dev/service.yaml` tambem nao tem
+  `name:` na porta do `Service`, entao isso e pre-requisito se/quando dev entrar no escopo
+  (o `ServiceMonitor` referencia porta do `Service` por nome, nao por numero).
+  `k8s/monitoring/nossalista-dashboard-configmap.yaml` (novo) versiona o segundo dashboard,
+  gerado a partir de `docs/observability/grafana-dashboard.json` com o mesmo mecanismo
+  self-documenting do dashboard MCP (comando de regeneracao no cabeçalho do YAML). Titulo
+  renomeado de `"nossalista"` para `"NossaLista — Aplicacao"` (uid mantido) para ficar
+  autoexplicativo ao lado de "NossaLista — Servidor MCP" na lista do Grafana.
+- **Correcao secundaria:** a variavel de template `tool` do dashboard MCP usava
+  `"current": {"value": "$__all"}` como string; o padrao do Grafana para variavel
+  `multi + includeAll` e um array (`["$__all"]`) — corrigido junto.
+- **Nao e bug do app:** o pod caiu (`exit 255`, `reason: Unknown`) nos exatos horarios em que
+  o host `elitedesk` rebootou (problema de PSU ja rastreado fora deste repo) — o alerta
+  `NossaListaPodRestarting` passa a capturar isso automaticamente, sem precisar de
+  investigacao manual a cada ocorrencia.
