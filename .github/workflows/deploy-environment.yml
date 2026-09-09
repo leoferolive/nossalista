@@ -78,7 +78,7 @@ jobs:
       # build (npm/maven) usam --platform=$BUILDPLATFORM e rodam nativos em x86,
       # entao so o stage final minimo e emulado. Em self-hosted ARM era nativo.
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
