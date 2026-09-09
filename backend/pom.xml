@@ -21,7 +21,7 @@
     <properties>
         <java.version>25</java.version>
         <jjwt.version>0.13.0</jjwt.version>
-        <jacoco.version>0.8.14</jacoco.version>
+        <jacoco.version>0.8.15</jacoco.version>
         <maven.checkstyle.version>3.6.0</maven.checkstyle.version>
         <maven.pmd.version>3.28.0</maven.pmd.version>
         <spotbugs.maven.plugin.version>4.9.8.1</spotbugs.maven.plugin.version>
