@@ -42,7 +42,7 @@ jobs:
   # PR — nao bloqueia por divida legada ja presente na base.
   scan-pr:
     if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
-    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.8"
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.5.0"
     with:
       # --config explicito: osv-scanner so le osv-scanner.toml automaticamente
       # a partir do diretorio do proprio lockfile escaneado (nao propaga para
