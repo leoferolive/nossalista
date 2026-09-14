@@ -332,7 +332,7 @@ jobs:
       - name: JUnit test report
         if: always() && github.event_name == 'pull_request'
         continue-on-error: true
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v3
         with:
           name: Backend Tests
           path: backend/target/surefire-reports/*.xml
