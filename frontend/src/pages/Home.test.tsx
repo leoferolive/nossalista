@@ -55,10 +55,14 @@ vi.mock('../contexts/AuthContext', () => ({
   }),
 }))
 
+let mockRequestOpenCreateListModal = false
+
 vi.mock('../contexts/OnboardingContext', () => ({
   useOnboarding: () => ({
     isRunning: false,
-    requestOpenCreateListModal: false,
+    get requestOpenCreateListModal() {
+      return mockRequestOpenCreateListModal
+    },
     acknowledgeCreateListModalRequest: mockAcknowledgeCreateListModalRequest,
     onListCreated: mockOnListCreated,
   }),
@@ -67,6 +71,7 @@ vi.mock('../contexts/OnboardingContext', () => ({
 describe('Home search', () => {
   beforeEach(() => {
     listsFixture = baseLists
+    mockRequestOpenCreateListModal = false
     mockFetchLists.mockReset()
     mockCreateList.mockReset()
     mockClearError.mockReset()
@@ -89,6 +94,26 @@ describe('Home search', () => {
         </ToastProvider>
       </ThemeProvider>
     )
+
+  it('abre o modal de criar lista quando o onboarding pede', () => {
+    const { rerender } = renderHome()
+
+    expect(screen.queryByText('Criar Nova Lista')).not.toBeInTheDocument()
+
+    mockRequestOpenCreateListModal = true
+    rerender(
+      <ThemeProvider>
+        <ToastProvider>
+          <MemoryRouter>
+            <Home />
+          </MemoryRouter>
+        </ToastProvider>
+      </ThemeProvider>
+    )
+
+    expect(screen.getByText('Criar Nova Lista')).toBeInTheDocument()
+    expect(mockAcknowledgeCreateListModalRequest).toHaveBeenCalledTimes(1)
+  })
 
   it('filtra listas por nome', () => {
     renderHome()
