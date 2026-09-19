@@ -241,11 +241,23 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     return true
   }, [tourState.active, tourState.stepIndex])
 
+  // Reseta o estado do tour ao deslogar. Ajusta o estado durante o render
+  // (em vez de useEffect) para evitar um cascading render supérfluo — ver
+  // react-hooks/set-state-in-effect. O reset do ref permanece no efeito
+  // abaixo, pois mutar refs durante o render não é permitido.
+  const isLoggedOut = !isAuthenticated || !user
+  const [prevIsLoggedOut, setPrevIsLoggedOut] = useState(isLoggedOut)
+  if (isLoggedOut !== prevIsLoggedOut) {
+    setPrevIsLoggedOut(isLoggedOut)
+    if (isLoggedOut) {
+      setSuppressAutoStartInSession(false)
+      setTourState((prev) => ({ ...prev, active: false }))
+    }
+  }
+
   useEffect(() => {
     if (!isAuthenticated || !user) {
       autoStartAttemptedRef.current = false
-      setSuppressAutoStartInSession(false)
-      setTourState((prev) => ({ ...prev, active: false }))
       return
     }
 

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, renderHook } from '@testing-library/react'
 import { WebSocketProvider, getBackoffDelay, useWebSocketContext } from './WebSocketContext'
@@ -37,7 +38,9 @@ function createMockClient(): MockClient {
 
 function TestConsumer() {
   const context = useWebSocketContext()
-  latestContext = context
+  useEffect(() => {
+    latestContext = context
+  })
 
   return <div>{context.status}</div>
 }
