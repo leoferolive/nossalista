@@ -218,7 +218,7 @@
             <!-- 1.85.x: corrige GHSA-574f-3g2m-x479 (Critical, CVSS 9.3) e
                  GHSA-c3fc-8qff-9hwx (Medium). Pinado direto para sobrescrever o
                  transitivo do web-push. Ver PR de bump de seguranca (OSV-Scanner). -->
-            <version>1.85.2</version>
+            <version>1.86</version>
         </dependency>
 
         <!-- SpringDoc OpenAPI (Swagger) -->
