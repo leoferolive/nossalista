@@ -74,3 +74,15 @@ cd backend && ./mvnw -Dtest=UserTableMigrationTest,AuthSchemaMigrationH2Test tes
 ```
 
 Results: H2 behavior suite passed 4/4; combined PostgreSQL + H2 suite passed 11/11 with 0 failures and 0 errors. Test expiration timestamps now use bound `LocalDateTime` values, keeping the coverage portable without changing the migration.
+
+## Round 2 review fix
+
+Corrected `shouldRejectDuplicateEmailValues` in both database-backed tests. Each test now inserts a first user with `duplicate@example.com`, then attempts a second insert with a distinct primary key and the same e-mail, proving the rejection comes from the e-mail uniqueness constraint rather than a primary-key collision.
+
+Verification command:
+
+```text
+cd backend && ./mvnw -Dtest=UserTableMigrationTest,AuthSchemaMigrationH2Test test
+```
+
+Result: `BUILD SUCCESS`; 11 tests passed, 0 failures, 0 errors.

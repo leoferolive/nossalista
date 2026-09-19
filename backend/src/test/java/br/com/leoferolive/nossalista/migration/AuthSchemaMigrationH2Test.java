@@ -96,12 +96,14 @@ class AuthSchemaMigrationH2Test {
 
     @Test
     void shouldRejectDuplicateEmailValues() {
-        UUID firstUserId = insertUser();
+        UUID firstUserId = UUID.randomUUID();
+        UUID secondUserId = UUID.randomUUID();
+        insertUserWithEmail(firstUserId, "duplicate@example.com");
         try {
-            assertThatThrownBy(() -> insertUserWithEmail(firstUserId, "duplicate@example.com"))
+            assertThatThrownBy(() -> insertUserWithEmail(secondUserId, "duplicate@example.com"))
                 .isInstanceOf(DataAccessException.class);
         } finally {
-            jdbcTemplate.update("DELETE FROM users WHERE id = ?", firstUserId);
+            jdbcTemplate.update("DELETE FROM users WHERE id IN (?, ?)", firstUserId, secondUserId);
         }
     }
 
