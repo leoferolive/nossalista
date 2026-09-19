@@ -124,6 +124,47 @@ describe('OnboardingContext', () => {
     })
   })
 
+  it('encerra o tour ativo quando o usuário desloga', async () => {
+    authState.user.onboardingCompletedAt = '2026-03-10T10:00:00.000Z'
+    const user = userEvent.setup()
+
+    const { rerender } = render(
+      <MemoryRouter initialEntries={['/lists/abc']}>
+        <ToastProvider>
+          <OnboardingProvider>
+            <ReplayProbe />
+            <Routes>
+              <Route path="/home" element={<LocationProbe />} />
+              <Route path="/lists/:id" element={<LocationProbe />} />
+            </Routes>
+          </OnboardingProvider>
+        </ToastProvider>
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'replay' }))
+    expect(await screen.findByText('Comece pela primeira lista')).toBeInTheDocument()
+
+    authState.isAuthenticated = false
+    rerender(
+      <MemoryRouter initialEntries={['/lists/abc']}>
+        <ToastProvider>
+          <OnboardingProvider>
+            <ReplayProbe />
+            <Routes>
+              <Route path="/home" element={<LocationProbe />} />
+              <Route path="/lists/:id" element={<LocationProbe />} />
+            </Routes>
+          </OnboardingProvider>
+        </ToastProvider>
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByText('Comece pela primeira lista')).not.toBeInTheDocument()
+    })
+  })
+
   it('ao pular, persiste conclusão do onboarding', async () => {
     const user = userEvent.setup()
 
