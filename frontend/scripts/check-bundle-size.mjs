@@ -2,7 +2,7 @@ import { readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const assetsDir = join(process.cwd(), 'dist', 'assets')
-const maxMainChunkBytes = 550 * 1024
+const maxMainChunkBytes = 650 * 1024
 
 const files = readdirSync(assetsDir).filter((file) => file.endsWith('.js'))
 

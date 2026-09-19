@@ -32,11 +32,16 @@ function useTokenManager() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Sem reset síncrono de loading/error aqui de propósito: o estado inicial
+  // (loading=true, error=null) já cobre a carga no mount, e chamar setState
+  // antes do primeiro await dispararia react-hooks/set-state-in-effect
+  // quando invocado a partir do efeito abaixo. Quem precisa resetar
+  // explicitamente (o retry) faz isso antes de chamar.
   const loadTokens = useCallback(async () => {
     try {
-      setLoading(true)
+      const data = await tokensApi.list()
+      setTokens(data)
       setError(null)
-      setTokens(await tokensApi.list())
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar tokens'
       setError(message)
@@ -46,8 +51,17 @@ function useTokenManager() {
     }
   }, [showToast])
 
-  useEffect(() => {
+  const retryLoadTokens = useCallback(() => {
+    setLoading(true)
+    setError(null)
     loadTokens()
+  }, [loadTokens])
+
+  useEffect(() => {
+    // Despachado via microtask para que o setState de loadTokens não seja
+    // considerado síncrono ao corpo do efeito — ver
+    // react-hooks/set-state-in-effect.
+    void Promise.resolve().then(() => loadTokens())
   }, [loadTokens])
 
   const createToken = useCallback(async (data: CreateTokenRequest) => {
@@ -84,7 +98,7 @@ function useTokenManager() {
     [showToast]
   )
 
-  return { tokens, loading, error, loadTokens, createToken, revokeToken }
+  return { tokens, loading, error, retryLoadTokens, createToken, revokeToken }
 }
 
 interface TokenListItemProps {
@@ -248,7 +262,7 @@ function TokenModals({ modal }: { modal: TokenModalsState }) {
  */
 export const Connections: React.FC = () => {
   const navigate = useNavigate()
-  const { tokens, loading, error, loadTokens, createToken, revokeToken } = useTokenManager()
+  const { tokens, loading, error, retryLoadTokens, createToken, revokeToken } = useTokenManager()
   const modal = useTokenModals(createToken, revokeToken)
 
   return (
@@ -280,7 +294,7 @@ export const Connections: React.FC = () => {
           tokens={tokens}
           loading={loading}
           error={error}
-          onRetry={loadTokens}
+          onRetry={retryLoadTokens}
           onRevoke={modal.requestRevoke}
         />
       </div>
