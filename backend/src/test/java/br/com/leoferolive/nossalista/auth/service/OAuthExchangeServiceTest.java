@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,11 +50,17 @@ class OAuthExchangeServiceTest {
         // trás preserva o round-trip issue->consume deste teste unitário.
         lenient().when(codeRepository.save(any(OAuthAuthorizationCode.class))).thenAnswer(inv -> {
             OAuthAuthorizationCode entity = inv.getArgument(0);
-            issuedCodes.put(entity.getCode(), entity);
+            issuedCodes.put(entity.getCode() != null ? entity.getCode() : entity.getCodeHash(), entity);
             return entity;
         });
         lenient().when(codeRepository.findByCode(anyString()))
             .thenAnswer(inv -> Optional.ofNullable(issuedCodes.get(inv.<String>getArgument(0))));
+        lenient().when(codeRepository.findByCodeHash(anyString()))
+            .thenAnswer(inv -> Optional.ofNullable(issuedCodes.get(inv.<String>getArgument(0))));
+        lenient().when(codeRepository.claimByCodeHash(anyString(), any(LocalDateTime.class)))
+            .thenAnswer(inv -> claimHash(inv.getArgument(0)));
+        lenient().when(codeRepository.claimLegacyCode(anyString(), any(LocalDateTime.class)))
+            .thenAnswer(inv -> 0);
         lenient().doAnswer(inv -> {
             OAuthAuthorizationCode entity = inv.getArgument(0);
             issuedCodes.remove(entity.getCode());
@@ -62,6 +69,15 @@ class OAuthExchangeServiceTest {
 
         oauthCodeStore = new OAuthCodeStore(codeRepository);
         exchangeService = new OAuthExchangeService(oauthCodeStore, jwtService, userService);
+    }
+
+    private int claimHash(String codeHash) {
+        OAuthAuthorizationCode entity = issuedCodes.get(codeHash);
+        if (entity == null || entity.getConsumedAt() != null) {
+            return 0;
+        }
+        entity.setConsumedAt(LocalDateTime.now());
+        return 1;
     }
 
     private User buildUser() {
@@ -125,5 +141,23 @@ class OAuthExchangeServiceTest {
 
         assertThatThrownBy(() -> exchangeService.exchange(code))
             .isInstanceOf(InvalidOAuthCodeException.class);
+    }
+
+    @Test
+    @DisplayName("code hash-only válido → gera JWT novo depois de reivindicar usuário")
+    void hashOnlyCodeGeneratesFreshJwtAfterClaim() {
+        UUID newUserId = userId;
+        User user = buildUser();
+        String code = oauthCodeStore.issue(newUserId);
+        String freshJwt = "fresh.jwt.token";
+
+        when(userService.findById(newUserId)).thenReturn(Optional.of(user));
+        when(jwtService.generateToken(user)).thenReturn(freshJwt);
+
+        AuthenticatedSession session = exchangeService.exchange(code);
+
+        assertThat(session.user()).isSameAs(user);
+        assertThat(session.token()).isEqualTo(freshJwt);
+        verify(jwtService).generateToken(user);
     }
 }

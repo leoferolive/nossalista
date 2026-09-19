@@ -1,6 +1,11 @@
 package br.com.leoferolive.nossalista.auth.service;
 
+import br.com.leoferolive.nossalista.auth.domain.OAuthAuthorizationCode;
 import br.com.leoferolive.nossalista.auth.repository.OAuthAuthorizationCodeRepository;
+import br.com.leoferolive.nossalista.user.domain.AuthProvider;
+import br.com.leoferolive.nossalista.user.domain.Role;
+import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,8 +13,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,12 +42,26 @@ class OAuthCodeStoreTest {
     @Autowired
     private OAuthAuthorizationCodeRepository repository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     private OAuthCodeStore store(Duration ttl) {
         return new OAuthCodeStore(repository, ttl);
     }
 
     private OAuthCodeStore store() {
         return store(Duration.ofMinutes(1));
+    }
+
+    private UUID persistUser() {
+        User user = new User();
+        String suffix = UUID.randomUUID().toString();
+        user.setUsername("oauth-code-" + suffix);
+        user.setEmail(suffix + "@example.com");
+        user.setPassword("hash");
+        user.setAuthProvider(AuthProvider.EMAIL);
+        user.setRole(Role.USER);
+        return userRepository.saveAndFlush(user).getId();
     }
 
     @Test
@@ -54,6 +78,38 @@ class OAuthCodeStoreTest {
         // Base64 URL-safe sem padding: não vaza o JWT e não tem '+', '/' nem '='
         assertThat(code1).doesNotContain(JWT);
         assertThat(code1).doesNotContain("+").doesNotContain("/").doesNotContain("=");
+    }
+
+    @Test
+    @DisplayName("issue para usuário persiste somente hash SHA-256 e user_id")
+    void issueForUserStoresOnlyHashAndUserId() {
+        OAuthCodeStore store = store();
+        UUID userId = persistUser();
+
+        String code = store.issue(userId);
+
+        OAuthAuthorizationCode entity = repository.findByCodeHash(sha256Hex(code)).orElseThrow();
+        assertThat(entity.getCodeHash()).isEqualTo(sha256Hex(code));
+        assertThat(entity.getUserId()).isEqualTo(userId);
+        assertThat(entity.getCode()).isNull();
+        assertThat(entity.getJwt()).isNull();
+        assertThat(code).hasSize(43).matches("[A-Za-z0-9_-]+");
+    }
+
+    @Test
+    @DisplayName("claim de usuário marca consumed_at e não pode ser repetido")
+    void claimForUserIsAtomicAndSingleUse() {
+        OAuthCodeStore store = store();
+        UUID userId = persistUser();
+        String code = store.issue(userId);
+
+        Optional<OAuthCodeStore.OAuthCodeClaim> first = store.consumeForExchange(code);
+        Optional<OAuthCodeStore.OAuthCodeClaim> second = store.consumeForExchange(code);
+
+        assertThat(first).get().extracting(OAuthCodeStore.OAuthCodeClaim::userId).isEqualTo(userId);
+        assertThat(second).isEmpty();
+        assertThat(repository.findByCodeHash(sha256Hex(code)).orElseThrow().getConsumedAt())
+            .isBeforeOrEqualTo(LocalDateTime.now());
     }
 
     @Test
@@ -112,5 +168,14 @@ class OAuthCodeStoreTest {
         validStore.issue(JWT);
         validStore.evictExpired();
         assertThat(repository.count()).isEqualTo(1);
+    }
+
+    private String sha256Hex(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(value.getBytes(StandardCharsets.US_ASCII)));
+        } catch (Exception exception) {
+            throw new AssertionError("SHA-256 indisponível no teste", exception);
+        }
     }
 }

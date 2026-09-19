@@ -36,10 +36,32 @@ public class OAuthExchangeService {
      * @throws InvalidOAuthCodeException se o code for inválido, expirado ou já consumido
      */
     public AuthenticatedSession exchange(String code) {
-        String token = oauthCodeStore.consume(code)
+        OAuthCodeStore.OAuthCodeClaim claim = oauthCodeStore.consumeForExchange(code)
             .orElseThrow(() -> new InvalidOAuthCodeException("Código de login inválido ou expirado"));
 
-        UUID userId = jwtService.extractUserId(token);
+        if (claim.userId() != null) {
+            return issueFreshSession(claim.userId());
+        }
+
+        return issueLegacySession(claim.legacyJwt());
+    }
+
+    private AuthenticatedSession issueFreshSession(UUID userId) {
+        User user = userService.findById(userId)
+            .orElseThrow(() -> new InvalidOAuthCodeException("Código de login inválido ou expirado"));
+        return new AuthenticatedSession(user, jwtService.generateToken(user));
+    }
+
+    private AuthenticatedSession issueLegacySession(String token) {
+        if (token == null || token.isBlank()) {
+            throw new InvalidOAuthCodeException("Código de login inválido ou expirado");
+        }
+        UUID userId;
+        try {
+            userId = jwtService.extractUserId(token);
+        } catch (RuntimeException exception) {
+            throw new InvalidOAuthCodeException("Código de login inválido ou expirado");
+        }
         User user = userService.findById(userId)
             .orElseThrow(() -> new InvalidOAuthCodeException("Código de login inválido ou expirado"));
 

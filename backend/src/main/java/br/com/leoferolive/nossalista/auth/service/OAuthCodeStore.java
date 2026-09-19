@@ -2,54 +2,32 @@ package br.com.leoferolive.nossalista.auth.service;
 
 import br.com.leoferolive.nossalista.auth.domain.OAuthAuthorizationCode;
 import br.com.leoferolive.nossalista.auth.repository.OAuthAuthorizationCodeRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Store persistido para o padrão "one-time code" do login OAuth2 (Q2.3).
+ * Persisted one-time handoff codes for the web OAuth login.
  *
- * <p>No sucesso do OAuth2 o JWT NÃO é colocado na URL de redirect — onde vazaria
- * para histórico do browser, logs e header {@code Referer}. Em vez disso geramos
- * um code opaco de uso único, guardamos o mapeamento {@code code → JWT} e
- * redirecionamos o frontend apenas com o {@code code}, que é trocado pelo JWT via
- * {@code POST /api/auth/oauth/exchange}.</p>
- *
- * <p><b>Por que no banco e não em memória:</b> o code é emitido na requisição de
- * callback do Google e trocado numa segunda requisição (XHR do SPA). Com o store
- * em memória por instância, essas duas requisições caindo em instâncias
- * diferentes (≥1 réplica/HPA) — ou um restart do pod entre elas — faziam o
- * exchange responder 400 e o login Google nunca completar. Persistindo no banco
- * compartilhado, qualquer instância valida o code e o fluxo sobrevive a
- * restart/escala. Mesmo padrão de {@code password_reset_tokens}.</p>
- *
- * <p>Características de segurança preservadas: aleatoriedade forte
- * ({@link SecureRandom} + Base64 URL-safe, 256 bits), single-use (a entrada é
- * removida na troca) e TTL curto ({@link #DEFAULT_TTL}).</p>
+ * <p>New rows contain only a SHA-256 digest, the user id, expiry and consumption
+ * timestamp. Legacy rows remain readable while older application instances are
+ * being drained.</p>
  */
 @Component
 public class OAuthCodeStore {
 
-    // INSTRUMENTAÇÃO TEMPORÁRIA (debug/oauth-exchange-logs): logs para diagnosticar
-    // por que o POST /api/auth/oauth/exchange responde 400 em produção. REMOVER
-    // depois de identificar a causa.
-    private static final Logger log = LoggerFactory.getLogger(OAuthCodeStore.class);
-    /** Marcador de instância (por processo): se issue e consume divergirem, é multi-instância. */
-    private static final String INSTANCE = UUID.randomUUID().toString().substring(0, 8);
-
-    /** TTL padrão do code: 60s — janela curta entre redirect e troca. */
     static final Duration DEFAULT_TTL = Duration.ofSeconds(60);
-
-    /** 32 bytes = 256 bits de entropia para o code. */
     private static final int CODE_BYTES = 32;
 
     private final SecureRandom secureRandom = new SecureRandom();
@@ -68,91 +46,130 @@ public class OAuthCodeStore {
     }
 
     /**
-     * Gera um code opaco de uso único associado ao JWT informado e o persiste.
+     * Creates a hash-only handoff for a user.
      *
-     * @param jwt token JWT a ser entregue na troca do code
-     * @return o code aleatório (Base64 URL-safe) a ser enviado ao frontend
+     * @param userId authenticated user to recover during exchange
+     * @return 256-bit URL-safe code to send to the browser
      */
     @Transactional
-    public String issue(String jwt) {
-        byte[] bytes = new byte[CODE_BYTES];
-        secureRandom.nextBytes(bytes);
-        String code = encoder.encodeToString(bytes);
-
+    public String issue(UUID userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId deve ser informado para emitir o code OAuth");
+        }
+        String code = generateCode();
         OAuthAuthorizationCode entity = new OAuthAuthorizationCode();
-        entity.setCode(code);
-        entity.setJwt(jwt);
-        LocalDateTime now = LocalDateTime.now();
-        entity.setExpiresAt(now.plus(ttl));
+        entity.setCodeHash(hash(code));
+        entity.setUserId(userId);
+        entity.setExpiresAt(LocalDateTime.now().plus(ttl));
         repository.save(entity);
         repository.flush();
-
-        log.info("OAUTHDBG issue inst={} prefix={} now={} expiresAt={} ttlSec={} rowsNow={}",
-            INSTANCE, prefix(code), now, entity.getExpiresAt(), ttl.toSeconds(), repository.count());
-
         return code;
     }
 
-    private static String prefix(String code) {
-        if (code == null) {
-            return "<null>";
+    /**
+     * Creates a legacy code-to-JWT row for rolling deployment compatibility.
+     * New callers should use {@link #issue(UUID)}.
+     *
+     * @param jwt session JWT held by an older application instance
+     * @return 256-bit URL-safe code
+     */
+    @Transactional
+    public String issue(String jwt) {
+        if (jwt == null || jwt.isBlank()) {
+            throw new IllegalArgumentException("jwt legado deve ser informado para emitir o code OAuth");
         }
-        return (code.length() <= 10 ? code : code.substring(0, 10)) + "(len=" + code.length() + ")";
+        String code = generateCode();
+        OAuthAuthorizationCode entity = new OAuthAuthorizationCode();
+        entity.setCode(code);
+        entity.setJwt(jwt);
+        entity.setExpiresAt(LocalDateTime.now().plus(ttl));
+        repository.save(entity);
+        repository.flush();
+        return code;
     }
 
     /**
-     * Consome um code: valida que existe e não expirou, e o remove (single-use).
+     * Atomically claims a new or legacy row.
      *
-     * @param code code recebido do frontend
-     * @return Optional com o JWT se o code for válido e não-expirado; vazio caso
-     *         contrário (inexistente, já consumido ou expirado)
+     * @param code opaque code supplied by the browser
+     * @return claimed user id for new rows, or legacy JWT for old rows
+     */
+    @Transactional
+    public Optional<OAuthCodeClaim> consumeForExchange(String code) {
+        if (code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        String codeHash = hash(code);
+        if (repository.claimByCodeHash(codeHash, now) > 0) {
+            repository.flush();
+            return repository.findByCodeHash(codeHash).map(this::toClaim);
+        }
+
+        if (repository.claimLegacyCode(code, now) > 0) {
+            repository.flush();
+            return repository.findByCode(code).map(this::toClaim);
+        }
+
+        return consumeLegacyForPreV19Repository(code, now);
+    }
+
+    /**
+     * Compatibility view used by the pre-hardened handler tests and old callers.
+     * New hash-only rows intentionally have no JWT to return from this method.
+     *
+     * @param code opaque code supplied by the browser
+     * @return legacy JWT when a legacy row is claimed
      */
     @Transactional
     public Optional<String> consume(String code) {
-        long rowsBefore = repository.count();
-        if (code == null || code.isBlank()) {
-            log.warn("OAUTHDBG consume inst={} BLANK code rowsBefore={}", INSTANCE, rowsBefore);
-            return Optional.empty();
-        }
-
-        Optional<OAuthAuthorizationCode> found = repository.findByCode(code);
-        if (found.isEmpty()) {
-            log.warn("OAUTHDBG consume inst={} NOT_FOUND prefix={} rowsBefore={}",
-                INSTANCE, prefix(code), rowsBefore);
-            return Optional.empty();
-        }
-
-        OAuthAuthorizationCode entity = found.get();
-        // Single-use: remove imediatamente, antes mesmo de checar expiração.
-        repository.delete(entity);
-        repository.flush();
-
-        LocalDateTime now = LocalDateTime.now();
-        boolean expired = entity.getExpiresAt().isBefore(now);
-        log.info("OAUTHDBG consume inst={} FOUND prefix={} expired={} now={} expiresAt={} createdAt={} rowsBefore={}",
-            INSTANCE, prefix(code), expired, now, entity.getExpiresAt(), entity.getCreatedAt(), rowsBefore);
-
-        if (expired) {
-            return Optional.empty();
-        }
-        return Optional.of(entity.getJwt());
+        return consumeForExchange(code).map(OAuthCodeClaim::legacyJwt).filter(jwt -> jwt != null);
     }
 
-    /**
-     * Remove todos os codes expirados. Evita acúmulo de codes nunca trocados.
-     */
+    /** Removes rows whose short handoff window has elapsed. */
     @Transactional
     public void evictExpired() {
         repository.deleteByExpiresAtBefore(LocalDateTime.now());
     }
 
-    /**
-     * Número de codes atualmente persistidos (incluindo possivelmente expirados
-     * ainda não varridos). Usado por testes.
-     *
-     * @return tamanho do store
-     */
+    /** Number of rows, retained for focused store tests. */
     long size() {
         return repository.count();
+    }
+
+    private Optional<OAuthCodeClaim> consumeLegacyForPreV19Repository(String code, LocalDateTime now) {
+        Optional<OAuthAuthorizationCode> legacy = repository.findByCode(code);
+        if (legacy.isEmpty() || legacy.get().getConsumedAt() != null
+            || legacy.get().getExpiresAt().isBefore(now)) {
+            return Optional.empty();
+        }
+        repository.delete(legacy.get());
+        repository.flush();
+        return Optional.of(toClaim(legacy.get()));
+    }
+
+    private OAuthCodeClaim toClaim(OAuthAuthorizationCode entity) {
+        return new OAuthCodeClaim(entity.getUserId(), entity.getJwt());
+    }
+
+    private String generateCode() {
+        byte[] bytes = new byte[CODE_BYTES];
+        secureRandom.nextBytes(bytes);
+        return encoder.encodeToString(bytes);
+    }
+
+    private String hash(String code) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                .digest(code.getBytes(StandardCharsets.US_ASCII));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 indisponível para proteger o code OAuth", exception);
+        }
+    }
+
+    /** Result of an atomic claim, with exactly one populated credential reference. */
+    public record OAuthCodeClaim(UUID userId, String legacyJwt) {
     }
 }
