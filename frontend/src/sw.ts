@@ -7,7 +7,7 @@ cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
 
 self.addEventListener('push', (event) => {
-  let data: { title?: string; body?: string; icon?: string; tag?: string; url?: string } = {}
+  let data: { title?: string; body?: string; icon?: string; tag?: string; url?: string }
   try {
     data = event.data?.json() ?? {}
   } catch {

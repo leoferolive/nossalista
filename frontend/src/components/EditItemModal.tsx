@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { ListItem } from '../types/Item'
 import { useToast } from '../contexts/ToastContext'
 
@@ -13,6 +13,18 @@ interface EditItemModalProps {
   ) => Promise<void>
 }
 
+// Converte para formato YYYY-MM-DDTHH:MM aceito por <input type="datetime-local">
+function formatDueDateForInput(dueDate?: string | null): string {
+  if (!dueDate) return ''
+  const date = new Date(dueDate)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
 export const EditItemModal: React.FC<EditItemModalProps> = ({
   item,
   listType,
@@ -22,40 +34,24 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 }) => {
   const [name, setName] = useState(item.name)
   const [quantity, setQuantity] = useState(item.quantity ?? 1)
-  const [dueDate, setDueDate] = useState<string>(() => {
-    if (!item.dueDate) return ''
-    // Converter para formato YYYY-MM-DDTHH:MM para datetime-local
-    const date = new Date(item.dueDate)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day}T${hours}:${minutes}`
-  })
+  const [dueDate, setDueDate] = useState<string>(() => formatDueDateForInput(item.dueDate))
   const [url, setUrl] = useState(item.url || '')
   const [isSaving, setIsSaving] = useState(false)
   const { showToast } = useToast()
 
-  // Preencher campos com valores atuais ao abrir
-  useEffect(() => {
-    if (isOpen && item) {
+  // Preencher campos com valores atuais ao abrir. Ajusta o estado durante o
+  // render (em vez de useEffect) para evitar um cascading render supérfluo —
+  // ver react-hooks/set-state-in-effect.
+  const [prevResetKey, setPrevResetKey] = useState({ isOpen, item })
+  if (isOpen !== prevResetKey.isOpen || item !== prevResetKey.item) {
+    setPrevResetKey({ isOpen, item })
+    if (isOpen) {
       setName(item.name)
       setQuantity(item.quantity ?? 1)
-      if (item.dueDate) {
-        const date = new Date(item.dueDate)
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        const hours = String(date.getHours()).padStart(2, '0')
-        const minutes = String(date.getMinutes()).padStart(2, '0')
-        setDueDate(`${year}-${month}-${day}T${hours}:${minutes}`)
-      } else {
-        setDueDate('')
-      }
+      setDueDate(formatDueDateForInput(item.dueDate))
       setUrl(item.url || '')
     }
-  }, [isOpen, item])
+  }
 
   const handleSave = async () => {
     if (!name.trim()) {

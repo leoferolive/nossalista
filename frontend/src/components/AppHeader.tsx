@@ -56,9 +56,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     [user?.displayName, user?.username]
   )
 
-  useEffect(() => {
+  // Fecha o menu ao navegar ou alternar entre mobile/desktop.
+  // Ajusta o estado durante o render (em vez de useEffect) para evitar
+  // um cascading render supérfluo — ver react-hooks/set-state-in-effect.
+  const navigationSignature = `${location.pathname}${location.search}|${isMobile}`
+  const [prevNavigationSignature, setPrevNavigationSignature] = useState(navigationSignature)
+  if (navigationSignature !== prevNavigationSignature) {
+    setPrevNavigationSignature(navigationSignature)
     setIsMenuOpen(false)
-  }, [location.pathname, location.search, isMobile])
+  }
 
   useEffect(() => {
     if (!isMenuOpen || isMobile) {

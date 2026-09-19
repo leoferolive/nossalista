@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useRef, useCallback } from 'react'
+import React, { createContext, useContext, useReducer, useRef, useCallback, useEffect } from 'react'
 import { Client, StompSubscription } from '@stomp/stompjs'
 import { createStompClient, getListTopic, WebSocketChannel } from '../api/websocket'
 
@@ -100,6 +100,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const reconnectingToastShownRef = useRef<boolean>(false)
   const reconnectNotificationsRef = useRef<ReconnectNotifications>({})
   const isMockMode = import.meta.env.VITE_USE_MOCK_SERVER === 'true'
+  const doReconnectRef = useRef<() => void>(() => {})
 
   const doSubscribe = useCallback(
     (
@@ -209,7 +210,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
       reconnectTimerRef.current = setTimeout(() => {
         reconnectTimerRef.current = null
-        doReconnect()
+        doReconnectRef.current()
       }, delay)
     }
 
@@ -240,6 +241,10 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     clientRef.current = client
     client.activate()
   }, [doSubscribe])
+
+  useEffect(() => {
+    doReconnectRef.current = doReconnect
+  }, [doReconnect])
 
   const connect = useCallback(
     (notifications?: ReconnectNotifications) => {
