@@ -97,6 +97,21 @@ export const InviteModal: React.FC<InviteModalProps> = ({
     onClose()
   }, [onClose])
 
+  // Limpa os resultados quando o campo de busca fica vazio/curto. Ajusta o
+  // estado durante o render (em vez de useEffect) para evitar um cascading
+  // render supérfluo — ver react-hooks/set-state-in-effect. A invalidação de
+  // requests em voo (searchRequestRef) permanece no efeito de busca abaixo,
+  // pois mutar refs durante o render não é permitido.
+  const [prevSearchKey, setPrevSearchKey] = useState({ isOpen, searchQuery })
+  if (isOpen && (isOpen !== prevSearchKey.isOpen || searchQuery !== prevSearchKey.searchQuery)) {
+    setPrevSearchKey({ isOpen, searchQuery })
+    if (searchQuery.trim().length < 2) {
+      setSearching(false)
+      setSearchResults([])
+      setSearchError(null)
+    }
+  }
+
   useEffect(() => {
     if (!isOpen) {
       return
@@ -104,9 +119,6 @@ export const InviteModal: React.FC<InviteModalProps> = ({
 
     if (searchQuery.trim().length < 2) {
       searchRequestRef.current += 1
-      setSearching(false)
-      setSearchResults([])
-      setSearchError(null)
       return
     }
 

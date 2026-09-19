@@ -6,6 +6,12 @@ import sys
 
 METRICS = ("lines", "branches", "functions", "statements")
 
+# @vitest/coverage-v8 counts a handful fewer instrumentable statements than
+# older versions in some multiline constructs (e.g. multiline `new Set(...)`
+# calls), which can shift lines/statements pct by ~0.01pp with no actual
+# coverage lost. Tolerate that noise without masking real regressions.
+TOLERANCE_PCT = 0.02
+
 
 def load_metrics(path: str) -> dict[str, float]:
     with open(path, encoding="utf-8") as handle:
@@ -27,7 +33,7 @@ def main() -> int:
 
     failures = []
     for metric in METRICS:
-        if current[metric] + 1e-9 < base[metric]:
+        if current[metric] + TOLERANCE_PCT < base[metric]:
             failures.append(
                 f"{metric} coverage decreased: current={current[metric]:.2f}% base={base[metric]:.2f}%"
             )

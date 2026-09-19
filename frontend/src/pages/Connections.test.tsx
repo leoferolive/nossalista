@@ -105,6 +105,22 @@ describe('Connections', () => {
     })
   })
 
+  it('exibe erro ao falhar o carregamento dos tokens e permite tentar novamente', async () => {
+    ;(tokensApi.list as any).mockRejectedValueOnce(new Error('Falha de rede'))
+    renderConnections()
+
+    await waitFor(() => {
+      expect(screen.getByText('Erro ao carregar tokens')).toBeInTheDocument()
+    })
+
+    ;(tokensApi.list as any).mockResolvedValueOnce([existingToken])
+    fireEvent.click(screen.getByText('Tentar novamente'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Claude Desktop')).toBeInTheDocument()
+    })
+  })
+
   it('cria um novo token e exibe o modal de token criado', async () => {
     const created: PersonalAccessTokenCreated = {
       id: 'token-2',
@@ -190,6 +206,54 @@ describe('Connections', () => {
     })
     await waitFor(() => {
       expect(screen.queryByText('Claude (claude.ai)')).not.toBeInTheDocument()
+    })
+  })
+
+  it('cancela a desconexão de um assistente OAuth', async () => {
+    renderConnections()
+
+    await waitFor(() => expect(screen.getByText('Claude (claude.ai)')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByLabelText('Desconectar Claude (claude.ai)'))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByText('Cancelar'))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(oauthConnectionsApi.revoke).not.toHaveBeenCalled()
+    expect(screen.getByText('Claude (claude.ai)')).toBeInTheDocument()
+  })
+
+  it('exibe erro ao falhar a desconexão de um assistente OAuth', async () => {
+    ;(oauthConnectionsApi.revoke as any).mockRejectedValue(new Error('Falha de rede'))
+    renderConnections()
+
+    await waitFor(() => expect(screen.getByText('Claude (claude.ai)')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByLabelText('Desconectar Claude (claude.ai)'))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByText('Desconectar'))
+
+    await waitFor(() => {
+      expect(oauthConnectionsApi.revoke).toHaveBeenCalledWith('claude-ai')
+    })
+    expect(screen.getByText('Claude (claude.ai)')).toBeInTheDocument()
+  })
+
+  it('exibe erro ao falhar o carregamento das conexões OAuth e permite tentar novamente', async () => {
+    ;(oauthConnectionsApi.list as any).mockRejectedValueOnce(new Error('Falha de rede'))
+    renderConnections()
+
+    await waitFor(() => {
+      expect(screen.getByText('Erro ao carregar conexões')).toBeInTheDocument()
+    })
+
+    ;(oauthConnectionsApi.list as any).mockResolvedValueOnce([existingConnection])
+    fireEvent.click(screen.getByText('Tentar novamente'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Claude (claude.ai)')).toBeInTheDocument()
     })
   })
 })

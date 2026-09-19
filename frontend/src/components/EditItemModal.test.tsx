@@ -184,4 +184,74 @@ describe('EditItemModal', () => {
       })
     })
   })
+
+  it('deve resincronizar os campos quando o item muda com o modal aberto', () => {
+    const { rerender } = render(
+      <EditItemModal
+        item={mockItem}
+        listType="compras"
+        isOpen={true}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Rascunho não salvo' } })
+
+    const outroItem: ListItem = { ...mockItem, id: 'item-2', name: 'Outro Item', quantity: 9 }
+    rerender(
+      <EditItemModal
+        item={outroItem}
+        listType="compras"
+        isOpen={true}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    )
+
+    expect(screen.getByLabelText('Nome')).toHaveValue('Outro Item')
+    expect(screen.getByLabelText('Quantidade')).toHaveValue(9)
+  })
+
+  it('deve resincronizar os campos quando o modal reabre para o mesmo item', () => {
+    const { rerender } = render(
+      <EditItemModal
+        item={mockItem}
+        listType="compras"
+        isOpen={true}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Rascunho não salvo' } })
+
+    rerender(
+      <EditItemModal
+        item={mockItem}
+        listType="compras"
+        isOpen={false}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    )
+    rerender(
+      <EditItemModal
+        item={mockItem}
+        listType="compras"
+        isOpen={true}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    )
+
+    expect(screen.getByLabelText('Nome')).toHaveValue('Item Original')
+  })
+
+  it('deve deixar o campo de data vazio quando o item não tem prazo', () => {
+    const itemSemPrazo: ListItem = { ...mockItem, dueDate: null }
+    renderModal({ item: itemSemPrazo, listType: 'tarefas' })
+
+    expect(screen.getByLabelText('Data de Prazo')).toHaveValue('')
+  })
 })
