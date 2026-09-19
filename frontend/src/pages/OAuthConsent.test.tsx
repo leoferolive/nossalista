@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { OAuthConsent } from './OAuthConsent'
 import { oauthConsentApi } from '../api/oauthConsentApi'
 import type { PendingAuthorization } from '../api/oauthConsentApi'
@@ -49,6 +49,34 @@ describe('OAuthConsent', () => {
     })
     expect(screen.getByText('Leitura e escrita')).toBeInTheDocument()
     expect(screen.getByText(/Você será redirecionado para/)).toBeInTheDocument()
+  })
+
+  it('exibe erro quando request_id é removido após o mount', async () => {
+    function NavigationHarness() {
+      const navigate = useNavigate()
+      return (
+        <>
+          <button onClick={() => navigate('/oauth/consent')}>limpar request_id</button>
+          <OAuthConsent />
+        </>
+      )
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/oauth/consent?request_id=req-1']}>
+        <NavigationHarness />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Claude (claude.ai)')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('limpar request_id'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Pedido de autorização inválido.')).toBeInTheDocument()
+    })
   })
 
   it('exibe erro quando request_id está ausente', async () => {

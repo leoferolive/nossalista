@@ -29,13 +29,18 @@ export const CreateListModal: React.FC<CreateListModalProps> = ({
     }
   }, [isOpen])
 
-  useEffect(() => {
+  // Limpa o formulário ao fechar. Ajusta o estado durante o render (em vez
+  // de useEffect) para evitar um cascading render supérfluo — ver
+  // react-hooks/set-state-in-effect.
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
     if (!isOpen) {
       setName('')
       setSelectedTypeId(null)
       setError(null)
     }
-  }, [isOpen])
+  }
 
   const isNameValid = name.trim().length >= 3
   const isTypeSelected = selectedTypeId !== null

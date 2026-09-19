@@ -106,6 +106,28 @@ describe('AppHeader', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true })
   })
 
+  it('fecha o menu da conta quando alterna para o layout mobile', async () => {
+    const user = userEvent.setup()
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" subtitle="Organize seu dia." />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+
+    mockIsMobile = true
+    rerender(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" subtitle="Organize seu dia." />
+      </MemoryRouter>
+    )
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
   it('abre o menu e dispara replay do tutorial', async () => {
     const user = userEvent.setup()
 
