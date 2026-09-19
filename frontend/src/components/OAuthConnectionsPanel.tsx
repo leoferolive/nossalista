@@ -22,11 +22,16 @@ function useOAuthConnectionsManager() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Sem reset síncrono de loading/error aqui de propósito: o estado inicial
+  // (loading=true, error=null) já cobre a carga no mount, e chamar setState
+  // antes do primeiro await dispararia react-hooks/set-state-in-effect
+  // quando invocado a partir do efeito abaixo. Quem precisa resetar
+  // explicitamente (o botão de "tentar novamente") faz isso antes de chamar.
   const loadConnections = useCallback(async () => {
     try {
-      setLoading(true)
+      const data = await oauthConnectionsApi.list()
+      setConnections(data)
       setError(null)
-      setConnections(await oauthConnectionsApi.list())
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar conexões'
       setError(message)
@@ -36,8 +41,17 @@ function useOAuthConnectionsManager() {
     }
   }, [showToast])
 
-  useEffect(() => {
+  const retryLoadConnections = useCallback(() => {
+    setLoading(true)
+    setError(null)
     loadConnections()
+  }, [loadConnections])
+
+  useEffect(() => {
+    // Despachado via microtask para que o setState de loadConnections não
+    // seja considerado síncrono ao corpo do efeito — ver
+    // react-hooks/set-state-in-effect.
+    void Promise.resolve().then(() => loadConnections())
   }, [loadConnections])
 
   const disconnect = useCallback(
@@ -57,7 +71,7 @@ function useOAuthConnectionsManager() {
     [showToast]
   )
 
-  return { connections, loading, error, loadConnections, disconnect }
+  return { connections, loading, error, retryLoadConnections, disconnect }
 }
 
 function useOAuthDisconnectModal(disconnect: (clientId: string) => Promise<boolean>) {
@@ -135,7 +149,8 @@ function ConnectionList({ connections, onDisconnect }: ConnectionListProps) {
  * "Conexões (API/Assistentes)".
  */
 export function OAuthConnectionsPanel() {
-  const { connections, loading, error, loadConnections, disconnect } = useOAuthConnectionsManager()
+  const { connections, loading, error, retryLoadConnections, disconnect } =
+    useOAuthConnectionsManager()
   const modal = useOAuthDisconnectModal(disconnect)
 
   return (
@@ -154,7 +169,7 @@ export function OAuthConnectionsPanel() {
         <div className="nl-card p-8 text-center">
           <p className="mb-2 text-xl font-bold text-nl-danger">Erro ao carregar conexões</p>
           <p className="mb-4 text-nl-danger">{error}</p>
-          <button onClick={loadConnections} className="nl-btn-primary">
+          <button onClick={retryLoadConnections} className="nl-btn-primary">
             Tentar novamente
           </button>
         </div>

@@ -359,6 +359,20 @@ export const ListView: React.FC = () => {
     resetTrackedRevision()
   }, [id, resetTrackedRevision])
 
+  // Limpa o snapshot de presença quando não há subscrição ativa. Ajusta o
+  // estado durante o render (em vez de useEffect) para evitar um cascading
+  // render supérfluo — ver react-hooks/set-state-in-effect. A subscrição em
+  // si (efeito colateral real) permanece no efeito abaixo.
+  const isPresenceSubscribed = wsStatus === 'CONNECTED' && !!id
+  const [prevIsPresenceSubscribed, setPrevIsPresenceSubscribed] = useState(isPresenceSubscribed)
+  if (isPresenceSubscribed !== prevIsPresenceSubscribed) {
+    setPrevIsPresenceSubscribed(isPresenceSubscribed)
+    if (!isPresenceSubscribed) {
+      setHasPresenceSnapshot(false)
+      setOnlineMembers(new Map())
+    }
+  }
+
   useEffect(() => {
     if (wsStatus === 'CONNECTED' && id) {
       subscribe(id, 'items', handleWebSocketMessage)
@@ -372,8 +386,6 @@ export const ListView: React.FC = () => {
       }
     }
 
-    setHasPresenceSnapshot(false)
-    setOnlineMembers(new Map())
     return undefined
   }, [wsStatus, id, subscribe, unsubscribe, handleWebSocketMessage])
 

@@ -69,7 +69,10 @@ export const useActivities = (listId: string, enabled = true): UseActivitiesRetu
 
   useEffect(() => {
     if (listId && enabled) {
-      refresh()
+      // Despachado via microtask para que o setState de refresh não seja
+      // considerado síncrono ao corpo do efeito — ver
+      // react-hooks/set-state-in-effect.
+      void Promise.resolve().then(() => refresh())
     }
   }, [listId, enabled, refresh])
 

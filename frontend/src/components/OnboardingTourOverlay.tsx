@@ -83,9 +83,20 @@ export function OnboardingTourOverlay({
   const isMobile = useIsMobileBreakpoint()
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null)
 
+  // Limpa o spotlight quando o tour fica inativo. Ajusta o estado durante o
+  // render (em vez de useEffect) para evitar um cascading render supérfluo —
+  // ver react-hooks/set-state-in-effect.
+  const isTourVisible = active && !!step
+  const [prevIsTourVisible, setPrevIsTourVisible] = useState(isTourVisible)
+  if (isTourVisible !== prevIsTourVisible) {
+    setPrevIsTourVisible(isTourVisible)
+    if (!isTourVisible) {
+      setSpotlightRect(null)
+    }
+  }
+
   useEffect(() => {
     if (!active || !step) {
-      setSpotlightRect(null)
       return
     }
 

@@ -172,8 +172,10 @@ export function LandingPage() {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [activeModal, setActiveModal] = useState<AuthModal>(null)
   const authQuery = searchParams.get('auth')
+  const [activeModal, setActiveModal] = useState<AuthModal>(() =>
+    authQuery === 'login' || authQuery === 'register' ? authQuery : null
+  )
   const registeredQuery = searchParams.get('registered') === '1'
   const resetQuery = searchParams.get('reset') === '1'
   const emailQuery = searchParams.get('email') ?? ''
@@ -186,14 +188,14 @@ export function LandingPage() {
     }
   }, [authQuery, isAuthenticated, isBootstrapping, navigate])
 
-  useEffect(() => {
-    if (authQuery === 'login' || authQuery === 'register') {
-      setActiveModal(authQuery)
-      return
-    }
-
-    setActiveModal(null)
-  }, [authQuery])
+  // Sincroniza o modal ativo com o parâmetro ?auth= da URL. Ajusta o estado
+  // durante o render (em vez de useEffect) para evitar um cascading render
+  // supérfluo — ver react-hooks/set-state-in-effect.
+  const [prevAuthQuery, setPrevAuthQuery] = useState(authQuery)
+  if (authQuery !== prevAuthQuery) {
+    setPrevAuthQuery(authQuery)
+    setActiveModal(authQuery === 'login' || authQuery === 'register' ? authQuery : null)
+  }
 
   const updateAuthSearch = (
     modal: AuthModal,

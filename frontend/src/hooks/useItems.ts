@@ -2,6 +2,15 @@ import React, { useState, useCallback, useRef } from 'react'
 import { itemsApi } from '../api/itemsApi'
 import { ListItem, CreateItemRequest, UpdateItemRequest } from '../types/Item'
 
+// tsconfig.json usa lib ES2020, que não tem a sobrecarga de Error com
+// { cause }. Atribuir cause manualmente preserva o erro original sem
+// depender dos tipos de ES2022.
+function errorWithCause(message: string, cause: unknown): Error {
+  const error = new Error(message)
+  ;(error as Error & { cause?: unknown }).cause = cause
+  return error
+}
+
 interface UseItemsReturn {
   // States
   items: ListItem[]
@@ -85,7 +94,7 @@ export const useItems = (): UseItemsReturn => {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Erro ao adicionar item'
         setErrorItems(message)
-        throw new Error(message)
+        throw errorWithCause(message, err)
       } finally {
         setAddingItem(false)
       }
@@ -128,7 +137,7 @@ export const useItems = (): UseItemsReturn => {
         )
         const message = err instanceof Error ? err.message : 'Erro ao atualizar item'
         setErrorItems(message)
-        throw new Error(message)
+        throw errorWithCause(message, err)
       } finally {
         setTogglingItemId(null)
       }
@@ -178,7 +187,7 @@ export const useItems = (): UseItemsReturn => {
         setItems((prev) => prev.map((i) => (i.id === itemId ? originalItem : i)))
         const message = err instanceof Error ? err.message : 'Erro ao atualizar item'
         setErrorItems(message)
-        throw new Error(message)
+        throw errorWithCause(message, err)
       } finally {
         setUpdatingItemId(null)
       }
@@ -213,7 +222,7 @@ export const useItems = (): UseItemsReturn => {
         // Em caso de erro, não remove do estado
         const message = err instanceof Error ? err.message : 'Erro ao remover item'
         setErrorItems(message)
-        throw new Error(message)
+        throw errorWithCause(message, err)
       } finally {
         setDeletingItemId(null)
       }
