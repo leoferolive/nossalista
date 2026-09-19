@@ -4,12 +4,16 @@ import br.com.leoferolive.nossalista.support.AbstractPostgresIT;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Teste de integração para migration V1__create_users_table.sql.
@@ -79,6 +83,31 @@ class UserTableMigrationTest extends AbstractPostgresIT {
 
     @Test
     void shouldDefaultSessionVersionToZeroAndAllowLegacyOAuthRows() {
+        UUID userId = insertUser();
+        UUID legacyCodeId = UUID.randomUUID();
+        UUID newCodeId = UUID.randomUUID();
+        try {
+            jdbcTemplate.update("""
+                INSERT INTO oauth_authorization_codes
+                    (id, code, jwt, expires_at)
+                VALUES (?, ?, ?, ?)
+                """, legacyCodeId, "legacy-code", "legacy-jwt", expirationTime());
+            jdbcTemplate.update("""
+                INSERT INTO oauth_authorization_codes
+                    (id, code_hash, user_id, expires_at)
+                VALUES (?, ?, ?, ?)
+                """, newCodeId, "hash-only-code", userId, expirationTime());
+
+            Integer rows = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM oauth_authorization_codes
+                WHERE id IN (?, ?)
+                """, Integer.class, legacyCodeId, newCodeId);
+            assertThat(rows).isEqualTo(2);
+        } finally {
+            jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId);
+        }
+
         Map<String, Object> sessionVersion = jdbcTemplate.queryForMap("""
             SELECT IS_NULLABLE, COLUMN_DEFAULT
             FROM INFORMATION_SCHEMA.COLUMNS
@@ -103,14 +132,85 @@ class UserTableMigrationTest extends AbstractPostgresIT {
     }
 
     @Test
-    void shouldHaveUniqueIndexOnEmail() {
-        // Verify unique index on email exists
-        String query = "SELECT COUNT(*) FROM users WHERE 1=0";
+    void shouldRejectDuplicateEmailValues() {
+        UUID firstUserId = insertUser();
+        try {
+            assertThatThrownBy(() -> insertUserWithEmail(firstUserId, "duplicate@example.com"))
+                .isInstanceOf(DataAccessException.class);
+        } finally {
+            jdbcTemplate.update("DELETE FROM users WHERE id = ?", firstUserId);
+        }
+    }
 
-        // If table doesn't exist, this will throw an exception
-        Integer count = jdbcTemplate.queryForObject(query, Integer.class);
-        assertThat(count).isEqualTo(0);
+    @Test
+    void shouldEnforceIdentityForeignKeysAndUniqueKeys() {
+        UUID firstUserId = insertUser();
+        UUID secondUserId = insertUser();
+        try {
+            insertIdentity(firstUserId, "GOOGLE", "https://accounts.google.com", "subject-1");
 
-        // Table exists, so migration ran successfully
+            assertThatThrownBy(() -> insertIdentity(
+                secondUserId, "GOOGLE", "https://accounts.google.com", "subject-1"))
+                .isInstanceOf(DataAccessException.class);
+            assertThatThrownBy(() -> insertIdentity(
+                firstUserId, "GOOGLE", "https://accounts.google.com", "subject-2"))
+                .isInstanceOf(DataAccessException.class);
+            assertThatThrownBy(() -> insertIdentity(
+                UUID.randomUUID(), "GOOGLE", "https://accounts.google.com", "subject-3"))
+                .isInstanceOf(DataAccessException.class);
+        } finally {
+            jdbcTemplate.update("DELETE FROM users WHERE id IN (?, ?)", firstUserId, secondUserId);
+        }
+    }
+
+    @Test
+    void shouldEnforceOAuthCodeHashUniquenessAndUserForeignKey() {
+        UUID userId = insertUser();
+        UUID firstCodeId = UUID.randomUUID();
+        try {
+            insertHashCode(firstCodeId, "duplicate-hash", userId);
+
+            assertThatThrownBy(() -> insertHashCode(UUID.randomUUID(), "duplicate-hash", userId))
+                .isInstanceOf(DataAccessException.class);
+            assertThatThrownBy(() -> insertHashCode(
+                UUID.randomUUID(), "orphan-hash", UUID.randomUUID()))
+                .isInstanceOf(DataAccessException.class);
+        } finally {
+            jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId);
+        }
+    }
+
+    private UUID insertUser() {
+        UUID userId = UUID.randomUUID();
+        insertUserWithEmail(userId, userId + "@example.com");
+        return userId;
+    }
+
+    private UUID insertUserWithEmail(UUID userId, String email) {
+        jdbcTemplate.update("""
+            INSERT INTO users (id, username, email, password, name, auth_provider, role, email_verified)
+            VALUES (?, ?, ?, ?, ?, 'EMAIL', 'USER', TRUE)
+            """, userId, "user-" + userId, email, "password", "Test User");
+        return userId;
+    }
+
+    private void insertIdentity(UUID userId, String provider, String issuer, String subject) {
+        jdbcTemplate.update("""
+            INSERT INTO user_auth_identities
+                (id, provider, issuer, subject, user_id, provider_email, provider_email_verified)
+            VALUES (?, ?, ?, ?, ?, ?, TRUE)
+            """, UUID.randomUUID(), provider, issuer, subject, userId, "provider@example.com");
+    }
+
+    private void insertHashCode(UUID id, String hash, UUID userId) {
+        jdbcTemplate.update("""
+            INSERT INTO oauth_authorization_codes
+                (id, code_hash, user_id, expires_at)
+            VALUES (?, ?, ?, ?)
+            """, id, hash, userId, expirationTime());
+    }
+
+    private LocalDateTime expirationTime() {
+        return LocalDateTime.now().plusHours(1);
     }
 }

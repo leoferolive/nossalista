@@ -53,3 +53,24 @@ Result: `pre-commit gate ok` (backend and frontend checks passed).
 - Task 2 should add the identity repository and Google binding policy on top of the `UserAuthIdentity` mapping.
 - Task 3 should populate `code_hash`/`user_id`, atomically set `consumed_at`, and retain the legacy dual-format behavior while old pods remain.
 - The migration intentionally retains legacy `code` and `jwt`; V20 removal is outside this task and must wait for the rollout safety condition in the plan.
+
+## Round 1 review fixes
+
+Added behavior-level migration coverage for both PostgreSQL and H2. Tests now insert rows and verify identity FK enforcement, both identity unique keys, OAuth `code_hash` uniqueness and `user_id` FK enforcement, the session-version default, legacy/new OAuth row coexistence, and duplicate e-mail rejection. Replaced the previous vacuous e-mail test with `shouldRejectDuplicateEmailValues`.
+
+Red command:
+
+```text
+cd backend && ./mvnw -Dtest=AuthSchemaMigrationH2Test test
+```
+
+Result: initially failed with 2 H2 errors because the test used PostgreSQL interval literal syntax (`INTERVAL '1 hour'`). This exposed a test portability defect, not a V19 schema defect.
+
+Green commands:
+
+```text
+cd backend && ./mvnw -Dtest=AuthSchemaMigrationH2Test test
+cd backend && ./mvnw -Dtest=UserTableMigrationTest,AuthSchemaMigrationH2Test test
+```
+
+Results: H2 behavior suite passed 4/4; combined PostgreSQL + H2 suite passed 11/11 with 0 failures and 0 errors. Test expiration timestamps now use bound `LocalDateTime` values, keeping the coverage portable without changing the migration.
