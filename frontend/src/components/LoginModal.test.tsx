@@ -132,6 +132,24 @@ describe('LoginModal', () => {
     expect(screen.getByText(/Conta criada com sucesso/i)).toBeInTheDocument()
   })
 
+  it('resincroniza o campo de e-mail quando initialEmail muda', () => {
+    const { rerender } = render(
+      <MemoryRouter>
+        <LoginModal onClose={vi.fn()} initialEmail="antigo@test.com" />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByDisplayValue('antigo@test.com')).toBeInTheDocument()
+
+    rerender(
+      <MemoryRouter>
+        <LoginModal onClose={vi.fn()} initialEmail="novo@test.com" />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByDisplayValue('novo@test.com')).toBeInTheDocument()
+  })
+
   it('entra na lista automaticamente quando existe invite pendente', async () => {
     const onClose = vi.fn()
     const client = await import('../api/client')

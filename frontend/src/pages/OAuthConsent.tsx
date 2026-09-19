@@ -28,14 +28,28 @@ function errorMessageFor(err: unknown): string {
  */
 function usePendingAuthorization(requestId: string | null) {
   const [pending, setPending] = useState<PendingAuthorization | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // requestId já reflete a URL desde o primeiro render, então o caso
+  // "sem request_id" pode ser resolvido no initializer em vez de um setState
+  // síncrono no efeito — ver react-hooks/set-state-in-effect.
+  const [loading, setLoading] = useState(() => Boolean(requestId))
+  const [error, setError] = useState<string | null>(() =>
+    requestId ? null : 'Pedido de autorização inválido.'
+  )
   const [deciding, setDeciding] = useState(false)
 
-  useEffect(() => {
+  // Cobre o caso de requestId mudar para null após o mount (ajustando o
+  // estado durante o render em vez de useEffect).
+  const [prevRequestId, setPrevRequestId] = useState(requestId)
+  if (requestId !== prevRequestId) {
+    setPrevRequestId(requestId)
     if (!requestId) {
       setError('Pedido de autorização inválido.')
       setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!requestId) {
       return
     }
 
