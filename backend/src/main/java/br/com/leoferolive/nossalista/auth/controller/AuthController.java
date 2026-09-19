@@ -1,6 +1,7 @@
 package br.com.leoferolive.nossalista.auth.controller;
 
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.service.UserService;
 import br.com.leoferolive.nossalista.auth.dto.ForgotPasswordRequest;
 import br.com.leoferolive.nossalista.auth.dto.LoginRequest;
 import br.com.leoferolive.nossalista.auth.dto.LoginResponse;
@@ -35,6 +36,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -79,6 +81,7 @@ public class AuthController {
     private final EmailVerificationService emailVerificationService;
     private final MagicLinkService magicLinkService;
     private final SessionCookieService sessionCookieService;
+    private final UserService userService;
 
     public AuthController(AuthService authService, JwtService jwtService,
                           UserMapper userMapper, PasswordResetService passwordResetService,
@@ -87,7 +90,8 @@ public class AuthController {
                           OAuthExchangeService oauthExchangeService,
                           EmailVerificationService emailVerificationService,
                           MagicLinkService magicLinkService,
-                          SessionCookieService sessionCookieService) {
+                          SessionCookieService sessionCookieService,
+                          UserService userService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
@@ -98,6 +102,7 @@ public class AuthController {
         this.emailVerificationService = emailVerificationService;
         this.magicLinkService = magicLinkService;
         this.sessionCookieService = sessionCookieService;
+        this.userService = userService;
     }
 
     /**
@@ -205,7 +210,11 @@ public class AuthController {
 
     @PostMapping("/logout")
     @Operation(summary = "Encerrar a sessão atual")
-    public ResponseEntity<Void> logout(HttpServletResponse httpResponse) {
+    public ResponseEntity<Void> logout(Authentication authentication, HttpServletResponse httpResponse) {
+        if (authentication != null && authentication.isAuthenticated()
+            && authentication.getPrincipal() instanceof User user) {
+            userService.revokeWebSessions(user.getId());
+        }
         sessionCookieService.clearSession(httpResponse);
         return ResponseEntity.noContent().build();
     }

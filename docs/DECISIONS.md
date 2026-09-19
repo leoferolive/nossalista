@@ -1512,3 +1512,22 @@ adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position
 - **Efeito:** as 3 supressoes de D-034 passam a valer de fato em `scan-scheduled` (push/cron) e
   em `scan-pr` (diff de PR). Achados novos, nao listados em `IgnoredVulns`, continuam
   bloqueando normalmente.
+
+## D-036 Identidade Google por subject, handoff atomico e revogacao por versao
+
+- **Identidade:** o Google e tratado como OIDC; a chave da identidade local e
+  `(provider=GOOGLE, issuer=https://accounts.google.com, subject=sub)`, nunca o e-mail.
+  O callback exige `sub` e `email_verified=true`. A tabela `user_auth_identities`
+  permite vinculo estavel e impede associacao automatica de uma conta EMAIL por e-mail.
+  Contas GOOGLE antigas sem subject podem ser migradas uma vez por e-mail verificado
+  ate **2026-12-18T03:00:00Z**; depois disso, a recuperacao usa magic link/suporte.
+- **Handoff:** o code do redirect Google continua opaco, mas novas linhas persistem
+  somente SHA-256(code), `user_id`, expiracao e `consumed_at`. O consumo usa update
+  condicional atomico; somente uma requisicao pode reivindicar o code. Linhas legadas
+  continuam aceitas durante o rollout; o JWT nao e persistido para novos fluxos.
+- **Sessao:** JWTs web carregam `sv`, comparado diretamente com `users.session_version`.
+  Logout e reset de senha incrementam a versao e invalidam todas as sessoes web; PATs
+  e tokens OAuth do MCP permanecem independentes.
+- **Cookie OAuth:** `OAUTH2_REQUEST_SIGNING_KEY` assina um envelope HMAC de 180s;
+  producao usa `__Host-nl_oauth2_request`, dev/teste usam `nl_oauth2_request`.
+  Headers defensivos e `no-store` sao aplicados aos endpoints auth/OAuth.

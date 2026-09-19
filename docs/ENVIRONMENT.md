@@ -9,6 +9,7 @@ Obrigatorias em producao:
 - `JWT_SECRET`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
+- `OAUTH2_REQUEST_SIGNING_KEY`
 
 > **`JWT_SECRET` e fail-fast (obrigatorio em todos os ambientes):** `application.yml`
 > nao tem mais default para `jwt.secret`. Na inicializacao, `JwtService` valida o
@@ -62,6 +63,11 @@ Importantes (com default em alguns cenarios):
 > depois de decidir o tratamento das contas pre-existentes (backfill de
 > `email_verified` ou campanha de reverificacao) — ver `docs/DECISIONS.md`.
 
+> **`OAUTH2_REQUEST_SIGNING_KEY`:** chave dedicada de pelo menos 32 bytes para
+> assinar o cookie temporario do authorization request Google. Deve ser diferente
+> de `JWT_SECRET`; `OAUTH2_REQUEST_SIGNING_KEY_PREVIOUS` e opcional durante uma
+> rotacao e so e aceito pela janela de 180 segundos do fluxo.
+
 Referencia de exemplo:
 - `backend/.env.example`
 
@@ -72,6 +78,10 @@ Referencia de exemplo:
 - `prod`: `name=__Host-nl_session`, `secure=true`, `same-site=Lax`, `Path=/`, sem `Domain`. A aplicacao falha no boot se esse profile nao estiver nessa configuracao segura.
 - `dev` e `test`: `name=nl_session`, `secure=false`, para permitir HTTP local. Nunca promover esse override para producao.
 - A duracao do cookie e `jwt.expiration` (atualmente 7 dias).
+- O cookie temporario do OAuth Google usa `__Host-nl_oauth2_request` em producao
+  e `nl_oauth2_request` em dev/teste, com validade de 180 segundos.
+- O claim `sv` do JWT precisa coincidir com `users.session_version`; logout e
+  reset de senha incrementam a versao e revogam todas as sessoes web.
 - `XSRF-TOKEN` nao e credencial: e legivel pela SPA e deve acompanhar mutacoes autenticadas pela sessao como `X-XSRF-TOKEN`. Os transportes MCP/OAuth e `/ws/**` sao excluidos do CSRF de sessao.
 
 Em producao, configure no Cloudflare uma regra de Redirect (ou Always Use HTTPS) para `http://nossalista.leoferolive.com.br/*` -> HTTPS, status **308**, antes do deploy da aplicacao. Nao habilite `server.forward-headers-strategy`: ver D-010, pois isso reabriria spoof de IP por headers forwarded.

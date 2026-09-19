@@ -191,6 +191,20 @@ public class UserService {
         User user = findById(userId)
             .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
         user.setPassword(encodedPassword);
+        user.setSessionVersion(user.getSessionVersion() + 1);
+        userRepository.save(user);
+    }
+
+    /**
+     * Revoga todas as sessões web emitidas para o usuário.
+     *
+     * @param userId usuário cujas sessões devem ser invalidadas
+     */
+    @Transactional
+    public void revokeWebSessions(UUID userId) {
+        User user = findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
+        user.setSessionVersion(user.getSessionVersion() + 1);
         userRepository.save(user);
     }
 

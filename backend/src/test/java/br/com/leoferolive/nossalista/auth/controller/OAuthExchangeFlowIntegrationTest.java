@@ -110,6 +110,7 @@ class OAuthExchangeFlowIntegrationTest {
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("sub", "google-" + email);
         attributes.put("email", email);
+        attributes.put("email_verified", true);
         attributes.put("name", name);
         attributes.put("picture", picture);
         OAuth2User principal = new DefaultOAuth2User(null, attributes, "sub");

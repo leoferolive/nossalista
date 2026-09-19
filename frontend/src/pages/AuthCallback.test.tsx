@@ -83,6 +83,14 @@ describe('AuthCallback page (Q2.3 one-time code)', () => {
     expect(authApi.exchangeOAuthCode).not.toHaveBeenCalled()
   })
 
+  it('mostra erro genérico quando o backend rejeita o vínculo Google', async () => {
+    renderCallback('/auth/callback?error=google_identity_rejected')
+
+    await waitFor(() => expect(screen.getByText('Falha no Login')).toBeInTheDocument())
+    expect(screen.getByText(/não foi possível concluir o login com Google/i)).toBeInTheDocument()
+    expect(authApi.exchangeOAuthCode).not.toHaveBeenCalled()
+  })
+
   it('mostra erro quando o code é inválido ou expirado', async () => {
     vi.mocked(authApi.exchangeOAuthCode).mockRejectedValueOnce(new Error('Link de login expirado'))
 

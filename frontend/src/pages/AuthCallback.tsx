@@ -28,6 +28,14 @@ export function AuthCallback() {
     }
     hasProcessedRef.current = true
 
+    const providerError = searchParams.get('error')
+    if (providerError) {
+      setError(
+        'Não foi possível concluir o login com Google. Tente novamente ou use outro método de acesso.'
+      )
+      return
+    }
+
     const code = searchParams.get('code')
     if (!code) {
       setError('Código de autenticação não encontrado.')

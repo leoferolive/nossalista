@@ -1,15 +1,12 @@
 package br.com.leoferolive.nossalista.auth;
 
-import br.com.leoferolive.nossalista.auth.domain.OAuthAuthorizationCode;
-import br.com.leoferolive.nossalista.auth.repository.OAuthAuthorizationCodeRepository;
-import br.com.leoferolive.nossalista.auth.service.AuthService;
-import br.com.leoferolive.nossalista.auth.service.JwtService;
+import br.com.leoferolive.nossalista.auth.service.GoogleIdentityRejectedException;
+import br.com.leoferolive.nossalista.auth.service.GoogleIdentityClaims;
+import br.com.leoferolive.nossalista.auth.service.GoogleIdentityService;
 import br.com.leoferolive.nossalista.auth.service.OAuthCodeStore;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
-import br.com.leoferolive.nossalista.user.repository.UserRepository;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,403 +18,101 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-/**
- * Testes para OAuth2SuccessHandler
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("OAuth2SuccessHandler")
 class OAuth2SuccessHandlerTest {
 
     @Mock
-    private UserRepository userRepository;
+    private GoogleIdentityService googleIdentityService;
 
     @Mock
-    private JwtService jwtService;
-
-    @Mock
-    private AuthService authService;
-
-    @Mock
-    private HttpServletRequest request;
+    private OAuthCodeStore oauthCodeStore;
 
     @Mock
     private HttpServletResponse response;
 
-    @Mock
-    private OAuthAuthorizationCodeRepository codeRepository;
-
-    private final Map<String, OAuthAuthorizationCode> issuedCodes = new HashMap<>();
-
-    private OAuthCodeStore oauthCodeStore;
-
     private OAuth2SuccessHandler successHandler;
-
-    private static final String FRONTEND_URL = "http://localhost:5173";
-    private static final String TEST_EMAIL = "leo@gmail.com";
-    private static final String TEST_NAME = "Leonardo Oliveira";
-    private static final String TEST_PICTURE = "https://lh3.googleusercontent.com/a/test";
-    private static final String TEST_USERNAME = "leo";
-    private static final String TEST_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test";
 
     @BeforeEach
     void setUp() {
-        // OAuthCodeStore agora é persistido. Aqui usamos um repositório mockado
-        // com um mapa por trás para preservar o round-trip issue->consume do teste.
-        lenient().when(codeRepository.save(any(OAuthAuthorizationCode.class))).thenAnswer(inv -> {
-            OAuthAuthorizationCode entity = inv.getArgument(0);
-            issuedCodes.put(entity.getCode(), entity);
-            return entity;
-        });
-        lenient().when(codeRepository.findByCode(anyString()))
-            .thenAnswer(inv -> Optional.ofNullable(issuedCodes.get(inv.<String>getArgument(0))));
-        lenient().doAnswer(inv -> {
-            OAuthAuthorizationCode entity = inv.getArgument(0);
-            issuedCodes.remove(entity.getCode());
-            return null;
-        }).when(codeRepository).delete(any(OAuthAuthorizationCode.class));
-
-        oauthCodeStore = new OAuthCodeStore(codeRepository);
-        successHandler = new OAuth2SuccessHandler(userRepository, jwtService, authService, oauthCodeStore);
-        successHandler.setFrontendUrl(FRONTEND_URL);
-    }
-
-    /**
-     * Captura a URL de redirect, valida que usa o padrão one-time code (Q2.3) — ou
-     * seja, contém {@code ?code=} e NÃO expõe o JWT na URL — e devolve o code emitido.
-     */
-    private String captureRedirectCode() throws IOException {
-        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
-        verify(response).sendRedirect(urlCaptor.capture());
-        String url = urlCaptor.getValue();
-        assertThat(url).startsWith(FRONTEND_URL + "/auth/callback?code=");
-        assertThat(url).doesNotContain(TEST_JWT);
-        assertThat(url).doesNotContain("token=");
-        return url.substring((FRONTEND_URL + "/auth/callback?code=").length());
+        successHandler = new OAuth2SuccessHandler(googleIdentityService, oauthCodeStore);
+        successHandler.setFrontendUrl("http://localhost:5173");
     }
 
     @Test
-    @DisplayName("Deve criar novo usuário quando email não existe")
-    void shouldCreateNewUserWhenEmailNotExists() throws IOException {
-        // Given: OAuth2 token com dados do Google
-        OAuth2AuthenticationToken oauth2Token = createOAuth2Token(TEST_EMAIL, TEST_NAME, TEST_PICTURE);
+    @DisplayName("resolve identidade Google e redireciona somente com code opaco")
+    void redirectsWithOpaqueCodeAfterIdentityResolution() throws IOException {
+        User user = googleUser();
+        when(googleIdentityService.resolve(any())).thenReturn(user);
+        when(oauthCodeStore.issue(user.getId())).thenReturn("opaque-code");
 
-        // Given: Email não existe no database
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+        successHandler.onAuthenticationSuccess(null, response, googleAuthentication());
 
-        // Given: Username único gerado
-        when(authService.generateUniqueUsername(TEST_EMAIL)).thenReturn(TEST_USERNAME);
-
-        // Given: Novo usuário salvo
-        User newUser = createUser(UUID.randomUUID(), TEST_USERNAME, TEST_EMAIL, TEST_NAME, TEST_PICTURE, AuthProvider.GOOGLE, null);
-        when(userRepository.save(any(User.class))).thenReturn(newUser);
-
-        // Given: JWT gerado
-        when(jwtService.generateToken(any(User.class))).thenReturn(TEST_JWT);
-
-        // When: Handler processa autenticação
-        successHandler.onAuthenticationSuccess(request, response, oauth2Token);
-
-        // Then: Verifica que novo usuário foi criado
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-
-        User savedUser = userCaptor.getValue();
-        assertThat(savedUser.getEmail()).isEqualTo(TEST_EMAIL);
-        assertThat(savedUser.getUsername()).isEqualTo(TEST_USERNAME);
-        assertThat(savedUser.getName()).isEqualTo(TEST_NAME);
-        assertThat(savedUser.getAvatarUrl()).isEqualTo(TEST_PICTURE);
-        assertThat(savedUser.getAuthProvider()).isEqualTo(AuthProvider.GOOGLE);
-        assertThat(savedUser.getPassword()).isNull();
-        assertThat(savedUser.isEmailVerified()).isTrue(); // Google já verifica o e-mail
-
-        // Then: Verifica que JWT foi gerado
-        verify(jwtService).generateToken(any(User.class));
-
-        // Then: Verifica redirect com one-time code (sem token na URL) e que o
-        // code troca pelo JWT emitido (single-use).
-        String code = captureRedirectCode();
-        assertThat(oauthCodeStore.consume(code)).contains(TEST_JWT);
+        ArgumentCaptor<String> redirect = ArgumentCaptor.forClass(String.class);
+        verify(response).sendRedirect(redirect.capture());
+        assertThat(redirect.getValue()).isEqualTo("http://localhost:5173/auth/callback?code=opaque-code");
+        verify(oauthCodeStore).issue(user.getId());
     }
 
     @Test
-    @DisplayName("Deve atualizar usuário existente quando dados mudaram")
-    void shouldUpdateExistingUserWhenDataChanged() throws IOException {
-        // Given: Usuário existente no database
-        User existingUser = createUser(
-            UUID.randomUUID(),
-            TEST_USERNAME,
-            TEST_EMAIL,
-            "Old Name",
-            "https://old-picture.com",
-            AuthProvider.GOOGLE,
-            null
+    @DisplayName("repassa sub e email_verified para o resolvedor Google")
+    void passesStableClaimsToIdentityResolver() throws IOException {
+        User user = googleUser();
+        when(googleIdentityService.resolve(any())).thenReturn(user);
+        when(oauthCodeStore.issue(user.getId())).thenReturn("opaque-code");
+
+        successHandler.onAuthenticationSuccess(null, response, googleAuthentication());
+
+        ArgumentCaptor<GoogleIdentityClaims> claims = ArgumentCaptor.forClass(GoogleIdentityClaims.class);
+        verify(googleIdentityService).resolve(claims.capture());
+        assertThat(claims.getValue().subject()).isEqualTo("google-sub-1");
+        assertThat(claims.getValue().emailVerified()).isTrue();
+        assertThat(claims.getValue().issuer()).isEqualTo("https://accounts.google.com");
+    }
+
+    @Test
+    @DisplayName("não expõe detalhes quando vínculo Google é rejeitado")
+    void redirectsWithGenericErrorWhenIdentityIsRejected() throws IOException {
+        doThrow(new GoogleIdentityRejectedException()).when(googleIdentityService).resolve(any());
+
+        successHandler.onAuthenticationSuccess(null, response, googleAuthentication());
+
+        verify(response).sendRedirect("http://localhost:5173/auth/callback?error=google_identity_rejected");
+    }
+
+    private Authentication googleAuthentication() {
+        Map<String, Object> attributes = Map.of(
+            "sub", "google-sub-1",
+            "email", "person@gmail.com",
+            "email_verified", true,
+            "name", "Person",
+            "picture", "https://example.com/avatar"
         );
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(existingUser));
-
-        // Given: OAuth2 token com dados atualizados
-        OAuth2AuthenticationToken oauth2Token = createOAuth2Token(TEST_EMAIL, TEST_NAME, TEST_PICTURE);
-
-        // Given: JWT gerado
-        when(jwtService.generateToken(any(User.class))).thenReturn(TEST_JWT);
-
-        // When: Handler processa autenticação
-        successHandler.onAuthenticationSuccess(request, response, oauth2Token);
-
-        // Then: Verifica que usuário foi atualizado
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-
-        User updatedUser = userCaptor.getValue();
-        assertThat(updatedUser.getName()).isEqualTo(TEST_NAME);
-        assertThat(updatedUser.getAvatarUrl()).isEqualTo(TEST_PICTURE);
-
-        // Then: Verifica redirect com one-time code (sem token na URL)
-        String code = captureRedirectCode();
-        assertThat(oauthCodeStore.consume(code)).contains(TEST_JWT);
+        var principal = new DefaultOAuth2User(
+            List.of(), attributes, "sub");
+        return new OAuth2AuthenticationToken(principal, List.of(), "google");
     }
 
-    @Test
-    @DisplayName("Não deve atualizar usuário quando dados não mudaram e já está verificado")
-    void shouldNotUpdateUserWhenDataNotChanged() throws IOException {
-        // Given: Usuário existente com mesmos dados e e-mail já verificado
-        User existingUser = createUser(
-            UUID.randomUUID(),
-            TEST_USERNAME,
-            TEST_EMAIL,
-            TEST_NAME,
-            TEST_PICTURE,
-            AuthProvider.GOOGLE,
-            null
-        );
-        existingUser.setEmailVerified(true);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(existingUser));
-
-        // Given: OAuth2 token com mesmos dados
-        OAuth2AuthenticationToken oauth2Token = createOAuth2Token(TEST_EMAIL, TEST_NAME, TEST_PICTURE);
-
-        // Given: JWT gerado
-        when(jwtService.generateToken(any(User.class))).thenReturn(TEST_JWT);
-
-        // When: Handler processa autenticação
-        successHandler.onAuthenticationSuccess(request, response, oauth2Token);
-
-        // Then: Não deve chamar save (dados iguais e já verificado)
-        verify(userRepository, never()).save(any(User.class));
-
-        // Then: Deve gerar token e redirecionar com one-time code
-        verify(jwtService).generateToken(existingUser);
-        String code = captureRedirectCode();
-        assertThat(oauthCodeStore.consume(code)).contains(TEST_JWT);
-    }
-
-    @Test
-    @DisplayName("Deve marcar e-mail como verificado para usuário Google pré-existente não-verificado")
-    void shouldMarkExistingGoogleUserAsVerified() throws IOException {
-        // Given: Usuário Google existente com mesmos dados mas e-mail não verificado
-        User existingUser = createUser(
-            UUID.randomUUID(),
-            TEST_USERNAME,
-            TEST_EMAIL,
-            TEST_NAME,
-            TEST_PICTURE,
-            AuthProvider.GOOGLE,
-            null
-        );
-        existingUser.setEmailVerified(false);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(existingUser));
-
-        OAuth2AuthenticationToken oauth2Token = createOAuth2Token(TEST_EMAIL, TEST_NAME, TEST_PICTURE);
-        when(jwtService.generateToken(any(User.class))).thenReturn(TEST_JWT);
-
-        // When: Handler processa autenticação
-        successHandler.onAuthenticationSuccess(request, response, oauth2Token);
-
-        // Then: Deve salvar marcando o e-mail como verificado (Google já verifica)
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        assertThat(userCaptor.getValue().isEmailVerified()).isTrue();
-    }
-
-    @Test
-    @DisplayName("Deve gerar username único usando AuthService")
-    void shouldGenerateUniqueUsernameViaAuthService() throws IOException {
-        // Given: OAuth2 token
-        OAuth2AuthenticationToken oauth2Token = createOAuth2Token(TEST_EMAIL, TEST_NAME, TEST_PICTURE);
-
-        // Given: Email não existe
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
-
-        // Given: AuthService gera username único
-        when(authService.generateUniqueUsername(TEST_EMAIL)).thenReturn("leo1");
-
-        // Given: User salvo
-        User newUser = createUser(UUID.randomUUID(), "leo1", TEST_EMAIL, TEST_NAME, TEST_PICTURE, AuthProvider.GOOGLE, null);
-        when(userRepository.save(any(User.class))).thenReturn(newUser);
-
-        // Given: JWT gerado
-        when(jwtService.generateToken(any(User.class))).thenReturn(TEST_JWT);
-
-        // When: Handler processa
-        successHandler.onAuthenticationSuccess(request, response, oauth2Token);
-
-        // Then: Deve chamar generateUniqueUsername
-        verify(authService).generateUniqueUsername(TEST_EMAIL);
-
-        // Then: Username deve ser "leo1"
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        assertThat(userCaptor.getValue().getUsername()).isEqualTo("leo1");
-    }
-
-    @Test
-    @DisplayName("Deve normalizar email (trim + toLowerCase)")
-    void shouldNormalizeEmail() throws IOException {
-        // Given: OAuth2 token com email maiúsculo e espaços
-        OAuth2AuthenticationToken oauth2Token = createOAuth2Token("  Leo@Gmail.COM  ", TEST_NAME, TEST_PICTURE);
-
-        // Given: Email normalizado não existe
-        when(userRepository.findByEmail("leo@gmail.com")).thenReturn(Optional.empty());
-
-        // Given: Username gerado
-        when(authService.generateUniqueUsername("leo@gmail.com")).thenReturn(TEST_USERNAME);
-
-        // Given: User salvo
-        User newUser = createUser(UUID.randomUUID(), TEST_USERNAME, "leo@gmail.com", TEST_NAME, TEST_PICTURE, AuthProvider.GOOGLE, null);
-        when(userRepository.save(any(User.class))).thenReturn(newUser);
-
-        // Given: JWT gerado
-        when(jwtService.generateToken(any(User.class))).thenReturn(TEST_JWT);
-
-        // When: Handler processa
-        successHandler.onAuthenticationSuccess(request, response, oauth2Token);
-
-        // Then: Email deve ser normalizado
-        verify(userRepository).findByEmail("leo@gmail.com");
-
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        assertThat(userCaptor.getValue().getEmail()).isEqualTo("leo@gmail.com");
-    }
-
-    @Test
-    @DisplayName("Deve lançar exception se email for null (ausente no mapa)")
-    void shouldThrowExceptionWhenEmailIsNull() {
-        // Given: OAuth2 token SEM chave "email" no mapa de attributes
-        OAuth2AuthenticationToken oauth2TokenNoEmail = createOAuth2TokenWithMissingEmail(TEST_NAME, TEST_PICTURE);
-
-        // When/Then: Deve lançar IllegalStateException
-        assertThatThrownBy(() -> successHandler.onAuthenticationSuccess(request, response, oauth2TokenNoEmail))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Email não fornecido pelo Google");
-    }
-
-    @Test
-    @DisplayName("Deve lançar exception se email for vazio ou apenas espaços")
-    void shouldThrowExceptionWhenEmailIsBlank() {
-        // Given: OAuth2 token com email vazio
-        OAuth2AuthenticationToken oauth2TokenEmptyEmail = createOAuth2Token("   ", TEST_NAME, TEST_PICTURE);
-
-        // When/Then: Deve lançar IllegalStateException
-        assertThatThrownBy(() -> successHandler.onAuthenticationSuccess(request, response, oauth2TokenEmptyEmail))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Email não fornecido pelo Google");
-    }
-
-    @Test
-    @DisplayName("Não deve atualizar usuário EMAIL provider (migração não permitida)")
-    void shouldNotUpdateEmailProviderUser() throws IOException {
-        // Given: Usuário existente com EMAIL provider
-        User existingUser = createUser(
-            UUID.randomUUID(),
-            TEST_USERNAME,
-            TEST_EMAIL,
-            "Old Name",
-            null,
-            AuthProvider.EMAIL,
-            "hashed-password"
-        );
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(existingUser));
-
-        // Given: OAuth2 token
-        OAuth2AuthenticationToken oauth2Token = createOAuth2Token(TEST_EMAIL, TEST_NAME, TEST_PICTURE);
-
-        // Given: JWT gerado
-        when(jwtService.generateToken(any(User.class))).thenReturn(TEST_JWT);
-
-        // When: Handler processa
-        successHandler.onAuthenticationSuccess(request, response, oauth2Token);
-
-        // Then: Não deve atualizar (authProvider é EMAIL, não GOOGLE)
-        verify(userRepository, never()).save(any(User.class));
-
-        // Then: Deve gerar token normalmente e redirecionar com one-time code
-        verify(jwtService).generateToken(existingUser);
-        String code = captureRedirectCode();
-        assertThat(oauthCodeStore.consume(code)).contains(TEST_JWT);
-    }
-
-    // Helper methods
-
-    private OAuth2AuthenticationToken createOAuth2Token(String email, String name, String picture) {
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put("sub", "google-user-id-123");
-        attributes.put("email", email != null ? email : "");
-        attributes.put("name", name != null ? name : "");
-        attributes.put("picture", picture != null ? picture : "");
-
-        OAuth2User oauth2User = new DefaultOAuth2User(
-            null,
-            attributes,
-            "sub"
-        );
-
-        return new OAuth2AuthenticationToken(oauth2User, null, "google");
-    }
-
-    /**
-     * Cria OAuth2 token SEM a chave "email" no mapa de attributes.
-     * Simula cenário real onde Google não retorna email.
-     */
-    private OAuth2AuthenticationToken createOAuth2TokenWithMissingEmail(String name, String picture) {
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put("sub", "google-user-id-123");
-        // "email" key intentionally absent
-        attributes.put("name", name != null ? name : "");
-        attributes.put("picture", picture != null ? picture : "");
-
-        OAuth2User oauth2User = new DefaultOAuth2User(
-            null,
-            attributes,
-            "sub"
-        );
-
-        return new OAuth2AuthenticationToken(oauth2User, null, "google");
-    }
-
-    private User createUser(UUID id, String username, String email, String name, String avatarUrl, AuthProvider authProvider, String password) {
+    private User googleUser() {
         User user = new User();
-        user.setId(id);
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setName(name);
-        user.setAvatarUrl(avatarUrl);
-        user.setAuthProvider(authProvider);
-        user.setPassword(password);
+        user.setId(UUID.randomUUID());
+        user.setEmail("person@gmail.com");
+        user.setUsername("person");
+        user.setAuthProvider(AuthProvider.GOOGLE);
         user.setRole(Role.USER);
+        user.setEmailVerified(true);
         return user;
     }
 }
