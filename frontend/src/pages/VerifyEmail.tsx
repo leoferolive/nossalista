@@ -11,8 +11,13 @@ const LOGIN_HREF = '/?auth=login'
  * Q2.7: hook que confirma o token de verificação de e-mail no backend.
  */
 function useEmailVerification(token: string) {
-  const [status, setStatus] = useState<Status>('verifying')
-  const [error, setError] = useState('')
+  // token já reflete a URL desde o primeiro render, então o caso "sem
+  // token" pode ser resolvido no initializer em vez de um setState síncrono
+  // no efeito — ver react-hooks/set-state-in-effect.
+  const [status, setStatus] = useState<Status>(() => (token ? 'verifying' : 'error'))
+  const [error, setError] = useState(() =>
+    token ? '' : 'O link de verificação está incompleto ou inválido.'
+  )
   const hasProcessedRef = useRef(false)
 
   useEffect(() => {
@@ -22,8 +27,6 @@ function useEmailVerification(token: string) {
     hasProcessedRef.current = true
 
     if (!token) {
-      setStatus('error')
-      setError('O link de verificação está incompleto ou inválido.')
       return
     }
 
