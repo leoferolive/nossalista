@@ -2,6 +2,7 @@ package br.com.leoferolive.nossalista.config;
 
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import br.com.leoferolive.nossalista.auth.service.JwtService;
 import br.com.leoferolive.nossalista.auth.service.SessionCookieService;
 import jakarta.servlet.FilterChain;
@@ -30,12 +31,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final AuthenticatedUserCache userCache;
+    private final UserRepository userRepository;
     private final SessionCookieService sessionCookieService;
 
     public JwtAuthenticationFilter(JwtService jwtService, AuthenticatedUserCache userCache,
+                                   UserRepository userRepository,
                                    SessionCookieService sessionCookieService) {
         this.jwtService = jwtService;
         this.userCache = userCache;
+        this.userRepository = userRepository;
         this.sessionCookieService = sessionCookieService;
     }
 
@@ -64,8 +68,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Extrair userId do token
-        UUID userId = jwtService.extractUserId(token);
+        // Claims assinadas mas incompatíveis com a sessão falham fechado.
+        UUID userId;
+        Integer tokenSessionVersion;
+        try {
+            userId = jwtService.extractUserId(token);
+            tokenSessionVersion = jwtService.extractSessionVersion(token);
+        } catch (RuntimeException exception) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        Integer currentSessionVersion = userRepository.findSessionVersionById(userId).orElse(null);
+        if (tokenSessionVersion == null) {
+            tokenSessionVersion = 0;
+        }
+        if (currentSessionVersion == null
+            || !tokenSessionVersion.equals(currentSessionVersion)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // Buscar usuário (cacheado com TTL curto para evitar lookup por request)
         User user = userCache.findById(userId).orElse(null);

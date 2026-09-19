@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -58,6 +59,30 @@ class SecurityConfigTest {
     void joinMutationEndpointShouldReturn401WithoutAuth() throws Exception {
         mockMvc.perform(post("/api/lists/join/ABC123XYZ789"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void securityHeadersAndAuthResponsesAreDefensive() throws Exception {
+        mockMvc.perform(get("/api/health"))
+            .andExpect(status().isOk())
+            .andExpect(result -> {
+                var headers = result.getResponse();
+                org.assertj.core.api.Assertions.assertThat(headers.getHeader("Referrer-Policy"))
+                    .isEqualTo("no-referrer");
+                org.assertj.core.api.Assertions.assertThat(headers.getHeader("X-Content-Type-Options"))
+                    .isEqualTo("nosniff");
+                org.assertj.core.api.Assertions.assertThat(headers.getHeader("X-Frame-Options"))
+                    .isEqualTo("DENY");
+                org.assertj.core.api.Assertions.assertThat(headers.getHeader("Permissions-Policy"))
+                    .contains("camera=()", "geolocation=()", "microphone=()");
+                org.assertj.core.api.Assertions.assertThat(headers.getHeader("Content-Security-Policy"))
+                    .isEqualTo("base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'");
+            });
+
+        mockMvc.perform(get("/oauth2/authorization/google"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                result.getResponse().getHeader(HttpHeaders.CACHE_CONTROL)).isEqualTo("no-store"));
     }
 
 }

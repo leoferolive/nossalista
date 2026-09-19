@@ -66,6 +66,11 @@ app:
       name: nl_session
       secure: false
       same-site: Lax
+    oauth2-request-cookie:
+      name: nl_oauth2_request
+      secure: false
+      signing-key: test-oauth2-request-signing-key-minimum-32-bytes
+      previous-signing-key: ""
   # Precisa ser repetido aqui pelo MESMO motivo documentado em docs/DECISIONS.md
   # (D-020): este arquivo SUBSTITUI (não mescla com) src/main/resources/application.yml
   # no classpath de teste. Sem isso, McpOAuthJwtService falha no @PostConstruct

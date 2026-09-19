@@ -20,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -77,6 +78,25 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .headers(headers -> headers
+                        .referrerPolicy(referrer -> referrer.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                        .contentTypeOptions(contentType -> { })
+                        .frameOptions(frame -> frame.deny())
+                        .permissionsPolicyHeader(policy -> policy.policy(
+                                "accelerometer=(), autoplay=(), camera=(), display-capture=(), "
+                                    + "encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), "
+                                    + "magnetometer=(), microphone=(), midi=(), payment=(), usb=()"))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'"))
+                        .addHeaderWriter((request, response) -> {
+                            String path = request.getRequestURI();
+                            if (isAuthOrOAuthPath(path)) {
+                                response.setHeader("Cache-Control", "no-store");
+                                response.setHeader("Pragma", "no-cache");
+                            }
+                        }))
+
                 // Sessões web usam cookie HttpOnly; mutações autenticadas exigem
                 // o token XSRF legível pela SPA. PAT/MCP continuam sem CSRF.
                 .csrf(csrf -> csrf
@@ -183,6 +203,14 @@ public class SecurityConfig {
                 .addFilterBefore(mcpOAuthTokenAuthenticationFilter, JwtAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    private boolean isAuthOrOAuthPath(String path) {
+        return path.startsWith("/api/auth/")
+            || path.startsWith("/oauth2/")
+            || path.startsWith("/login/oauth2/")
+            || path.startsWith("/oauth/")
+            || path.startsWith("/.well-known/oauth-");
     }
 
     private CookieCsrfTokenRepository csrfTokenRepository() {

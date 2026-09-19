@@ -37,6 +37,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsernameIgnoreCase(String username);
 
     /**
+     * Busca somente a versão de sessão atual, sem utilizar a entidade cacheada.
+     *
+     * @param id ID do usuário
+     * @return versão de sessão atual, ou vazio se o usuário não existir
+     */
+    @Query("SELECT u.sessionVersion FROM User u WHERE u.id = :id")
+    Optional<Integer> findSessionVersionById(@Param("id") UUID id);
+
+    /**
      * Verifica se um email já existe no banco de dados
      *
      * @param email o email para verificar

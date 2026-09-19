@@ -108,6 +108,11 @@ app:
       name: __Host-nl_session
       secure: true
       same-site: Lax
+    oauth2-request-cookie:
+      name: __Host-nl_oauth2_request
+      secure: true
+      signing-key: ${OAUTH2_REQUEST_SIGNING_KEY}
+      previous-signing-key: ${OAUTH2_REQUEST_SIGNING_KEY_PREVIOUS:}
     # Q2.7: enforcement estrito de verificação de e-mail no login email/senha.
     # Default false: o status email_verified é registrado mas o login NÃO é
     # bloqueado — evita deslogar contas pré-existentes e não afeta OAuth (Google).

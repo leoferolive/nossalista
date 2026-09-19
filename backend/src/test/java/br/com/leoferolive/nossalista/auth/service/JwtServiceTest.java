@@ -85,10 +85,12 @@ class JwtServiceTest {
         user.setId(userId);
         user.setEmail("user@example.com");
         user.setUsername("user");
+        user.setSessionVersion(7);
 
         String token = service.generateToken(user);
 
         assertThat(service.validateToken(token)).isTrue();
         assertThat(service.extractUserId(token)).isEqualTo(userId);
+        assertThat(service.extractSessionVersion(token)).isEqualTo(7);
     }
 }

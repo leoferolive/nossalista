@@ -99,6 +99,7 @@ public class JwtService {
             .subject(user.getId().toString())
             .claim("email", user.getEmail())
             .claim("username", user.getUsername())
+            .claim("sv", user.getSessionVersion())
             .issuedAt(now)
             .expiration(expiryDate)
             .signWith(getSigningKey())
@@ -137,6 +138,21 @@ public class JwtService {
             .getPayload()
             .getSubject();
         return UUID.fromString(subject);
+    }
+
+    /**
+     * Extrai a versão de sessão emitida no token.
+     *
+     * @param token token JWT
+     * @return versão de sessão, ou {@code null} para tokens legados sem claim
+     */
+    public Integer extractSessionVersion(String token) {
+        return Jwts.parser()
+            .verifyWith(getSigningKey())
+            .build()
+            .parseSignedClaims(token)
+            .getPayload()
+            .get("sv", Integer.class);
     }
 
     /**

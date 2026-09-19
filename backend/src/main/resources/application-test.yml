@@ -29,6 +29,12 @@ management:
       enabled: false
 
 app:
+  auth:
+    oauth2-request-cookie:
+      name: nl_oauth2_request
+      secure: false
+      signing-key: test-oauth2-request-signing-key-minimum-32-bytes
+      previous-signing-key: ""
   mcp-oauth:
     issuer: http://localhost:8080
     resource: http://localhost:8080/mcp

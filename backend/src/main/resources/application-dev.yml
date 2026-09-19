@@ -41,6 +41,11 @@ app:
       name: nl_session
       secure: false
       same-site: Lax
+    oauth2-request-cookie:
+      name: nl_oauth2_request
+      secure: false
+      signing-key: ${OAUTH2_REQUEST_SIGNING_KEY}
+      previous-signing-key: ${OAUTH2_REQUEST_SIGNING_KEY_PREVIOUS:}
     # Dev: enforcement desligado para não atrapalhar o fluxo local de testes.
     require-email-verification: ${REQUIRE_EMAIL_VERIFICATION:false}
   mcp-oauth:

@@ -10,8 +10,12 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 
 import java.util.Map;
 import java.util.Set;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Garante que o authorization-request (state OAuth2) faz round-trip por cookie
@@ -50,6 +54,10 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
 
         String cookieValue = cookieValueFrom(saveResponse);
         assertThat(cookieValue).isNotBlank();
+        assertThat(saveResponse.getHeader(HttpHeaders.SET_COOKIE))
+            .contains("Path=/", "HttpOnly", "SameSite=Lax", "Max-Age=180")
+            .doesNotContain("Secure");
+        assertThat(cookieValue).contains(".");
 
         MockHttpServletRequest loadRequest = new MockHttpServletRequest();
         loadRequest.setCookies(new Cookie(CookieOAuth2AuthorizationRequestRepository.COOKIE_NAME, cookieValue));
@@ -91,5 +99,76 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
         MockHttpServletRequest tampered = new MockHttpServletRequest();
         tampered.setCookies(new Cookie(CookieOAuth2AuthorizationRequestRepository.COOKIE_NAME, "not-valid-base64-$$$"));
         assertThat(repo.loadAuthorizationRequest(tampered)).isNull();
+    }
+
+    @Test
+    @DisplayName("adulterar o payload ou a assinatura falha fechado")
+    void tamperedEnvelopeFailsClosedAndRemoveClearsCookie() {
+        MockHttpServletResponse saveResponse = new MockHttpServletResponse();
+        repo.saveAuthorizationRequest(sample("state-safe"), new MockHttpServletRequest(), saveResponse);
+        String cookieValue = cookieValueFrom(saveResponse);
+        String tampered = "A" + cookieValue.substring(1);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setCookies(new Cookie(CookieOAuth2AuthorizationRequestRepository.COOKIE_NAME, tampered));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertThat(repo.removeAuthorizationRequest(request, response)).isNull();
+        assertThat(response.getHeader(HttpHeaders.SET_COOKIE)).contains("Max-Age=0");
+    }
+
+    @Test
+    @DisplayName("profile prod usa cookie __Host- seguro")
+    void productionCookieUsesHostPrefixAndSecure() {
+        CookieOAuth2AuthorizationRequestRepository production = repository("prod", "", Clock.systemUTC());
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        production.saveAuthorizationRequest(sample("prod-state"), new MockHttpServletRequest(), response);
+
+        assertThat(response.getHeader(HttpHeaders.SET_COOKIE))
+            .contains("__Host-nl_oauth2_request=", "Path=/", "Secure", "HttpOnly", "SameSite=Lax")
+            .doesNotContain("Domain=");
+    }
+
+    @Test
+    @DisplayName("aceita uma chave anterior durante a janela de rotação")
+    void previousSigningKeyIsAcceptedWithinTtl() {
+        Clock clock = Clock.fixed(Instant.parse("2026-09-19T00:00:00Z"), ZoneOffset.UTC);
+        String oldKey = "old-oauth2-request-signing-key-minimum-32-bytes";
+        CookieOAuth2AuthorizationRequestRepository old = repositoryWithKey("", oldKey, clock);
+        MockHttpServletResponse saved = new MockHttpServletResponse();
+        old.saveAuthorizationRequest(sample("rotated-state"), new MockHttpServletRequest(), saved);
+
+        String cookie = cookieValueFrom(saved);
+        CookieOAuth2AuthorizationRequestRepository rotated = repositoryWithKey(oldKey,
+            "new-oauth2-request-signing-key-minimum-32-bytes", clock);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setCookies(new Cookie(CookieOAuth2AuthorizationRequestRepository.COOKIE_NAME, cookie));
+
+        assertThat(rotated.loadAuthorizationRequest(request).getState()).isEqualTo("rotated-state");
+    }
+
+    @Test
+    @DisplayName("rejeita chave ausente, curta ou igual ao JWT")
+    void signingKeyConfigurationFailsClosed() {
+        assertThatThrownBy(() -> repositoryWithKey("", "short", Clock.systemUTC()))
+            .isInstanceOf(IllegalStateException.class).hasMessageContaining("32 bytes");
+        String jwt = "jwt-secret-minimum-32-bytes-for-testing-purpose";
+        assertThatThrownBy(() -> new CookieOAuth2AuthorizationRequestRepository(
+            null, jwt, "", jwt, Clock.systemUTC()))
+            .isInstanceOf(IllegalStateException.class).hasMessageContaining("distinta");
+    }
+
+    private CookieOAuth2AuthorizationRequestRepository repository(String profile, String previous, Clock clock) {
+        org.springframework.mock.env.MockEnvironment environment = new org.springframework.mock.env.MockEnvironment();
+        environment.setActiveProfiles(profile);
+        return new CookieOAuth2AuthorizationRequestRepository(environment,
+            "current-oauth2-request-signing-key-minimum-32-bytes", previous,
+            "jwt-secret-minimum-32-bytes-for-testing-purpose", clock);
+    }
+
+    private CookieOAuth2AuthorizationRequestRepository repositoryWithKey(String previous, String current, Clock clock) {
+        return new CookieOAuth2AuthorizationRequestRepository(null, current, previous,
+            "jwt-secret-minimum-32-bytes-for-testing-purpose", clock);
     }
 }

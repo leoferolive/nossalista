@@ -5,6 +5,7 @@ import br.com.leoferolive.nossalista.auth.service.SessionCookieService;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.service.UserService;
+import br.com.leoferolive.nossalista.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,6 +29,7 @@ class JwtAuthenticationFilterTest {
 
     private JwtService jwtService;
     private UserService userService;
+    private UserRepository userRepository;
     private JwtAuthenticationFilter filter;
     private SessionCookieService sessionCookieService;
 
@@ -38,13 +40,15 @@ class JwtAuthenticationFilterTest {
     void setUp() {
         jwtService = mock(JwtService.class);
         userService = mock(UserService.class);
+        userRepository = mock(UserRepository.class);
         AuthenticatedUserCache cache =
             new AuthenticatedUserCache(userService, Duration.ofSeconds(60));
         sessionCookieService = mock(SessionCookieService.class);
-        filter = new JwtAuthenticationFilter(jwtService, cache, sessionCookieService);
+        filter = new JwtAuthenticationFilter(jwtService, cache, userRepository, sessionCookieService);
 
         when(jwtService.validateToken(TOKEN)).thenReturn(true);
         when(jwtService.extractUserId(TOKEN)).thenReturn(userId);
+        when(jwtService.extractSessionVersion(TOKEN)).thenReturn(0);
     }
 
     @AfterEach
@@ -54,6 +58,7 @@ class JwtAuthenticationFilterTest {
 
     private Authentication runFilterFor(User user) throws Exception {
         when(userService.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findSessionVersionById(userId)).thenReturn(Optional.of(user.getSessionVersion()));
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -103,5 +108,24 @@ class JwtAuthenticationFilterTest {
         assertThat(auth.getAuthorities())
             .extracting(Object::toString)
             .containsExactly("ROLE_USER");
+    }
+
+    @Test
+    @DisplayName("versão de sessão é consultada diretamente e token revogado não autentica")
+    void sessionVersionMustMatchDirectRepositoryProjection() throws Exception {
+        User user = userWithRole(Role.USER);
+        user.setSessionVersion(1);
+        when(jwtService.extractSessionVersion(TOKEN)).thenReturn(0);
+        when(userService.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findSessionVersionById(userId)).thenReturn(Optional.of(1));
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+        when(sessionCookieService.extractToken(request)).thenReturn(Optional.of(TOKEN));
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 }
