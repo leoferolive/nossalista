@@ -27,13 +27,17 @@ export const EditListNameModal: React.FC<EditListNameModalProps> = ({
   const [editedName, setEditedName] = useState(listName)
   const [validationError, setValidationError] = useState<string | null>(null)
 
-  // Reset state quando o modal abre
-  useEffect(() => {
+  // Reset state quando o modal abre. Ajusta o estado durante o render (em
+  // vez de useEffect) para evitar um cascading render supérfluo — ver
+  // react-hooks/set-state-in-effect.
+  const [prevResetKey, setPrevResetKey] = useState({ isOpen, listName })
+  if (isOpen !== prevResetKey.isOpen || listName !== prevResetKey.listName) {
+    setPrevResetKey({ isOpen, listName })
     if (isOpen) {
       setEditedName(listName)
       setValidationError(null)
     }
-  }, [isOpen, listName])
+  }
 
   // Focus e selecionar texto quando abre
   useEffect(() => {

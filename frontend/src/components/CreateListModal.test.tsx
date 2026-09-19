@@ -196,4 +196,38 @@ describe('CreateListModal', () => {
       expect(mockOnSuccess).not.toHaveBeenCalled()
     })
   })
+
+  it('deve limpar o formulário ao fechar e reabrir o modal', async () => {
+    const { rerender } = render(
+      <CreateListModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+        onSubmit={mockOnSubmit}
+      />
+    )
+
+    const nameInput = screen.getByLabelText(/nome da lista/i)
+    await userEvent.type(nameInput, 'Rascunho não salvo')
+    expect(nameInput).toHaveValue('Rascunho não salvo')
+
+    rerender(
+      <CreateListModal
+        isOpen={false}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+        onSubmit={mockOnSubmit}
+      />
+    )
+    rerender(
+      <CreateListModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+        onSubmit={mockOnSubmit}
+      />
+    )
+
+    expect(screen.getByLabelText(/nome da lista/i)).toHaveValue('')
+  })
 })
