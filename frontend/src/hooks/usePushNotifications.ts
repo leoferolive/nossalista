@@ -32,9 +32,11 @@ export function usePushNotifications() {
   })
 
   useEffect(() => {
+    // Nada a fazer: pushEnabled e availability já nascem com os valores
+    // corretos para este caso via lazy initializer acima (false /
+    // 'unsupported'), então não há setState a fazer aqui — ver
+    // react-hooks/set-state-in-effect.
     if (!('serviceWorker' in navigator)) {
-      setPushEnabled(false)
-      setAvailability('unsupported')
       return
     }
 

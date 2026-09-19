@@ -23,7 +23,6 @@ export function useIsMobile() {
       setIsMobile(event.matches)
     }
 
-    setIsMobile(mediaQuery.matches)
     mediaQuery.addEventListener('change', handleChange)
 
     return () => {

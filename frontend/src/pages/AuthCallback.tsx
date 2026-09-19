@@ -19,7 +19,12 @@ export function AuthCallback() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { login } = useAuth()
-  const [error, setError] = useState('')
+  // searchParams já reflete a URL desde o primeiro render, então o caso
+  // "sem código" pode ser resolvido no initializer em vez de um setState
+  // síncrono no efeito — ver react-hooks/set-state-in-effect.
+  const [error, setError] = useState(() =>
+    searchParams.get('code') ? '' : 'Código de autenticação não encontrado.'
+  )
   const hasProcessedRef = useRef(false)
 
   useEffect(() => {
@@ -30,7 +35,6 @@ export function AuthCallback() {
 
     const code = searchParams.get('code')
     if (!code) {
-      setError('Código de autenticação não encontrado.')
       return
     }
 

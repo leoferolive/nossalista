@@ -74,12 +74,25 @@ export const Home: React.FC = () => {
     }
   }, [location.state, fetchLists])
 
+  // Abre o modal quando o onboarding pede. Ajusta o estado local durante o
+  // render (em vez de useEffect) para evitar um cascading render supérfluo —
+  // ver react-hooks/set-state-in-effect. O ack (que mexe em estado de outro
+  // contexto) permanece no efeito abaixo.
+  const [prevRequestOpenCreateListModal, setPrevRequestOpenCreateListModal] = useState(
+    requestOpenCreateListModal
+  )
+  if (requestOpenCreateListModal !== prevRequestOpenCreateListModal) {
+    setPrevRequestOpenCreateListModal(requestOpenCreateListModal)
+    if (requestOpenCreateListModal) {
+      setIsModalOpen(true)
+    }
+  }
+
   useEffect(() => {
     if (!requestOpenCreateListModal) {
       return
     }
 
-    setIsModalOpen(true)
     acknowledgeCreateListModalRequest()
   }, [acknowledgeCreateListModalRequest, requestOpenCreateListModal])
 

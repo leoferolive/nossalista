@@ -95,7 +95,12 @@ export function MagicLogin() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { login } = useAuth()
-  const [error, setError] = useState('')
+  // searchParams já reflete a URL desde o primeiro render, então o caso
+  // "sem token" pode ser resolvido no initializer em vez de um setState
+  // síncrono no efeito — ver react-hooks/set-state-in-effect.
+  const [error, setError] = useState(() =>
+    searchParams.get('token') ? '' : 'Link inválido: token não encontrado.'
+  )
   const hasProcessedRef = useRef(false)
 
   useEffect(() => {
@@ -106,7 +111,6 @@ export function MagicLogin() {
 
     const token = searchParams.get('token')
     if (!token) {
-      setError('Link inválido: token não encontrado.')
       return
     }
 

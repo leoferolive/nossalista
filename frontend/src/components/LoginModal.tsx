@@ -59,9 +59,14 @@ export function LoginModal({
     return `/forgot-password?redirect=${encodeURIComponent(redirectPath)}`
   }, [redirectPath])
 
-  useEffect(() => {
+  // Sincroniza o campo de e-mail quando o valor inicial muda (ex: vindo de
+  // outra tela). Ajusta o estado durante o render (em vez de useEffect) para
+  // evitar um cascading render supérfluo — ver react-hooks/set-state-in-effect.
+  const [prevInitialEmail, setPrevInitialEmail] = useState(initialEmail)
+  if (initialEmail !== prevInitialEmail) {
+    setPrevInitialEmail(initialEmail)
     setEmail(initialEmail)
-  }, [initialEmail])
+  }
 
   useEffect(() => {
     if (redirectPath) {
