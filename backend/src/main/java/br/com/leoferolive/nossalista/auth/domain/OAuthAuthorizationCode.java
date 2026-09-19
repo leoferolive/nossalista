@@ -24,17 +24,26 @@ public class OAuthAuthorizationCode {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "code", nullable = false, unique = true)
+    @Column(name = "code", unique = true)
     private String code;
 
-    @Column(name = "jwt", nullable = false, length = 1024)
+    @Column(name = "jwt", length = 1024)
     private String jwt;
+
+    @Column(name = "code_hash", length = 64)
+    private String codeHash;
+
+    @Column(name = "user_id")
+    private UUID userId;
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "consumed_at")
+    private LocalDateTime consumedAt;
 
     @PrePersist
     protected void onCreate() {
@@ -71,6 +80,22 @@ public class OAuthAuthorizationCode {
         this.jwt = jwt;
     }
 
+    public String getCodeHash() {
+        return codeHash;
+    }
+
+    public void setCodeHash(String codeHash) {
+        this.codeHash = codeHash;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+
     public LocalDateTime getExpiresAt() {
         return expiresAt;
     }
@@ -85,5 +110,13 @@ public class OAuthAuthorizationCode {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getConsumedAt() {
+        return consumedAt;
+    }
+
+    public void setConsumedAt(LocalDateTime consumedAt) {
+        this.consumedAt = consumedAt;
     }
 }

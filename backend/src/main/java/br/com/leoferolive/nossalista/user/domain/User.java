@@ -57,6 +57,9 @@ public class User {
     @Column(name = "onboarding_completed_at")
     private LocalDateTime onboardingCompletedAt;
 
+    @Column(name = "session_version", nullable = false)
+    private int sessionVersion;
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {
@@ -171,5 +174,13 @@ public class User {
 
     public void setOnboardingCompletedAt(LocalDateTime onboardingCompletedAt) {
         this.onboardingCompletedAt = onboardingCompletedAt;
+    }
+
+    public int getSessionVersion() {
+        return sessionVersion;
+    }
+
+    public void setSessionVersion(int sessionVersion) {
+        this.sessionVersion = sessionVersion;
     }
 }
