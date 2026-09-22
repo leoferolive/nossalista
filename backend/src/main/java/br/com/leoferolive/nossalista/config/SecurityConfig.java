@@ -319,34 +319,20 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // Origens permitidas (configuradas por profile em application*.yml)
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
-
-        // Métodos HTTP permitidos
-        configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
-        ));
-
-        // Headers permitidos
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-
-        // Permitir credenciais (cookies, authorization headers)
-        configuration.setAllowCredentials(true);
-
-        // Expor headers de resposta (útil para paginação, etc)
-        configuration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "X-Total-Count",
-                "X-Page-Number",
-                "X-Page-Size"
-        ));
-
-        // Aplicar configuração a todos os endpoints
+        configureCorsPolicy(configuration);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-
         return source;
+    }
+
+    private void configureCorsPolicy(CorsConfiguration configuration) {
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
+        configuration.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(Arrays.asList(
+            "Authorization", "X-Total-Count", "X-Page-Number", "X-Page-Size"));
     }
 
 }
