@@ -199,6 +199,16 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
             .isInstanceOf(IllegalStateException.class).hasMessageContaining("180 segundos");
     }
 
+    @Test
+    @DisplayName("rejeita prazo ausente, malformado ou sem sufixo UTC Z")
+    void retirementDeadlineMustUseExplicitUtcFormat() {
+        Instant rotationStartedAt = Instant.parse("2026-09-19T00:00:00Z");
+
+        assertInvalidRetirementDeadline("", rotationStartedAt);
+        assertInvalidRetirementDeadline("not-a-date", rotationStartedAt);
+        assertInvalidRetirementDeadline("2026-09-19T00:03:00+00:00", rotationStartedAt);
+    }
+
     private CookieOAuth2AuthorizationRequestRepository repository(String profile, String previous, Clock clock) {
         org.springframework.mock.env.MockEnvironment environment = new org.springframework.mock.env.MockEnvironment();
         environment.setActiveProfiles(profile);
@@ -208,16 +218,31 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
     }
 
     private CookieOAuth2AuthorizationRequestRepository repositoryWithKey(String previous, String current, Clock clock) {
-        return repositoryWithKey(previous, current, null, clock);
+        return repositoryWithKey(previous, current, (String) null, clock);
     }
 
     private CookieOAuth2AuthorizationRequestRepository repositoryWithKey(
         String previous, String current, Instant retirementDeadline, Clock clock
     ) {
+        return repositoryWithKey(previous, current,
+            retirementDeadline == null ? null : retirementDeadline.toString(), clock);
+    }
+
+    private void assertInvalidRetirementDeadline(String deadline, Instant rotationStartedAt) {
+        assertThatThrownBy(() -> repositoryWithKey(
+            "old-oauth2-request-signing-key-minimum-32-bytes",
+            "new-oauth2-request-signing-key-minimum-32-bytes", deadline,
+            Clock.fixed(rotationStartedAt, ZoneOffset.UTC)))
+            .isInstanceOf(IllegalStateException.class).hasMessageContaining("UTC ISO-8601");
+    }
+
+    private CookieOAuth2AuthorizationRequestRepository repositoryWithKey(
+        String previous, String current, String retirementDeadline, Clock clock
+    ) {
         org.springframework.mock.env.MockEnvironment environment = new org.springframework.mock.env.MockEnvironment();
         if (retirementDeadline != null) {
             environment.setProperty("app.auth.oauth2-request-cookie.previous-signing-key-retirement-deadline",
-                retirementDeadline.toString());
+                retirementDeadline);
         }
         return new CookieOAuth2AuthorizationRequestRepository(environment, current, previous,
             "jwt-secret-minimum-32-bytes-for-testing-purpose", clock);

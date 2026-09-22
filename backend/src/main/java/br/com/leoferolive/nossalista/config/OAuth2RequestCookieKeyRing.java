@@ -112,6 +112,10 @@ final class OAuth2RequestCookieKeyRing {
     }
 
     private static Instant parseUtcInstant(String configuredDeadline) {
+        if (!configuredDeadline.endsWith("Z")) {
+            throw new IllegalStateException("OAUTH2_REQUEST_SIGNING_KEY_PREVIOUS_RETIREMENT_DEADLINE "
+                + "deve usar UTC ISO-8601");
+        }
         try {
             return Instant.parse(configuredDeadline);
         } catch (DateTimeParseException e) {
