@@ -1,5 +1,7 @@
 package br.com.leoferolive.nossalista.auth.controller;
 
+import br.com.leoferolive.nossalista.auth.domain.PasswordResetToken;
+import br.com.leoferolive.nossalista.auth.repository.PasswordResetTokenRepository;
 import br.com.leoferolive.nossalista.config.RateLimiterService;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
@@ -56,6 +58,9 @@ class AuthControllerTest {
 
     @Autowired
     private RateLimiterService rateLimiterService;
+
+    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
 
     private ObjectMapper objectMapper;
     private MockMvc mockMvc;
@@ -528,6 +533,56 @@ class AuthControllerTest {
     }
 
     @Test
+    void shouldClearSessionCookieAfterSuccessfulPasswordReset() throws Exception {
+        User user = userForPasswordReset("reset-success@example.com", "resetsuccess");
+        PasswordResetToken token = passwordResetTokenFor(user, "valid-reset-token");
+        passwordResetTokenRepository.save(token);
+
+        Map<String, String> request = new HashMap<>();
+        request.put("token", "valid-reset-token");
+        request.put("newPassword", "newpass123");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("Max-Age=0")));
+    }
+
+    @Test
+    void shouldNotClearSessionCookieAfterFailedPasswordReset() throws Exception {
+        Map<String, String> request = new HashMap<>();
+        request.put("token", "invalid-reset-token");
+        request.put("newPassword", "newpass123");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+    }
+
+    @Test
+    void shouldNotRevokeSessionsAfterExpiredPasswordReset() throws Exception {
+        User user = userForPasswordReset("reset-expired@example.com", "resetexpired");
+        PasswordResetToken token = passwordResetTokenFor(user, "expired-reset-token");
+        token.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        passwordResetTokenRepository.save(token);
+
+        Map<String, String> request = new HashMap<>();
+        request.put("token", "expired-reset-token");
+        request.put("newPassword", "newpass123");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getSessionVersion()).isZero();
+    }
+
+    @Test
     void shouldNotBypassResetPasswordIpRateLimitBySpoofingXForwardedFor() throws Exception {
         Map<String, String> request = new HashMap<>();
         request.put("token", "invalid-token");
@@ -660,6 +715,24 @@ class AuthControllerTest {
         mockMvc.perform(get("/api/auth/google"))
             .andExpect(status().isFound())
             .andExpect(header().string(HttpHeaders.LOCATION, "/oauth2/authorization/google"));
+    }
+
+    private User userForPasswordReset(String email, String username) {
+        User user = new User();
+        user.setEmail(email);
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode("currentpass"));
+        user.setAuthProvider(AuthProvider.EMAIL);
+        user.setRole(Role.USER);
+        return userRepository.save(user);
+    }
+
+    private PasswordResetToken passwordResetTokenFor(User user, String value) {
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUserId(user.getId());
+        token.setToken(value);
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+        return token;
     }
 
 }

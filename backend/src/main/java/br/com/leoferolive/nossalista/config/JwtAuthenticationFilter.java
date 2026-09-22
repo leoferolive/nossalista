@@ -80,10 +80,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         Integer currentSessionVersion = userRepository.findSessionVersionById(userId).orElse(null);
-        if (tokenSessionVersion == null) {
-            tokenSessionVersion = 0;
-        }
-        if (currentSessionVersion == null
+        if (tokenSessionVersion == null
+            || currentSessionVersion == null
             || !tokenSessionVersion.equals(currentSessionVersion)) {
             filterChain.doFilter(request, response);
             return;

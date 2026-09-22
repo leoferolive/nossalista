@@ -191,8 +191,7 @@ public class UserService {
         User user = findById(userId)
             .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
         user.setPassword(encodedPassword);
-        user.setSessionVersion(user.getSessionVersion() + 1);
-        userRepository.save(user);
+        incrementSessionVersion(user);
     }
 
     /**
@@ -204,8 +203,7 @@ public class UserService {
     public void revokeWebSessions(UUID userId) {
         User user = findById(userId)
             .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
-        user.setSessionVersion(user.getSessionVersion() + 1);
-        userRepository.save(user);
+        incrementSessionVersion(user);
     }
 
     /**
@@ -233,5 +231,10 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<User> searchByUsername(String query) {
         return userRepository.findTop20ByUsernameContainingIgnoreCase(query);
+    }
+
+    private void incrementSessionVersion(User user) {
+        user.setSessionVersion(user.getSessionVersion() + 1);
+        userRepository.save(user);
     }
 }

@@ -128,4 +128,14 @@ class JwtAuthenticationFilterTest {
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
+
+    @Test
+    @DisplayName("JWT de sessão sem versão não autentica mesmo para versão zero")
+    void missingSessionVersionFailsClosed() throws Exception {
+        when(jwtService.extractSessionVersion(TOKEN)).thenReturn(null);
+
+        Authentication auth = runFilterFor(userWithRole(Role.USER));
+
+        assertThat(auth).isNull();
+    }
 }

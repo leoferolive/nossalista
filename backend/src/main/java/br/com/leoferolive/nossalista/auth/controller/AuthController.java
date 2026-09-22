@@ -271,7 +271,8 @@ public class AuthController {
         @ApiResponse(responseCode = "429", description = "Muitas requisições — tente novamente mais tarde")
     })
     public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request,
-                                              HttpServletRequest httpRequest) {
+                                              HttpServletRequest httpRequest,
+                                              HttpServletResponse httpResponse) {
         String clientIp = clientIpResolver.resolve(httpRequest);
 
         if (!rateLimiterService.isAllowed("reset-password:ip:" + clientIp,
@@ -280,6 +281,7 @@ public class AuthController {
         }
 
         passwordResetService.resetPassword(request.token(), request.newPassword());
+        sessionCookieService.clearSession(httpResponse);
         return ResponseEntity.ok().build();
     }
 
