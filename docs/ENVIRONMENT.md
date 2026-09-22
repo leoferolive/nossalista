@@ -66,7 +66,10 @@ Importantes (com default em alguns cenarios):
 > **`OAUTH2_REQUEST_SIGNING_KEY`:** chave dedicada de pelo menos 32 bytes para
 > assinar o cookie temporario do authorization request Google. Deve ser diferente
 > de `JWT_SECRET`; `OAUTH2_REQUEST_SIGNING_KEY_PREVIOUS` e opcional durante uma
-> rotacao e so e aceito pela janela de 180 segundos do fluxo.
+> rotacao, mas exige `OAUTH2_REQUEST_SIGNING_KEY_PREVIOUS_RETIREMENT_DEADLINE`
+> em UTC ISO-8601 (por exemplo, `2026-09-22T12:03:00Z`). A chave anterior e
+> aceita somente antes desse prazo; defina-o para no maximo 180 segundos apos a
+> rotacao e remova ambas as variaveis ao encerrar a janela.
 
 Referencia de exemplo:
 - `backend/.env.example`

@@ -131,21 +131,48 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
     }
 
     @Test
-    @DisplayName("aceita uma chave anterior durante a janela de rotação")
-    void previousSigningKeyIsAcceptedWithinTtl() {
-        Clock clock = Clock.fixed(Instant.parse("2026-09-19T00:00:00Z"), ZoneOffset.UTC);
+    @DisplayName("aceita chave anterior antes do prazo de aposentadoria de 180 segundos")
+    void previousSigningKeyIsAcceptedBeforeRetirementDeadline() {
+        Instant rotationStartedAt = Instant.parse("2026-09-19T00:00:00Z");
+        Instant retirementDeadline = rotationStartedAt.plusSeconds(
+            CookieOAuth2AuthorizationRequestRepository.TTL_SECONDS);
         String oldKey = "old-oauth2-request-signing-key-minimum-32-bytes";
-        CookieOAuth2AuthorizationRequestRepository old = repositoryWithKey("", oldKey, clock);
+        CookieOAuth2AuthorizationRequestRepository old = repositoryWithKey("", oldKey,
+            Clock.fixed(rotationStartedAt, ZoneOffset.UTC));
         MockHttpServletResponse saved = new MockHttpServletResponse();
         old.saveAuthorizationRequest(sample("rotated-state"), new MockHttpServletRequest(), saved);
 
         String cookie = cookieValueFrom(saved);
         CookieOAuth2AuthorizationRequestRepository rotated = repositoryWithKey(oldKey,
-            "new-oauth2-request-signing-key-minimum-32-bytes", clock);
+            "new-oauth2-request-signing-key-minimum-32-bytes", retirementDeadline,
+            Clock.fixed(retirementDeadline.minusSeconds(1), ZoneOffset.UTC));
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setCookies(new Cookie(CookieOAuth2AuthorizationRequestRepository.COOKIE_NAME, cookie));
 
         assertThat(rotated.loadAuthorizationRequest(request).getState()).isEqualTo("rotated-state");
+    }
+
+    @Test
+    @DisplayName("rejeita envelope da chave anterior depois do prazo de aposentadoria")
+    void previousSigningKeyIsRejectedAfterRetirementDeadline() {
+        Instant rotationStartedAt = Instant.parse("2026-09-19T00:00:00Z");
+        Instant retirementDeadline = rotationStartedAt.plusSeconds(
+            CookieOAuth2AuthorizationRequestRepository.TTL_SECONDS);
+        String oldKey = "old-oauth2-request-signing-key-minimum-32-bytes";
+        Clock issuedBeforeDeadline = Clock.fixed(retirementDeadline.minusSeconds(1), ZoneOffset.UTC);
+        CookieOAuth2AuthorizationRequestRepository old = repositoryWithKey("", oldKey,
+            issuedBeforeDeadline);
+        MockHttpServletResponse saved = new MockHttpServletResponse();
+        old.saveAuthorizationRequest(sample("expired-rotation-state"), new MockHttpServletRequest(), saved);
+
+        CookieOAuth2AuthorizationRequestRepository rotated = repositoryWithKey(oldKey,
+            "new-oauth2-request-signing-key-minimum-32-bytes", retirementDeadline,
+            Clock.fixed(retirementDeadline.plusSeconds(1), ZoneOffset.UTC));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setCookies(new Cookie(CookieOAuth2AuthorizationRequestRepository.COOKIE_NAME,
+            cookieValueFrom(saved)));
+
+        assertThat(rotated.loadAuthorizationRequest(request)).isNull();
     }
 
     @Test
@@ -159,6 +186,19 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
             .isInstanceOf(IllegalStateException.class).hasMessageContaining("distinta");
     }
 
+    @Test
+    @DisplayName("rejeita prazo de aposentadoria acima da janela de 180 segundos")
+    void retirementDeadlineCannotExceedRotationWindow() {
+        Instant rotationStartedAt = Instant.parse("2026-09-19T00:00:00Z");
+
+        assertThatThrownBy(() -> repositoryWithKey(
+            "old-oauth2-request-signing-key-minimum-32-bytes",
+            "new-oauth2-request-signing-key-minimum-32-bytes",
+            rotationStartedAt.plusSeconds(CookieOAuth2AuthorizationRequestRepository.TTL_SECONDS + 1),
+            Clock.fixed(rotationStartedAt, ZoneOffset.UTC)))
+            .isInstanceOf(IllegalStateException.class).hasMessageContaining("180 segundos");
+    }
+
     private CookieOAuth2AuthorizationRequestRepository repository(String profile, String previous, Clock clock) {
         org.springframework.mock.env.MockEnvironment environment = new org.springframework.mock.env.MockEnvironment();
         environment.setActiveProfiles(profile);
@@ -168,7 +208,18 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
     }
 
     private CookieOAuth2AuthorizationRequestRepository repositoryWithKey(String previous, String current, Clock clock) {
-        return new CookieOAuth2AuthorizationRequestRepository(null, current, previous,
+        return repositoryWithKey(previous, current, null, clock);
+    }
+
+    private CookieOAuth2AuthorizationRequestRepository repositoryWithKey(
+        String previous, String current, Instant retirementDeadline, Clock clock
+    ) {
+        org.springframework.mock.env.MockEnvironment environment = new org.springframework.mock.env.MockEnvironment();
+        if (retirementDeadline != null) {
+            environment.setProperty("app.auth.oauth2-request-cookie.previous-signing-key-retirement-deadline",
+                retirementDeadline.toString());
+        }
+        return new CookieOAuth2AuthorizationRequestRepository(environment, current, previous,
             "jwt-secret-minimum-32-bytes-for-testing-purpose", clock);
     }
 }

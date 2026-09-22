@@ -113,6 +113,7 @@ app:
       secure: true
       signing-key: ${OAUTH2_REQUEST_SIGNING_KEY}
       previous-signing-key: ${OAUTH2_REQUEST_SIGNING_KEY_PREVIOUS:}
+      previous-signing-key-retirement-deadline: ${OAUTH2_REQUEST_SIGNING_KEY_PREVIOUS_RETIREMENT_DEADLINE:}
     # Q2.7: enforcement estrito de verificação de e-mail no login email/senha.
     # Default false: o status email_verified é registrado mas o login NÃO é
     # bloqueado — evita deslogar contas pré-existentes e não afeta OAuth (Google).

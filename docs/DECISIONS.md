@@ -1529,5 +1529,7 @@ adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position
   Logout e reset de senha incrementam a versao e invalidam todas as sessoes web; PATs
   e tokens OAuth do MCP permanecem independentes.
 - **Cookie OAuth:** `OAUTH2_REQUEST_SIGNING_KEY` assina um envelope HMAC de 180s;
-  producao usa `__Host-nl_oauth2_request`, dev/teste usam `nl_oauth2_request`.
+  uma chave anterior exige prazo UTC ISO-8601 explicito e so e aceita antes dele
+  (no maximo 180s apos a rotacao). Producao usa `__Host-nl_oauth2_request`,
+  dev/teste usam `nl_oauth2_request`.
   Headers defensivos e `no-store` sao aplicados aos endpoints auth/OAuth.
