@@ -1,6 +1,6 @@
 package br.com.leoferolive.nossalista.auth;
 
-import br.com.leoferolive.nossalista.auth.service.GoogleIdentityClaims;
+import br.com.leoferolive.nossalista.auth.provider.GoogleOAuth2ClaimsAdapter;
 import br.com.leoferolive.nossalista.auth.service.GoogleIdentityRejectedException;
 import br.com.leoferolive.nossalista.auth.service.GoogleIdentityService;
 import br.com.leoferolive.nossalista.auth.service.OAuthCodeStore;
@@ -16,8 +16,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.util.Map;
-
 /**
  * Handler para processar sucesso de autenticação OAuth2 (Google)
  * <p>
@@ -32,18 +30,30 @@ import java.util.Map;
 @Component
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
-    private static final String GOOGLE_ISSUER = "https://accounts.google.com";
-
     private final GoogleIdentityService googleIdentityService;
     private final OAuthCodeStore oauthCodeStore;
+    private final GoogleOAuth2ClaimsAdapter googleClaimsAdapter;
 
     @Value("${frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
+    /**
+     * Configures the Google callback handler with its typed provider adapter.
+     *
+     * <pre>{@code
+     * new OAuth2SuccessHandler(identityService, oauthCodeStore, googleClaimsAdapter);
+     * }</pre>
+     *
+     * @param googleIdentityService resolver for trusted Google identities
+     * @param oauthCodeStore issuer for one-time browser handoff codes
+     * @param googleClaimsAdapter adapter for Google's OAuth2 user payload
+     */
     public OAuth2SuccessHandler(GoogleIdentityService googleIdentityService,
-                                OAuthCodeStore oauthCodeStore) {
+                                OAuthCodeStore oauthCodeStore,
+                                GoogleOAuth2ClaimsAdapter googleClaimsAdapter) {
         this.googleIdentityService = googleIdentityService;
         this.oauthCodeStore = oauthCodeStore;
+        this.googleClaimsAdapter = googleClaimsAdapter;
     }
 
     /**
@@ -64,35 +74,13 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         OAuth2AuthenticationToken oauth2Token = (OAuth2AuthenticationToken) authentication;
         OAuth2User oauth2User = oauth2Token.getPrincipal();
-        Map<String, Object> attributes = oauth2User.getAttributes();
-
         try {
-            User user = googleIdentityService.resolve(toClaims(attributes));
+            User user = googleIdentityService.resolve(googleClaimsAdapter.from(oauth2User));
             String code = oauthCodeStore.issue(user.getId());
             response.sendRedirect(String.format("%s/auth/callback?code=%s", frontendUrl, code));
         } catch (GoogleIdentityRejectedException exception) {
             response.sendRedirect(frontendUrl + "/auth/callback?error=google_identity_rejected");
         }
-    }
-
-    private GoogleIdentityClaims toClaims(Map<String, Object> attributes) {
-        return new GoogleIdentityClaims(
-            GOOGLE_ISSUER,
-            stringAttribute(attributes, "sub"),
-            stringAttribute(attributes, "email"),
-            booleanAttribute(attributes.get("email_verified")),
-            stringAttribute(attributes, "name"),
-            stringAttribute(attributes, "picture")
-        );
-    }
-
-    private String stringAttribute(Map<String, Object> attributes, String key) {
-        Object value = attributes.get(key);
-        return value == null ? null : value.toString();
-    }
-
-    private boolean booleanAttribute(Object value) {
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(String.valueOf(value));
     }
 
     /**

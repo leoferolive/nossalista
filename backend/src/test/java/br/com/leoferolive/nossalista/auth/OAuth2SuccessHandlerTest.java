@@ -1,5 +1,6 @@
 package br.com.leoferolive.nossalista.auth;
 
+import br.com.leoferolive.nossalista.auth.provider.GoogleOAuth2ClaimsAdapter;
 import br.com.leoferolive.nossalista.auth.service.GoogleIdentityRejectedException;
 import br.com.leoferolive.nossalista.auth.service.GoogleIdentityClaims;
 import br.com.leoferolive.nossalista.auth.service.GoogleIdentityService;
@@ -7,17 +8,13 @@ import br.com.leoferolive.nossalista.auth.service.OAuthCodeStore;
 import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
-import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.io.IOException;
 import java.util.List;
@@ -25,29 +22,26 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 @DisplayName("OAuth2SuccessHandler")
 class OAuth2SuccessHandlerTest {
 
-    @Mock
-    private GoogleIdentityService googleIdentityService;
-
-    @Mock
-    private OAuthCodeStore oauthCodeStore;
-
-    @Mock
-    private HttpServletResponse response;
+    private FakeGoogleIdentityService googleIdentityService;
+    private FakeOAuthCodeStore oauthCodeStore;
+    private MockHttpServletResponse response;
 
     private OAuth2SuccessHandler successHandler;
 
     @BeforeEach
     void setUp() {
-        successHandler = new OAuth2SuccessHandler(googleIdentityService, oauthCodeStore);
+        googleIdentityService = FakeGoogleIdentityService.resolving(googleUser());
+        oauthCodeStore = new FakeOAuthCodeStore("opaque-code");
+        response = new MockHttpServletResponse();
+        successHandler = new OAuth2SuccessHandler(
+            googleIdentityService,
+            oauthCodeStore,
+            new GoogleOAuth2ClaimsAdapter()
+        );
         successHandler.setFrontendUrl("http://localhost:5173");
     }
 
@@ -55,41 +49,47 @@ class OAuth2SuccessHandlerTest {
     @DisplayName("resolve identidade Google e redireciona somente com code opaco")
     void redirectsWithOpaqueCodeAfterIdentityResolution() throws IOException {
         User user = googleUser();
-        when(googleIdentityService.resolve(any())).thenReturn(user);
-        when(oauthCodeStore.issue(user.getId())).thenReturn("opaque-code");
+        googleIdentityService = FakeGoogleIdentityService.resolving(user);
+        successHandler = new OAuth2SuccessHandler(
+            googleIdentityService,
+            oauthCodeStore,
+            new GoogleOAuth2ClaimsAdapter()
+        );
+        successHandler.setFrontendUrl("http://localhost:5173");
 
         successHandler.onAuthenticationSuccess(null, response, googleAuthentication());
 
-        ArgumentCaptor<String> redirect = ArgumentCaptor.forClass(String.class);
-        verify(response).sendRedirect(redirect.capture());
-        assertThat(redirect.getValue()).isEqualTo("http://localhost:5173/auth/callback?code=opaque-code");
-        verify(oauthCodeStore).issue(user.getId());
+        assertThat(response.getRedirectedUrl())
+            .isEqualTo("http://localhost:5173/auth/callback?code=opaque-code");
+        assertThat(oauthCodeStore.issuedForUser()).isEqualTo(user.getId());
     }
 
     @Test
     @DisplayName("repassa sub e email_verified para o resolvedor Google")
     void passesStableClaimsToIdentityResolver() throws IOException {
-        User user = googleUser();
-        when(googleIdentityService.resolve(any())).thenReturn(user);
-        when(oauthCodeStore.issue(user.getId())).thenReturn("opaque-code");
-
         successHandler.onAuthenticationSuccess(null, response, googleAuthentication());
 
-        ArgumentCaptor<GoogleIdentityClaims> claims = ArgumentCaptor.forClass(GoogleIdentityClaims.class);
-        verify(googleIdentityService).resolve(claims.capture());
-        assertThat(claims.getValue().subject()).isEqualTo("google-sub-1");
-        assertThat(claims.getValue().emailVerified()).isTrue();
-        assertThat(claims.getValue().issuer()).isEqualTo("https://accounts.google.com");
+        GoogleIdentityClaims claims = googleIdentityService.receivedClaims();
+        assertThat(claims.subject()).isEqualTo("google-sub-1");
+        assertThat(claims.emailVerified()).isTrue();
+        assertThat(claims.issuer()).isEqualTo("https://accounts.google.com");
     }
 
     @Test
     @DisplayName("não expõe detalhes quando vínculo Google é rejeitado")
     void redirectsWithGenericErrorWhenIdentityIsRejected() throws IOException {
-        doThrow(new GoogleIdentityRejectedException()).when(googleIdentityService).resolve(any());
+        googleIdentityService = FakeGoogleIdentityService.rejecting();
+        successHandler = new OAuth2SuccessHandler(
+            googleIdentityService,
+            oauthCodeStore,
+            new GoogleOAuth2ClaimsAdapter()
+        );
+        successHandler.setFrontendUrl("http://localhost:5173");
 
         successHandler.onAuthenticationSuccess(null, response, googleAuthentication());
 
-        verify(response).sendRedirect("http://localhost:5173/auth/callback?error=google_identity_rejected");
+        assertThat(response.getRedirectedUrl())
+            .isEqualTo("http://localhost:5173/auth/callback?error=google_identity_rejected");
     }
 
     private Authentication googleAuthentication() {
@@ -114,5 +114,60 @@ class OAuth2SuccessHandlerTest {
         user.setRole(Role.USER);
         user.setEmailVerified(true);
         return user;
+    }
+
+    private static final class FakeGoogleIdentityService extends GoogleIdentityService {
+
+        private final User resolvedUser;
+        private final boolean rejectsIdentity;
+        private GoogleIdentityClaims receivedClaims;
+
+        private FakeGoogleIdentityService(User resolvedUser, boolean rejectsIdentity) {
+            super(null, null, null, "https://accounts.google.com");
+            this.resolvedUser = resolvedUser;
+            this.rejectsIdentity = rejectsIdentity;
+        }
+
+        static FakeGoogleIdentityService resolving(User user) {
+            return new FakeGoogleIdentityService(user, false);
+        }
+
+        static FakeGoogleIdentityService rejecting() {
+            return new FakeGoogleIdentityService(null, true);
+        }
+
+        @Override
+        public User resolve(GoogleIdentityClaims claims) {
+            receivedClaims = claims;
+            if (rejectsIdentity) {
+                throw new GoogleIdentityRejectedException();
+            }
+            return resolvedUser;
+        }
+
+        GoogleIdentityClaims receivedClaims() {
+            return receivedClaims;
+        }
+    }
+
+    private static final class FakeOAuthCodeStore extends OAuthCodeStore {
+
+        private final String issuedCode;
+        private UUID issuedForUser;
+
+        private FakeOAuthCodeStore(String issuedCode) {
+            super(null);
+            this.issuedCode = issuedCode;
+        }
+
+        @Override
+        public String issue(UUID userId) {
+            issuedForUser = userId;
+            return issuedCode;
+        }
+
+        UUID issuedForUser() {
+            return issuedForUser;
+        }
     }
 }
