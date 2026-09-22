@@ -1,7 +1,7 @@
 -- Authentication hardening foundation.
 -- Keep the legacy OAuth columns during the rolling deployment. New handoff rows
--- may use only code_hash/user_id/consumed_at, so code and jwt become nullable
--- without being removed for old application instances.
+-- dual-write code_hash/user_id/consumed_at and code/jwt until pre-V19 application
+-- instances have been absent for longer than the 60-second handoff TTL.
 
 ALTER TABLE users
     ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0;

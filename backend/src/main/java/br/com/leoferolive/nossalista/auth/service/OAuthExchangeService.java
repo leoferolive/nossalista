@@ -65,6 +65,6 @@ public class OAuthExchangeService {
         User user = userService.findById(userId)
             .orElseThrow(() -> new InvalidOAuthCodeException("Código de login inválido ou expirado"));
 
-        return new AuthenticatedSession(user, token);
+        return new AuthenticatedSession(user, jwtService.generateToken(user));
     }
 }

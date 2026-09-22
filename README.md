@@ -51,7 +51,7 @@ Status atual:
 - Cada mutacao autenticada pela sessao exige o cookie `XSRF-TOKEN` e o header `X-XSRF-TOKEN`; Axios o obtem em `GET /api/auth/csrf`.
 - `Authorization: Bearer` e reservado aos PATs `nlmcp_...` e access tokens OAuth do MCP. Bearer JWT de sessao legado recebe 401.
 - O JWT inclui `sv` (versao da sessao); logout e reset de senha incrementam essa versao e invalidam todas as sessoes web do usuario.
-- O fluxo OAuth Google guarda o authorization request em cookie HMAC (`__Host-nl_oauth2_request` em producao) e usa um code de handoff hash-only, de uso unico e TTL de 60 segundos.
+- O fluxo OAuth Google guarda o authorization request em cookie HMAC (`__Host-nl_oauth2_request` em producao) e usa um code de handoff de uso unico e TTL de 60 segundos. Durante o rollout V19, cada novo code e dual-written (hash/user para pods novos e code/JWT com `sv` atual para pods antigos); so remover os campos legados depois que nenhum pod pre-V19 existir por mais de 60 segundos.
 - Em producao, a borda Cloudflare deve redirecionar HTTP para HTTPS com 308 antes de qualquer request atingir o tunnel. HSTS ainda nao e habilitado, pois depende de auditoria dos demais subdominios.
 
 ## Estrutura

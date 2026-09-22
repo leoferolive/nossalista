@@ -50,7 +50,12 @@ class OAuthExchangeServiceTest {
         // trás preserva o round-trip issue->consume deste teste unitário.
         lenient().when(codeRepository.save(any(OAuthAuthorizationCode.class))).thenAnswer(inv -> {
             OAuthAuthorizationCode entity = inv.getArgument(0);
-            issuedCodes.put(entity.getCode() != null ? entity.getCode() : entity.getCodeHash(), entity);
+            if (entity.getCode() != null) {
+                issuedCodes.put(entity.getCode(), entity);
+            }
+            if (entity.getCodeHash() != null) {
+                issuedCodes.put(entity.getCodeHash(), entity);
+            }
             return entity;
         });
         lenient().when(codeRepository.findByCode(anyString()))
@@ -67,7 +72,8 @@ class OAuthExchangeServiceTest {
             return null;
         }).when(codeRepository).delete(any(OAuthAuthorizationCode.class));
 
-        oauthCodeStore = new OAuthCodeStore(codeRepository);
+        oauthCodeStore = new OAuthCodeStore(codeRepository, jwtService, userService,
+            OAuthCodeStore.DEFAULT_TTL);
         exchangeService = new OAuthExchangeService(oauthCodeStore, jwtService, userService);
     }
 
@@ -93,16 +99,19 @@ class OAuthExchangeServiceTest {
     }
 
     @Test
-    @DisplayName("code válido → retorna sessão interna com o JWT")
-    void validCodeReturnsLoginResponse() {
-        String jwt = "valid.jwt.token";
-        String code = oauthCodeStore.issue(jwt);
+    @DisplayName("code legado válido → emite JWT novo com a versão de sessão atual")
+    void legacyCodeMintsFreshCurrentSessionJwt() {
+        String legacyJwt = "legacy.jwt.token";
+        String freshJwt = "fresh.jwt.token";
+        String code = oauthCodeStore.issue(legacyJwt);
 
-        when(jwtService.extractUserId(jwt)).thenReturn(userId);
+        when(jwtService.extractUserId(legacyJwt)).thenReturn(userId);
         when(userService.findById(userId)).thenReturn(Optional.of(buildUser()));
+        when(jwtService.generateToken(any(User.class))).thenReturn(freshJwt);
+
         AuthenticatedSession session = exchangeService.exchange(code);
 
-        assertThat(session.token()).isEqualTo(jwt);
+        assertThat(session.token()).isEqualTo(freshJwt);
         assertThat(session.user().getEmail()).isEqualTo("leo@gmail.com");
         assertThat(session.user().getUsername()).isEqualTo("leo");
     }
@@ -144,20 +153,19 @@ class OAuthExchangeServiceTest {
     }
 
     @Test
-    @DisplayName("code hash-only válido → gera JWT novo depois de reivindicar usuário")
-    void hashOnlyCodeGeneratesFreshJwtAfterClaim() {
+    @DisplayName("code dual-written válido → gera JWT novo depois de reivindicar usuário")
+    void dualWrittenCodeGeneratesFreshJwtAfterClaim() {
         UUID newUserId = userId;
         User user = buildUser();
-        String code = oauthCodeStore.issue(newUserId);
         String freshJwt = "fresh.jwt.token";
 
         when(userService.findById(newUserId)).thenReturn(Optional.of(user));
         when(jwtService.generateToken(user)).thenReturn(freshJwt);
+        String code = oauthCodeStore.issue(newUserId);
 
         AuthenticatedSession session = exchangeService.exchange(code);
 
         assertThat(session.user()).isSameAs(user);
         assertThat(session.token()).isEqualTo(freshJwt);
-        verify(jwtService).generateToken(user);
     }
 }

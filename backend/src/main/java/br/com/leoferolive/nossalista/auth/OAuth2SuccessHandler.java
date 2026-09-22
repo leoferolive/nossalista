@@ -76,7 +76,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         OAuth2User oauth2User = oauth2Token.getPrincipal();
         try {
             User user = googleIdentityService.resolve(googleClaimsAdapter.from(oauth2User));
-            String code = oauthCodeStore.issue(user.getId());
+            String code = oauthCodeStore.issue(user);
             response.sendRedirect(String.format("%s/auth/callback?code=%s", frontendUrl, code));
         } catch (GoogleIdentityRejectedException exception) {
             response.sendRedirect(frontendUrl + "/auth/callback?error=google_identity_rejected");

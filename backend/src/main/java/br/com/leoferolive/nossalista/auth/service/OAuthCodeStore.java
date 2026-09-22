@@ -2,6 +2,8 @@ package br.com.leoferolive.nossalista.auth.service;
 
 import br.com.leoferolive.nossalista.auth.domain.OAuthAuthorizationCode;
 import br.com.leoferolive.nossalista.auth.repository.OAuthAuthorizationCodeRepository;
+import br.com.leoferolive.nossalista.user.domain.User;
+import br.com.leoferolive.nossalista.user.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,9 +22,9 @@ import java.util.UUID;
 /**
  * Persisted one-time handoff codes for the web OAuth login.
  *
- * <p>New rows contain only a SHA-256 digest, the user id, expiry and consumption
- * timestamp. Legacy rows remain readable while older application instances are
- * being drained.</p>
+ * <p>During the V19 rolling deployment, new rows dual-write a SHA-256 digest,
+ * user id and a legacy code-to-JWT representation. Legacy rows remain readable
+ * while older application instances are being drained.</p>
  */
 @Component
 public class OAuthCodeStore {
@@ -33,20 +35,30 @@ public class OAuthCodeStore {
     private final SecureRandom secureRandom = new SecureRandom();
     private final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
     private final OAuthAuthorizationCodeRepository repository;
+    private final JwtService jwtService;
+    private final UserService userService;
     private final Duration ttl;
 
     @Autowired
-    public OAuthCodeStore(OAuthAuthorizationCodeRepository repository) {
-        this(repository, DEFAULT_TTL);
+    public OAuthCodeStore(OAuthAuthorizationCodeRepository repository, JwtService jwtService,
+                          UserService userService) {
+        this(repository, jwtService, userService, DEFAULT_TTL);
     }
 
-    OAuthCodeStore(OAuthAuthorizationCodeRepository repository, Duration ttl) {
+    OAuthCodeStore(OAuthAuthorizationCodeRepository repository, JwtService jwtService,
+                   UserService userService, Duration ttl) {
         this.repository = repository;
+        this.jwtService = jwtService;
+        this.userService = userService;
         this.ttl = ttl;
     }
 
+    protected OAuthCodeStore(OAuthAuthorizationCodeRepository repository) {
+        this(repository, null, null, DEFAULT_TTL);
+    }
+
     /**
-     * Creates a hash-only handoff for a user.
+     * Creates a dual-written handoff for a user during the V19 rolling deployment.
      *
      * @param userId authenticated user to recover during exchange
      * @return 256-bit URL-safe code to send to the browser
@@ -56,19 +68,31 @@ public class OAuthCodeStore {
         if (userId == null) {
             throw new IllegalArgumentException("userId deve ser informado para emitir o code OAuth");
         }
-        String code = generateCode();
-        OAuthAuthorizationCode entity = new OAuthAuthorizationCode();
-        entity.setCodeHash(hash(code));
-        entity.setUserId(userId);
-        entity.setExpiresAt(LocalDateTime.now().plus(ttl));
-        repository.save(entity);
-        repository.flush();
-        return code;
+        User user = userService.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("userId não encontrado para emitir o code OAuth"));
+        return issue(user);
     }
 
     /**
-     * Creates a legacy code-to-JWT row for rolling deployment compatibility.
-     * New callers should use {@link #issue(UUID)}.
+     * Creates a rolling-compatible handoff with a freshly signed session JWT.
+     *
+     * <p>The legacy fields remain populated only until every pre-V19 pod has been
+     * drained. The code hash and user id preserve the atomic new-code exchange.</p>
+     *
+     * @param user authenticated user whose current session version is signed
+     * @return 256-bit URL-safe code to send to the browser
+     */
+    @Transactional
+    public String issue(User user) {
+        if (user == null || user.getId() == null) {
+            throw new IllegalArgumentException("usuário com id deve ser informado para emitir o code OAuth");
+        }
+        return persistIssuedCode(user.getId(), jwtService.generateToken(user));
+    }
+
+    /**
+     * Creates a legacy code-to-JWT row for compatibility tests and old callers.
+     * New callers should use {@link #issue(User)}.
      *
      * @param jwt session JWT held by an older application instance
      * @return 256-bit URL-safe code
@@ -78,10 +102,18 @@ public class OAuthCodeStore {
         if (jwt == null || jwt.isBlank()) {
             throw new IllegalArgumentException("jwt legado deve ser informado para emitir o code OAuth");
         }
+        return persistIssuedCode(null, jwt);
+    }
+
+    private String persistIssuedCode(UUID userId, String jwt) {
         String code = generateCode();
         OAuthAuthorizationCode entity = new OAuthAuthorizationCode();
         entity.setCode(code);
         entity.setJwt(jwt);
+        if (userId != null) {
+            entity.setCodeHash(hash(code));
+            entity.setUserId(userId);
+        }
         entity.setExpiresAt(LocalDateTime.now().plus(ttl));
         repository.save(entity);
         repository.flush();
@@ -117,7 +149,7 @@ public class OAuthCodeStore {
 
     /**
      * Compatibility view used by the pre-hardened handler tests and old callers.
-     * New hash-only rows intentionally have no JWT to return from this method.
+     * Rolling dual-written rows retain a legacy JWT until old pods are retired.
      *
      * @param code opaque code supplied by the browser
      * @return legacy JWT when a legacy row is claimed

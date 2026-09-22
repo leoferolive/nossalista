@@ -12,7 +12,7 @@ This parallel task owns the identity domain, repository/service and focused test
 
 ## Task 3: Atomic OAuth handoff
 
-Use a 256-bit Base64url code and persist only `SHA-256(code)`, `user_id`, expiration and `consumed_at` for new rows. Atomically claim an unexpired, unconsumed code and issue a fresh JWT from the user after winning; no new JWT is stored in the database. During rolling compatibility, issue/read both legacy and new forms; retain the public `POST /api/auth/oauth/exchange { code }` request and response. Remove `OAUTHDBG` and never log a code, token or hash. Add real concurrent redemption coverage that permits exactly one successful exchange.
+Use a 256-bit Base64url code and persist `SHA-256(code)`, `user_id`, expiration and `consumed_at` for atomic new-pod redemption. During the V19 rolling window, dual-write the legacy `code`/JWT form as well, signing that JWT with the user's current `sv` so pre-V19 pods can complete the exchange. A new pod always resolves the user and issues a fresh JWT, including when it consumes a truly legacy row. Retain the public `POST /api/auth/oauth/exchange { code }` request and response. Remove the dual-write only after no pre-V19 pod has existed for more than the 60-second handoff TTL. Remove `OAUTHDBG` and never log a code, token or hash. Add real concurrent redemption coverage that permits exactly one successful exchange.
 
 This parallel task owns store/repository/exchange services and focused tests only. Shared success-handler and controller integration is owned by Task 5.
 

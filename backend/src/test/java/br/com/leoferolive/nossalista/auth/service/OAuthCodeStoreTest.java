@@ -6,6 +6,7 @@ import br.com.leoferolive.nossalista.user.domain.AuthProvider;
 import br.com.leoferolive.nossalista.user.domain.Role;
 import br.com.leoferolive.nossalista.user.domain.User;
 import br.com.leoferolive.nossalista.user.repository.UserRepository;
+import br.com.leoferolive.nossalista.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,8 +46,17 @@ class OAuthCodeStoreTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private OAuthCodeStore oauthCodeStore;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private UserService userService;
+
     private OAuthCodeStore store(Duration ttl) {
-        return new OAuthCodeStore(repository, ttl);
+        return new OAuthCodeStore(repository, jwtService, userService, ttl);
     }
 
     private OAuthCodeStore store() {
@@ -81,18 +91,19 @@ class OAuthCodeStoreTest {
     }
 
     @Test
-    @DisplayName("issue para usuário persiste somente hash SHA-256 e user_id")
-    void issueForUserStoresOnlyHashAndUserId() {
-        OAuthCodeStore store = store();
+    @DisplayName("issue para usuário dual-write code legado e JWT com a versão de sessão atual")
+    void issueForUserDualWritesLegacyCodeAndCurrentSessionJwt() {
         UUID userId = persistUser();
 
-        String code = store.issue(userId);
+        String code = oauthCodeStore.issue(userId);
 
         OAuthAuthorizationCode entity = repository.findByCodeHash(sha256Hex(code)).orElseThrow();
         assertThat(entity.getCodeHash()).isEqualTo(sha256Hex(code));
         assertThat(entity.getUserId()).isEqualTo(userId);
-        assertThat(entity.getCode()).isNull();
-        assertThat(entity.getJwt()).isNull();
+        assertThat(entity.getCode()).isEqualTo(code);
+        assertThat(entity.getJwt()).isNotBlank();
+        assertThat(jwtService.extractUserId(entity.getJwt())).isEqualTo(userId);
+        assertThat(jwtService.extractSessionVersion(entity.getJwt())).isZero();
         assertThat(code).hasSize(43).matches("[A-Za-z0-9_-]+");
     }
 

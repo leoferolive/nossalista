@@ -1521,10 +1521,13 @@ adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position
   permite vinculo estavel e impede associacao automatica de uma conta EMAIL por e-mail.
   Contas GOOGLE antigas sem subject podem ser migradas uma vez por e-mail verificado
   ate **2026-12-18T03:00:00Z**; depois disso, a recuperacao usa magic link/suporte.
-- **Handoff:** o code do redirect Google continua opaco, mas novas linhas persistem
-  somente SHA-256(code), `user_id`, expiracao e `consumed_at`. O consumo usa update
-  condicional atomico; somente uma requisicao pode reivindicar o code. Linhas legadas
-  continuam aceitas durante o rollout; o JWT nao e persistido para novos fluxos.
+- **Handoff:** o code do redirect Google continua opaco. Durante o rollout V19, novas
+  linhas dual-write SHA-256(code), `user_id`, expiracao e `consumed_at`, alem de
+  `code`/JWT legado assinado com o `sv` atual para que pods pre-V19 possam concluir a
+  troca. O consumo novo usa update condicional atomico; somente uma requisicao nova pode
+  reivindicar o code. Ao consumir uma linha realmente legada, o pod novo resolve o
+  usuario e assina um JWT atual, sem devolver o JWT armazenado. Remover o dual-write e os
+  campos legados somente depois que nenhum pod pre-V19 existir por mais de 60 segundos.
 - **Sessao:** JWTs web carregam `sv`, comparado diretamente com `users.session_version`.
   Logout e reset de senha incrementam a versao e invalidam todas as sessoes web; PATs
   e tokens OAuth do MCP permanecem independentes.

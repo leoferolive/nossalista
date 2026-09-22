@@ -161,8 +161,8 @@ class OAuth2SuccessHandlerTest {
         }
 
         @Override
-        public String issue(UUID userId) {
-            issuedForUser = userId;
+        public String issue(User user) {
+            issuedForUser = user.getId();
             return issuedCode;
         }
 

@@ -22,6 +22,8 @@ import java.util.UUID;
 @Service
 public class JwtService {
 
+    public static final String SESSION_VERSION_CLAIM = "sv";
+
     /**
      * Tamanho mínimo da chave em bytes exigido pelo HMAC-SHA256 (HS256).
      * RFC 7518 (seção 3.2) exige que a chave tenha pelo menos o tamanho do
@@ -99,7 +101,7 @@ public class JwtService {
             .subject(user.getId().toString())
             .claim("email", user.getEmail())
             .claim("username", user.getUsername())
-            .claim("sv", user.getSessionVersion())
+            .claim(SESSION_VERSION_CLAIM, user.getSessionVersion())
             .issuedAt(now)
             .expiration(expiryDate)
             .signWith(getSigningKey())
@@ -152,7 +154,7 @@ public class JwtService {
             .build()
             .parseSignedClaims(token)
             .getPayload()
-            .get("sv", Integer.class);
+            .get(SESSION_VERSION_CLAIM, Integer.class);
     }
 
     /**
