@@ -4,6 +4,8 @@ import br.com.leoferolive.nossalista.auth.OAuth2SuccessHandler;
 import br.com.leoferolive.nossalista.auth.service.SessionCookieService;
 import br.com.leoferolive.nossalista.mcpoauth.security.McpOAuthTokenAuthenticationFilter;
 import br.com.leoferolive.nossalista.mcpoauth.security.McpWwwAuthenticateEntryPoint;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +14,7 @@ import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
@@ -39,6 +42,13 @@ import java.util.Arrays;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    private static final String PERMISSIONS_POLICY =
+        "accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), "
+            + "fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), "
+            + "payment=(), usb=()";
+    private static final String CONTENT_SECURITY_POLICY =
+        "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'";
 
     @Value("${cors.allowed-origins}")
     private String[] allowedOrigins;
@@ -77,132 +87,147 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .headers(headers -> headers
-                        .referrerPolicy(referrer -> referrer.policy(
-                                ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
-                        .contentTypeOptions(contentType -> { })
-                        .frameOptions(frame -> frame.deny())
-                        .permissionsPolicyHeader(policy -> policy.policy(
-                                "accelerometer=(), autoplay=(), camera=(), display-capture=(), "
-                                    + "encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), "
-                                    + "magnetometer=(), microphone=(), midi=(), payment=(), usb=()"))
-                        .contentSecurityPolicy(csp -> csp.policyDirectives(
-                                "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'"))
-                        .addHeaderWriter((request, response) -> {
-                            String path = request.getRequestURI();
-                            if (isAuthOrOAuthPath(path)) {
-                                response.setHeader("Cache-Control", "no-store");
-                                response.setHeader("Pragma", "no-cache");
-                            }
-                        }))
-
-                // Sessões web usam cookie HttpOnly; mutações autenticadas exigem
-                // o token XSRF legível pela SPA. PAT/MCP continuam sem CSRF.
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(csrfTokenRepository())
-                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                        .requireCsrfProtectionMatcher(csrfProtectionMatcher())
-                )
-
-                // Configurar CORS
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // Configurar autorização de endpoints
-                .authorizeHttpRequests(auth -> auth
-                        // Gestão de PATs (/api/users/me/tokens/**) exige sessão web por cookie —
-                        // um PAT não pode criar/listar/revogar tokens (nem o seu próprio).
-                        .requestMatchers("/api/users/me/tokens/**").access(sessionOnlyManager())
-                        // Endpoints públicos - não requerem autenticação. Um PAT nunca pode
-                        // ser usado aqui (ex.: login/registro), mesmo que o endpoint seja público.
-                        .requestMatchers(
-                            "/api/auth/**", "/api/health", "/actuator/health", "/actuator/prometheus", "/actuator/info")
-                        .access(publicUnlessPatManager())
-                        // OAuth2 endpoints (Spring Security gerencia automaticamente)
-                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        // Servidor de autorização OAuth 2.1 do MCP (Fase C, D-022): authorize/token/
-                        // revoke e discovery são públicos por natureza do protocolo (o cliente OAuth
-                        // ainda não tem credencial nenhuma nesta etapa). /oauth/register (Fase C.1,
-                        // D-024) é Dynamic Client Registration (RFC 7591) — público por definição da
-                        // RFC, endurecido com rate limit por IP e validação de redirect_uris.
-                        .requestMatchers("/oauth/authorize", "/oauth/token", "/oauth/revoke", "/oauth/register")
-                        .permitAll()
-                        .requestMatchers("/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource")
-                        .permitAll()
-                        // Consentimento/gestão de conexões OAuth do MCP: exige sessão web por cookie —
-                        // um PAT ou um access token OAuth do MCP nunca pode aprovar um novo
-                        // consentimento nem gerenciar conexões em nome do usuário.
-                        .requestMatchers("/api/oauth/consent/**", "/api/oauth/connections/**").access(sessionOnlyManager())
-                        // Endpoint de join via convite - GET é público (read-only), POST requer auth
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/lists/join/**").permitAll()
-                        // WebSocket endpoint - auth feita pelo WebSocketAuthInterceptor
-                        .requestMatchers("/ws/**").permitAll()
-                        // Servidor MCP (Streamable HTTP, POST /mcp): exige PAT, access token OAuth MCP ou cookie de sessão válido.
-                        // Diferente de /api/**, aqui NÃO aplicamos apiAccessManager — todo o
-                        // protocolo MCP trafega por POST, então a restrição de escopo READ
-                        // (métodos seguros) seria bloqueio total. O enforcement de escopo é
-                        // feito por tool em McpSecurityContext (ver módulo mcp/).
-                        .requestMatchers("/mcp/**").authenticated()
-                        // Endpoints da API requerem autenticação. Um PAT de escopo READ só
-                        // pode usar métodos seguros (GET/HEAD/OPTIONS) — ver PatAuthorizationSupport.
-                        .requestMatchers("/api/**").access(apiAccessManager())
-                        // Rotas do SPA embutido (/, /listas, /perfil, assets, etc)
-                        .anyRequest().permitAll()
-                )
-
-                // Session Management - Stateless (sem sessões server-side)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-
-                // Exception Handling - RFC 7807 para APIs REST (não redirecionar):
-                // 401 quando não autenticado, 403 quando autenticado sem authority.
-                // /mcp/** usa um entry point específico que acrescenta o header
-                // WWW-Authenticate (descoberta OAuth do MCP, RFC 9728) antes de delegar ao
-                // entry point 401 padrão — ver McpWwwAuthenticateEntryPoint. Usa
-                // DelegatingAuthenticationEntryPoint diretamente (em vez de
-                // defaultAuthenticationEntryPointFor) porque este último só é considerado
-                // quando NENHUM authenticationEntryPoint explícito é definido — com os dois
-                // configurados, ExceptionHandlingConfigurer sempre usa o explícito e ignora
-                // silenciosamente o "default", nunca acrescentando o header.
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(new DelegatingAuthenticationEntryPoint(
-                                unauthorizedEntryPoint,
-                                new RequestMatcherEntry<>(
-                                        PathPatternRequestMatcher.withDefaults().matcher("/mcp/**"),
-                                        mcpWwwAuthenticateEntryPoint)))
-                        .accessDeniedHandler(accessDeniedHandler)
-                )
-
-                // Configurar OAuth2 Login.
-                // O authorization-request (state anti-CSRF) é guardado em COOKIE e não
-                // na HttpSession — obrigatório porque a app é STATELESS. Sem isso o
-                // state não persiste, o callback do Google vira não-idempotente e
-                // emite múltiplos one-time codes órfãos (login Google nunca completa).
-                .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(authorization ->
-                                authorization.authorizationRequestRepository(authorizationRequestRepository)
-                        )
-                        .redirectionEndpoint(redirect ->
-                                redirect.baseUri("/api/auth/google/callback")
-                        )
-                        .successHandler(oauth2SuccessHandler)
-                )
-
-                // Adicionar JWT Authentication Filter ANTES de UsernamePasswordAuthenticationFilter.
-                // Precisa ser registrado ANTES da linha abaixo: o Spring Security só aceita
-                // JwtAuthenticationFilter.class como âncora de addFilterBefore depois que a
-                // própria posição dele já foi registrada nesta cadeia.
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                // PAT roda ANTES do JWT: só age em tokens com prefixo nlmcp_, deixando
-                // qualquer outro valor (incluindo JWTs normais) intocado para o filtro seguinte.
-                .addFilterBefore(personalAccessTokenAuthenticationFilter, JwtAuthenticationFilter.class)
-                // Access token OAuth do MCP (Fase C, D-022): só age em /mcp/** e só quando o
-                // Bearer valida como JWT assinado com MCP_OAUTH_SIGNING_KEY (chave própria,
-                // distinta do JWT_SECRET de sessão) — qualquer outro valor segue intocado.
-                .addFilterBefore(mcpOAuthTokenAuthenticationFilter, JwtAuthenticationFilter.class);
-
+        configureHeaders(http);
+        configureCsrf(http);
+        configureCors(http);
+        configureAuthorization(http);
+        configureStatelessSessions(http);
+        configureExceptionHandling(http);
+        configureOAuth2Login(http);
+        configureAuthenticationFilters(http);
         return http.build();
+    }
+
+    private void configureHeaders(HttpSecurity http) throws Exception {
+        http.headers(headers -> headers
+            .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+            .contentTypeOptions(contentType -> { })
+            .frameOptions(frame -> frame.deny())
+            .permissionsPolicyHeader(policy -> policy.policy(PERMISSIONS_POLICY))
+            .contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
+            .addHeaderWriter(this::preventCachingOfAuthResponses));
+    }
+
+    private void preventCachingOfAuthResponses(HttpServletRequest request, HttpServletResponse response) {
+        if (isAuthOrOAuthPath(request.getRequestURI())) {
+            response.setHeader("Cache-Control", "no-store");
+            response.setHeader("Pragma", "no-cache");
+        }
+    }
+
+    /**
+     * Sessões web usam cookie HttpOnly; mutações autenticadas exigem o token XSRF legível pela SPA.
+     * PAT/MCP continuam sem CSRF.
+     */
+    private void configureCsrf(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf
+            .csrfTokenRepository(csrfTokenRepository())
+            .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+            .requireCsrfProtectionMatcher(csrfProtectionMatcher()));
+    }
+
+    private void configureCors(HttpSecurity http) throws Exception {
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
+    }
+
+    private void configureAuthorization(HttpSecurity http) throws Exception {
+        http.authorizeHttpRequests(auth -> {
+            configureSessionOnlyPaths(auth);
+            configurePublicPaths(auth);
+            configureMcpPaths(auth);
+            configureApiPaths(auth);
+        });
+    }
+
+    /**
+     * Gestão de PATs e conexões OAuth exige sessão web por cookie: um PAT ou access token OAuth MCP
+     * nunca cria, lista, revoga, aprova consentimento, nem gerencia conexões em nome do usuário.
+     */
+    private void configureSessionOnlyPaths(
+        AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth
+    ) {
+        auth.requestMatchers("/api/users/me/tokens/**").access(sessionOnlyManager());
+        auth.requestMatchers("/api/oauth/consent/**", "/api/oauth/connections/**").access(sessionOnlyManager());
+    }
+
+    /**
+     * Endpoints públicos não requerem autenticação, mas um PAT nunca pode ser usado neles (por
+     * exemplo, login e registro), mesmo que a rota seja pública.
+     *
+     * <p>O servidor OAuth 2.1 do MCP (D-022) e Dynamic Client Registration (D-024) são públicos por
+     * natureza do protocolo; {@code /oauth/register} mantém rate limit por IP e validação de URIs.</p>
+     */
+    private void configurePublicPaths(
+        AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth
+    ) {
+        auth.requestMatchers("/api/auth/**", "/api/health", "/actuator/health", "/actuator/prometheus", "/actuator/info")
+            .access(publicUnlessPatManager());
+        auth.requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll();
+        auth.requestMatchers("/oauth/authorize", "/oauth/token", "/oauth/revoke", "/oauth/register").permitAll();
+        auth.requestMatchers("/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource").permitAll();
+        auth.requestMatchers(org.springframework.http.HttpMethod.GET, "/api/lists/join/**").permitAll();
+        auth.requestMatchers("/ws/**").permitAll();
+    }
+
+    /**
+     * MCP Streamable HTTP aceita PAT, access token OAuth MCP ou sessão cookie válida. Não usa
+     * {@code apiAccessManager}: todo o protocolo é POST, e o enforcement de escopo é por tool em
+     * {@code McpSecurityContext}.
+     */
+    private void configureMcpPaths(
+        AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth
+    ) {
+        auth.requestMatchers("/mcp/**").authenticated();
+    }
+
+    /** API PATs with READ scope may use only GET, HEAD, and OPTIONS. */
+    private void configureApiPaths(
+        AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth
+    ) {
+        auth.requestMatchers("/api/**").access(apiAccessManager());
+        auth.anyRequest().permitAll();
+    }
+
+    private void configureStatelessSessions(HttpSecurity http) throws Exception {
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+    }
+
+    /**
+     * APIs REST retornam RFC 7807 (401/403, sem redirect). MCP anuncia OAuth discovery (RFC 9728)
+     * antes do 401 padrão. {@link DelegatingAuthenticationEntryPoint} é necessário porque
+     * {@code defaultAuthenticationEntryPointFor} é ignorado quando há entry point explícito.
+     */
+    private void configureExceptionHandling(HttpSecurity http) throws Exception {
+        http.exceptionHandling(exception -> exception
+            .authenticationEntryPoint(mcpAuthenticationEntryPoint())
+            .accessDeniedHandler(accessDeniedHandler));
+    }
+
+    private DelegatingAuthenticationEntryPoint mcpAuthenticationEntryPoint() {
+        return new DelegatingAuthenticationEntryPoint(unauthorizedEntryPoint, new RequestMatcherEntry<>(
+            PathPatternRequestMatcher.withDefaults().matcher("/mcp/**"), mcpWwwAuthenticateEntryPoint));
+    }
+
+    /**
+     * O authorization request (state anti-CSRF) é guardado em cookie, não em {@code HttpSession},
+     * pois a aplicação é stateless. Sem isso o callback do Google não persiste state e pode emitir
+     * múltiplos one-time codes órfãos.
+     */
+    private void configureOAuth2Login(HttpSecurity http) throws Exception {
+        http.oauth2Login(oauth2 -> oauth2
+            .authorizationEndpoint(authorization -> authorization.authorizationRequestRepository(authorizationRequestRepository))
+            .redirectionEndpoint(redirect -> redirect.baseUri("/api/auth/google/callback"))
+            .successHandler(oauth2SuccessHandler));
+    }
+
+    /**
+     * Registra JWT antes da âncora UsernamePasswordAuthenticationFilter; PAT e OAuth MCP rodam antes
+     * dele. O Spring Security só aceita JwtAuthenticationFilter como âncora após registrar sua posição.
+     */
+    private void configureAuthenticationFilters(HttpSecurity http) {
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(personalAccessTokenAuthenticationFilter, JwtAuthenticationFilter.class)
+            .addFilterBefore(mcpOAuthTokenAuthenticationFilter, JwtAuthenticationFilter.class);
     }
 
     private boolean isAuthOrOAuthPath(String path) {

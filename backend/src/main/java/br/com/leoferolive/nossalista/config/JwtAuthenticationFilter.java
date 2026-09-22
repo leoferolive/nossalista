@@ -19,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -49,70 +50,57 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         HttpServletResponse response,
         FilterChain filterChain
     ) throws ServletException, IOException {
-
-        // PAT/OAuth MCP já autenticados têm precedência sobre a sessão cookie.
-        if (SecurityContextHolder.getContext().getAuthentication() != null) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = sessionCookieService.extractToken(request).orElse(null);
-        if (token == null) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // Validar token JWT
-        if (!jwtService.validateToken(token)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // Claims assinadas mas incompatíveis com a sessão falham fechado.
-        UUID userId;
-        Integer tokenSessionVersion;
-        try {
-            userId = jwtService.extractUserId(token);
-            tokenSessionVersion = jwtService.extractSessionVersion(token);
-        } catch (RuntimeException exception) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        Integer currentSessionVersion = userRepository.findSessionVersionById(userId).orElse(null);
-        if (tokenSessionVersion == null
-            || currentSessionVersion == null
-            || !tokenSessionVersion.equals(currentSessionVersion)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // Buscar usuário (cacheado com TTL curto para evitar lookup por request)
-        User user = userCache.findById(userId).orElse(null);
-
-        // Se usuário não existe mais, continuar sem autenticar
-        if (user == null) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // Criar autenticação com authorities derivadas do role do usuário
-        UsernamePasswordAuthenticationToken authentication =
-            new UsernamePasswordAuthenticationToken(
-                user,
-                null,
-                authoritiesFor(user)
-            );
-
-        authentication.setDetails(
-            new WebAuthenticationDetailsSource().buildDetails(request)
-        );
-
-        // Setar autenticação no SecurityContext
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // Continuar cadeia de filtros
+        authenticateSession(request);
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * PAT/OAuth MCP já autenticados têm precedência sobre a sessão cookie.
+     * JWTs inválidos, claims incompatíveis e usuários removidos continuam a cadeia sem autenticar.
+     */
+    private void authenticateSession(HttpServletRequest request) {
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            return;
+        }
+        sessionCookieService.extractToken(request)
+            .filter(jwtService::validateToken)
+            .flatMap(this::findSessionUser)
+            .ifPresent(user -> authenticateUser(user, request));
+    }
+
+    /**
+     * Claims assinadas mas incompatíveis com a sessão falham fechado.
+     * Busca o usuário cacheado com TTL curto para evitar lookup por request.
+     */
+    private Optional<User> findSessionUser(String token) {
+        SessionClaims claims = extractSessionClaims(token).orElse(null);
+        if (claims == null || !hasCurrentSessionVersion(claims.userId(), claims.sessionVersion())) {
+            return Optional.empty();
+        }
+        return userCache.findById(claims.userId());
+    }
+
+    private Optional<SessionClaims> extractSessionClaims(String token) {
+        try {
+            return Optional.of(new SessionClaims(
+                jwtService.extractUserId(token), jwtService.extractSessionVersion(token)));
+        } catch (RuntimeException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private boolean hasCurrentSessionVersion(UUID userId, Integer tokenSessionVersion) {
+        Integer currentSessionVersion = userRepository.findSessionVersionById(userId).orElse(null);
+        return tokenSessionVersion != null
+            && tokenSessionVersion.equals(currentSessionVersion);
+    }
+
+    /** Cria autenticação com authorities derivadas do role e a associa ao request atual. */
+    private void authenticateUser(User user, HttpServletRequest request) {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+            user, null, authoritiesFor(user));
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     /**
@@ -148,5 +136,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private List<GrantedAuthority> authoritiesFor(User user) {
         Role role = user.getRole() != null ? user.getRole() : Role.USER;
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+
+    private record SessionClaims(UUID userId, Integer sessionVersion) {
     }
 }
