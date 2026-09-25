@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/leoferolive-design-6504b250-cdcb-4cf4-a42f-2b4955a1915c/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/leoferolive-design-6504b250-cdcb-4cf4-a42f-2b4955a1915c/tokens/colors.css">
+<link rel="stylesheet" href="_ds/leoferolive-design-6504b250-cdcb-4cf4-a42f-2b4955a1915c/tokens/typography.css">
+<link rel="stylesheet" href="_ds/leoferolive-design-6504b250-cdcb-4cf4-a42f-2b4955a1915c/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/leoferolive-design-6504b250-cdcb-4cf4-a42f-2b4955a1915c/tokens/elements.css">
+<link rel="stylesheet" href="_ds/leoferolive-design-6504b250-cdcb-4cf4-a42f-2b4955a1915c/styles.css">
+<script src="_ds/leoferolive-design-6504b250-cdcb-4cf4-a42f-2b4955a1915c/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--bg); }
+</style>
+</helmet>
+
+<div style="font-family:var(--font-sans); color:var(--text); background:var(--bg);">
+
+  <!-- dark hero: nav + hero share the rich dark canvas -->
+  <div style="position:relative; overflow:hidden; background:radial-gradient(1100px 600px at 14% -12%, rgba(124,58,237,0.38), transparent 60%), radial-gradient(900px 520px at 96% 8%, rgba(20,184,166,0.2), transparent 55%), radial-gradient(760px 520px at 50% 118%, rgba(124,58,237,0.16), transparent 62%), #14101e;">
+
+    <nav style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; max-width:1120px; margin:0 auto; padding:22px 40px;">
+      <span style="display:inline-flex; align-items:center; gap:10px;">
+        <span style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,#7c3aed,#6326c9); display:grid; place-items:center; color:#fff; flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 12.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L22 8H6M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"></path></svg></span>
+        <span style="font-family:var(--font-display); font-weight:700; font-size:20px; color:#ece9f4;">Nossa<span style="color:#a78bfa;">Lista</span></span>
+      </span>
+      <div style="flex:1; display:flex; gap:28px; justify-content:center; font-size:14px; font-weight:600; color:rgba(236,233,244,0.66);">
+        <a href="#" style="color:inherit;">Recursos</a><a href="#" style="color:inherit;">Como funciona</a>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button onClick="{{ toggleTheme }}" aria-label="Alternar tema" style="width:40px; height:40px; border-radius:8px; border:1px solid rgba(255,255,255,0.16); background:rgba(255,255,255,0.07); color:rgba(236,233,244,0.8); display:grid; place-items:center; cursor:pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"></path></svg></button>
+        <a href="#" style="font-size:14px; font-weight:700; color:rgba(236,233,244,0.8);">Entrar</a>
+        <x-import component-from-global-scope="FreshListsDesignSystem_6504b2.Button" size="sm" hint-size="150px,40px">Criar conta</x-import>
+      </div>
+    </nav>
+
+    <div style="max-width:1120px; margin:0 auto; padding:60px 40px 84px; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr)); gap:56px; align-items:center;">
+      <div>
+        <span style="display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px; border-radius:999px; background:rgba(45,212,191,0.12); border:1px solid rgba(45,212,191,0.3); color:#2dd4bf; font-size:11px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:999px;background:#2dd4bf;box-shadow:0 0 10px #2dd4bf;"></span>Tempo real</span>
+        <h1 style="font-size:clamp(40px,4.8vw,62px); line-height:1.02; letter-spacing:-0.03em; margin:20px 0 0; color:#ece9f4;">A lista que todo mundo<br><span style="background:linear-gradient(120deg,#a78bfa,#2dd4bf); -webkit-background-clip:text; background-clip:text; color:transparent;">vê ao mesmo tempo.</span></h1>
+        <p style="font-size:19px; color:rgba(236,233,244,0.68); max-width:46ch; margin:22px 0 0; line-height:1.55;">Compras, tarefas e desejos num lugar só. Você marca um item e todo mundo vê na hora — no mercado, em casa, onde estiver.</p>
+
+        <div style="display:flex; align-items:center; gap:24px; flex-wrap:wrap; margin-top:34px;">
+          <x-import component-from-global-scope="FreshListsDesignSystem_6504b2.Button" size="lg" hint-size="210px,56px">Criar conta grátis</x-import>
+          <a href="#" style="display:inline-flex; align-items:center; gap:8px; font-size:16px; font-weight:700; color:#ece9f4;">Já tenho conta <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:18px; font-size:13px; font-weight:600; color:rgba(236,233,244,0.45);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          Grátis para sempre · sem cartão de crédito
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:22px 34px; margin-top:38px; padding-top:26px; border-top:1px solid rgba(255,255,255,0.1);">
+          <div style="display:flex; align-items:center; gap:11px; font-size:14.5px; font-weight:600; color:rgba(236,233,244,0.72);"><span style="width:32px; height:32px; border-radius:9px; background:rgba(167,139,250,0.14); color:#a78bfa; display:grid; place-items:center; flex:none;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg></span>Tudo centralizado</div>
+        <div style="display:flex; align-items:center; gap:11px; font-size:14.5px; font-weight:600; color:rgba(236,233,244,0.72);"><span style="width:32px; height:32px; border-radius:9px; background:rgba(45,212,191,0.13); color:#2dd4bf; display:grid; place-items:center; flex:none;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"></path></svg></span>Sincroniza na hora</div>
+          <div style="display:flex; align-items:center; gap:11px; font-size:14.5px; font-weight:600; color:rgba(236,233,244,0.72);"><span style="width:32px; height:32px; border-radius:9px; background:rgba(99,152,240,0.14); color:#6398f0; display:grid; place-items:center; flex:none;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg></span>Convite por link</div>
+        </div>
+      </div>
+
+      <!-- dark glass list card -->
+      <div style="position:relative; justify-self:center; width:100%; max-width:410px;">
+        <div aria-hidden="true" style="position:absolute; inset:-14% -10%; background:radial-gradient(50% 50% at 50% 50%, rgba(124,58,237,0.35), transparent 70%);"></div>
+        <div style="position:relative; background:rgba(33,27,53,0.78); border:1px solid rgba(255,255,255,0.12); border-radius:20px; box-shadow:0 30px 70px rgba(0,0,0,0.45); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); padding:22px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="display:flex; gap:5px;"><span style="width:9px;height:9px;border-radius:999px;background:#a78bfa;"></span><span style="width:9px;height:9px;border-radius:999px;background:#2dd4bf;"></span><span style="width:9px;height:9px;border-radius:999px;background:rgba(255,255,255,0.22);"></span></span>
+            <span style="font-size:11px; font-weight:800; letter-spacing:0.14em; color:rgba(236,233,244,0.45);">COMPARTILHADA</span>
+            <span style="margin-left:auto; display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#2dd4bf; background:rgba(45,212,191,0.12); padding:4px 10px; border-radius:999px;"><span style="width:7px;height:7px;border-radius:999px;background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;"></span>2 online</span>
+          </div>
+          <h3 style="font-size:24px; letter-spacing:-0.02em; margin:14px 0 4px; color:#ece9f4;">Mercado da semana</h3>
+          <div style="margin-top:8px;">
+            <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid rgba(255,255,255,0.08);"><span style="width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#2dd4bf,#14b8a6);display:grid;place-items:center;flex:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0b2b26" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="flex:1; font-size:15px; font-weight:600; color:rgba(236,233,244,0.4); text-decoration:line-through;">Tomate sweet grape</span></div>
+            <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid rgba(255,255,255,0.08);"><span style="width:22px;height:22px;border-radius:7px;border:2px solid rgba(255,255,255,0.22);flex:none;"></span><span style="flex:1; font-size:15px; font-weight:600; color:#ece9f4;">Queijo minas</span></div>
+            <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid rgba(255,255,255,0.08);"><span style="width:22px;height:22px;border-radius:7px;border:2px solid rgba(255,255,255,0.22);flex:none;"></span><span style="flex:1; font-size:15px; font-weight:600; color:#ece9f4;">Iogurte natural</span></div>
+            <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid rgba(255,255,255,0.08);"><span style="width:22px;height:22px;border-radius:7px;border:2px solid rgba(255,255,255,0.22);flex:none;"></span><span style="flex:1; font-size:15px; font-weight:600; color:#ece9f4;">Lembrete de feira</span></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08);">
+            <span style="width:26px; height:26px; border-radius:999px; background:rgba(167,139,250,0.2); color:#a78bfa; display:grid; place-items:center; font-size:12px; font-weight:800; flex:none;">A</span>
+            <span style="font-size:13px; color:rgba(236,233,244,0.55);">Ana marcou o primeiro item — todo mundo viu na hora.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- como funciona -->
+  <section style="max-width:1120px; margin:0 auto; padding:60px 40px 8px;">
+    <div style="text-align:center; margin-bottom:36px;">
+      <span style="font-size:12px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--accent);">Como funciona</span>
+      <h2 style="font-size:clamp(28px,3.2vw,40px); letter-spacing:-0.02em; margin:10px 0 0;">Três passos e pronto</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:stretch; justify-content:center;">
+      <div style="flex:1; min-width:250px; background:var(--surface-strong); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-card); padding:24px;"><span style="font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--accent);">Passo 1</span><h3 style="font-size:18px; margin:8px 0 6px;">Crie sua lista</h3><p style="font-size:14.5px; color:var(--text-muted); line-height:1.55;">Compras, tarefas ou desejos. Dê um nome e pronto.</p></div>
+      <div style="align-self:center; color:var(--text-faint);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+      <div style="flex:1; min-width:250px; background:var(--surface-strong); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-card); padding:24px;"><span style="font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--primary-strong);">Passo 2</span><h3 style="font-size:18px; margin:8px 0 6px;">Convide quem quiser</h3><p style="font-size:14.5px; color:var(--text-muted); line-height:1.55;">Mande um link ou o usuário. A pessoa entra e já edita.</p></div>
+      <div style="align-self:center; color:var(--text-faint);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+      <div style="flex:1; min-width:250px; background:var(--surface-strong); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-card); padding:24px;"><span style="font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--info);">Passo 3</span><h3 style="font-size:18px; margin:8px 0 6px;">Marquem juntos</h3><p style="font-size:14.5px; color:var(--text-muted); line-height:1.55;">Cada alteração aparece na hora para todo mundo.</p></div>
+    </div>
+  </section>
+
+  <!-- recursos -->
+  <section style="max-width:1120px; margin:0 auto; padding:56px 40px 8px; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:20px;">
+    <div style="background:var(--surface-strong); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-card); padding:26px;"><span style="display:grid; place-items:center; width:48px; height:48px; border-radius:14px; background:var(--accent-soft); color:var(--accent); margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg></span><h3 style="font-size:19px; margin-bottom:8px;">Tudo centralizado</h3><p style="font-size:14.5px; color:var(--text-muted); line-height:1.55;">Suas listas param de viver em papéis soltos e conversas perdidas. Uma casa só para organizar a vida.</p></div>
+    <div style="background:var(--surface-strong); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-card); padding:26px;"><span style="display:grid; place-items:center; width:48px; height:48px; border-radius:14px; background:color-mix(in srgb,var(--primary) 14%,transparent); color:var(--primary); margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"></path></svg></span><h3 style="font-size:19px; margin-bottom:8px;">Tempo real de verdade</h3><p style="font-size:14.5px; color:var(--text-muted); line-height:1.55;">Alguém marca um item e todo mundo vê na hora. Sem recarregar, sem “quem já comprou o leite?”.</p></div>
+    <div style="background:var(--surface-strong); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-card); padding:26px;"><span style="display:grid; place-items:center; width:48px; height:48px; border-radius:14px; background:color-mix(in srgb,var(--info) 14%,transparent); color:var(--info); margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg></span><h3 style="font-size:19px; margin-bottom:8px;">Compartilhe em segundos</h3><p style="font-size:14.5px; color:var(--text-muted); line-height:1.55;">Convide por link ou usuário. Família, colegas de casa ou amigos entram e começam a editar juntos.</p></div>
+  </section>
+
+  <!-- CTA final dark -->
+  <section style="max-width:1120px; margin:56px auto 0; padding:0 40px 56px;">
+    <div style="position:relative; overflow:hidden; border-radius:var(--radius-lg); padding:52px 32px; text-align:center; background:radial-gradient(620px 320px at 18% -30%, rgba(124,58,237,0.5), transparent 60%), radial-gradient(520px 300px at 92% 130%, rgba(20,184,166,0.35), transparent 55%), #1a1428;">
+      <h2 style="position:relative; font-size:clamp(28px,3.6vw,40px); letter-spacing:-0.02em; color:#ece9f4;">Organize junto, hoje</h2>
+      <p style="position:relative; font-size:16px; color:rgba(236,233,244,0.66); margin:12px 0 26px;">Crie sua primeira lista compartilhada. É grátis, para sempre.</p>
+      <span style="position:relative; display:inline-flex; align-items:center; justify-content:center; min-height:54px; padding:0 30px; border-radius:var(--radius-sm); background:linear-gradient(135deg,#9268ee,#6326c9); color:#fff; font-weight:800; font-size:15px; cursor:pointer; box-shadow:0 12px 30px rgba(124,58,237,0.4);">Criar conta grátis</span>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid var(--border);"><div style="max-width:1120px; margin:0 auto; padding:26px 40px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; color:var(--text-muted); font-size:13px;"><span style="font-family:var(--font-display); font-weight:700; color:var(--text);">NossaLista</span><span style="flex:1;"></span><a href="#" style="color:inherit;">Privacidade</a><a href="#" style="color:inherit;">Termos</a><a href="#" style="color:inherit;">Contato</a></div></footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;light&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;tsType&quot;:&quot;'light' | 'dark'&quot;,&quot;section&quot;:&quot;Tema&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;violet&quot;,&quot;options&quot;:[&quot;violet&quot;,&quot;teal&quot;,&quot;blue&quot;],&quot;tsType&quot;:&quot;'violet' | 'teal' | 'blue'&quot;,&quot;section&quot;:&quot;Tema&quot;}}">
+class Component extends DCLogic {
+  state = { theme: this.props.theme || 'light' }
+
+  applyTheme(t) { document.documentElement.setAttribute('data-theme', t); }
+
+  applyAccent(a) {
+    const root = document.documentElement.style;
+    const map = {
+      teal: ['#14b8a6', '#0d9488', 'rgba(20,184,166,0.14)'],
+      blue: ['#2f6fed', '#1d4fd0', 'rgba(47,111,237,0.14)'],
+    };
+    if (!a || a === 'violet') {
+      root.removeProperty('--accent');
+      root.removeProperty('--accent-strong');
+      root.removeProperty('--accent-soft');
+      return;
+    }
+    const v = map[a];
+    if (v) {
+      root.setProperty('--accent', v[0]);
+      root.setProperty('--accent-strong', v[1]);
+      root.setProperty('--accent-soft', v[2]);
+    }
+  }
+
+  componentDidMount() {
+    this.applyTheme(this.state.theme);
+    this.applyAccent(this.props.accent);
+  }
+
+  componentDidUpdate(prev) {
+    if (prev.accent !== this.props.accent) this.applyAccent(this.props.accent);
+    if (prev.theme !== this.props.theme && this.props.theme !== this.state.theme) {
+      this.applyTheme(this.props.theme);
+      this.setState({ theme: this.props.theme });
+    }
+  }
+
+  renderVals() {
+    return {
+      toggleTheme: () => {
+        const t = this.state.theme === 'light' ? 'dark' : 'light';
+        this.applyTheme(t);
+        this.setState({ theme: t });
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
