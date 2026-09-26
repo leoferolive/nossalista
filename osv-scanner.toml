@@ -4,18 +4,6 @@
 # ate ser reavaliado (nao e supressao permanente).
 
 [[IgnoredVulns]]
-id = "GHSA-qwww-vcr4-c8h2"
-ignoreUntil = 2027-01-29
-reason = """
-react-router: CSRF bypass em modo RSC (React Server Components). A advisory
-oficial afirma explicitamente que 'this only affects your application if you
-are using the unstable RSC APIs'. O frontend usa react-router-dom em modo SPA
-classico (BrowserRouter), sem RSC — o caminho de codigo vulneravel nao e
-exercitado nesta aplicacao. Nao ha bump planejado; reavaliar se o app
-eventualmente migrar para RSC.
-"""
-
-[[IgnoredVulns]]
 id = "GHSA-mh99-v99m-4gvg"
 ignoreUntil = 2026-10-29
 reason = """
