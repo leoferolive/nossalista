@@ -210,7 +210,7 @@
                  mvn dependency:tree comparando as duas versões. Reavaliar se
                  web-push publicar um patch que corrija o scope, ou declarar
                  httpasyncclient explicitamente em compile scope neste pom. -->
-            <version>5.1.1</version>
+            <version>5.1.2</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
