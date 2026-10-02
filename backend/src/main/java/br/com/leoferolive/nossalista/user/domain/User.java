@@ -28,7 +28,9 @@ public class User {
     @Column(name = "email", unique = true, nullable = false)
     private String email;
 
-    @Column(name = "password")
+    // updatable = false: a senha só muda via UserRepository#updatePasswordAndIncrementSessionVersion,
+    // para que um save() com entidade antiga não restaure o hash após um reset.
+    @Column(name = "password", updatable = false)
     private String password;
 
     @Column(name = "name", length = 100)
@@ -57,7 +59,9 @@ public class User {
     @Column(name = "onboarding_completed_at")
     private LocalDateTime onboardingCompletedAt;
 
-    @Column(name = "session_version", nullable = false)
+    // updatable = false: só UserRepository#incrementSessionVersion (UPDATE atômico) altera
+    // esta coluna; um save() com entidade antiga não pode reviver sessões revogadas.
+    @Column(name = "session_version", nullable = false, updatable = false)
     private int sessionVersion;
 
     @PrePersist

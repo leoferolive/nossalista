@@ -188,10 +188,7 @@ public class UserService {
      */
     @Transactional
     public void updatePassword(UUID userId, String encodedPassword) {
-        User user = findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
-        user.setPassword(encodedPassword);
-        incrementSessionVersion(user);
+        requireUpdated(userRepository.updatePasswordAndIncrementSessionVersion(userId, encodedPassword), userId);
     }
 
     /**
@@ -201,9 +198,7 @@ public class UserService {
      */
     @Transactional
     public void revokeWebSessions(UUID userId) {
-        User user = findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado: " + userId));
-        incrementSessionVersion(user);
+        requireUpdated(userRepository.incrementSessionVersion(userId), userId);
     }
 
     /**
@@ -233,8 +228,9 @@ public class UserService {
         return userRepository.findTop20ByUsernameContainingIgnoreCase(query);
     }
 
-    private void incrementSessionVersion(User user) {
-        user.setSessionVersion(user.getSessionVersion() + 1);
-        userRepository.save(user);
+    private void requireUpdated(int affectedRows, UUID userId) {
+        if (affectedRows == 0) {
+            throw new UserNotFoundException("Usuário não encontrado: " + userId);
+        }
     }
 }

@@ -4,6 +4,7 @@ import br.com.leoferolive.nossalista.user.domain.User;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -44,6 +45,32 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      */
     @Query("SELECT u.sessionVersion FROM User u WHERE u.id = :id")
     Optional<Integer> findSessionVersionById(@Param("id") UUID id);
+
+    /**
+     * Incrementa atomicamente a versão de sessão ({@code UPDATE ... SET sv = sv + 1}),
+     * revogando os JWTs emitidos. Não passa pela entidade: um {@code save} posterior
+     * de uma instância antiga não consegue restaurar o valor anterior.
+     *
+     * @param id ID do usuário
+     * @return número de linhas afetadas (0 se o usuário não existe)
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE User u SET u.sessionVersion = u.sessionVersion + 1 WHERE u.id = :id")
+    int incrementSessionVersion(@Param("id") UUID id);
+
+    /**
+     * Troca a senha e incrementa a versão de sessão no mesmo {@code UPDATE} atômico,
+     * de modo que nunca exista senha nova com sessões antigas ainda válidas.
+     *
+     * @param id              ID do usuário
+     * @param encodedPassword nova senha já criptografada
+     * @return número de linhas afetadas (0 se o usuário não existe)
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE User u SET u.password = :encodedPassword, u.sessionVersion = u.sessionVersion + 1 "
+        + "WHERE u.id = :id")
+    int updatePasswordAndIncrementSessionVersion(@Param("id") UUID id,
+                                                 @Param("encodedPassword") String encodedPassword);
 
     /**
      * Verifica se um email já existe no banco de dados
