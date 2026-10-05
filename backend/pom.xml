@@ -26,8 +26,13 @@
         <maven.pmd.version>3.28.0</maven.pmd.version>
         <spotbugs.maven.plugin.version>4.10.4.1</spotbugs.maven.plugin.version>
         <springdoc.version>3.1.1</springdoc.version>
-        <!-- swagger-ui >= 5.32.13 bundles DOMPurify 3.4.13 (>= 3.2.7), corrige CVE-2026-41238/41239/41240 -->
-        <swagger.ui.version>5.33.1</swagger.ui.version>
+        <!-- swagger-ui >= 5.32.13 bundles DOMPurify 3.4.13 (>= 3.2.7), corrige CVE-2026-41238/41239/41240.
+             Pinado em 5.32.15 (não 5.33.x): 5.33.0 introduziu uma regressão no "Try it out" do
+             Swagger UI para operações OAS3 com um único content-type de resposta (ex. nosso
+             /oauth/register, que só declara application/json) — envia `Accept: */*` em vez do
+             media type declarado (https://github.com/swagger-api/swagger-ui/issues/11070).
+             5.33.1 só traz um fix de path não relacionado; regressão ainda presente. -->
+        <swagger.ui.version>5.32.15</swagger.ui.version>
         <!-- Override de versões para CVEs além do que o BOM do Spring Boot gerencia -->
         <postgresql.version>42.7.13</postgresql.version>
         <!-- 11.0.26: patch line sobre 11.0.23, que corrigia CVE-2026-55276/53434 (9.1) e
