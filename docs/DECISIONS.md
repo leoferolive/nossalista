@@ -1494,6 +1494,10 @@ adds concorrentes na mesma lista liam o mesmo `maxPosition` e gravavam `position
   **Correcao (ver D-035):** essa expectativa nao se confirmou — o `osv-scanner.toml` da raiz
   nunca chegou a ser aplicado, porque o OSV-Scanner so o carrega automaticamente a partir do
   diretorio do proprio lockfile escaneado.
+  **Retirada (2026-09-21):** a excecao `GHSA-qwww-vcr4-c8h2` foi removida de
+  `osv-scanner.toml` e do step "Frontend audit" do `ci.yml` — o bump de
+  `react-router-dom` para `7.18.4` (rotina semanal de deps) ja resolve o
+  advisory (`npm audit --omit=dev` limpo). Ver `docs/quality-gate-debt.md`.
 
 ## D-035 `--config=osv-scanner.toml` explicito em `scan-args` (correcao de D-034)
 
