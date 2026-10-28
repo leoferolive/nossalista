@@ -1,5 +1,8 @@
 cors:
-  allowed-origins: https://nossalista.leoferolive.com.br,http://nossalista.home,http://localhost:5173,http://localhost:8080
+  # Mesma lista serve REST e WebSocket/STOMP (WebSocketConfig lê o CorsConfigurationSource).
+  # https://nossalista-dev.leoferolive.com.br é o host público do dev (Cloudflare Tunnel -> Traefik).
+  # Sem ele, o navegador manda Origin no <script type=module crossorigin> e recebe 403.
+  allowed-origins: https://nossalista.leoferolive.com.br,http://nossalista.home,http://localhost:5173,http://localhost:8080,https://nossalista-dev.leoferolive.com.br
 
 spring:
   datasource:
