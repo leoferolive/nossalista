@@ -11,13 +11,23 @@ Este documento é o contrato para quem configura o Langflow. Como o Langflow lê
    - grava o cookie `nl_lf_token` com o JWT;
    - responde `302 Location: /langflow/`.
 3. O Langflow recebe o cookie em requisições sob `/langflow` e valida o JWT com a chave do JWKS.
-4. Ao expirar (15 min), o usuário repete o launch.
+4. Antes de expirar (15 min), o cookie é renovado com `GET /api/langflow/refresh` (ver Refresh). Sem sessão válida do NossaLista, o refresh responde 401 e o usuário precisa entrar de novo e repetir o launch.
 
 ## Acesso pelo SPA
 
 O menu da conta do frontend tem o item "Langflow" (`frontend/src/components/LangflowLaunchLink.tsx`). Ele é um `<a href="/api/langflow/launch">` sem `target`, então a navegação é de página inteira e a resposta 302 grava o cookie. Não usar react-router aqui: a rota de launch não é do SPA.
 
 O item aparece para qualquer usuário logado, sem flag no frontend. Com o embed desligado (`app.langflow-embed.enabled=false`, o padrão), o item continua visível e o launch responde 404 sem corpo.
+
+## Refresh
+
+`GET /api/langflow/refresh` renova o cookie `nl_lf_token` sem redirecionar.
+
+- **Autorização igual à do launch:** sessão web por cookie. Anônimo e token OAuth do MCP recebem 401; PAT recebe 403. Com o embed desligado, responde 404.
+- **Resposta:** `204 No Content`, sem corpo e sem `Location`, com `Cache-Control: no-store`.
+- **Cookie:** o mesmo do launch (`Path=/langflow`, `Max-Age` igual ao TTL, `HttpOnly`, `SameSite=Lax`, `Secure` por padrão, sem `Domain`). O `Path` vai explícito no `Set-Cookie`, então o navegador guarda o cookie para `/langflow` mesmo com a requisição indo para `/api/**`.
+- **Validade:** cada refresh emite um token novo de 15 min. A duração total depende da sessão do NossaLista (7 dias por padrão, `jwt.expiration`): sem sessão válida, não há renovação.
+- **Quem chama:** nada no repositório chama o refresh ainda. A integração (quem chama e quando) está **a confirmar** do lado do Langflow; o NossaLista só expõe o endpoint.
 
 ## Cookie
 
@@ -92,7 +102,8 @@ Validar o token exige checar assinatura por `kid`, `iss` igual ao issuer, `aud` 
 
 ## Limitações do spike
 
-- **Sem revogação.** O token é stateless. O logout expira o cookie `nl_lf_token` no navegador, mas quem já tiver uma cópia do JWT a mantém válida até o `exp`, ou seja, até 15 min. Não há lista de revogação.
+- **Sem revogação do token.** O token é stateless. O logout expira o cookie `nl_lf_token` no navegador e o refresh passa a responder 401 para esse navegador. Por isso o acesso ao Langflow acaba em no máximo `token-ttl` (15 min) depois do logout. Quem já copiou o JWT o mantém válido até o `exp`.
+- **Sessão do NossaLista não é revogada no servidor.** O `nl_session` é JWT stateless com validade de 7 dias, e o logout só apaga o cookie do navegador. Uma cópia do `nl_session` continua renovando o cookie do Langflow até o `exp` da própria sessão, ou seja, até 7 dias após o login. Isso já valia para `/api/**`: o refresh não amplia a exposição, mas também não a fecha. Não há lista de revogação.
 - **Sem rotação de chave.** Trocar a chave exige republicar o JWKS com uma chave só, o que invalida os tokens emitidos antes.
 - **Chave em variável de ambiente.** `LANGFLOW_EMBED_RSA_PRIVATE_KEY` é segredo: nunca em arquivo versionado nem em `application*.yml`.
 

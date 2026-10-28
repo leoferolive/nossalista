@@ -6,6 +6,7 @@ import br.com.leoferolive.nossalista.langflowembed.service.LangflowEmbedTokenSer
 import br.com.leoferolive.nossalista.user.domain.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.net.URI;
 
 /**
- * Abre o Langflow para o usuário logado: grava o token do embed em cookie e redireciona.
+ * Emite o cookie do Langflow para o usuário logado: o launch abre o Langflow e o refresh
+ * renova o cookie sem redirecionar.
  *
  * <p>A autorização exige sessão web (regra em {@code SecurityConfig}); PAT e tokens
  * OAuth do MCP não passam por aqui, para não emitirem sessão do Langflow.</p>
@@ -43,8 +45,29 @@ public class LangflowLaunchController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.status(HttpStatus.FOUND)
-            .header(HttpHeaders.SET_COOKIE, cookieService.launchCookie(tokenService.issue(user)).toString())
+            .header(HttpHeaders.SET_COOKIE, newLaunchCookie(user))
             .location(URI.create(properties.getLaunchRedirect()))
             .build();
+    }
+
+    /**
+     * Renova o cookie sem redirecionar. Mesmos atributos do launch: o {@code Set-Cookie}
+     * traz {@code Path=/langflow} explícito, então o navegador guarda o cookie para o Langflow
+     * mesmo a requisição vindo de {@code /api/**}.
+     */
+    @GetMapping("/api/langflow/refresh")
+    @Operation(summary = "Renova o cookie do Langflow com uma nova validade, sem redirecionar")
+    public ResponseEntity<Void> refresh(@AuthenticationPrincipal User user) {
+        if (!properties.isEnabled()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.noContent()
+            .cacheControl(CacheControl.noStore())
+            .header(HttpHeaders.SET_COOKIE, newLaunchCookie(user))
+            .build();
+    }
+
+    private String newLaunchCookie(User user) {
+        return cookieService.launchCookie(tokenService.issue(user)).toString();
     }
 }

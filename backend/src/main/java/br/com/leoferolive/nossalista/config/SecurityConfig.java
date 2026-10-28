@@ -97,9 +97,10 @@ public class SecurityConfig {
                         // Gestão de PATs (/api/users/me/tokens/**) exige sessão web por cookie —
                         // um PAT não pode criar/listar/revogar tokens (nem o seu próprio).
                         .requestMatchers("/api/users/me/tokens/**").access(sessionOnlyManager())
-                        // Embed do Langflow: emitir o token do Langflow exige sessão web; um PAT
-                        // ou access token do MCP não pode abrir uma sessão no Langflow.
-                        .requestMatchers("/api/langflow/launch").access(langflowLaunchManager())
+                        // Embed do Langflow: emitir ou renovar o cookie do Langflow exige sessão web;
+                        // um PAT ou access token do MCP não pode abrir nem estender uma sessão no Langflow.
+                        .requestMatchers("/api/langflow/launch", "/api/langflow/refresh")
+                        .access(langflowSessionManager())
                         // Endpoints públicos - não requerem autenticação. Um PAT nunca pode
                         // ser usado aqui (ex.: login/registro), mesmo que o endpoint seja público.
                         .requestMatchers(
@@ -240,12 +241,12 @@ public class SecurityConfig {
     }
 
     /**
-     * Sessão web para o launch do Langflow quando o embed está ligado.
+     * Sessão web para o launch e o refresh do Langflow quando o embed está ligado.
      *
      * <p>Com o embed desligado a regra libera a requisição para o controller responder
      * 404. Assim a rota parece inexistente também para anônimos, sem 401 e sem chave exigida.</p>
      */
-    private AuthorizationManager<RequestAuthorizationContext> langflowLaunchManager() {
+    private AuthorizationManager<RequestAuthorizationContext> langflowSessionManager() {
         AuthorizationManager<RequestAuthorizationContext> sessionOnly = sessionOnlyManager();
         return (authentication, context) -> langflowEmbedProperties.isEnabled()
             ? sessionOnly.authorize(authentication, context)

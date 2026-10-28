@@ -82,6 +82,21 @@ class LangflowEmbedDisabledIntegrationTest {
     }
 
     @Test
+    @DisplayName("refresh com sessão responde 404 quando o embed está desligado")
+    void refreshWithSessionReturns404() throws Exception {
+        mockMvc.perform(get("/api/langflow/refresh")
+                .with(SessionCookieRequestPostProcessor.session(jwtService.generateToken(user))))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("refresh sem sessão também responde 404 quando o embed está desligado")
+    void refreshWithoutSessionReturns404() throws Exception {
+        mockMvc.perform(get("/api/langflow/refresh"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("logout com embed desligado expira a sessão e não grava nl_lf_token")
     void logoutDoesNotTouchLaunchCookie() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/logout")
