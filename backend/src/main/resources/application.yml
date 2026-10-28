@@ -161,6 +161,21 @@ app:
       # encher os slots; um TTL curto recupera espaço rápido sem incomodar um
       # cliente legítimo (completa authorize->token em minutos).
       unused-client-ttl: 24h
+  # Embed do Langflow (spike, ver docs/langflow-embed.md): o NossaLista emite um JWT RS256
+  # curto para o usuário logado e publica a chave pública em /.well-known/jwks.json.
+  # Desligado por padrão: sem enabled=true nenhuma chave é exigida e os endpoints dão 404.
+  langflow-embed:
+    enabled: ${LANGFLOW_EMBED_ENABLED:false}
+    issuer: ${LANGFLOW_EMBED_ISSUER:}
+    audience: langflow
+    token-ttl: 15m
+    # Chave privada RSA PKCS#8 em variável de ambiente; nunca em arquivo versionado.
+    private-key-pem: ${LANGFLOW_EMBED_RSA_PRIVATE_KEY:}
+    key-id: nl-langflow-1
+    cookie-name: nl_lf_token
+    cookie-path: /langflow
+    cookie-secure: ${LANGFLOW_EMBED_COOKIE_SECURE:true}
+    launch-redirect: /langflow/
   email:
     from: ${EMAIL_FROM:no-reply@nossalista.leoferolive.com.br}
     from-name: ${EMAIL_FROM_NAME:NossaLista}

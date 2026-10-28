@@ -62,6 +62,14 @@ Importantes (com default em alguns cenarios):
 > depois de decidir o tratamento das contas pre-existentes (backfill de
 > `email_verified` ou campanha de reverificacao) — ver `docs/DECISIONS.md`.
 
+> **Embed do Langflow (spike, contrato em `docs/langflow-embed.md`):**
+> - `LANGFLOW_EMBED_ENABLED` -> `app.langflow-embed.enabled` (default `false`).
+> - `LANGFLOW_EMBED_ISSUER` -> `app.langflow-embed.issuer` (obrigatoria quando ligado; URL publica do NossaLista, usada como claim `iss`).
+> - `LANGFLOW_EMBED_RSA_PRIVATE_KEY` -> `app.langflow-embed.private-key-pem` (obrigatoria quando ligado): chave privada RSA em PEM PKCS#8, com modulo de pelo menos 2048 bits. Nunca em arquivo versionado. Aceita `\n` escapado, como em secret de k8s e CI. PKCS#1 (`BEGIN RSA PRIVATE KEY`) e rejeitado.
+> - `LANGFLOW_EMBED_COOKIE_SECURE` -> `app.langflow-embed.cookie-secure` (default `true`). Desligar so em dev sobre HTTP.
+>
+> Com `enabled=false`, nenhuma dessas variaveis e exigida: a aplicacao sobe normalmente e `GET /api/langflow/launch` e `GET /.well-known/jwks.json` respondem 404. Audience, TTL do token, `key-id`, nome e path do cookie e destino do redirect ficam em `application.yml` (bloco `app.langflow-embed`), sem variavel de ambiente.
+
 Referencia de exemplo:
 - `backend/.env.example`
 

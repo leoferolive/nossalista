@@ -23,6 +23,7 @@ import br.com.leoferolive.nossalista.auth.service.SessionCookieService;
 import br.com.leoferolive.nossalista.common.exception.RateLimitExceededException;
 import br.com.leoferolive.nossalista.config.ClientIpResolver;
 import br.com.leoferolive.nossalista.config.RateLimiterService;
+import br.com.leoferolive.nossalista.langflowembed.service.LangflowEmbedCookieService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -79,6 +80,7 @@ public class AuthController {
     private final EmailVerificationService emailVerificationService;
     private final MagicLinkService magicLinkService;
     private final SessionCookieService sessionCookieService;
+    private final LangflowEmbedCookieService langflowEmbedCookieService;
 
     public AuthController(AuthService authService, JwtService jwtService,
                           UserMapper userMapper, PasswordResetService passwordResetService,
@@ -87,7 +89,8 @@ public class AuthController {
                           OAuthExchangeService oauthExchangeService,
                           EmailVerificationService emailVerificationService,
                           MagicLinkService magicLinkService,
-                          SessionCookieService sessionCookieService) {
+                          SessionCookieService sessionCookieService,
+                          LangflowEmbedCookieService langflowEmbedCookieService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
@@ -98,6 +101,7 @@ public class AuthController {
         this.emailVerificationService = emailVerificationService;
         this.magicLinkService = magicLinkService;
         this.sessionCookieService = sessionCookieService;
+        this.langflowEmbedCookieService = langflowEmbedCookieService;
     }
 
     /**
@@ -207,6 +211,8 @@ public class AuthController {
     @Operation(summary = "Encerrar a sessão atual")
     public ResponseEntity<Void> logout(HttpServletResponse httpResponse) {
         sessionCookieService.clearSession(httpResponse);
+        // Depois do cookie de sessão de propósito: o primeiro Set-Cookie é o da sessão.
+        langflowEmbedCookieService.expireLaunchCookie(httpResponse);
         return ResponseEntity.noContent().build();
     }
 

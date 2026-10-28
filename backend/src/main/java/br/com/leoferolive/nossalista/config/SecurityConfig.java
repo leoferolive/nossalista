@@ -2,6 +2,7 @@ package br.com.leoferolive.nossalista.config;
 
 import br.com.leoferolive.nossalista.auth.OAuth2SuccessHandler;
 import br.com.leoferolive.nossalista.auth.service.SessionCookieService;
+import br.com.leoferolive.nossalista.langflowembed.config.LangflowEmbedProperties;
 import br.com.leoferolive.nossalista.mcpoauth.security.McpOAuthTokenAuthenticationFilter;
 import br.com.leoferolive.nossalista.mcpoauth.security.McpWwwAuthenticateEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +52,7 @@ public class SecurityConfig {
     private final McpWwwAuthenticateEntryPoint mcpWwwAuthenticateEntryPoint;
     private final CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
     private final SessionCookieService sessionCookieService;
+    private final LangflowEmbedProperties langflowEmbedProperties;
 
     public SecurityConfig(
         JwtAuthenticationFilter jwtAuthenticationFilter,
@@ -61,7 +63,8 @@ public class SecurityConfig {
         Http403AccessDeniedHandler accessDeniedHandler,
         McpWwwAuthenticateEntryPoint mcpWwwAuthenticateEntryPoint,
         CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository,
-        SessionCookieService sessionCookieService
+        SessionCookieService sessionCookieService,
+        LangflowEmbedProperties langflowEmbedProperties
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.personalAccessTokenAuthenticationFilter = personalAccessTokenAuthenticationFilter;
@@ -72,6 +75,7 @@ public class SecurityConfig {
         this.mcpWwwAuthenticateEntryPoint = mcpWwwAuthenticateEntryPoint;
         this.authorizationRequestRepository = authorizationRequestRepository;
         this.sessionCookieService = sessionCookieService;
+        this.langflowEmbedProperties = langflowEmbedProperties;
     }
 
     @Bean
@@ -93,6 +97,9 @@ public class SecurityConfig {
                         // Gestão de PATs (/api/users/me/tokens/**) exige sessão web por cookie —
                         // um PAT não pode criar/listar/revogar tokens (nem o seu próprio).
                         .requestMatchers("/api/users/me/tokens/**").access(sessionOnlyManager())
+                        // Embed do Langflow: emitir o token do Langflow exige sessão web; um PAT
+                        // ou access token do MCP não pode abrir uma sessão no Langflow.
+                        .requestMatchers("/api/langflow/launch").access(langflowLaunchManager())
                         // Endpoints públicos - não requerem autenticação. Um PAT nunca pode
                         // ser usado aqui (ex.: login/registro), mesmo que o endpoint seja público.
                         .requestMatchers(
@@ -109,6 +116,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/.well-known/oauth-authorization-server", "/.well-known/oauth-protected-resource")
                         .permitAll()
+                        // JWKS do embed do Langflow: a chave pública é, por definição, pública
+                        .requestMatchers("/.well-known/jwks.json").permitAll()
                         // Consentimento/gestão de conexões OAuth do MCP: exige sessão web por cookie —
                         // um PAT ou um access token OAuth do MCP nunca pode aprovar um novo
                         // consentimento nem gerenciar conexões em nome do usuário.
@@ -228,6 +237,19 @@ public class SecurityConfig {
                 && !PatAuthorizationSupport.isPersonalAccessToken(auth);
             return new AuthorizationDecision(granted);
         };
+    }
+
+    /**
+     * Sessão web para o launch do Langflow quando o embed está ligado.
+     *
+     * <p>Com o embed desligado a regra libera a requisição para o controller responder
+     * 404. Assim a rota parece inexistente também para anônimos, sem 401 e sem chave exigida.</p>
+     */
+    private AuthorizationManager<RequestAuthorizationContext> langflowLaunchManager() {
+        AuthorizationManager<RequestAuthorizationContext> sessionOnly = sessionOnlyManager();
+        return (authentication, context) -> langflowEmbedProperties.isEnabled()
+            ? sessionOnly.authorize(authentication, context)
+            : new AuthorizationDecision(true);
     }
 
     /**

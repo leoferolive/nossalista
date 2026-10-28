@@ -11,7 +11,7 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 | `GET` | `/api/auth/google` | `frontend/src/components/LoginModal.tsx`, `frontend/src/pages/Login.tsx` (legado), `frontend/src/pages/JoinListPage.tsx` | Publico; responde `302 Location: /oauth2/authorization/google` relativo |
 | `POST` | `/api/auth/oauth/exchange` | `frontend/src/pages/AuthCallback.tsx` via `authApi.exchangeOAuthCode` | Publico; troca one-time code por cookie de sessao HttpOnly e perfil. Code single-use, TTL 60s |
 | `GET` | `/api/auth/csrf` | interceptor Axios | Publico; materializa `XSRF-TOKEN`, `Cache-Control: no-store` |
-| `POST` | `/api/auth/logout` | `AuthContext` via `usersApi.logout` | Expira o cookie de sessao; mutacao com sessao exige `X-XSRF-TOKEN` |
+| `POST` | `/api/auth/logout` | `AuthContext` via `usersApi.logout` | Expira o cookie de sessao; com `app.langflow-embed.enabled=true` tambem expira `nl_lf_token` (`Max-Age=0`, mesmos atributos do launch); mutacao com sessao exige `X-XSRF-TOKEN` |
 | `GET` | `/api/auth/verify-email?token=` | `frontend/src/pages/VerifyEmail.tsx` via `authApi.verifyEmail` | Publico; consome token e marca `email_verified=true` (Q2.7) |
 | `POST` | `/api/auth/resend-verification` | `authApi.resendVerification` | Publico; rate-limited (3/email/h, 10/IP/15min); sempre 200 (anti-enumeracao) (Q2.7) |
 | `POST` | `/api/auth/forgot-password` | `authApi.forgotPassword` | Publico; rate-limited; sempre 200 (anti-enumeracao) |
@@ -19,6 +19,7 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 | `POST` | `/api/auth/magic-link` | `frontend/src/components/LoginModal.tsx` via `authApi.requestMagicLink` | Publico; rate-limited (5/e-mail/1h + 15/IP/15min); sempre 200 (anti-enumeracao); 400 em corpo invalido (D-025) |
 | `POST` | `/api/auth/magic-login` | `frontend/src/pages/MagicLogin.tsx` via `authApi.magicLogin` | Publico; rate-limited (10/IP/15min); consome token (uso unico, 10min), marca `email_verified=true`, emite cookie de sessao HttpOnly e retorna somente perfil; 400 se token invalido/expirado/usado (D-025) |
 | `GET` | `/api/health` | monitoramento e auditoria operacional | Publico; retorna status, version, gitSha, gitTag, environment e buildTime |
+| `GET` | `/.well-known/jwks.json` | Langflow (embed, spike, `docs/langflow-embed.md`) | Publico; chave publica RS256 do embed; 404 com `app.langflow-embed.enabled=false` |
 | `GET` | `/api/lists/join/{inviteCode}` | `frontend/src/api/listsApi.ts` | Publico para preview do convite |
 | `WS` | `/ws/**` | `frontend/src/api/websocket.ts` | Handshake exige sessao cookie; `CONNECT` herda o usuario e nao aceita JWT |
 
@@ -32,6 +33,7 @@ Esta matriz registra os endpoints consumidos pelo frontend atual e o contrato es
 | `POST` | `/api/users/me/tokens` | `frontend/src/api/tokensApi.ts` | Requer sessao web por cookie; PAT/access token OAuth MCP nao podem acessar — PAT nao pode acessar (403) |
 | `GET` | `/api/users/me/tokens` | `frontend/src/api/tokensApi.ts` | Requer sessao web por cookie; PAT/access token OAuth MCP nao podem acessar — PAT nao pode acessar (403) |
 | `DELETE` | `/api/users/me/tokens/{id}` | `frontend/src/api/tokensApi.ts` | Requer sessao web por cookie; PAT/access token OAuth MCP nao podem acessar — PAT nao pode acessar (403); idempotente; 404 se de outro usuario |
+| `GET` | `/api/langflow/launch` | a definir (spike, `docs/langflow-embed.md`) | Requer sessao web por cookie; anonimo, access token OAuth do MCP e qualquer Bearer nao-PAT 401; PAT 403. Responde 302 para `/langflow/` e grava o cookie `nl_lf_token` (HttpOnly, SameSite=Lax, Path=/langflow, Max-Age=900, sem Domain). Com `app.langflow-embed.enabled=false`, 404 mesmo sem sessao |
 | `GET` | `/api/users/search` | `frontend/src/api/listsApi.ts` | Requer sessao web por cookie |
 | `POST` | `/api/lists` | `frontend/src/api/listsApi.ts` | Requer sessao web por cookie |
 | `GET` | `/api/lists` | `frontend/src/api/listsApi.ts` | Requer sessao web por cookie |
