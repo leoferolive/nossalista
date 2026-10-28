@@ -116,8 +116,6 @@ class LangflowEmbedTokenServiceTest {
         assertThat(claims.get("email", String.class)).isEqualTo("ana@example.com");
         assertThat(claims.get("preferred_username", String.class)).isEqualTo("ana.lista");
         assertThat(claims.get("name", String.class)).isEqualTo("Ana Lista");
-        assertThat(claims.getExpiration().toInstant())
-            .isEqualTo(claims.getIssuedAt().toInstant().plus(Duration.ofMinutes(15)));
     }
 
     @Test
@@ -167,16 +165,18 @@ class LangflowEmbedTokenServiceTest {
     }
 
     @Test
-    @DisplayName("iat usa o relógio injetado")
-    void issuedAtUsesInjectedClock() {
-        Instant fixed = Instant.parse("2026-10-28T12:00:00Z");
+    @DisplayName("iat fica 30 s no passado e exp é agora + token-ttl, não iat + token-ttl")
+    void issuedAtIsThirtySecondsBeforeNowAndExpIsRelativeToNow() {
+        Instant now = Instant.parse("2026-10-28T12:00:00Z");
         LangflowEmbedTokenService service = new LangflowEmbedTokenService(
-            keyService(KEYS), properties(Duration.ofMinutes(15)), Clock.fixed(fixed, ZoneOffset.UTC));
+            keyService(KEYS), properties(Duration.ofMinutes(15)), Clock.fixed(now, ZoneOffset.UTC));
 
         String token = service.issue(user("Ana Lista"));
 
-        Claims claims = verifyAt(token, publicKeyFromPublishedJwks(), fixed.plusSeconds(1)).getPayload();
-        assertThat(claims.getIssuedAt()).isEqualTo(Date.from(fixed));
-        assertThat(claims.getExpiration()).isEqualTo(Date.from(fixed.plus(Duration.ofMinutes(15))));
+        Claims claims = verifyAt(token, publicKeyFromPublishedJwks(), now.plusSeconds(1)).getPayload();
+        assertThat(claims.getIssuedAt()).isEqualTo(Date.from(now.minusSeconds(30)));
+        assertThat(claims.getExpiration()).isEqualTo(Date.from(now.plus(Duration.ofMinutes(15))));
+        assertThat(Duration.between(claims.getIssuedAt().toInstant(), claims.getExpiration().toInstant()))
+            .isEqualTo(Duration.ofMinutes(15).plusSeconds(30));
     }
 }

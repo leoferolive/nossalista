@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
@@ -18,6 +19,16 @@ import java.util.Date;
  */
 @Service
 public class LangflowEmbedTokenService {
+
+    /**
+     * Quanto o {@code iat} fica no passado em relação ao instante de emissão.
+     *
+     * <p>O Langflow (PyJWT) rejeita token com {@code iat} no futuro e não aplica tolerância
+     * de relógio. Um skew de poucos segundos entre o NossaLista e o Langflow gera 401 silencioso.
+     * Por isso o {@code iat} vai 30 s para trás. O {@code exp} continua calculado a partir de
+     * "agora", então a validade real é {@code token-ttl} mais 30 s.</p>
+     */
+    static final Duration ISSUED_AT_SKEW = Duration.ofSeconds(30);
 
     private final LangflowEmbedKeyService keyService;
     private final LangflowEmbedProperties properties;
@@ -35,7 +46,8 @@ public class LangflowEmbedTokenService {
     }
 
     /**
-     * Emite um token para o usuário autenticado, com {@code exp = iat + token-ttl}.
+     * Emite um token para o usuário autenticado: {@code iat = agora - 30 s} e
+     * {@code exp = agora + token-ttl}.
      *
      * <p>Exemplo: {@code String token = tokenService.issue(user);}</p>
      *
@@ -52,7 +64,7 @@ public class LangflowEmbedTokenService {
             .claim("email", user.getEmail())
             .claim("preferred_username", user.getUsername())
             .claim("name", displayName(user))
-            .issuedAt(Date.from(now))
+            .issuedAt(Date.from(now.minus(ISSUED_AT_SKEW)))
             .expiration(Date.from(now.plus(properties.getTokenTtl())))
             .signWith(keyService.privateKey(), Jwts.SIG.RS256)
             .compact();

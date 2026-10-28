@@ -63,10 +63,16 @@ Header: `{"alg":"RS256","kid":"nl-langflow-1"}`.
 | `email` | e-mail do usuário |
 | `preferred_username` | username do usuário |
 | `name` | nome de exibição; se vazio, o username |
-| `iat` | emissão (segundos desde a época) |
-| `exp` | `iat` + 15 min |
+| `iat` | agora - 30 s (segundos desde a época). Ver a seção de skew abaixo |
+| `exp` | agora + 15 min (`token-ttl`), calculado a partir do instante de emissão, não do `iat` |
 
 Não há claim de papel ou de lista. Autorização por lista e por usuário fica do lado do Langflow, se for necessária.
+
+### Por que `iat` vai 30 s para trás
+
+O Langflow valida o token com PyJWT, que rejeita `iat` no futuro e não aplica tolerância de relógio. Se o relógio do NossaLista estiver alguns segundos adiante do relógio do Langflow, o token novo é recusado e o usuário vê um 401 sem explicação. Para evitar isso, o `iat` sai 30 s no passado (constante `LangflowEmbedTokenService.ISSUED_AT_SKEW`).
+
+O `exp` não acompanha o `iat`: ele é `agora + token-ttl`. Por isso a validade efetiva, medida a partir do `iat`, é 15 min e 30 s. O cookie tem `Max-Age` igual ao TTL, então o navegador descarta o cookie no mesmo instante em que o `exp` vence.
 
 ## Como validar
 
