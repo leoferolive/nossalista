@@ -32,3 +32,17 @@ spec:
                 name: nossalista-dev
                 port:
                   number: 80
+    # Domínio público do dev (Cloudflare Tunnel -> Traefik, mesmo modelo do prod).
+    # O hostname precisa existir também no tunnel (Zero Trust > Tunnels > Public Hostnames,
+    # serviço nossalista-dev.nossalista-dev.svc.cluster.local:80). Necessário para o JWKS
+    # do embed do Langflow, que só aceita https.
+    - host: nossalista-dev.leoferolive.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nossalista-dev
+                port:
+                  number: 80
