@@ -350,4 +350,39 @@ describe('AppHeader', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/profile')
   })
+
+  it('oferece o link do Langflow no menu da conta, com navegação completa', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+
+    const langflow = screen.getByRole('menuitem', { name: 'Langflow' })
+    expect(langflow).toHaveAttribute('href', '/api/langflow/launch')
+    expect(langflow).not.toHaveAttribute('target')
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('oferece o link do Langflow no sheet mobile', async () => {
+    mockIsMobile = true
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter>
+        <AppHeader title="Minhas Listas" />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu da conta' }))
+
+    expect(screen.getByRole('link', { name: 'Langflow' })).toHaveAttribute(
+      'href',
+      '/api/langflow/launch'
+    )
+  })
 })

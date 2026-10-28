@@ -54,6 +54,12 @@ npm run dev:mock
 - Login por senha e troca do code Google retornam somente o perfil e escrevem o cookie no backend. Logout chama `POST /api/auth/logout`.
 - SockJS autentica pelo cookie do handshake; nao envie JWT nos query params ou no frame STOMP `CONNECT`.
 
+### Langflow (spike)
+
+- O item "Langflow" do menu da conta (`LangflowLaunchLink`) aponta para `/api/langflow/launch` com `<a href>` e sem `target`, na mesma aba. E navegacao de pagina inteira, nao react-router: o cookie `nl_lf_token` so e gravado pela resposta 302 do backend.
+- Aparece para qualquer usuario logado, no dropdown desktop e no sheet mobile. Nao ha flag no frontend: com `app.langflow-embed.enabled=false` no backend, o launch responde 404 sem corpo.
+- Contrato do embed (cookie, JWKS, claims): `docs/langflow-embed.md`.
+
 ## Notificacoes (online + push)
 
 - Notificacoes online no sino ficam sempre ativas para usuario autenticado (conexao WebSocket global enquanto estiver logado).

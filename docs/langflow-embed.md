@@ -13,6 +13,12 @@ Este documento é o contrato para quem configura o Langflow. Como o Langflow lê
 3. O Langflow recebe o cookie em requisições sob `/langflow` e valida o JWT com a chave do JWKS.
 4. Ao expirar (15 min), o usuário repete o launch.
 
+## Acesso pelo SPA
+
+O menu da conta do frontend tem o item "Langflow" (`frontend/src/components/LangflowLaunchLink.tsx`). Ele é um `<a href="/api/langflow/launch">` sem `target`, então a navegação é de página inteira e a resposta 302 grava o cookie. Não usar react-router aqui: a rota de launch não é do SPA.
+
+O item aparece para qualquer usuário logado, sem flag no frontend. Com o embed desligado (`app.langflow-embed.enabled=false`, o padrão), o item continua visível e o launch responde 404 sem corpo.
+
 ## Cookie
 
 | Atributo | Valor |

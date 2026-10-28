@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useOnboarding } from '../contexts/OnboardingContext'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { LangflowLaunchLink } from './LangflowLaunchLink'
 import { NotificationBell } from './NotificationBell'
 import { ResponsiveSheet } from './ResponsiveSheet'
 import { ThemeToggle } from './ThemeToggle'
@@ -210,6 +211,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 <span>Conexões (API/Assistentes)</span>
               </span>
             </button>
+
+            {user ? <LangflowLaunchLink role={actionRole} /> : null}
           </div>
         </section>
 
