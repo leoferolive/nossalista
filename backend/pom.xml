@@ -21,18 +21,19 @@
     <properties>
         <java.version>25</java.version>
         <jjwt.version>0.13.0</jjwt.version>
-        <jacoco.version>0.8.15</jacoco.version>
+        <jacoco.version>0.8.16</jacoco.version>
         <maven.checkstyle.version>3.6.0</maven.checkstyle.version>
         <maven.pmd.version>3.28.0</maven.pmd.version>
-        <spotbugs.maven.plugin.version>4.10.4.1</spotbugs.maven.plugin.version>
-        <springdoc.version>3.1.1</springdoc.version>
+        <spotbugs.maven.plugin.version>4.10.5.0</spotbugs.maven.plugin.version>
+        <springdoc.version>3.2.0</springdoc.version>
         <!-- swagger-ui >= 5.32.13 bundles DOMPurify 3.4.13 (>= 3.2.7), corrige CVE-2026-41238/41239/41240 -->
-        <swagger.ui.version>5.33.1</swagger.ui.version>
+        <swagger.ui.version>5.34.1</swagger.ui.version>
         <!-- Override de versões para CVEs além do que o BOM do Spring Boot gerencia -->
-        <postgresql.version>42.7.13</postgresql.version>
+        <postgresql.version>42.7.14</postgresql.version>
         <!-- 11.0.24: patch em cima de 11.0.23, que corrigia CVE-2026-55276/53434 (9.1) e
-             CVE-2026-53404 (7.3), presentes em 11.0.22 -->
-        <tomcat.version>11.0.24</tomcat.version>
+             CVE-2026-53404 (7.3), presentes em 11.0.22. 11.0.27: bump patch rotineiro
+             (chore/deps-upgrade-2026-11-09), sem CVE nova associada a esta subida. -->
+        <tomcat.version>11.0.27</tomcat.version>
         <netty.version>4.2.17.Final</netty.version>
         <!-- spring-boot-starter-parent 4.1.0 sobe o BOM do Flyway para 12.4.0 (major).
              Pinado em 11.20.3 (topo do major 11 já em uso) para manter este bump patch/minor-only;
@@ -73,7 +74,7 @@
             <dependency>
                 <groupId>org.asynchttpclient</groupId>
                 <artifactId>async-http-client</artifactId>
-                <version>3.0.13</version>
+                <version>3.0.14</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -250,7 +251,7 @@
         <dependency>
             <groupId>com.tngtech.archunit</groupId>
             <artifactId>archunit-junit5</artifactId>
-            <version>1.5.0</version>
+            <version>1.5.1</version>
             <scope>test</scope>
         </dependency>
 
@@ -489,7 +490,7 @@
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
-                <version>1.30.0</version>
+                <version>1.30.2</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.pitest</groupId>
